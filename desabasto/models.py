@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from django.core.validators import validate_email
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
+from django.contrib.postgres.fields import JSONField
 
 
 @python_2_unicode_compatible
@@ -118,6 +119,7 @@ class CLUES(models.Model):
     )
 
     rr_data = models.TextField(blank=True, null=True)
+    alternative_names = JSONField(blank=True, null=True)
 
     def __str__(self):
         return self.clues
@@ -161,9 +163,11 @@ class Report(models.Model):
         verbose_name=u"Nombre de medicamento / Insumo faltante")
 
     state = models.ForeignKey(
-        State, blank=True, null=True, verbose_name=u"Entidad", on_delete=models.CASCADE)
+        State, blank=True, null=True, verbose_name=u"Entidad",
+        on_delete=models.CASCADE)
     institution = models.ForeignKey(
-        Institution, blank=True, null=True, verbose_name=u"Institución", on_delete=models.CASCADE)
+        Institution, blank=True, null=True, verbose_name=u"Institución",
+        on_delete=models.CASCADE)
     institution_raw = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Institución escrita")
@@ -547,7 +551,8 @@ class Presentation(models.Model):
 @python_2_unicode_compatible
 class Container(models.Model):
     presentation = models.ForeignKey(
-        Presentation, related_name=u"containers", blank=True, null=True, on_delete=models.CASCADE)
+        Presentation, related_name=u"containers", blank=True, null=True,
+        on_delete=models.CASCADE)
     name = models.TextField()
     key = models.CharField(verbose_name=u"Clave", max_length=20)
     key2 = models.CharField(
@@ -591,7 +596,7 @@ class Supply(models.Model):
         Report, related_name="supplies", on_delete=models.CASCADE)
     component = models.ForeignKey(
         Component, blank=True, null=True, on_delete=models.CASCADE)
-    # container = models.ForeignKey(Container, blank=True, null=True, on_delete=models.CASCADE)
+    # container = models.ForeignKey(Container, blank=True, null=True)
     presentation = models.ForeignKey(
         Presentation, blank=True, null=True, on_delete=models.CASCADE)
 
@@ -610,7 +615,8 @@ class Supply(models.Model):
         blank=True, null=True,
     )
     disease = models.ForeignKey(
-        'Disease', blank=True, null=True, verbose_name="Padecimiento", on_delete=models.CASCADE)
+        'Disease', blank=True, null=True, verbose_name="Padecimiento",
+        on_delete=models.CASCADE)
 
     def __str__(self):
         return u"%s - %s" % (
@@ -688,7 +694,7 @@ class Medic(models.Model):
         return str(self.clave_medico)
 
 
-@python_2_unicode_compatible
+"""@python_2_unicode_compatible
 class RecipeReport(models.Model):
     year_month = models.IntegerField(blank=True, null=True)
     # clues = models.ForeignKey(CLUES, blank=True, null=True)
@@ -714,10 +720,10 @@ class RecipeReport(models.Model):
         verbose_name_plural = "RecipeReports"
 
     def __str__(self):
-        return self.folio_documento
+        return self.folio_documento"""
 
 
-@python_2_unicode_compatible
+"""@python_2_unicode_compatible
 class RecipeMedicine(models.Model):
     recipe_id = models.IntegerField(blank=True, null=True)
 
@@ -737,14 +743,21 @@ class RecipeMedicine(models.Model):
         verbose_name_plural = "RecipeItems"
 
     def __str__(self):
-        return str(self.rn)
+        return str(self.rn)"""
 
 
 @python_2_unicode_compatible
 class RecipeReport2(models.Model):
     """Nueva vercion del modelo Recipe con atomizado de datos"""
-    folio_documento = models.CharField(max_length=40, primary_key=True)
-    tipo_documento = models.ForeignKey(DocumentType, on_delete=models.CASCADE)
+    folio_ocamis = models.CharField(max_length=48, primary_key=True)
+    tipo_documento = models.ForeignKey(
+        DocumentType, on_delete=models.CASCADE)
+    folio_documento = models.CharField(max_length=40)
+    iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
+    iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
+    iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
+    fecha_emision = models.DateTimeField(blank=True, null=True)
+    fecha_entrega = models.DateTimeField(blank=True, null=True)
 
     delegacion = models.ForeignKey(
         State, blank=True, null=True, on_delete=models.CASCADE)
@@ -772,8 +785,6 @@ class RecipeReport2(models.Model):
 class RecipeMedicine2(models.Model):
     recipe = models.ForeignKey(RecipeReport2, on_delete=models.CASCADE)
 
-    fecha_emision = models.DateTimeField(blank=True, null=True)
-    fecha_entrega = models.DateTimeField(blank=True, null=True)
     clave_medicamento = models.CharField(max_length=20, blank=True, null=True)
     cantidad_prescrita = models.IntegerField(blank=True, null=True)
     cantidad_entregada = models.IntegerField(blank=True, null=True)

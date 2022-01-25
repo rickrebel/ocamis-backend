@@ -12,6 +12,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = os.getenv("DESABASTO_SECRET_KEY", "SECRET_KEY_value")
 
+PRODUCTION_DB = False
 
 DEBUG = os.getenv("DESABASTO_DEBUG", True) in [True, 1, "True", "1"]
 
@@ -97,12 +98,28 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+if PRODUCTION_DB:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': "yeeko_cerodesabasto",
+            'USER': "user_yeeko",
+            'PASSWORD': "nf9ckpgA?",
+            'HOST': "yeeko.czmsoc73u0v0.us-west-2.rds.amazonaws.com",
+            'PORT': 5432
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': "local_desabasto",
+            'USER': "postgres",
+            'PASSWORD': "postgres",
+            'HOST': "localhost",
+            'PORT': 5432
+        }
+    }
 
 
 # Password validation
