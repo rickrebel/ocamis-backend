@@ -12,7 +12,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = os.getenv("DESABASTO_SECRET_KEY", "SECRET_KEY_value")
 
-PRODUCTION_DB = False
+IS_PRODUCTION = os.getenv("DESABASTO_PROD", True) in [True, 1, "True", "1"]
 
 DEBUG = os.getenv("DESABASTO_DEBUG", True) in [True, 1, "True", "1"]
 
@@ -98,7 +98,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-if PRODUCTION_DB:
+if DESABASTO_PROD:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
