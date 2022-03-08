@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from xlsx_export.generic import GenericModelExport
+"""from xlsx_export.generic import GenericModelExport
 from . import serializers
 from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
@@ -633,4 +633,4 @@ class ReportMedicineView(views.APIView):
             "name": title,
             "reports_count": len(reports),
             "reports": reports},
-            status=status.HTTP_200_OK)
+            status=status.HTTP_200_OK)"""

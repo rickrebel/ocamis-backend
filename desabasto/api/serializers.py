@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-from desabasto.models import (
+"""from desabasto.models import (
     State, Institution, Report, Supply, Responsable, CLUES, Component,
     Presentation, TestimonyMedia, Container,
     Group, PresentationType, Alliances, Disease
@@ -346,3 +346,4 @@ class DiseaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Disease
         fields = "__all__"
+"""

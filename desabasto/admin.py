@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.contrib.admin import AdminSite
 from django.contrib.admin.filters import SimpleListFilter
 
-from .models import (
+"""from .models import (
     # RecipeMedicine,
     # RecipeReport,
     # RecipeReportLog,
@@ -430,3 +430,4 @@ class PurchaseRawAdmin(admin.ModelAdmin):
 
 
 admin.site.register(PurchaseRaw, PurchaseRawAdmin)
+"""

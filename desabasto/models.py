@@ -46,8 +46,10 @@ class Institution(models.Model):
 
 @python_2_unicode_compatible
 class CLUES(models.Model):
-    state = models.ForeignKey(State, on_delete=models.CASCADE)
-    institution = models.ForeignKey(Institution, on_delete=models.CASCADE)
+    #state = models.ForeignKey(State, on_delete=models.CASCADE)
+    state = models.IntegerField()
+    #institution = models.ForeignKey(Institution, on_delete=models.CASCADE)
+    institution = models.IntegerField()
 
     name = models.CharField(
         max_length=255, verbose_name=u"NOMBRE DE LA UNIDAD")
@@ -134,16 +136,18 @@ class Responsable(models.Model):
         max_length=255, verbose_name=u"responsible", blank=True, null=True)
     position = models.CharField(
         max_length=255, verbose_name=u"Cargo o posición")
-    institution = models.ForeignKey(
-        Institution, related_name="responsables",
-        blank=True, null=True, on_delete=models.CASCADE)
+    #institution = models.ForeignKey(
+    #    Institution, related_name="responsables",
+    institution = models.IntegerField(blank=True, null=True)
 
-    state = models.ForeignKey(
-        State, blank=True, null=True, related_name="responsables",
-        on_delete=models.CASCADE)
-    clues = models.ForeignKey(
-        CLUES, blank=True, null=True, related_name="responsables",
-        on_delete=models.CASCADE)
+    #state = models.ForeignKey(
+    #    State, blank=True, null=True, related_name="responsables",
+    #    on_delete=models.CASCADE)
+    state = models.IntegerField(blank=True, null=True)
+    #clues = models.ForeignKey(
+    #    CLUES, blank=True, null=True, related_name="responsables",
+    #    on_delete=models.CASCADE)
+    clues = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return u"%s - %s" % (self.name, self.institution)
@@ -162,17 +166,21 @@ class Report(models.Model):
         max_length=255, blank=True, null=True,
         verbose_name=u"Nombre de medicamento / Insumo faltante")
 
-    state = models.ForeignKey(
-        State, blank=True, null=True, verbose_name=u"Entidad",
-        on_delete=models.CASCADE)
-    institution = models.ForeignKey(
-        Institution, blank=True, null=True, verbose_name=u"Institución",
-        on_delete=models.CASCADE)
+    #state = models.ForeignKey(
+    #    State, blank=True, null=True, verbose_name=u"Entidad",
+    #    on_delete=models.CASCADE)
+    state = models.IntegerField(blank=True, null=True, verbose_name=u"Entidad")
+    #institution = models.ForeignKey(
+    #    Institution, blank=True, null=True, verbose_name=u"Institución",
+    #    on_delete=models.CASCADE)
+    institution = models.IntegerField(
+        blank=True, null=True, verbose_name=u"Institución")
     institution_raw = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Institución escrita")
-    clues = models.ForeignKey(
-        CLUES, blank=True, null=True, on_delete=models.CASCADE)
+    #clues = models.ForeignKey(
+    #    CLUES, blank=True, null=True, on_delete=models.CASCADE)
+    clues = models.IntegerField(blank=True, null=True)
     is_other = models.BooleanField(
         default=False, verbose_name=u"Es otra institución")
     hospital_name_raw = models.CharField(
@@ -416,8 +424,9 @@ class Report(models.Model):
 
 @python_2_unicode_compatible
 class TestimonyMedia(models.Model):
-    report = models.ForeignKey(
-        Report, related_name=u"testimonies_media", on_delete=models.CASCADE)
+    #report = models.ForeignKey(
+    #    Report, related_name=u"testimonies_media", on_delete=models.CASCADE)
+    report = models.IntegerField()
     media_file = models.FileField(
         upload_to="cero_desabasto",
         blank=True, null=True)
@@ -458,8 +467,9 @@ class Component(models.Model):
     presentation_count = models.IntegerField(default=1)
     frequency = models.IntegerField(default=0, blank=True, null=True)
 
-    group = models.ForeignKey(
-        Group, blank=True, null=True, on_delete=models.CASCADE)
+    #group = models.ForeignKey(
+    #    Group, blank=True, null=True, on_delete=models.CASCADE)
+    group = models.IntegerField(blank=True, null=True)
     presentations_raw = models.TextField(blank=True, null=True)
 
     origen_cvmei = models.BooleanField(default=False)
@@ -497,8 +507,9 @@ class PresentationType(models.Model):
     common_name = models.CharField(max_length=255, blank=True, null=True)
     alias = models.CharField(max_length=255, blank=True, null=True)
     presentation_count = models.IntegerField(default=0)
-    agrupated_in = models.ForeignKey(
-        "PresentationType", blank=True, null=True, on_delete=models.CASCADE)
+    #agrupated_in = models.ForeignKey(
+    #    "PresentationType", blank=True, null=True, on_delete=models.CASCADE)
+    agrupated_in = models.IntegerField(blank=True, null=True)
 
     origen_cvmei = models.BooleanField(default=False)
 
@@ -522,10 +533,12 @@ class PresentationType(models.Model):
 
 @python_2_unicode_compatible
 class Presentation(models.Model):
-    component = models.ForeignKey(
-        Component, related_name=u"presentations", on_delete=models.CASCADE)
-    presentation_type = models.ForeignKey(
-        PresentationType, blank=True, null=True, on_delete=models.CASCADE)
+    #component = models.ForeignKey(
+    #    Component, related_name=u"presentations", on_delete=models.CASCADE)
+    component = models.IntegerField()
+    #presentation_type = models.ForeignKey(
+    #    PresentationType, blank=True, null=True, on_delete=models.CASCADE)
+    presentation_type = models.IntegerField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     presentation_type_raw = models.CharField(
         max_length=255, blank=True, null=True)
@@ -537,8 +550,9 @@ class Presentation(models.Model):
 
     origen_cvmei = models.BooleanField(default=False)
 
-    group = models.ForeignKey(
-        Group, blank=True, null=True, on_delete=models.CASCADE)
+    #group = models.ForeignKey(
+    #    Group, blank=True, null=True, on_delete=models.CASCADE)
+    group = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return u" ".join([self.component.name, self.short_attributes or ""])
@@ -550,9 +564,10 @@ class Presentation(models.Model):
 
 @python_2_unicode_compatible
 class Container(models.Model):
-    presentation = models.ForeignKey(
-        Presentation, related_name=u"containers", blank=True, null=True,
-        on_delete=models.CASCADE)
+    #presentation = models.ForeignKey(
+    #    Presentation, related_name=u"containers", blank=True, null=True,
+    #    on_delete=models.CASCADE)
+    presentation = models.IntegerField(blank=True, null=True)
     name = models.TextField()
     key = models.CharField(verbose_name=u"Clave", max_length=20)
     key2 = models.CharField(
@@ -592,13 +607,16 @@ class Supply(models.Model):
         ("otro", u"Otro"),
     )
 
-    report = models.ForeignKey(
-        Report, related_name="supplies", on_delete=models.CASCADE)
-    component = models.ForeignKey(
-        Component, blank=True, null=True, on_delete=models.CASCADE)
+    #report = models.ForeignKey(
+    #    Report, related_name="supplies", on_delete=models.CASCADE)
+    report = models.IntegerField()
+    #component = models.ForeignKey(
+    #    Component, blank=True, null=True, on_delete=models.CASCADE)
+    component = models.IntegerField(blank=True, null=True)
     # container = models.ForeignKey(Container, blank=True, null=True)
-    presentation = models.ForeignKey(
-        Presentation, blank=True, null=True, on_delete=models.CASCADE)
+    #presentation = models.ForeignKey(
+    #    Presentation, blank=True, null=True, on_delete=models.CASCADE)
+    presentation = models.IntegerField(blank=True, null=True)
 
     medicine_type = models.CharField(
         max_length=20, verbose_name=u"Tipo de Medicamento",
@@ -614,9 +632,10 @@ class Supply(models.Model):
         max_length=255, verbose_name=u"Nombre real del medicamento",
         blank=True, null=True,
     )
-    disease = models.ForeignKey(
-        'Disease', blank=True, null=True, verbose_name="Padecimiento",
-        on_delete=models.CASCADE)
+    #disease = models.ForeignKey(
+    #    'Disease', blank=True, null=True, verbose_name="Padecimiento",
+    #    on_delete=models.CASCADE)
+    disease = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return u"%s - %s" % (
@@ -683,8 +702,9 @@ class MedicalSpeciality(models.Model):
 class Medic(models.Model):
     clave_medico = models.CharField(primary_key=True, max_length=30)
     nombre_medico = models.CharField(max_length=255)
-    especialidad_medico = models.ForeignKey(
-        MedicalSpeciality, on_delete=models.CASCADE)
+    #especialidad_medico = models.ForeignKey(
+    #    MedicalSpeciality, on_delete=models.CASCADE)
+    especialidad_medico = models.IntegerField()
 
     class Meta:
         verbose_name = "Medic"
@@ -750,8 +770,9 @@ class RecipeMedicine(models.Model):
 class RecipeReport2(models.Model):
     """Nueva vercion del modelo Recipe con atomizado de datos"""
     folio_ocamis = models.CharField(max_length=48, primary_key=True)
-    tipo_documento = models.ForeignKey(
-        DocumentType, on_delete=models.CASCADE)
+    #tipo_documento = models.ForeignKey(
+    #    DocumentType, on_delete=models.CASCADE)
+    tipo_documento = models.IntegerField()
     folio_documento = models.CharField(max_length=40)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
     iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
@@ -759,12 +780,15 @@ class RecipeReport2(models.Model):
     fecha_emision = models.DateTimeField(blank=True, null=True)
     fecha_entrega = models.DateTimeField(blank=True, null=True)
 
-    delegacion = models.ForeignKey(
-        State, blank=True, null=True, on_delete=models.CASCADE)
-    clues = models.ForeignKey(
-        CLUES, blank=True, null=True, on_delete=models.CASCADE)
-    medico = models.ForeignKey(
-        Medic, blank=True, null=True, on_delete=models.CASCADE)
+    #delegacion = models.ForeignKey(
+    #    State, blank=True, null=True, on_delete=models.CASCADE)
+    delegacion = models.IntegerField(blank=True, null=True)
+    #clues = models.ForeignKey(
+    #    CLUES, blank=True, null=True, on_delete=models.CASCADE)
+    clues = models.IntegerField(blank=True, null=True)
+    #medico = models.ForeignKey(
+    #    Medic, blank=True, null=True, on_delete=models.CASCADE)
+    medico = models.IntegerField(blank=True, null=True)
 
     year_month = models.IntegerField(blank=True, null=True)
     clave_presupuestal = models.CharField(max_length=20, blank=True, null=True)
@@ -783,7 +807,8 @@ class RecipeReport2(models.Model):
 
 @python_2_unicode_compatible
 class RecipeMedicine2(models.Model):
-    recipe = models.ForeignKey(RecipeReport2, on_delete=models.CASCADE)
+    #recipe = models.ForeignKey(RecipeReport2, on_delete=models.CASCADE)
+    recipe = models.IntegerField()
 
     clave_medicamento = models.CharField(max_length=20, blank=True, null=True)
     cantidad_prescrita = models.IntegerField(blank=True, null=True)
