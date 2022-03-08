@@ -558,7 +558,8 @@ def converter_file_in_related_files(
                 "fecha_entrega": fecha_entrega,
                 "nivel_atencion": nivel_atencion,
                 "clave_medico": clave_medico,
-                "delivered_medicine": []
+                "delivered_medicine": [],
+                "year_month": int(year_month)
             }
 
         recipe_medicine_data = get_recipe_medicine_data(
@@ -628,7 +629,8 @@ def converter_file_in_related_files(
             recipe_data.get("fecha_entrega"),
             recipe_data.get("nivel_atencion"),
             recipe_data.get("clave_medico"),
-            recipe_delivered])
+            recipe_delivered,
+            int(year_month)])
     # ordenado por folio_documento
     print "se encontraron %s folios repetidos" % len(exists_folios)
     data_file_recipe.sort(key=lambda x: x[1])
@@ -684,6 +686,7 @@ def converter_file_in_related_files(
                 "nivel_atencion",
                 "medico_id",
                 "delivered",
+                "year_month",
             ],
             "table_name": "desabasto_recipereport2",
             "data_file": data_file_recipe,

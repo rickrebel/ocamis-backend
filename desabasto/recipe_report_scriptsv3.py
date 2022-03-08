@@ -48,7 +48,7 @@ options2 = "csv DELIMITER '|' NULL 'NULL' ENCODING 'LATIN1'"
 catalog_document_type = {}
 catalog_clues = {}
 catalog_state = {}
-claves_medico = []
+claves_medico_dicc = {}
 claves_medicamento = []
 catalog_medical_speciality = {}
 institution_obj = None
@@ -74,10 +74,10 @@ def massive_upload_csv_to_db(
         return
     print("start process: ", timezone.now())
     for year in years:
-        for mon in xrange(12):
+        for mon in range(12):
             month = mon + 1
             base_path = "%s%s%s" % (year, '0' if month < 10 else '', month)
-            for file_num in xrange(8):
+            for file_num in range(8):
                 rr_file_name = "reporte_recetas_%s_%s.csv" % (
                     base_path, file_num + 1)
                 recipe_path = "recipe_%s" % (rr_file_name)
@@ -123,16 +123,26 @@ def get_data_from_file(reporte_recetas_path, clean_data=True):
     import io
 
     with_coma = False
+    from_excel = False
     try:
         # with open(reporte_recetas_path) as file:
+        #with io.open(reporte_recetas_path, "r", encoding="latin-1") as file:
         with io.open(reporte_recetas_path, "r", encoding="latin-1") as file:
             data = file.read()
             if "|" not in data[:3000]:
                 with_coma = True
+            if "," not in data[:5000] and "|" not in data[:5000]:
+                print("-------------------")
+                print('empty %s' % reporte_recetas_path)
+                return False, ['empty %s' % reporte_recetas_path], False
+            if ",,," in data[:5000]:
+                from_excel = True
 
             if clean_data:
                 if with_coma:
                     data = special_coma(data)
+                if from_excel:
+                    data = special_excel(data)
                 data = data.replace("\"", "").replace(first_null, "")
                 data = clean_special(data)
             file.close()
@@ -203,8 +213,11 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
         institution_upper = institution.upper()
         clues_data_query = list(
             CLUES.objects.filter(
-                institution__code=institution_upper, is_searchable=True)
-            .values_list("state__name", "name", "tipology_cve", "id")
+                institution__code=institution_upper)
+            .values_list(
+                "state__name", "name", "tipology_cve",
+                "id", "alternative_names"
+            )
         )
         for clues_data in clues_data_query:
             cves = clues_data[2].split("/")
@@ -219,6 +232,12 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
                     catalog_clues[real_name] = [clues_data]
                 else:
                     catalog_clues[real_name].append(clues_data)
+            if clues_data[4]:
+                for alt_name in clues_data[4]:
+                    if alt_name not in catalog_clues:
+                        catalog_clues[alt_name] = [clues_data]
+                    else:
+                        catalog_clues[alt_name].append(clues_data)
 
     try:
         unidad_medica = unidecode.unidecode(unidad_medica).upper()
@@ -246,7 +265,20 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
             similar_clues.sort(key=get_similar_value, reverse=True)
             clues = catalog_clues[similar_clues[0][0]]
             catalog_clues[unidad_medica] = clues
-            # print (clues)
+            try:
+                clues_obj = CLUES.objects.get(id=clues[0][3])
+                alt_names = clues_obj.alternative_names
+                if alt_names:
+                    alt_names.append(unidad_medica)
+                    clues_obj.alternative_names = alt_names
+                    print(u"más de una alternativa:")
+                    print(clues[0][3])
+                else:
+                    clues_obj.alternative_names = [unidad_medica]
+                clues_obj.save()
+            except:
+                print(u"no se contempló el artificial_id:")
+                print(clues[0][3])
 
     if not clues:
         # print ("---------")
@@ -276,9 +308,9 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
             "unknown",
             "unknown",
             "unknown",
+            "unk",
             "unknown",
-            "unknown",
-            "unknown",
+            "unkn",
             "unknown",
             0, 0, 0, 0, 0,
             "unknown",
@@ -286,12 +318,13 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
             "unknown",
             0
         ])
+        #print(len(data_file_clues))
 
-        clues = [[state.name, unidad_medica, "unknown", artificial_id]]
+        clues = [[state.name, unidad_medica, "unknown", artificial_id, None]]
         catalog_clues[unidad_medica] = clues
         return artificial_id
     else:
-        return clues
+        return clues[0][3]
 
 
 def check_clave_medicamento(clave_medicamento, descripcion_medicamento):
@@ -334,20 +367,23 @@ def get_especialidad_medico_id(especialidad_medico):
 
 def check_clave_medico(clave_medico, nombre_medico, especialidad_medico):
     from desabasto.models import Medic
-    global claves_medico
     global data_file_medico
-    if not claves_medico:
+    global claves_medico_dicc
+    if not claves_medico_dicc:
         claves_medico = list(
             Medic.objects.values_list("clave_medico", flat=True))
-    if clave_medico not in claves_medico:
-        claves_medico.append(clave_medico)
+        claves_medico_dicc = {}
+        for clave in claves_medico:
+            claves_medico_dicc[clave] = True
+    if clave_medico not in claves_medico_dicc and clave_medico is not 1000000000:
+        claves_medico_dicc[clave_medico] = True
         data_file_medico.append([
             clave_medico, nombre_medico,
             get_especialidad_medico_id(especialidad_medico)])
         # agregar al medico al archivo para generar medico
 
 
-def get_recipe_report_data(text_data, institution="issste"):
+def divide_recipe_report_data(text_data):
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
     if rr_data_count < 17:
@@ -357,7 +393,10 @@ def get_recipe_report_data(text_data, institution="issste"):
     elif rr_data_count == 17:
         # esto agrega RN para los casos en las que no lo trae
         recipe_report_data.append("NULL")
+    return recipe_report_data
 
+
+def get_recipe_report_data(recipe_report_data, institution="issste"):
     delegacion = recipe_report_data[0]
     unidad_medica = recipe_report_data[2]
     tipo_unidad_med = recipe_report_data[3]
@@ -365,15 +404,36 @@ def get_recipe_report_data(text_data, institution="issste"):
 
     clues_id = get_clues_id(
         delegacion, unidad_medica, tipo_unidad_med, institution)
-    # clues_id = 0
+    if not clues_id or clues_id == "":
+        print(recipe_report_data)
+    #clues_id = 0
 
     tipo_documento_id = get_tipo_documento(recipe_report_data[5])
-    # tipo_documento_id = 0
+    #tipo_documento_id = 0
 
-    folio_documento = recipe_report_data[6]
-    fecha_emision = recipe_report_data[7]
     fecha_entrega = recipe_report_data[8]
 
+    # ###revicion de existencia de clave_medico
+    clave_medico = recipe_report_data[13]
+    nombre_medico = recipe_report_data[14]
+    especialidad_medico = recipe_report_data[15]
+    clave_medico = clave_medico if not clave_medico == "NULL" else 1000000000
+    nombre_medico = nombre_medico if not nombre_medico == "NULL" else "unknown"
+    especialidad_medico = (especialidad_medico
+                           if not especialidad_medico == "NULL"
+                           else "unknown")
+    check_clave_medico(clave_medico, nombre_medico, especialidad_medico)
+
+    return [
+        clues_id,
+        tipo_documento_id,
+        fecha_entrega,
+        nivel_atencion,
+        clave_medico,
+    ]
+
+
+def get_recipe_medicine_data(recipe_report_data):
     clave_medicamento = recipe_report_data[9]
     descripcion_medicamento = recipe_report_data[10]
     check_clave_medicamento(clave_medicamento, descripcion_medicamento)
@@ -411,31 +471,13 @@ def get_recipe_report_data(text_data, institution="issste"):
     else:
         delivered_type = "NULL"
 
-    # ###revicion de existencia de clave_medico
-    clave_medico = recipe_report_data[13]
-    nombre_medico = recipe_report_data[14]
-    especialidad_medico = recipe_report_data[15]
-    clave_medico = clave_medico if not clave_medico == "NULL" else 1000000000
-    nombre_medico = nombre_medico if not nombre_medico == "NULL" else "unknown"
-    especialidad_medico = (especialidad_medico
-                           if not especialidad_medico == "NULL"
-                           else "unknown")
-    check_clave_medico(clave_medico, nombre_medico, especialidad_medico)
-
     return [
-        clues_id,
-        tipo_documento_id,
-        folio_documento,
-        nivel_atencion,
-        fecha_emision,
-        fecha_entrega,
         clave_medicamento,
         cantidad_prescrita,
         cantidad_entregada,
         precio_medicamento,
         delivered_type,
         rn,
-        clave_medico,
     ]
 
 
@@ -446,6 +488,8 @@ def converter_file_in_related_files(
         medico_path="test_medico.csv", clues_path="test_clues.csv",
         container_path="test_container.csv"):
     from desabasto.models import RecipeReport2
+    from datetime import datetime
+    #import io
     print("start get_data_from_file: ", timezone.now())
     rr_data_rows, errors, with_coma = get_data_from_file(
         reporte_recetas_path, clean_data)
@@ -483,44 +527,71 @@ def converter_file_in_related_files(
 
     print("start for rr_data_rows: ", timezone.now())
     # for rr_data_row in rr_data_rows:
+    last_date = None
+    iso_date = None
+    first_iso = None
     for idx, rr_data_row in enumerate(rr_data_rows):
-        if idx % 10000 == 0:
+        if idx % 100000 == 0:
             print("idx: %s" % idx, timezone.now())
         # rr_data_row = rr_data_row.decode('latin-1').encode("utf-8")
         # rr_data_row = rr_data_row.encode("utf-8")
-        recipe_report_data = get_recipe_report_data(rr_data_row, institution)
-        if not recipe_report_data:
+        recipe_report_prev_data = divide_recipe_report_data(rr_data_row)
+        if not recipe_report_prev_data:
             continue
-        (clues_id,
-         tipo_documento_id,
-         folio_documento,
-         nivel_atencion,
-         fecha_emision,
-         fecha_entrega,
-         clave_medicamento,
+
+        folio_documento = recipe_report_prev_data[6]
+        fecha_emision = recipe_report_prev_data[7]
+
+        if last_date != fecha_emision[:10]:
+            last_date = fecha_emision[:10]
+            #Cálculo de la semana epidemiológica:
+            curr_date = datetime.strptime(last_date, '%Y-%m-%d')
+            iso_date = curr_date.isocalendar()
+            if not first_iso:
+                first_iso = iso_date
+
+        folio_ocamis = "%s-%s-%s" % (iso_date[0], iso_date[1], folio_documento)
+
+        if folio_ocamis not in recipes_data:
+            recipe_report_data = get_recipe_report_data(
+                recipe_report_prev_data, institution)
+            (clues_id,
+             tipo_documento_id,
+             fecha_entrega,
+             nivel_atencion,
+             clave_medico) = recipe_report_data
+
+            recipes_data[folio_ocamis] = {
+                "clues_id": clues_id,
+                "folio_ocamis": folio_ocamis,
+                "tipo_documento_id": tipo_documento_id,
+                "folio_documento": folio_documento,
+                "iso_year": iso_date[0],
+                "iso_week": iso_date[1],
+                "iso_day": iso_date[2],
+                "fecha_emision": fecha_emision,
+                "fecha_entrega": fecha_entrega,
+                "nivel_atencion": nivel_atencion,
+                "clave_medico": clave_medico,
+                "delivered_medicine": [],
+                "year_month": year_month
+            }
+
+        recipe_medicine_data = get_recipe_medicine_data(
+            recipe_report_prev_data)
+
+        (clave_medicamento,
          cantidad_prescrita,
          cantidad_entregada,
          precio_medicamento,
          delivered_type,
-         rn,
-         clave_medico) = recipe_report_data
+         rn) = recipe_medicine_data
 
-        if folio_documento not in recipes_data:
-            recipes_data[folio_documento] = {
-                "clues_id": clues_id,
-                "tipo_documento_id": tipo_documento_id,
-                "folio_documento": folio_documento,
-                "nivel_atencion": nivel_atencion,
-                "clave_medico": clave_medico,
-                "delivered_medicine": []
-            }
-        recipes_data[folio_documento]["delivered_medicine"]\
+        recipes_data[folio_ocamis]["delivered_medicine"]\
             .append(delivered_type)
 
         data_file_medicine.append([
-            folio_documento,
-            fecha_emision,
-            fecha_entrega,
+            folio_ocamis,
             clave_medicamento,
             cantidad_prescrita,
             cantidad_entregada,
@@ -531,19 +602,25 @@ def converter_file_in_related_files(
 
     print("finish for rr_data_rows: ", timezone.now())
     # creacion del archivo de folios apartir del recipes_data
-    folios_list = sorted([folio for folio in recipes_data])
-    folio_lt = folios_list[0]
-    folio_gt = folios_list[-1]
+    #folios_list = sorted([folio for folio in recipes_data])
+    #folio_lt = folios_list[0]
+    #folio_gt = folios_list[-1]
 
     range_folios = list(
         RecipeReport2.objects
-        .filter(folio_documento__lte=folio_lt, folio_documento__gte=folio_gt)
-        .values_list("folio_documento", flat=True))
+        .filter(iso_year=first_iso[0], iso_week=first_iso[1])
+        .values_list("folio_ocamis", flat=True))
+
+    range_folios_dicc = {}
+    for fol in range_folios:
+        range_folios_dicc[fol] = True
     exists_folios = []
 
     print("start for recipes_data: ", timezone.now())
-    for folio_document, recipe_data in recipes_data.items():
-        folio_documento = recipe_data.get("folio_documento")
+    for folio_ocami, recipe_data in recipes_data.items():
+        folio_ocamis = recipe_data.get("folio_ocamis")
+        if not folio_ocamis:
+            continue
 
         delivered_medicine = recipe_data.get("delivered_medicine")
         if not delivered_medicine:
@@ -556,20 +633,29 @@ def converter_file_in_related_files(
             else:
                 recipe_delivered = "ptl"
 
-        if folio_documento in range_folios:
-            exists_folios.append([folio_documento, recipe_delivered])
+        if folio_ocamis in range_folios_dicc:
+            exists_folios.append([folio_ocamis, recipe_delivered])
             # si ya existe, deverimos actualizar su recipe_delivered?
+            print(folio_ocamis)
             continue
 
         data_file_recipe.append([
             recipe_data.get("clues_id"),
+            folio_ocamis,
             recipe_data.get("tipo_documento_id"),
-            folio_documento,
+            recipe_data.get("folio_documento"),
+            recipe_data.get("iso_year"),
+            recipe_data.get("iso_week"),
+            recipe_data.get("iso_day"),
+            recipe_data.get("fecha_emision"),
+            recipe_data.get("fecha_entrega"),
             recipe_data.get("nivel_atencion"),
             recipe_data.get("clave_medico"),
-            recipe_delivered])
+            recipe_delivered,
+            year_month])
     # ordenado por folio_documento
-    data_file_recipe.sort(key=lambda x: x[2])
+    print("start sort:", timezone.now())
+    data_file_recipe.sort(key=lambda x: x[1])
 
     print("finish for recipes_data: ", timezone.now())
     print("se termino de calcular los objetos recipe")
@@ -581,14 +667,14 @@ def converter_file_in_related_files(
         {
             "path": clues_path,
             "fields": [
-                "id", "state_id", "institution_id", "name",
+                "id", "state_id", "institution_id", "name", "is_searchable",
                 "municipality_inegi_code", "municipality", "tipology",
                 "tipology_cve", "id_clues", "clues", "status_operation",
                 "longitude", "latitude", "locality", "locality_inegi_code",
                 "jurisdiction", "jurisdiction_clave", "establishment_type",
                 "consultings_general", "consultings_other", "beds_hopital",
                 "beds_other", "total_unities", "admin_institution",
-                "atention_level", "stratum"
+                "atention_level", "stratum", "is_national"
             ],
             "table_name": "desabasto_clues",
             "data_file": data_file_clues,
@@ -611,11 +697,18 @@ def converter_file_in_related_files(
             "path": recipe_path,
             "fields": [
                 "clues_id",
+                "folio_ocamis",
                 "tipo_documento_id",
                 "folio_documento",
+                "iso_year",
+                "iso_week",
+                "iso_day",
+                "fecha_emision",
+                "fecha_entrega",
                 "nivel_atencion",
                 "medico_id",
                 "delivered",
+                "year_month",
             ],
             "table_name": "desabasto_recipereport2",
             "data_file": data_file_recipe,
@@ -624,8 +717,6 @@ def converter_file_in_related_files(
             "path": medicine_path,
             "fields": [
                 "recipe_id",
-                "fecha_emision",
-                "fecha_entrega",
                 "clave_medicamento",
                 "cantidad_prescrita",
                 "cantidad_entregada",
@@ -637,15 +728,18 @@ def converter_file_in_related_files(
             "data_file": data_file_medicine,
         }]
 
+    print(data_file_recipe[0])
     for update_config in update_configs:
         csv_path = update_config.get("path")
         data_file = update_config.get("data_file")
         print(csv_path)
         print(True if data_file else False)
-        with open(csv_path, 'wb') as file:
-            write = csv.writer(file, delimiter='|')
+        #with open(csv_path, 'wb', encoding="latin-1") as csv_file:
+        #with open(csv_path, 'r', encoding="latin-1") as csv_file:
+        with open(csv_path, 'w', encoding="latin-1", newline="") as csv_file:
+            write = csv.writer(csv_file, delimiter='|')
             write.writerows(data_file)
-            file.close()
+            csv_file.close()
 
     if update_files:
         for update_config in update_configs:
@@ -711,6 +805,17 @@ def special_coma(all_data):
     return all_data
 
 
+def special_excel(all_data):
+    import re
+    rows = all_data.split("\n")
+    final_rows = []
+    for row in rows:
+        new_row = re.sub(r'(\,)+$', r'', row)
+        final_rows.append(new_row)
+    all_data = sep_rows.join(final_rows)
+    return all_data
+
+
 def clean_special(data):
     message_final = 'sys.databases\n'
     idx_col = 0
@@ -759,7 +864,7 @@ def upload_csv_to_database(file_path, table_name, columns):
     sql = "COPY %s(%s) FROM '%s\\%s' %s;" % (
         table_name, columns_join, base_dir, file_path, options)
 
-    desabasto_conection = getattr(settings, "DATABASES").get("desabasto_db")
+    desabasto_conection = getattr(settings, "DATABASES").get("default")
     con = psycopg2.connect(
         database=desabasto_conection.get("NAME"),
         user=desabasto_conection.get("USER"),
