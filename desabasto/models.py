@@ -788,7 +788,7 @@ class RecipeReport2(models.Model):
     clues = models.IntegerField(blank=True, null=True)
     #medico = models.ForeignKey(
     #    Medic, blank=True, null=True, on_delete=models.CASCADE)
-    medico = models.IntegerField(blank=True, null=True)
+    medico = models.CharField(max_length=48, blank=True, null=True)
 
     year_month = models.IntegerField(blank=True, null=True)
     clave_presupuestal = models.CharField(max_length=20, blank=True, null=True)
@@ -808,7 +808,7 @@ class RecipeReport2(models.Model):
 @python_2_unicode_compatible
 class RecipeMedicine2(models.Model):
     #recipe = models.ForeignKey(RecipeReport2, on_delete=models.CASCADE)
-    recipe = models.IntegerField()
+    recipe = models.CharField(max_length=48)
 
     clave_medicamento = models.CharField(max_length=20, blank=True, null=True)
     cantidad_prescrita = models.IntegerField(blank=True, null=True)
