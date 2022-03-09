@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "desabasto.apps.DesabastoConfig",
     "catalog.apps.CatalogConfig",
+    "medicine.apps.MedicineConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
 ]
 
