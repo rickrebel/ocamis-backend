@@ -17,4 +17,8 @@ urlpatterns = [
 
     # Endpoints
     re_path(r'^desabasto/', include('desabasto.api.urls')),
+    re_path(r'^catalog/', include('catalog.api.urls')),
+    re_path(r'^medicine/', include('medicine.api.urls')),
+    re_path(r'^report/', include('report.api.urls')),
+    re_path(r'^recipe/', include('recipe.api.urls')),
 ]
