@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "catalog.apps.CatalogConfig",
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",
+    "recipe.apps.RecipeConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
 ]
 

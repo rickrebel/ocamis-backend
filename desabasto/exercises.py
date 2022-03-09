@@ -13,17 +13,21 @@ def generate_key2():
 
 
 def clean_old_imports():
-    from desabasto.models import (
-        Container, CLUES, RecipeReportLog, Medic, MedicalSpeciality)
+    #from desabasto.models import (
+    #    Container, CLUES, RecipeReportLog, Medic, MedicalSpeciality)
+    from recipe.models import RecipeReportLog, Medic, MedicalSpeciality
+    from catalog.models import CLUES
+    from medicine.models import Container
     Container.objects.filter(presentation__isnull=True).delete()
     CLUES.objects.filter(clues__isnull=True).delete()
     RecipeReportLog.objects.all().delete()
     MedicalSpeciality.objects.all().delete()
     if not Medic.objects.filter(clave_medico='1000000000').exists():
-        med_spec = MedicalSpeciality.objects.create(name='unknown')
+        med_spec, created = MedicalSpeciality.objects.create(name='unknown')
         Medic.objects.create(
             nombre_medico="unknown", clave_medico=1000000000,
-            especialidad_medico=med_spec)
+            especialidad_medico=med_spec.id)
+
 
 TRUNCATE
     desabasto_recipemedicine2,
