@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "desabasto.apps.DesabastoConfig",
+    "catalog.apps.CatalogConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
 ]
 
