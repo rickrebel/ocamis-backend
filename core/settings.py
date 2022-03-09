@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "desabasto.apps.DesabastoConfig",
     "catalog.apps.CatalogConfig",
     "medicine.apps.MedicineConfig",
+    "report.apps.ReportConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
 ]
 
