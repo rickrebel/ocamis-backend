@@ -12,15 +12,6 @@ from .models import (
 )
 
 
-"""class DesabastoAdminSite(AdminSite):
-    site_header = "Yeeko Desabasto Admin"
-    site_title = "Yeeko Desabasto Admin Portal"
-    index_title = "Welcome to Yeeko Desabasto Portal"
-
-
-desabasto_admin_site = DesabastoAdminSite(name='desabasto_admin')"""
-
-
 class StateAdmin(admin.ModelAdmin):
     list_display = [
         "inegi_code",

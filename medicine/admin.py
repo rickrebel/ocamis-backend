@@ -15,7 +15,7 @@ from .models import (
 class PresentationTypeAdmin(admin.ModelAdmin):
     list_display = ["id", "name", "common_name", "alias"]
     list_filter = ["origen_cvmei"]
-    #raw_id_fields = ["agrupated_in"]
+    raw_id_fields = ["agrupated_in"]
     search_fields = ["name", "common_name", "alias"]
 
 
@@ -34,7 +34,7 @@ class ContainerAdmin(admin.ModelAdmin):
         "short_name",
     ]
     list_filter = ["is_current", "origen_cvmei"]
-    #raw_id_fields = ["presentation"]
+    raw_id_fields = ["presentation"]
     search_fields = ["name", "key", "short_name"]
 
 
@@ -52,7 +52,7 @@ class PresentationAdmin(admin.ModelAdmin):
         "presentation_type_raw",
     ]
     list_filter = ["origen_cvmei"]
-    #raw_id_fields = ["component"]
+    raw_id_fields = ["component"]
     search_fields = [
         "description",
         "presentation_type_raw",
@@ -66,18 +66,18 @@ class PresentationAdmin(admin.ModelAdmin):
 admin.site.register(Presentation, PresentationAdmin)
 
 
-"""class PresentationInline(admin.StackedInline):
+class PresentationInline(admin.StackedInline):
     model = Presentation
-    extra = 0"""
+    extra = 0
 
 
 class ComponentAdmin(admin.ModelAdmin):
     list_display = [
         "short_name", "alias", "frequency", "is_vaccine",
         "len_short_name_display"]
-    """inlines = [
+    inlines = [
         PresentationInline
-    ]"""
+    ]
     search_fields = ["name", "alias", "short_name"]
     list_filter = ["origen_cvmei", "is_vaccine"]
 

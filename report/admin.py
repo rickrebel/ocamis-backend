@@ -45,7 +45,7 @@ class ResponsableAdmin(admin.ModelAdmin):
         "state",
         "clues",
     ]
-    #raw_id_fields = ["institution", "state", "clues", ]
+    raw_id_fields = ["institution", "state", "clues", ]
     search_fields = [
         "name",
         "emails",
@@ -63,7 +63,7 @@ admin.site.register(Responsable, ResponsableAdmin)
 
 class TestimonyMediaAdmin(admin.ModelAdmin):
     list_display = ["report", "media_file", "url"]
-    #raw_id_fields = ["report"]
+    raw_id_fields = ["report"]
 
 
 admin.site.register(TestimonyMedia, TestimonyMediaAdmin)
@@ -92,7 +92,7 @@ admin.site.register(Supply, SupplyAdmin)
 class SupplyInLine(admin.StackedInline):
     model = Supply
     extra = 0
-    #raw_id_fields = ["component", "presentation"]
+    raw_id_fields = ["component", "presentation"]
 
 
 class TestimonyMediaInLine(admin.StackedInline):
@@ -113,9 +113,9 @@ class ReportAdmin(admin.ModelAdmin):
         "has_testimony"]
     list_filter = ["institution", "state", TestimonyNullFilterSpec]
     readonly_fields = ["created"]
-    #inlines = [SupplyInLine, TestimonyMediaInLine]
-    #raw_id_fields = ["clues",  # "validator"
-    #                 ]
+    inlines = [SupplyInLine, TestimonyMediaInLine]
+    raw_id_fields = ["clues",  # "validator"
+                     ]
 
     fieldsets = [
         [None, {"fields": ["created", "origin_app", "disease_raw", "age"]}],

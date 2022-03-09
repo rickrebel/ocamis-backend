@@ -42,7 +42,7 @@ class Medic(models.Model):
     class Meta:
         verbose_name = "Medic"
         verbose_name_plural = "Medics"
-        db_table = u'desabasto_medic'
+        db_table = u'medic'
 
     def __str__(self):
         return str(self.clave_medico)
