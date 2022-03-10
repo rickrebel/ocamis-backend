@@ -2,17 +2,22 @@
 from . import serializers
 from rest_framework import permissions, views, status
 
-from api.mixins import ListMix
+from api.mixins import (
+    ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 from desabasto.api.views import StandardResultsSetPagination
 
 from catalog.models import Institution, State, CLUES
 from rest_framework.response import Response
 
 
-class StateList(ListMix):
+class StateViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.StateListSerializer
     queryset = State.objects.all()
+    action_serializers = {
+        "list": serializers.StateListSerializer,
+        "retrieve": serializers.StateSerializer,
+    }
 
 
 class InstitutionList(ListMix):

@@ -4,8 +4,9 @@ from __future__ import unicode_literals
 from django.core.validators import validate_email
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
-from catalog.models import Institution, State, CLUES
+from catalog.models import Institution, State, CLUES, Municipality
 from medicine.models import Component, Presentation
+from django.contrib.postgres.fields import JSONField
 
 
 @python_2_unicode_compatible
@@ -39,6 +40,49 @@ class Responsable(models.Model):
         db_table = u'desabasto_responsable'
 
 
+class Persona(models.Model):
+    TYPE = (
+        ("paciente", u"Paciente"),
+        ("profesional", u"Profesional"),
+        ("vacuna", u"Vacuna"),
+    )
+
+    informer_name = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name=u"Nombre")
+    email = models.CharField(
+        max_length=255, validators=[validate_email],
+        verbose_name=u"Correo de contacto", blank=True, null=True)
+    phone = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name=u"Número de contacto")
+    informer_type = models.CharField(
+        max_length=20, choices=TYPE,
+        verbose_name=u"Tipo de Informante")
+    age = models.IntegerField(
+        verbose_name="Edad",
+        blank=True, null=True
+    )
+    gender = models.CharField(
+        max_length=40, verbose_name="Género", blank=True, null=True
+    )
+    special_group = models.CharField(
+        max_length=80,
+        verbose_name="Grupo especial",
+        blank=True, null=True
+    )
+    comorbilities = JSONField(
+        verbose_name="Comorbilidades",
+        blank=True, null=True
+    )
+
+    class Meta:
+        verbose_name = u"Persona Reportante"
+        verbose_name_plural = u"Personas Reportantes"
+
+    def __str__(self):
+        return self.informer_name or "sin datos"
+
+
 @python_2_unicode_compatible
 class Report(models.Model):
     TYPE = (
@@ -55,7 +99,8 @@ class Report(models.Model):
     state = models.ForeignKey(
         State, blank=True, null=True, verbose_name=u"Entidad",
         on_delete=models.CASCADE)
-    #state = models.IntegerField(blank=True, null=True, verbose_name=u"Entidad")
+    #state = models.IntegerField(
+    #   blank=True, null=True, verbose_name=u"Entidad")
     institution = models.ForeignKey(
         Institution, blank=True, null=True, verbose_name=u"Institución",
         on_delete=models.CASCADE)
@@ -307,6 +352,71 @@ class Report(models.Model):
         verbose_name = u"Reporte"
         verbose_name_plural = u"Reportes"
         db_table = u'desabasto_report'
+
+
+class CovidReport(models.Model):
+    persona = models.ForeignKey(
+        Persona, blank=True, null=True, verbose_name=u"Persona reportante",
+        on_delete=models.CASCADE)
+    state = models.ForeignKey(
+        State, blank=True, null=True, verbose_name=u"Entidad",
+        on_delete=models.CASCADE)
+    municipality = models.ForeignKey(
+        Municipality, blank=True, null=True,
+        verbose_name=u"Municipio residencia",
+        on_delete=models.CASCADE)
+    has_corruption = models.NullBooleanField(
+        verbose_name=u"¿Incluyó corrupción?")
+    narration = models.TextField(
+        blank=True, null=True,
+        verbose_name=u"Relato de la corrupción")
+    created = models.DateTimeField(
+        auto_now_add=True, verbose_name=u"Fecha de Registro")
+    origin_app = models.CharField(
+        max_length=100, default="CD2",
+        verbose_name=u"Aplicación")
+    validated = models.NullBooleanField(default=None, blank=True, null=True)
+    validator = models.IntegerField(blank=True, null=True)
+    testimony = models.TextField(blank=True, null=True)
+    validated_date = models.DateTimeField(blank=True, null=True)
+    pending = models.BooleanField(default=False)
+    sent_email = models.NullBooleanField(blank=True, null=True)
+    session_ga = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return u"%s - %s" % (self.state, self.created)
+
+    class Meta:
+        verbose_name = u"Reporte COVID"
+        verbose_name_plural = u"Reportes COVID"
+
+
+class DosisCovid(models.Model):
+    covid_report = models.ForeignKey(
+        CovidReport, blank=True, null=True, verbose_name=u"Reporte Covid",
+        on_delete=models.CASCADE)
+    is_success = models.BooleanField(
+        default=False, verbose_name="Es dosis aplicada")
+    state = models.ForeignKey(
+        State, blank=True, null=True, verbose_name=u"Entidad",
+        on_delete=models.CASCADE)
+    municipality = models.ForeignKey(
+        Municipality, blank=True, null=True, verbose_name=u"Municipio",
+        on_delete=models.CASCADE)
+    other_location = models.CharField(max_length=255, null=True, blank=True)
+    brand = models.CharField(max_length=255, null=True, blank=True)
+    round_dosis = models.CharField(
+        max_length=60, blank=True, null=True, verbose_name=u"Número de dosis")
+    date = models.DateTimeField(blank=True, null=True, verbose_name=u"Fecha")
+    reason_negative = models.TextField(
+        blank=True, null=True, verbose_name=u"Razón de negativa")
+
+    def __str__(self):
+        return u"%s - %s" % (self.brand or '?', self.round_dosis or '?')
+
+    class Meta:
+        verbose_name = u"Dosis"
+        verbose_name_plural = u"Dosis aplicadas y negadas"
 
 
 @python_2_unicode_compatible

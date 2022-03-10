@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from report.models import Responsable
 from catalog.models import (
-    State, Institution, CLUES, Alliances
+    State, Institution, CLUES, Alliances, Municipality
 )
 #from report.api.serializers import ResponsableListSerializer
 
@@ -15,7 +15,15 @@ class ResponsableListSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class MunicipalityListSerializers(serializers.ModelSerializer):
+
+    class Meta:
+        model = Municipality
+        fields = "__all__"
+
+
 class StateSerializer(serializers.ModelSerializer):
+    municipalities = MunicipalityListSerializers(many=True)
 
     class Meta:
         model = State

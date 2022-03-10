@@ -25,6 +25,22 @@ class State(models.Model):
         db_table = u'desabasto_state'
 
 
+class Municipality(models.Model):
+    inegi_code = models.CharField(max_length=6, verbose_name=u"Clave INEGI")
+    name = models.CharField(max_length=120, verbose_name=u"Nombre")
+    state = models.ForeignKey(
+        State, verbose_name="Entidad",
+        null=True, on_delete=models.CASCADE,
+        related_name="municipalities")
+
+    def __unicode__(self):
+        return u"%s - %s" % (self.name, self.state)
+
+    class Meta:
+        verbose_name = u"Municipio"
+        verbose_name_plural = u"Municipios"
+
+
 @python_2_unicode_compatible
 class Institution(models.Model):
     name = models.CharField(

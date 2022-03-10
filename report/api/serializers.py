@@ -2,7 +2,8 @@
 from rest_framework import serializers
 
 from report.models import (
-    Report, Supply, Responsable, TestimonyMedia, Disease)
+    Report, Supply, TestimonyMedia, Disease,
+    CovidReport, DosisCovid, Persona)
 from medicine.api.serializers import (
     ComponentFullSerializer, PresentationSerializer)
 from catalog.api.serializers import (
@@ -23,10 +24,31 @@ class SupplyListSerializer(serializers.ModelSerializer):
         read_only_fields = ["report"]
 
 
+class DosisCovidListSerializer(serializers.ModelSerializer):
+    create = serializers.DateTimeField(
+        format="%d/%m/%Y", read_only=True, source="covid_report.created")
+    state = serializers.ReadOnlyField(source="covid_report.state.id")
+    municipality = serializers.ReadOnlyField(
+        source="covid_report.municipality.id")
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = DosisCovid
+        fields = "__all__"
+        read_only_fields = ["covid_report"]
+
+
 class TestimonyMediaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TestimonyMedia
+        fields = "__all__"
+
+
+class PersonaSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Persona
         fields = "__all__"
 
 
@@ -105,6 +127,88 @@ class ReportSerializer(serializers.ModelSerializer):
             "validated_date", "pending"]
 
 
+class CovidReportSerializer(serializers.ModelSerializer):
+    #supplies = SupplyListSerializer(many=True)
+    dosis = DosisCovidListSerializer(many=True)
+    persona = PersonaSerializer()
+
+    def create(self, validated_data):
+        dosis_items = validated_data.pop('dosis', [])
+        persona_data = validated_data.pop('persona')
+        persona = Persona.objects.create(**persona_data)
+        validated_data["persona"] = persona.id
+        covid_report = CovidReport.objects.create(**validated_data)
+        for dosis_item in dosis_items:
+            dosis = DosisCovid()
+            dosis.covid_report = covid_report
+            # el validador de datos convierte los ids en objetos, pero el
+            # validador del serializador no los acepta, por lo que hay que
+            # sacarlos antes del validador del serializador
+            """if "component" in dosis_item:
+                dosis.component = dosis_item.pop("component")
+            if "presentation" in dosis_item:
+                dosis.presentation = dosis_item.pop("presentation")"""
+
+            #serializer = SupplyListSerializer(dosis, data=dosis_item)
+            serializer = DosisCovidListSerializer(dosis, data=dosis_item)
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                print(serializer.errors)
+
+        #report.send_responsable()
+        return covid_report
+
+    """def update(self, instance, validated_data):
+        supplies_items = validated_data.pop('supplies', [])
+        super(ReportSerializer, self).update(instance, validated_data)
+        actual_id_supplies = []
+        for supply_item in supplies_items:
+
+            if "id" in supply_item:
+                supply = Supply.objects.filter(
+                    id=supply_item["id"], report=instance).first()
+                if not supply:
+                    continue
+            else:
+                supply = Supply()
+                supply.report = instance
+
+            if "component" in supply_item:
+                supply.component = supply_item.pop("component")
+            if "presentation" in supply_item:
+                supply.presentation = supply_item.pop("presentation")
+            if "disease" in supply_item:
+                supply.disease = supply_item.pop("disease")
+
+            serializer = SupplyListSerializer(supply, data=supply_item)
+            if serializer.is_valid():
+                supply = serializer.save()
+                actual_id_supplies.append(supply.id)
+            else:
+                print(serializer.errors)
+
+        Supply.objects.filter(report=instance)\
+            .exclude(id__in=actual_id_supplies).delete()
+        return instance"""
+
+    class Meta:
+        model = CovidReport
+        fields = "__all__"
+        """[
+            "id", "state", "disease_raw", "institution", "is_other",
+            "institution_raw", "hospital_name_raw", "clues", "has_corruption",
+            "narration", "informer_name", "email", "phone", "informer_type",
+            "disease_raw", "created", "trimester", "validated", "origin_app",
+            "testimony", "want_litigation", "validator", "validated_date",
+            "pending", "public_testimony", "supplies", "session_ga", "age"
+        ]"""
+        read_only_fields = [
+            "created", "validated",  # "origin_app",
+            "validator",
+            "validated_date", "pending"]
+
+
 class ReportUpdateSerializer(ReportSerializer):
     supplies = SupplyListSerializer(many=True)
 
@@ -116,6 +220,19 @@ class ReportUpdateSerializer(ReportSerializer):
             "phone", "informer_type", "disease_raw", "created", "trimester",
             "origin_app", "testimony", "want_litigation", "validator",
             "validated_date", "public_testimony", "session_ga"]
+
+
+class CovidReportUpdateSerializer(ReportSerializer):
+    supplies = SupplyListSerializer(many=True)
+
+    class Meta:
+        model = Report
+        fields = ReportSerializer.Meta.fields
+        """read_only_fields = [
+            "id", "has_corruption", "narration", "informer_name", "email",
+            "phone", "informer_type", "disease_raw", "created", "trimester",
+            "origin_app", "testimony", "want_litigation", "validator",
+            "validated_date", "public_testimony", "session_ga"]"""
 
 
 class SupplyFullNextSerializer(serializers.ModelSerializer):

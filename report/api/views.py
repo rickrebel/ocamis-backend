@@ -9,9 +9,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
-from report.models import (Report, Supply)
+from report.models import (Report, Supply, Disease, CovidReport)
 
-from api.mixins import ListMix
+from api.mixins import (ListMix, CreateMix, MultiSerializerModelViewSet)
 from api.mixins import (MultiSerializerListCreateRetrieveUpdateMix as
                         ListCreateRetrieveUpdateMix)
 
@@ -19,7 +19,6 @@ from catalog.models import State, Institution, Alliances
 from catalog.api.serializers import (
     StateSerializer, InstitutionSerializer, AlliancesSerializer)
 from report.api.serializers import DiseaseSerializer
-from report.models import Disease
 # --------Paginacion-----------------------------------------------------------
 
 
@@ -171,6 +170,70 @@ class ReportView(ListCreateRetrieveUpdateMix):
         report.save()
 
         return Response(status=status.HTTP_202_ACCEPTED)
+
+
+class CovidReportView2(views.APIView):
+    permission_classes = (IsAdminOrCreateOnly,)
+    serializer_class = serializers.CovidReportSerializer
+    queryset = CovidReport.objects.all()
+    #pagination_class = HeavyResultsSetPagination
+
+
+#class CovidReportView(views.APIView):
+class CovidReportView(ListCreateRetrieveUpdateMix):
+    permission_classes = (IsAdminOrCreateOnly,)
+    serializer_class = serializers.CovidReportSerializer
+    queryset = CovidReport.objects.all()
+    """#pagination_class = HeavyResultsSetPagination"""
+    action_serializers = {
+        "update": serializers.CovidReportUpdateSerializer,
+        #"list": serializers.CovidReportSerializer,
+        #"create": serializers.CovidReportSerializer,
+        #"get": serializers.CovidReportSerializer,
+    }
+
+    def update(self, request, **kwargs):
+        from django.utils import timezone
+        self.check_permissions(request)
+        report = self.get_object()
+        report.validator = request.user.id
+        report.validated_date = timezone.now()
+        serializer = self.get_serializer_class()(report, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response({"errors": serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request, **kwargs):
+        #from django.utils import timezone
+        self.check_permissions(request)
+        print("success post")
+        report = self.get_object()
+        #report.validator = request.user.id
+        #report.validated_date = timezone.now()
+        serializer = self.get_serializer_class()(report, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response({"errors": serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, **kwargs):
+        #from django.utils import timezone
+        self.check_permissions(request)
+        report = self.get_object()
+        #report.validator = request.user.id
+        #report.validated_date = timezone.now()
+        serializer = self.get_serializer_class()(report, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response({"errors": serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReportList(views.APIView):
