@@ -3,10 +3,8 @@ from __future__ import unicode_literals
 
 #from django.core.validators import validate_email
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 
-@python_2_unicode_compatible
 class PurchaseRaw(models.Model):
     raw_pdf = models.TextField(blank=True, null=True)
     orden = models.CharField(
