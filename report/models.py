@@ -36,7 +36,7 @@ class Responsable(models.Model):
 
     class Meta:
         verbose_name = u"Responsable"
-        verbose_name_plural = u"Responsables"
+        verbose_name_plural = u"6. Responsables"
         db_table = u'desabasto_responsable'
 
 
@@ -44,7 +44,7 @@ class Persona(models.Model):
     TYPE = (
         ("paciente", u"Paciente"),
         ("profesional", u"Profesional"),
-        ("vacuna", u"Vacuna"),
+        ("vacuna_covid", u"Vacuna"),
     )
 
     informer_name = models.CharField(
@@ -77,10 +77,11 @@ class Persona(models.Model):
 
     class Meta:
         verbose_name = u"Persona Reportante"
-        verbose_name_plural = u"Personas Reportantes"
+        verbose_name_plural = u"4. Personas Reportantes"
 
     def __str__(self):
-        return self.informer_name or "sin datos"
+        return "%s - %s" % (
+            self.informer_name or "sin datos", self.email or '--')
 
 
 @python_2_unicode_compatible
@@ -350,11 +351,13 @@ class Report(models.Model):
 
     class Meta:
         verbose_name = u"Reporte"
-        verbose_name_plural = u"Reportes"
+        verbose_name_plural = u"1. Reportes"
         db_table = u'desabasto_report'
 
 
 class CovidReport(models.Model):
+    created = models.DateTimeField(
+        auto_now_add=True, verbose_name=u"Fecha de Registro")
     persona = models.ForeignKey(
         Persona, blank=True, null=True, verbose_name=u"Persona reportante",
         on_delete=models.CASCADE)
@@ -365,13 +368,12 @@ class CovidReport(models.Model):
         Municipality, blank=True, null=True,
         verbose_name=u"Municipio residencia",
         on_delete=models.CASCADE)
+    other_location = models.CharField(max_length=255, null=True, blank=True)
     has_corruption = models.NullBooleanField(
         verbose_name=u"¿Incluyó corrupción?")
     narration = models.TextField(
         blank=True, null=True,
         verbose_name=u"Relato de la corrupción")
-    created = models.DateTimeField(
-        auto_now_add=True, verbose_name=u"Fecha de Registro")
     origin_app = models.CharField(
         max_length=100, default="CD2",
         verbose_name=u"Aplicación")
@@ -388,12 +390,13 @@ class CovidReport(models.Model):
 
     class Meta:
         verbose_name = u"Reporte COVID"
-        verbose_name_plural = u"Reportes COVID"
+        verbose_name_plural = u"3. Reportes COVID"
 
 
 class DosisCovid(models.Model):
     covid_report = models.ForeignKey(
-        CovidReport, blank=True, null=True, verbose_name=u"Reporte Covid",
+        CovidReport, blank=True, null=True,
+        verbose_name=u"Reporte Covid", related_name="dosis",
         on_delete=models.CASCADE)
     is_success = models.BooleanField(
         default=False, verbose_name="Es dosis aplicada")
@@ -407,16 +410,18 @@ class DosisCovid(models.Model):
     brand = models.CharField(max_length=255, null=True, blank=True)
     round_dosis = models.CharField(
         max_length=60, blank=True, null=True, verbose_name=u"Número de dosis")
-    date = models.DateTimeField(blank=True, null=True, verbose_name=u"Fecha")
+    date = models.DateField(blank=True, null=True, verbose_name=u"Fecha")
     reason_negative = models.TextField(
         blank=True, null=True, verbose_name=u"Razón de negativa")
 
     def __str__(self):
-        return u"%s - %s" % (self.brand or '?', self.round_dosis or '?')
+        return u"%s (%s) - %s" % (
+            self.brand or '?', self.round_dosis or '?',
+            u'aplicada' if self.is_success else u'negada')
 
     class Meta:
         verbose_name = u"Dosis"
-        verbose_name_plural = u"Dosis aplicadas y negadas"
+        verbose_name_plural = u"5. Dosis aplicadas y negadas"
 
 
 @python_2_unicode_compatible
@@ -431,7 +436,7 @@ class TestimonyMedia(models.Model):
 
     class Meta:
         verbose_name = u"Archivo de testimonio"
-        verbose_name_plural = u"Archivos de testimonio"
+        verbose_name_plural = u"8. Archivos de testimonio"
         db_table = u'desabasto_testimonymedia'
 
     def __str__(self):
@@ -486,8 +491,8 @@ class Supply(models.Model):
             self.medicine_name_raw, self.medicine_type)
 
     class Meta:
-        verbose_name = u"Suministro Medico"
-        verbose_name_plural = u"Suministros Medicos"
+        verbose_name = u"Medicamento o insumo"
+        verbose_name_plural = u"2. Medicamentos/Insumos de reportes"
         db_table = u'desabasto_supply'
 
 
@@ -497,7 +502,7 @@ class Disease(models.Model):
 
     class Meta:
         verbose_name = "Padecimiento"
-        verbose_name_plural = "Padecimientos"
+        verbose_name_plural = "7. Padecimientos"
         db_table = u'desabasto_disease'
 
     def __str__(self):

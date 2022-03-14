@@ -6,3 +6,4 @@ from django.apps import AppConfig
 
 class EmailSendgridConfig(AppConfig):
     name = 'email_sendgrid'
+    verbose_name = 'F. Mailing'

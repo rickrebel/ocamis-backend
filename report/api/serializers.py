@@ -25,8 +25,6 @@ class SupplyListSerializer(serializers.ModelSerializer):
 
 
 class DosisCovidListSerializer(serializers.ModelSerializer):
-    create = serializers.DateTimeField(
-        format="%d/%m/%Y", read_only=True, source="covid_report.created")
     state = serializers.ReadOnlyField(source="covid_report.state.id")
     municipality = serializers.ReadOnlyField(
         source="covid_report.municipality.id")
@@ -136,7 +134,7 @@ class CovidReportSerializer(serializers.ModelSerializer):
         dosis_items = validated_data.pop('dosis', [])
         persona_data = validated_data.pop('persona')
         persona = Persona.objects.create(**persona_data)
-        validated_data["persona"] = persona.id
+        validated_data["persona"] = persona
         covid_report = CovidReport.objects.create(**validated_data)
         for dosis_item in dosis_items:
             dosis = DosisCovid()

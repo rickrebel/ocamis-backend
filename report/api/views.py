@@ -66,6 +66,9 @@ class SupplyList(ListMix):
 class IsAdminOrCreateOnly(BasePermission):
 
     def has_permission(self, request, view):
+        print("request", request)
+        print("view", view)
+        print("view.action", view.action)
         if view.action == 'create':
             return True
         else:
@@ -73,7 +76,8 @@ class IsAdminOrCreateOnly(BasePermission):
 
 
 class ReportView(ListCreateRetrieveUpdateMix):
-    permission_classes = (IsAdminOrCreateOnly,)
+    #permission_classes = (IsAdminOrCreateOnly,)
+    permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.ReportSerializer
     queryset = Report.objects.all()
     pagination_class = HeavyResultsSetPagination
@@ -179,18 +183,20 @@ class CovidReportView2(views.APIView):
     #pagination_class = HeavyResultsSetPagination
 
 
-#class CovidReportView(views.APIView):
-class CovidReportView(ListCreateRetrieveUpdateMix):
-    permission_classes = (IsAdminOrCreateOnly,)
+#class CovidReportView(ListCreateRetrieveUpdateMix):
+class CovidReportView(views.APIView):
+    #permission_classes = (IsAdminOrCreateOnly,)
+    permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.CovidReportSerializer
-    queryset = CovidReport.objects.all()
+    #queryset = CovidReport.objects.all()
     """#pagination_class = HeavyResultsSetPagination"""
-    action_serializers = {
+    """action_serializers = {
         "update": serializers.CovidReportUpdateSerializer,
         #"list": serializers.CovidReportSerializer,
         #"create": serializers.CovidReportSerializer,
+        "post": serializers.CovidReportSerializer,
         #"get": serializers.CovidReportSerializer,
-    }
+    }"""
 
     def update(self, request, **kwargs):
         from django.utils import timezone
@@ -206,14 +212,30 @@ class CovidReportView(ListCreateRetrieveUpdateMix):
             return Response({"errors": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
-    def post(self, request, **kwargs):
+    def create(self, request, **kwargs):
         #from django.utils import timezone
+        print("success post 2")
         self.check_permissions(request)
-        print("success post")
         report = self.get_object()
         #report.validator = request.user.id
         #report.validated_date = timezone.now()
         serializer = self.get_serializer_class()(report, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response({"errors": serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request, **kwargs):
+        #from django.utils import timezone
+        print("success post 2")
+        self.check_permissions(request)
+        #report = self.get_object()
+        #report.validator = request.user.id
+        #report.validated_date = timezone.now()
+        #serializer = self.get_serializer_class()(report, data=request.data)
+        serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

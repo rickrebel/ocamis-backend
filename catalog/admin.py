@@ -9,6 +9,7 @@ from .models import (
     CLUES,
     Institution,
     State,
+    Municipality,
 )
 
 
@@ -28,6 +29,18 @@ class StateAdmin(admin.ModelAdmin):
 
 
 admin.site.register(State, StateAdmin)
+
+
+class MunicipalityAdmin(admin.ModelAdmin):
+    list_display = [
+        "inegi_code",
+        "name"]
+    search_fields = [
+        "inegi_code",
+        "name"]
+
+
+admin.site.register(Municipality, MunicipalityAdmin)
 
 
 class InstitutionAdmin(admin.ModelAdmin):

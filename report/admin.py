@@ -6,10 +6,13 @@ from django.contrib.admin.filters import SimpleListFilter
 
 from .models import (
     Report,
+    CovidReport,
     Responsable,
     Supply,
+    DosisCovid,
     TestimonyMedia,
     Disease,
+    Persona,
 )
 
 
@@ -95,6 +98,12 @@ class SupplyInLine(admin.StackedInline):
     raw_id_fields = ["component", "presentation"]
 
 
+class DosisInLine(admin.StackedInline):
+    model = DosisCovid
+    extra = 0
+    raw_id_fields = ["state", "municipality"]
+
+
 class TestimonyMediaInLine(admin.StackedInline):
     model = TestimonyMedia
     extra = 0
@@ -165,8 +174,59 @@ class ReportAdmin(admin.ModelAdmin):
         obj = form.instance
         obj.send_responsable()
 
-
 admin.site.register(Report, ReportAdmin)
+
+
+class CovidReportAdmin(admin.ModelAdmin):
+    model = CovidReport
+    list_display = [
+        "created", "state_short_name", "municipality_name",
+        "validated", "dosis_display", "origin_app", "has_testimony"]
+    list_filter = ["state", TestimonyNullFilterSpec]
+    readonly_fields = ["created"]
+    inlines = [DosisInLine]
+    raw_id_fields = ["state", "municipality"]
+
+    fieldsets = [
+        [None, {
+            "fields": [
+                "created", "origin_app", "persona"]}],
+        [u"Ubicación", {
+            "fields": [
+                "state", "municipality", "other_location"]}],
+        [u"Memoria escrita", {
+            "fields": [
+                "testimony", "has_corruption", "narration"]}],
+        [u"Validación y envío", {
+            "classes": ["collapse"],
+            "fields": [
+                "validated", "validator", "validated_date", "pending"]}],
+    ]
+
+    def state_short_name(self, obj):
+        if obj.state:
+            return obj.state.short_name
+    state_short_name.short_display = "Estado"
+
+    def municipality_name(self, obj):
+        if obj.municipality:
+            return obj.municipality.name
+    municipality_name.short_display = "Municipio"
+
+    def has_testimony(self, obj):
+        return True if obj.testimony else False
+    has_testimony.short_display = "Tiene testimonio"
+    has_testimony.boolean = True
+
+    def dosis_display(self, obj):
+        from django.utils.html import format_html
+        html_list = ""
+        for dosis in DosisCovid.objects.filter(covid_report=obj):
+            html_list += (u'%s<br>' % (dosis))
+        return format_html(html_list)
+    dosis_display.short_display = "Dosis"
+
+admin.site.register(CovidReport, CovidReportAdmin)
 
 
 class DiseaseAdmin(admin.ModelAdmin):
@@ -175,5 +235,20 @@ class DiseaseAdmin(admin.ModelAdmin):
     ]
     search_fields = ["name"]
 
-
 admin.site.register(Disease, DiseaseAdmin)
+
+
+class PersonaAdmin(admin.ModelAdmin):
+    list_display = ["informer_name", "email", "informer_type"]
+    search_fields = ["informer_name", "email"]
+
+
+admin.site.register(Persona, PersonaAdmin)
+
+
+class DosisCovidAdmin(admin.ModelAdmin):
+    list_display = ["brand", "round_dosis", "state", "date", "is_success"]
+    search_fields = ["brand", "round_dosis", "state"]
+
+
+admin.site.register(DosisCovid, DosisCovidAdmin)

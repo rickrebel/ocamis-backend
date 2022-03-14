@@ -147,8 +147,8 @@ class CLUES(models.Model):
         return self.clues
 
     class Meta:
-        verbose_name = u"Catálogo ClUES"
-        verbose_name_plural = u"Catálogo ClUESs"
+        verbose_name = u"Hospital o clínica CLUES"
+        verbose_name_plural = u"Catálogo CLUES"
         db_table = u'desabasto_clues'
 
 
