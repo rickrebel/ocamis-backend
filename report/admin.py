@@ -43,12 +43,14 @@ class ResponsableAdmin(admin.ModelAdmin):
     list_display = [
         "name",
         "emails",
-        "responsible",
+        "update_date",
+        #"responsible",
         "position",
         "institution",
         "state",
         "clues",
     ]
+    list_filter = ["institution", "state"]
     raw_id_fields = ["institution", "state", "clues", ]
     search_fields = [
         "name",

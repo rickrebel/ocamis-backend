@@ -13,22 +13,27 @@ from django.contrib.postgres.fields import JSONField
 class Responsable(models.Model):
     name = models.CharField(max_length=255, verbose_name=u"Nombre")
     emails = models.CharField(
-        max_length=255, verbose_name=u"Correos electronicos")
-    responsible = models.CharField(
-        max_length=255, verbose_name=u"responsible", blank=True, null=True)
+        max_length=255, verbose_name=u"Correos electronicos",
+        help_text="Pueden agregarse varios, separar por comas")
+    #responsible = models.CharField(
+    #    max_length=255, verbose_name=u"responsible", blank=True, null=True)
     position = models.CharField(
         max_length=255, verbose_name=u"Cargo o posición")
     institution = models.ForeignKey(
-        Institution, related_name="responsables",
+        Institution, related_name="responsables", verbose_name="Institución",
         blank=True, null=True, on_delete=models.CASCADE)
     #institution = models.IntegerField(blank=True, null=True)
     state = models.ForeignKey(
         State, blank=True, null=True, related_name="responsables",
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE, verbose_name="Entidad")
     #state = models.IntegerField(blank=True, null=True)
     clues = models.ForeignKey(
         CLUES, blank=True, null=True, related_name="responsables",
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE, verbose_name="Clínica u Hospital")
+    update_date = models.DateField(
+        null=True, blank=True, verbose_name="Fecha de actualización")
+    notes = models.TextField(
+        verbose_name="Notas", null=True, blank=True)
     #clues = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
@@ -241,6 +246,7 @@ class Report(models.Model):
         # Variables para templates--------------------------------------------
 
     def send_informer(self):
+        return None
         from email_sendgrid.models import (TemplateBase, EmailRecord,
                                            SendGridProfile)
         sendgrid_nosotrxs = SendGridProfile.objects\
@@ -376,6 +382,10 @@ class DosisCovid(models.Model):
     date = models.DateField(blank=True, null=True, verbose_name=u"Fecha")
     reason_negative = models.TextField(
         blank=True, null=True, verbose_name=u"Razón de negativa")
+
+    @property
+    def get_type_success(self):
+        return "Sí aplicada" if self.is_success else "No aplicada"
 
     def __str__(self):
         return u"%s (%s) - %s" % (

@@ -18,7 +18,7 @@ from api.mixins import (MultiSerializerListCreateRetrieveUpdateMix as
 
 from catalog.models import State, Institution, Alliances
 from catalog.api.serializers import (
-    StateSerializer, InstitutionSerializer, AlliancesSerializer)
+    StateListSerializer, InstitutionSerializer, AlliancesSerializer)
 from report.api.serializers import DiseaseSerializer
 # --------Paginacion-----------------------------------------------------------
 
@@ -42,7 +42,7 @@ class CatalogView(views.APIView):
 
     def get(self, request):
         data = {
-            "states": StateSerializer(
+            "states": StateListSerializer(
                 State.objects.all(), many=True).data,
             "institutions": InstitutionSerializer(
                 Institution.objects.all().order_by("relevance"),
@@ -541,12 +541,19 @@ class ReportStateInstitutionCountList(views.APIView):
     permission_classes = (permissions.AllowAny, )
 
     def get(self, request):
-        from django.db.models import Count
-        data = Report.objects\
-            .filter(validated=True, state__isnull=False,
-                    institution__isnull=False)\
-            .values("state", "institution").annotate(count=Count('id'))
+        from django.db.models import Count, F
+        data = Supply.objects\
+            .filter(report__complement__validated=True,
+                    report__state__isnull=False,
+                    report__institution__isnull=False)\
+            .values("report__state", "report__institution")\
+            .annotate(
+                state=F('report__state'),
+                institution=F('report__institution'),
+                count=Count('id'))\
+            .values('state', 'institution', 'count')
         return Response(data)
+        #\ #.annotate(count=Count('id'))
 
 
 class ReportExportView(views.APIView):
