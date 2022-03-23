@@ -41,11 +41,6 @@ class Responsable(models.Model):
 
 
 class Persona(models.Model):
-    TYPE = (
-        ("paciente", u"Paciente"),
-        ("profesional", u"Profesional"),
-        ("vacuna_covid", u"Vacuna"),
-    )
 
     informer_name = models.CharField(
         max_length=255, blank=True, null=True, verbose_name=u"Nombre")
@@ -55,25 +50,6 @@ class Persona(models.Model):
     phone = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Número de contacto")
-    informer_type = models.CharField(
-        max_length=20, choices=TYPE,
-        verbose_name=u"Tipo de Informante")
-    age = models.IntegerField(
-        verbose_name="Edad",
-        blank=True, null=True
-    )
-    gender = models.CharField(
-        max_length=40, verbose_name="Género", blank=True, null=True
-    )
-    special_group = models.CharField(
-        max_length=80,
-        verbose_name="Grupo especial",
-        blank=True, null=True
-    )
-    comorbilities = JSONField(
-        verbose_name="Comorbilidades",
-        blank=True, null=True
-    )
 
     class Meta:
         verbose_name = u"Persona Reportante"
@@ -90,40 +66,45 @@ class Report(models.Model):
         ("paciente", u"Paciente"),
         ("profesional", u"Profesional"),
     )
-    medicine_type = models.CharField(
-        max_length=30, blank=True, null=True,
-        verbose_name=u"Tipo de medicina")
-    medication_name = models.CharField(
-        max_length=255, blank=True, null=True,
-        verbose_name=u"Nombre de medicamento / Insumo faltante")
-
+    created = models.DateTimeField(
+        auto_now_add=True, verbose_name=u"Fecha de Registro")
+    persona = models.ForeignKey(
+        Persona, blank=True, null=True, verbose_name=u"Persona reportante",
+        on_delete=models.CASCADE)
     state = models.ForeignKey(
         State, blank=True, null=True, verbose_name=u"Entidad",
         on_delete=models.CASCADE)
-    #state = models.IntegerField(
-    #   blank=True, null=True, verbose_name=u"Entidad")
     institution = models.ForeignKey(
         Institution, blank=True, null=True, verbose_name=u"Institución",
         on_delete=models.CASCADE)
-    #institution = models.IntegerField(
-    #    blank=True, null=True, verbose_name=u"Institución")
     institution_raw = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Institución escrita")
     clues = models.ForeignKey(
         CLUES, blank=True, null=True, on_delete=models.CASCADE)
-    #clues = models.IntegerField(blank=True, null=True)
     is_other = models.BooleanField(
         default=False, verbose_name=u"Es otra institución")
     hospital_name_raw = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Nombre de hospital o clínica")
+    disease_raw = models.TextField(
+        blank=True, null=True, verbose_name=u"Padecimiento")
+    age = models.IntegerField(
+        verbose_name="Edad",
+        blank=True, null=True
+    )
 
-    has_corruption = models.NullBooleanField(
-        verbose_name=u"¿Incluyó corrupción?")
-    narration = models.TextField(
-        blank=True, null=True,
-        verbose_name=u"Relato de la corrupción")
+    informer_type = models.CharField(
+        max_length=20, choices=TYPE,
+        verbose_name=u"Tipo de Informante")
+    want_litigation = models.NullBooleanField(
+        verbose_name=u"¿Permite contacto para litigio?",
+        blank=True, null=True)
+
+    sent_email = models.NullBooleanField(blank=True, null=True)
+    sent_responsible = models.NullBooleanField(blank=True, null=True)
+
+    #Va a Persona:
     informer_name = models.CharField(
         max_length=255, blank=True, null=True, verbose_name=u"Nombre")
     email = models.CharField(
@@ -132,38 +113,32 @@ class Report(models.Model):
     phone = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Número de contacto")
-    informer_type = models.CharField(
-        max_length=20, choices=TYPE,
-        verbose_name=u"Tipo de Informante")
-    created = models.DateTimeField(
-        auto_now_add=True, verbose_name=u"Fecha de Registro")
+
+    #Va a ComplementReport:
     origin_app = models.CharField(
         max_length=100, default="CD2",
         verbose_name=u"Aplicacion")
-    disease_raw = models.TextField(
-        blank=True, null=True, verbose_name=u"Padecimiento")
     validated = models.NullBooleanField(default=None, blank=True, null=True)
-
-    testimony = models.TextField(blank=True, null=True)
-    want_litigation = models.NullBooleanField(
-        verbose_name=u"¿Permite contacto para litigio?",
-        blank=True, null=True)
-
+    session_ga = models.CharField(max_length=255, blank=True, null=True)
     validator = models.IntegerField(blank=True, null=True)
-    # validator = models.ForeignKey(User, blank=True, null=True)
     validated_date = models.DateTimeField(blank=True, null=True)
     pending = models.BooleanField(default=False)
 
+    testimony = models.TextField(blank=True, null=True)
     public_testimony = models.NullBooleanField(blank=True, null=True)
+    has_corruption = models.NullBooleanField(
+        verbose_name=u"¿Incluyó corrupción?")
+    narration = models.TextField(
+        blank=True, null=True,
+        verbose_name=u"Relato de la corrupción")
 
-    sent_email = models.NullBooleanField(blank=True, null=True)
-    sent_responsible = models.NullBooleanField(blank=True, null=True)
-    session_ga = models.CharField(max_length=255, blank=True, null=True)
-
-    age = models.IntegerField(
-        verbose_name="Edad",
-        blank=True, null=True
-    )
+    #DEBERÍAN ELIMINARSE:
+    medicine_type = models.CharField(
+        max_length=30, blank=True, null=True,
+        verbose_name=u"Tipo de medicina")
+    medication_name = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name=u"Nombre de medicamento / Insumo faltante")
 
     @property
     def get_medicine_type(self):
@@ -206,12 +181,8 @@ class Report(models.Model):
         Report.objects.filter(id=self.id)\
             .update(trimester=self.get_trimester())
 
-    def save(self, *args, **kwargs):
+    """def save(self, *args, **kwargs):
         is_created = True if self.pk is None else False
-        """
-        if not self.trimester:
-            self.trimester=self.get_trimester
-        """
 
         super(Report, self).save(*args, **kwargs)
 
@@ -221,7 +192,7 @@ class Report(models.Model):
 
         if not is_created:
             return
-        self.send_informer()
+        self.send_informer()"""
 
     def dict_template(self, simple=True):
         # Variables para templates--------------------------------------------
@@ -369,21 +340,13 @@ class CovidReport(models.Model):
         verbose_name=u"Municipio residencia",
         on_delete=models.CASCADE)
     other_location = models.CharField(max_length=255, null=True, blank=True)
-    has_corruption = models.NullBooleanField(
-        verbose_name=u"¿Incluyó corrupción?")
-    narration = models.TextField(
-        blank=True, null=True,
-        verbose_name=u"Relato de la corrupción")
-    origin_app = models.CharField(
-        max_length=100, default="CD2",
-        verbose_name=u"Aplicación")
-    validated = models.NullBooleanField(default=None, blank=True, null=True)
-    validator = models.IntegerField(blank=True, null=True)
-    testimony = models.TextField(blank=True, null=True)
-    validated_date = models.DateTimeField(blank=True, null=True)
-    pending = models.BooleanField(default=False)
-    sent_email = models.NullBooleanField(blank=True, null=True)
-    session_ga = models.CharField(max_length=255, blank=True, null=True)
+    age = models.IntegerField(verbose_name="Edad", blank=True, null=True)
+    gender = models.CharField(
+        max_length=40, verbose_name="Género", blank=True, null=True)
+    special_group = models.CharField(
+        max_length=80, verbose_name="Grupo especial", blank=True, null=True)
+    comorbilities = JSONField(
+        verbose_name="Comorbilidades", blank=True, null=True)
 
     def __str__(self):
         return u"%s - %s" % (self.state, self.created)
@@ -422,6 +385,53 @@ class DosisCovid(models.Model):
     class Meta:
         verbose_name = u"Dosis"
         verbose_name_plural = u"5. Dosis aplicadas y negadas"
+
+
+class ComplementReport(models.Model):
+    report = models.OneToOneField(
+        Report, blank=True, null=True, related_name="complement",
+        on_delete=models.CASCADE)
+    covid_report = models.OneToOneField(
+        CovidReport, blank=True, null=True, related_name="complement",
+        on_delete=models.CASCADE)
+    key = models.CharField(max_length=30, default='')
+
+    testimony = models.TextField(blank=True, null=True)
+    public_testimony = models.NullBooleanField(blank=True, null=True)
+    has_corruption = models.NullBooleanField(
+        verbose_name=u"¿Incluyó corrupción?")
+    narration = models.TextField(
+        blank=True, null=True,
+        verbose_name=u"Relato de la corrupción")
+
+    validated = models.NullBooleanField(default=None, blank=True, null=True)
+    validator = models.IntegerField(blank=True, null=True)
+    validated_date = models.DateTimeField(blank=True, null=True)
+    pending = models.BooleanField(default=False)
+
+    session_ga = models.CharField(max_length=255, blank=True, null=True)
+    origin_app = models.CharField(
+        max_length=100, default="CD2",
+        verbose_name=u"Aplicación")
+
+    def save(self, *args, **kwargs):
+        import random
+        import string
+        print(self)
+        if not self.pk:
+            self.key = ''.join([
+                random.choice(string.ascii_letters + string.digits)
+                for n in range(30)])
+        else:
+            self.key = ''
+        super(ComplementReport, self).save(*args, **kwargs)
+
+    def __unicode__(self):
+        return self.report or self.covid_report
+
+    class Meta:
+        verbose_name = u"Complemento de un reporte"
+        verbose_name_plural = u"Complementos de reportes"
 
 
 @python_2_unicode_compatible

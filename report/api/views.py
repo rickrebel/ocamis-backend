@@ -9,11 +9,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
-from report.models import (Report, Supply, Disease, CovidReport)
+from report.models import (
+    Report, Supply, Disease, CovidReport, DosisCovid, Persona,
+    ComplementReport)
 
-from api.mixins import (ListMix, CreateMix, MultiSerializerModelViewSet)
 from api.mixins import (MultiSerializerListCreateRetrieveUpdateMix as
-                        ListCreateRetrieveUpdateMix)
+                        ListCreateRetrieveUpdateMix, ListMix)
 
 from catalog.models import State, Institution, Alliances
 from catalog.api.serializers import (
@@ -66,10 +67,29 @@ class SupplyList(ListMix):
 class IsAdminOrCreateOnly(BasePermission):
 
     def has_permission(self, request, view):
+        if view.action == 'create':
+            return True
+        else:
+            return request.user.is_staff
+
+
+class ComplementPermission(BasePermission):
+
+    def has_permission(self, request, view):
         print("request", request)
         print("view", view)
         print("view.action", view.action)
-        if view.action == 'create':
+        key = request.query_params.get("key", None)
+        compl_id = view.kwargs.get("pk", None)
+
+        if view.action == 'update' and key:
+            try:
+                complement = ComplementReport.objects.get(
+                    key=key, id=compl_id)
+            except Exception as e:
+                print(e)
+                return False
+            view.complement = complement
             return True
         else:
             return request.user.is_staff
@@ -176,27 +196,75 @@ class ReportView(ListCreateRetrieveUpdateMix):
         return Response(status=status.HTTP_202_ACCEPTED)
 
 
-class CovidReportView2(views.APIView):
-    permission_classes = (IsAdminOrCreateOnly,)
-    serializer_class = serializers.CovidReportSerializer
-    queryset = CovidReport.objects.all()
-    #pagination_class = HeavyResultsSetPagination
-
-
-#class CovidReportView(ListCreateRetrieveUpdateMix):
-class CovidReportView(views.APIView):
+class ReportView2(ListCreateRetrieveUpdateMix):
     #permission_classes = (IsAdminOrCreateOnly,)
     permission_classes = (permissions.AllowAny,)
-    serializer_class = serializers.CovidReportSerializer
-    #queryset = CovidReport.objects.all()
-    """#pagination_class = HeavyResultsSetPagination"""
-    """action_serializers = {
-        "update": serializers.CovidReportUpdateSerializer,
-        #"list": serializers.CovidReportSerializer,
-        #"create": serializers.CovidReportSerializer,
-        "post": serializers.CovidReportSerializer,
-        #"get": serializers.CovidReportSerializer,
-    }"""
+    serializer_class = serializers.ReportSerializer2
+    queryset = Report.objects.all()
+    pagination_class = HeavyResultsSetPagination
+    action_serializers = {
+        "update": serializers.ReportUpdateSerializer,
+        "create": serializers.ReportSimpleSerializer
+    }
+
+    def create(self, request, **kwargs):
+        self.check_permissions(request)
+        data_rep = request.data
+        if data_rep.get('persona', False):
+            persona_data = data_rep.pop('persona')
+            pers = Persona()
+            serializer_persona = serializers.PersonaSerializer(
+                pers, data=persona_data)
+            if serializer_persona.is_valid():
+                persona = serializer_persona.save()
+                data_rep["persona"] = persona.id
+            else:
+                return Response({"errors": serializer_persona.errors},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        new_report = Report()
+        report = None
+        supplies_items = data_rep.pop('supply', [])
+        serializer_rep = self.get_serializer_class()(
+            new_report, data=data_rep)
+        if serializer_rep.is_valid():
+            report = serializer_rep.save()
+        else:
+            print("Error en report")
+            return Response({"errors": serializer_rep.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        data_rep["report"] = report.id
+        complement_rep = ComplementReport()
+        serializer_comp = serializers.ComplementReportSerializer(
+            complement_rep, data=data_rep)
+        if serializer_comp.is_valid():
+            serializer_comp.save()
+        else:
+            print("Error en complement")
+            return Response({"errors": serializer_comp.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        for supply_item in supplies_items:
+            supply = Supply()
+            supply.report = report
+            if "component" in supply_item:
+                supply.component = supply_item.pop("component")
+            if "presentation" in supply_item:
+                supply.presentation = supply_item.pop("presentation")
+
+            serializer_supp = serializers.SupplyListSerializer(
+                supply, data=supply_item)
+            if serializer_supp.is_valid():
+                serializer_supp.save()
+            else:
+                print(serializer_supp.errors)
+
+        new_serializer = serializers.ReportSerializer2(
+            report, context={'request': request})
+        report.send_responsable()
+        return Response(
+            new_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, **kwargs):
         from django.utils import timezone
@@ -212,50 +280,181 @@ class CovidReportView(views.APIView):
             return Response({"errors": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=['get'], detail=False, url_path='next')
+    def next(self, request, **kwargs):
+        from datetime import timedelta
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        query_kwargs = {"validated__isnull": True}
+        pending = request.query_params.get("pending")
+        if pending:
+            if pending.lower() in ["si", "yes", "true"]:
+                query_kwargs["pending"] = True
+            elif pending.lower() in ["no", "false"]:
+                query_kwargs["pending"] = False
+        else:
+            query_kwargs["pending"] = False
+        report = Report.objects.filter(**query_kwargs)\
+            .order_by("created").first()
+
+        if not report:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        many_reports_1 = Report.objects.filter(**query_kwargs)\
+            .filter(
+                created__lte=(
+                    report.created + timedelta(seconds=30 * 60)),
+                email=report.email,
+                clues=report.clues)\
+            .order_by("created").distinct()
+        many_reports_2 = Report.objects.filter(**query_kwargs)\
+            .filter(
+                created__lte=(
+                    report.created + timedelta(seconds=8 * 60)),
+                state=report.state,
+                institution=report.institution,
+                institution_raw=report.institution_raw)\
+            .order_by("created").distinct()
+
+        if many_reports_1.count() > 1:
+            final_query = many_reports_1
+        else:
+            final_query = many_reports_2
+
+        return Response(
+            serializers.ReportNextSerializer(final_query, many=True).data)
+
+    @action(methods=["post"], detail=True, url_path='pending')
+    def pending(self, request, **kwargs):
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        pending = request.data.get("pending")
+        validated = request.data.get("validated")
+        report = self.get_object()
+        errors = []
+
+        if pending in [True, "true"]:
+            report.pending = True
+        elif pending in [False, "false"]:
+            report.pending = False
+        elif pending:
+            errors.append("pending invalido")
+
+        if validated in [True, "true"]:
+            report.validated = True
+        elif validated in [False, "false"]:
+            report.validated = False
+        elif validated in ["null"]:
+            report.validated = None
+        elif validated:
+            errors.append("validated invalido")
+
+        if errors:
+            return Response({"errors": errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        report.save()
+
+        return Response(status=status.HTTP_202_ACCEPTED)
+
+
+class ComplementReportView(ListCreateRetrieveUpdateMix):
+    queryset = CovidReport.objects.all()
+    permission_classes = (ComplementPermission,)
+    serializer_class = serializers.ComplementReportSerializer
+    pagination_class = StandardResultsSetPagination
+    action_serializers = {
+        "create": serializers.ComplementReportSerializer,
+        "update": serializers.ComplementReportSerializer,
+        "list": serializers.ComplementReportSerializer,
+    }
+
+    def get_queryset(self):
+        return CovidReport.objects.all().order_by("id")
+
+    def update(self, request, **kwargs):
+        self.check_permissions(request)
+        complement = self.complement
+        data = request.data
+        data["key"] = ''
+        serializer = self.get_serializer_class()(
+            complement, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            data = serializer.data
+            return Response(data, status=status.HTTP_206_PARTIAL_CONTENT)
+
+        return Response({"errors": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+
+class CovidReportView2(ListCreateRetrieveUpdateMix):
+    queryset = CovidReport.objects.all()
+    permission_classes = (IsAdminOrCreateOnly,)
+    #permission_classes = (permissions.AllowAny,)
+    serializer_class = serializers.CovidReportSerializer
+    pagination_class = StandardResultsSetPagination
+    action_serializers = {
+        "create": serializers.CovidReportSimpleSerializer,
+        "update": serializers.CovidReportSerializer,
+        "list": serializers.CovidReportSerializer,
+    }
+
+    def get_queryset(self):
+        return CovidReport.objects.all().order_by("id")
+
     def create(self, request, **kwargs):
-        #from django.utils import timezone
-        print("success post 2")
         self.check_permissions(request)
-        report = self.get_object()
-        #report.validator = request.user.id
-        #report.validated_date = timezone.now()
-        serializer = self.get_serializer_class()(report, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+        data_rep = request.data
+        if data_rep.get('persona', False):
+            persona_data = data_rep.pop('persona')
+            pers = Persona()
+            serializer_persona = serializers.PersonaSerializer(
+                pers, data=persona_data)
+            if serializer_persona.is_valid():
+                persona = serializer_persona.save()
+                data_rep["persona"] = persona.id
+            else:
+                return Response({"errors": serializer_persona.errors},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        new_covid_report = CovidReport()
+        covid_report = None
+        dosis_items = data_rep.pop('dosis', [])
+        serializer_rep = self.get_serializer_class()(
+            new_covid_report, data=data_rep)
+        if serializer_rep.is_valid():
+            covid_report = serializer_rep.save()
         else:
-            return Response({"errors": serializer.errors},
+            print("Error en covid")
+            return Response({"errors": serializer_rep.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
-    def post(self, request, **kwargs):
-        #from django.utils import timezone
-        print("success post 2")
-        self.check_permissions(request)
-        #report = self.get_object()
-        #report.validator = request.user.id
-        #report.validated_date = timezone.now()
-        #serializer = self.get_serializer_class()(report, data=request.data)
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+        data_rep["covid_report"] = covid_report.id
+        complement_rep = ComplementReport()
+        print(data_rep)
+        serializer_comp = serializers.ComplementReportSerializer(
+            complement_rep, data=data_rep)
+        if serializer_comp.is_valid():
+            serializer_comp.save()
         else:
-            return Response({"errors": serializer.errors},
+            print("Error en complement")
+            return Response({"errors": serializer_comp.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
-    def get(self, request, **kwargs):
-        #from django.utils import timezone
-        self.check_permissions(request)
-        report = self.get_object()
-        #report.validator = request.user.id
-        #report.validated_date = timezone.now()
-        serializer = self.get_serializer_class()(report, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        else:
-            return Response({"errors": serializer.errors},
-                            status=status.HTTP_400_BAD_REQUEST)
+        for dosis_item in dosis_items:
+            dosis = DosisCovid()
+            dosis.covid_report = covid_report
+            serializer_dosis = serializers.DosisCovidListSerializer(
+                dosis, data=dosis_item)
+            if serializer_dosis.is_valid():
+                serializer_dosis.save()
+            else:
+                print(serializer_dosis.errors)
+
+        new_serializer = serializers.CovidReportSerializer(
+            covid_report, context={'request': request})
+        return Response(
+            new_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class ReportList(views.APIView):
@@ -376,7 +575,19 @@ class ReportExportView(views.APIView):
 
 
 class ReportExportView2(GenericModelExport):
-    queryset = Supply.objects.all().order_by("report__created", "id")
+    queryset = Supply.objects.all()\
+        .prefetch_related(
+            "report",
+            "report__state",
+            "report__institution",
+            "report__clues",
+            "report__persona",
+            "report__complement",
+            "component",
+            "component__group",
+            "presentation",
+            "disease")\
+        .order_by("report__created", "id")
     permission_classes = [permissions.IsAdminUser]
     columns_width_pixel = True
     xlsx_name = u"Exportación de Insumos y reportes"
@@ -393,13 +604,16 @@ class ReportExportView2(GenericModelExport):
         [u"Presentacion escrita", "presentation_raw", 160],
         [u"id del Reporte", "report.id", 28],
         [u"Fecha de Registro", "report.created", 86],
-        [u"Trimestre", "report.trimester", 86],
+        #[u"Trimestre", "report.trimester", 86],
         [u"Tipo de informante", "report.informer_type", 86],
         [u"Padecimiento (escrito)", "report.disease_raw", 154],
         [u"Padecimiento", "disease.name", 154],
-        [u"Nombre de contacto", "report.informer_name", 140],
-        [u"Correo de contacto", "report.email", 140],
-        [u"Número de contacto", "report.phone", 85],
+        [u"Nombre de contacto", "report.persona.informer_name", 140],
+        [u"Correo de contacto", "report.persona.email", 140],
+        [u"Número de contacto", "report.persona.phone", 85],
+        #[u"Nombre de contacto", "report.informer_name", 140],
+        #[u"Correo de contacto", "report.email", 140],
+        #[u"Número de contacto", "report.phone", 85],
         [u"Edad", "report.age", 30],
         [u"Entidad", "report.state.short_name", 120],
         [u"Institución (raw)", "report.institution_raw", 80],
@@ -407,14 +621,95 @@ class ReportExportView2(GenericModelExport):
         [u"Es otra institución", "report.is_other", 30],
         [u"CLUES", "report.clues.clues", 106],
         [u"Hospital o clínica", "report.get_clues_hospital_name", 240],
-        [u"¿Hubo corrupción?", "report.has_corruption", 40],
-        [u"Relato de la corrupción", "report.narration", 300],
-        [u"Validado (por Nosotrxs)", "report.validated", 30],
-        [u"App", "report.origin_app", 40],
+        [u"¿Hubo corrupción?", "report.complement.has_corruption", 40],
+        [u"Relato de la corrupción", "report.complement.narration", 300],
+        [u"Validado (por Nosotrxs)", "report.complement.validated", 30],
+        [u"App", "report.complement.origin_app", 40],
+        #[u"¿Hubo corrupción?", "report.has_corruption", 40],
+        #[u"Relato de la corrupción", "report.narration", 300],
+        #[u"Validado (por Nosotrxs)", "report.validated", 30],
+        #[u"App", "report.origin_app", 40],
+        [u"Testimonio", "report.complement.testimony", 300],
     ]
 
     def get_file_name(self, request, **kwargs):
         return u"Exportación de Insumos y reportes"
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+
+class CovidReportExportView(views.APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from django.utils import timezone
+        from django.template.defaultfilters import slugify
+        from wsgiref.util import FileWrapper
+        from django.http import HttpResponse
+
+        file_name = u"Exportación de Dosis y Reportes Covid %s" % timezone.now()\
+            .strftime("%d-%m-%Y")
+        slug_file_name = slugify(u"Exportación de Dosis y Reportes Covid")
+
+        try:
+            users_xlsx = open("%s.xlsx" % slug_file_name, 'rb')
+        except Exception as e:
+            return Response({"errors": [u"%s" % e]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        response = HttpResponse(FileWrapper(users_xlsx),
+                                content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="%s"' % (
+            "%s.xlsx" % file_name)
+        return response
+
+
+class CovidReportExportView2(GenericModelExport):
+    queryset = DosisCovid.objects.all()\
+        .prefetch_related(
+            "state",
+            "municipality",
+            "covid_report",
+            "covid_report__state",
+            "covid_report__municipality",
+            "covid_report__persona",
+            "covid_report__complement")\
+        .order_by("covid_report__created", "id")
+    permission_classes = [permissions.IsAdminUser]
+    columns_width_pixel = True
+    xlsx_name = u"Exportación de Dosis y Reportes Covid"
+    tab_name = u"Listado"
+    header_format = {'bold': True, "font_size": 13}
+    data_config = [
+        [u"id de la Dosis", "id", 28],
+        [u"Tipo de dosis", "get_type_success", 28],
+        [u"Marca de la vacuna", "brand", 100],
+        [u"Número de dosis", "round_dosis", 28],
+        [u"Fecha de evento", "date", 35],
+        [u"Razón de negativa", "reason_negative", 120],
+        [u"Entidad negativa", "state.name", 120],
+        [u"Municipio negativa", "state.short_name", 120],
+        [u"Otra ubicación (neg)", "other_location", 40],
+        [u"id del Reporte Covid", "covid_report.id", 28],
+        [u"Fecha de Registro", "covid_report.created", 86],
+        [u"Edad", "covid_report.age", 30],
+        [u"Grupo Especial", "covid_report.special_group", 85],
+        [u"Género", "covid_report.gender", 30],
+        [u"Comorbilidades", "covid_report.comorbilities", 30],
+        [u"Entidad residencia", "covid_report.state.short_name", 120],
+        [u"Municipio residencia", "covid_report.municipality.name", 120],
+        [u"Otra ubicación (residencia)", "covid_report.other_location", 120],
+        [u"Nombre de contacto", "covid_report.persona.informer_name", 140],
+        [u"Correo de contacto", "covid_report.persona.email", 140],
+        [u"Número de contacto", "covid_report.persona.phone", 85],
+        [u"¿Hubo corrupción?", "covid_report.complement.has_corruption", 40],
+        [u"Relato de la corrupción", "covid_report.complement.narration", 300],
+        [u"Validado (por Nosotrxs)", "covid_report.complement.validated", 30],
+        [u"App", "covid_report.complement.origin_app", 40],
+        [u"Testimonio", "covid_report.complement.testimony", 300],
+    ]
+
+    def get_file_name(self, request, **kwargs):
+        return u"Exportación de Dosis y Reportes Covid"
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 

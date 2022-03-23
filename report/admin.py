@@ -13,6 +13,7 @@ from .models import (
     TestimonyMedia,
     Disease,
     Persona,
+    ComplementReport,
 )
 
 
@@ -104,6 +105,23 @@ class DosisInLine(admin.StackedInline):
     raw_id_fields = ["state", "municipality"]
 
 
+class ComplementInLine(admin.StackedInline):
+    model = ComplementReport
+    extra = 0
+    #fields = [
+    #    "testimony", "has_corruption", "narration",
+    #    "validated", "validator", "validated_date", "pending"]
+    fieldsets = [
+        [None, {
+            "fields": [
+                "testimony", "has_corruption", "narration"]}],
+        ["Validación y envío", {
+            "classes": ["collapse"],
+            "fields": [
+                "validated", "validator", "validated_date", "pending"]}]]
+    show_change_link = True
+
+
 class TestimonyMediaInLine(admin.StackedInline):
     model = TestimonyMedia
     extra = 0
@@ -117,34 +135,26 @@ class TestimonyNullFilterSpec(NullFilterSpec):
 class ReportAdmin(admin.ModelAdmin):
     model = Report
     list_display = [
-        "created", "trimester", "state_short_name", "hospital_name_raw",
-        "clues_clues", "validated", "supplies_display", "origin_app",
-        "has_testimony"]
+        "created", "informer_type", "disease_raw", "state_short_name",
+        "clues_clues", "supplies_display"]
     list_filter = ["institution", "state", TestimonyNullFilterSpec]
     readonly_fields = ["created"]
-    inlines = [SupplyInLine, TestimonyMediaInLine]
-    raw_id_fields = ["clues",  # "validator"
-                     ]
+    inlines = [ComplementInLine, SupplyInLine, TestimonyMediaInLine]
+    raw_id_fields = ["clues"]
 
     fieldsets = [
-        [None, {"fields": ["created", "origin_app", "disease_raw", "age"]}],
+        [None, {
+            "fields": [
+                "created", "informer_type", "persona",
+                "disease_raw", "age"]}],
         [u"Ubicación", {
             "fields": [
                 "institution", "institution_raw", "state",
                 "hospital_name_raw", "is_other", "clues"]}],
-        [u"Informante", {
+        [u"Mails posteriores", {
             "classes": ["collapse"],
             "fields": [
-                "informer_name", "email", "phone"]}],
-        [u"Memoria escrita", {
-            "fields": [
-                "testimony", "has_corruption", "narration",
-                "want_litigation"]}],
-        [u"Validación y envío", {
-            "classes": ["collapse"],
-            "fields": [
-                "validated", "validator", "validated_date", "pending",
-                "sent_email", "sent_responsible"]}],
+                "sent_email", "sent_responsible", "want_litigation"]}],
     ]
 
     def state_short_name(self, obj):
@@ -152,21 +162,28 @@ class ReportAdmin(admin.ModelAdmin):
             return obj.state.short_name
     state_short_name.short_display = "Estado"
 
-    def has_testimony(self, obj):
+    """def has_testimony(self, obj):
         return True if obj.testimony else False
     has_testimony.short_display = "Tiene testimonio"
-    has_testimony.boolean = True
+    has_testimony.boolean = True"""
 
     def clues_clues(self, obj):
         return obj.clues.clues if obj.clues else ""
     clues_clues.short_display = "CLUES"
 
     def supplies_display(self, obj):
-        from django.utils.html import format_html
-        html_list = ""
-        for supplies in Supply.objects.filter(report=obj):
-            html_list += (u'%s<br>' % (supplies))
-        return format_html(html_list)
+        from django.utils.html import format_html_join
+        #from django.utils.html import format_html
+        #html_list = "",
+        #for supp in Supply.objects.filter(report=obj):
+        #    html_list += (u'{}<br>' % (supp))
+        #return format_html(html_list)
+        #return format_html("")
+        supplies = Supply.objects.filter(report=obj)
+        return format_html_join(
+            '\n', "{}{}</br>",
+            (('->', supply) for supply in supplies)
+        )
     supplies_display.short_display = "Insumos"
 
     def save_related(self, request, form, formsets, change):
@@ -181,26 +198,22 @@ class CovidReportAdmin(admin.ModelAdmin):
     model = CovidReport
     list_display = [
         "created", "state_short_name", "municipality_name",
-        "validated", "dosis_display", "origin_app", "has_testimony"]
+        "dosis_display"]
     list_filter = ["state", TestimonyNullFilterSpec]
     readonly_fields = ["created"]
-    inlines = [DosisInLine]
+    inlines = [ComplementInLine, DosisInLine]
     raw_id_fields = ["state", "municipality"]
 
     fieldsets = [
         [None, {
             "fields": [
-                "created", "origin_app", "persona"]}],
+                "created", "persona"]}],
+        [u"Datos de la persona", {
+            "fields": [
+                "age", "gender", "special_group", "comorbilities"]}],
         [u"Ubicación", {
             "fields": [
                 "state", "municipality", "other_location"]}],
-        [u"Memoria escrita", {
-            "fields": [
-                "testimony", "has_corruption", "narration"]}],
-        [u"Validación y envío", {
-            "classes": ["collapse"],
-            "fields": [
-                "validated", "validator", "validated_date", "pending"]}],
     ]
 
     def state_short_name(self, obj):
@@ -213,10 +226,10 @@ class CovidReportAdmin(admin.ModelAdmin):
             return obj.municipality.name
     municipality_name.short_display = "Municipio"
 
-    def has_testimony(self, obj):
+    """def has_testimony(self, obj):
         return True if obj.testimony else False
     has_testimony.short_display = "Tiene testimonio"
-    has_testimony.boolean = True
+    has_testimony.boolean = True"""
 
     def dosis_display(self, obj):
         from django.utils.html import format_html
@@ -229,6 +242,13 @@ class CovidReportAdmin(admin.ModelAdmin):
 admin.site.register(CovidReport, CovidReportAdmin)
 
 
+class ComplementReportAdmin(admin.ModelAdmin):
+    list_display = ["report", "covid_report", "validated"]
+    #search_fields = ["name"]
+
+admin.site.register(ComplementReport, ComplementReportAdmin)
+
+
 class DiseaseAdmin(admin.ModelAdmin):
     list_display = [
         "name",
@@ -239,7 +259,7 @@ admin.site.register(Disease, DiseaseAdmin)
 
 
 class PersonaAdmin(admin.ModelAdmin):
-    list_display = ["informer_name", "email", "informer_type"]
+    list_display = ["informer_name", "email", "phone"]
     search_fields = ["informer_name", "email"]
 
 
