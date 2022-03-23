@@ -4,8 +4,8 @@ from rest_framework.pagination import PageNumberPagination
 from catalog.models import State, Institution, Alliances
 from catalog.api.serializers import (
     StateSerializer, InstitutionSerializer, AlliancesSerializer)
-from report.models import Disease
-from report.api.serializers import DiseaseSerializer
+from catalog.models import Disease
+from catalog.api.serializers import DiseaseSerializer
 from rest_framework import (permissions, views)
 from rest_framework.response import Response
 # --------Paginacion-----------------------------------------------------------

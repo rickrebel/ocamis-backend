@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.core.validators import validate_email
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
-from catalog.models import Institution, State, CLUES, Municipality
+from catalog.models import Institution, State, CLUES, Municipality, Disease
 from medicine.models import Component, Presentation
 from django.contrib.postgres.fields import JSONField
 
@@ -55,6 +55,12 @@ class Persona(models.Model):
     phone = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Número de contacto")
+    want_litigation = models.NullBooleanField(
+        verbose_name=u"¿Permite contacto para asesoría legal?",
+        blank=True, null=True)
+    want_management = models.NullBooleanField(
+        verbose_name=u"¿Permite contacto para acompañar proceso?",
+        blank=True, null=True)
 
     class Meta:
         verbose_name = u"Persona Reportante"
@@ -102,12 +108,6 @@ class Report(models.Model):
     informer_type = models.CharField(
         max_length=20, choices=TYPE,
         verbose_name=u"Tipo de Informante")
-    want_litigation = models.NullBooleanField(
-        verbose_name=u"¿Permite contacto para litigio?",
-        blank=True, null=True)
-
-    sent_email = models.NullBooleanField(blank=True, null=True)
-    sent_responsible = models.NullBooleanField(blank=True, null=True)
 
     #Va a Persona:
     informer_name = models.CharField(
@@ -118,6 +118,9 @@ class Report(models.Model):
     phone = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Número de contacto")
+    want_litigation = models.NullBooleanField(
+        verbose_name=u"¿Permite contacto para litigio?",
+        blank=True, null=True)
 
     #Va a ComplementReport:
     origin_app = models.CharField(
@@ -138,6 +141,8 @@ class Report(models.Model):
         verbose_name=u"Relato de la corrupción")
 
     #DEBERÍAN ELIMINARSE:
+    sent_email = models.NullBooleanField(blank=True, null=True)
+    sent_responsible = models.NullBooleanField(blank=True, null=True)
     medicine_type = models.CharField(
         max_length=30, blank=True, null=True,
         verbose_name=u"Tipo de medicina")
@@ -501,7 +506,7 @@ class Supply(models.Model):
         blank=True, null=True,
     )
     disease = models.ForeignKey(
-        'Disease', blank=True, null=True, verbose_name="Padecimiento",
+        Disease, blank=True, null=True, verbose_name="Padecimiento",
         on_delete=models.CASCADE)
     #disease = models.IntegerField(blank=True, null=True)
 
@@ -514,16 +519,3 @@ class Supply(models.Model):
         verbose_name = u"Medicamento o insumo"
         verbose_name_plural = u"2. Medicamentos/Insumos de reportes"
         db_table = u'desabasto_supply'
-
-
-@python_2_unicode_compatible
-class Disease(models.Model):
-    name = models.CharField(max_length=50)
-
-    class Meta:
-        verbose_name = "Padecimiento"
-        verbose_name_plural = "7. Padecimientos"
-        db_table = u'desabasto_disease'
-
-    def __str__(self):
-        return self.name

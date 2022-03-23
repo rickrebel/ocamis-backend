@@ -11,7 +11,7 @@ from .models import (
     Supply,
     DosisCovid,
     TestimonyMedia,
-    Disease,
+    #Disease,
     Persona,
     ComplementReport,
 )
@@ -249,15 +249,6 @@ class ComplementReportAdmin(admin.ModelAdmin):
     #search_fields = ["name"]
 
 admin.site.register(ComplementReport, ComplementReportAdmin)
-
-
-class DiseaseAdmin(admin.ModelAdmin):
-    list_display = [
-        "name",
-    ]
-    search_fields = ["name"]
-
-admin.site.register(Disease, DiseaseAdmin)
 
 
 class PersonaAdmin(admin.ModelAdmin):

@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from report.models import (
-    Report, Supply, TestimonyMedia, Disease,
+    Report, Supply, TestimonyMedia,
     CovidReport, DosisCovid, Persona, ComplementReport)
 from medicine.api.serializers import (
     ComponentFullSerializer, PresentationSerializer)
@@ -274,10 +274,3 @@ class ReportPublicListSimpleSerializer(serializers.ModelSerializer):
             "informer_type",
             "created",
         ]
-
-
-class DiseaseSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Disease
-        fields = "__all__"

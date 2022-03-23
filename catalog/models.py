@@ -2,11 +2,9 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 from django.contrib.postgres.fields import JSONField
 
 
-@python_2_unicode_compatible
 class State(models.Model):
     inegi_code = models.CharField(max_length=2, verbose_name=u"Clave INEGI")
     name = models.CharField(max_length=50, verbose_name=u"Nombre")
@@ -41,7 +39,6 @@ class Municipality(models.Model):
         verbose_name_plural = u"Municipios"
 
 
-@python_2_unicode_compatible
 class Institution(models.Model):
     name = models.CharField(
         max_length=255, verbose_name=u"NOMBRE DE LA INSTITUCION")
@@ -65,7 +62,6 @@ class Institution(models.Model):
         db_table = u'desabasto_institution'
 
 
-@python_2_unicode_compatible
 class CLUES(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
     #state = models.IntegerField()
@@ -152,12 +148,42 @@ class CLUES(models.Model):
         db_table = u'desabasto_clues'
 
 
-@python_2_unicode_compatible
+class Disease(models.Model):
+    name = models.CharField(max_length=50)
+
+    class Meta:
+        verbose_name = "Padecimiento"
+        verbose_name_plural = "7. Padecimientos"
+        db_table = u'desabasto_disease'
+
+    def __str__(self):
+        return self.name
+
+
 class Alliances(models.Model):
     name = models.CharField(max_length=180)
-    page_url = models.CharField(max_length=180, blank=True, null=True)
+    page_url = models.CharField(
+        verbose_name="Página web",
+        max_length=180, blank=True, null=True)
     logo = models.FileField()
     level = models.IntegerField(default=2)
+    diseases_litigation = models.ManyToManyField(
+        Disease, related_name="litigations",
+        verbose_name="Padecimientos asociados (asesoría legal)",
+        blank=True)
+    diseases_management = models.ManyToManyField(
+        Disease, related_name="managements",
+        verbose_name="Padecimientos asociados (acompañamiento)",
+        blank=True)
+    page_help = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name="Página web de asistencia")
+    email = models.CharField(
+        max_length=255, verbose_name="Email para asistencia",
+        blank=True, null=True)
+    phone = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name=u"Número de contacto")
 
     class Meta:
         verbose_name = u"Alianza"

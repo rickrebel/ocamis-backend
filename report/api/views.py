@@ -10,16 +10,16 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
 from report.models import (
-    Report, Supply, Disease, CovidReport, DosisCovid, Persona,
+    Report, Supply, CovidReport, DosisCovid, Persona,
     ComplementReport)
 
 from api.mixins import (MultiSerializerListCreateRetrieveUpdateMix as
                         ListCreateRetrieveUpdateMix, ListMix)
 
-from catalog.models import State, Institution, Alliances
+from catalog.models import State, Institution, Alliances, Disease
 from catalog.api.serializers import (
-    StateListSerializer, InstitutionSerializer, AlliancesSerializer)
-from report.api.serializers import DiseaseSerializer
+    StateListSerializer, InstitutionSerializer, AlliancesSerializer,
+    DiseaseSerializer)
 # --------Paginacion-----------------------------------------------------------
 
 

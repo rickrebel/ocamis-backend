@@ -1,4 +1,5 @@
-from desabasto.models import Supply, Disease, Component, CLUES
+from desabasto.models import Supply, Component, CLUES
+from catalog.models import Disease
 import csv
 # from scripts.common import read_data_dict_CSV
 from django.db.models import Q

@@ -16,6 +16,10 @@ IS_PRODUCTION = os.getenv("DESABASTO_PROD", False) in [True, 1, "True", "1"]
 
 DEBUG = os.getenv("DESABASTO_DEBUG", True) in [True, 1, "True", "1"]
 
+AWS_STORAGE_BUCKET_NAME = 'cdn-yeeko'
+
+MEDIA_URL = 'https://%s.s3.amazonaws.com/media/' % AWS_STORAGE_BUCKET_NAME
+
 desabasto_allowed_hosts = os.getenv("DESABASTO_ALLOWED_HOSTS")
 if desabasto_allowed_hosts:
     try:
@@ -29,14 +33,9 @@ else:
         hosts = []
 ALLOWED_HOSTS = hosts
 
-
-AWS_STORAGE_BUCKET_NAME = 'cdn-yeeko'
-
-MEDIA_URL = 'https://%s.s3.amazonaws.com/media/' % AWS_STORAGE_BUCKET_NAME
-
-#MEDIA_ROOT = "/"
-
 STATIC_ROOT = os.path.join(BASE_DIR, "static_compressed")
+
+COMPRESS_ROOT = STATIC_ROOT
 
 # Application definition
 
@@ -54,7 +53,6 @@ INSTALLED_APPS = [
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",
     "recipe.apps.RecipeConfig",
-    "intl_medicine.apps.IntlMedicineConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
 ]
 

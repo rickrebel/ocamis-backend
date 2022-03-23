@@ -10,6 +10,7 @@ from .models import (
     Institution,
     State,
     Municipality,
+    Disease
 )
 
 
@@ -102,3 +103,12 @@ class AlliancesAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Alliances, AlliancesAdmin)
+
+
+class DiseaseAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+    ]
+    search_fields = ["name"]
+
+admin.site.register(Disease, DiseaseAdmin)

@@ -30,13 +30,7 @@ else:
 ALLOWED_HOSTS = hosts
 
 
-AWS_STORAGE_BUCKET_NAME = 'cdn-yeeko'
-
-MEDIA_URL = 'https://%s.s3.amazonaws.com/media/' % AWS_STORAGE_BUCKET_NAME
-
-#MEDIA_ROOT = "/"
-
-STATIC_ROOT = os.path.join(BASE_DIR, "static_compressed")
+CKEDITOR_UPLOAD_PATH = "ckeditor_uploads/"
 
 # Application definition
 
@@ -56,6 +50,7 @@ INSTALLED_APPS = [
     "recipe.apps.RecipeConfig",
     "intl_medicine.apps.IntlMedicineConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
+    'ckeditor',
 ]
 
 MIDDLEWARE = [
