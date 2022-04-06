@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "recipe.apps.RecipeConfig",
     "intl_medicine.apps.IntlMedicineConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
+    'ckeditor',
 ]
 
 MIDDLEWARE = [

@@ -43,13 +43,9 @@ admin.site.register(Container, ContainerAdmin)
 
 class PresentationAdmin(admin.ModelAdmin):
     list_display = [
-        "clave",
-        "official_name",
-        "official_attributes",
-        "short_attributes",
+        "description",
         "component",
         "presentation_type",
-        "presentation_type_raw",
     ]
     list_filter = ["origen_cvmei"]
     raw_id_fields = ["component"]
