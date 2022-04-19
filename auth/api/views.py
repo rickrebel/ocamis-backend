@@ -51,6 +51,7 @@ class UserLoginAPIView(views.APIView):
 
     def post(self, request):
         from rest_framework.exceptions import ParseError
+        from rest_framework.authtoken.models import Token
         #from circles.views import activate_invitation, invitation_search
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
@@ -78,6 +79,11 @@ class UserLoginAPIView(views.APIView):
             raise ParseError(detail=u"Invalid credentials.")
         if not user_obj.is_active:
             raise ParseError(detail=u"User not active.")
+
+        auth_token = getattr(user_obj, "auth_token", None)
+        if not auth_token:
+            user_obj.auth_token, is_created = Token.objects\
+                .get_or_create(user=user_obj)
 
         get_serializer = serializers.UserDataSerializer
         data = get_serializer(user_obj, context={'request': request}).data

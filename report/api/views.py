@@ -209,6 +209,7 @@ class ReportView2(ListCreateRetrieveUpdateMix):
 
     def create(self, request, **kwargs):
         self.check_permissions(request)
+        print("ESTOY EN CREATE")
         data_rep = request.data
         if data_rep.get('persona', False):
             persona_data = data_rep.pop('persona')
@@ -224,7 +225,7 @@ class ReportView2(ListCreateRetrieveUpdateMix):
 
         new_report = Report()
         report = None
-        supplies_items = data_rep.pop('supply', [])
+        supplies_items = data_rep.pop('supplies', [])
         serializer_rep = self.get_serializer_class()(
             new_report, data=data_rep)
         if serializer_rep.is_valid():
@@ -246,12 +247,9 @@ class ReportView2(ListCreateRetrieveUpdateMix):
                             status=status.HTTP_400_BAD_REQUEST)
 
         for supply_item in supplies_items:
+            print(supply_item)
             supply = Supply()
             supply.report = report
-            if "component" in supply_item:
-                supply.component = supply_item.pop("component")
-            if "presentation" in supply_item:
-                supply.presentation = supply_item.pop("presentation")
 
             serializer_supp = serializers.SupplyListSerializer(
                 supply, data=supply_item)
