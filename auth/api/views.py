@@ -85,10 +85,13 @@ class UserLoginAPIView(views.APIView):
             user_obj.auth_token, is_created = Token.objects\
                 .get_or_create(user=user_obj)
 
-        get_serializer = serializers.UserDataSerializer
-        data = get_serializer(user_obj, context={'request': request}).data
+        user_serializer = serializers.UserDataSerializer(
+            user_obj, context={"request": request})
 
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(user_serializer.data, status=status.HTTP_200_OK)
+        #get_serializer = serializers.UserDataSerializer
+        #data = get_serializer(user_obj, context={'request': request}).data
+        #return Response(data, status=status.HTTP_200_OK)
 
     def get(self, request):
         user = request.user

@@ -205,8 +205,10 @@ class SupplyFullNextSerializer(serializers.ModelSerializer):
 
 
 class ReportNextSerializer(serializers.ModelSerializer):
-    testimonies_media = TestimonyMediaSerializer(many=True)
-    supplies = SupplyFullNextSerializer(many=True)
+    #testimonies_media = TestimonyMediaSerializer(many=True)
+    supplies = SupplyListSerializer(many=True)
+    persona = PersonaSerializer()
+    complement = ComplementReportSerializer()
     clues = CLUESFullSerializer()
 
     class Meta:
