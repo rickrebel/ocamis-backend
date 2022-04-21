@@ -1,5 +1,5 @@
 from rest_framework import routers
-from django.urls import path
+#from django.urls import path
 from django.conf.urls import url
 
 from report.api.views import (
@@ -8,7 +8,8 @@ from report.api.views import (
     ReportList, ReportStateInstitutionCountList,
     ReportMedicineView, CatalogView,
     CovidReportView2, ComplementReportView, ReportView2,
-    ReportExportView2, CovidReportExportView2, CovidReportExportView
+    ReportExportView2, CovidReportExportView2, CovidReportExportView,
+    PublicReportExportView2
 )
 
 router = routers.DefaultRouter()
@@ -29,6 +30,7 @@ urlpatterns = [
     #url(r'reports/$', ReportList.as_view()),
     url(r'^state_count/$', ReportStateInstitutionCountList.as_view()),
     url(r'^public_export/$', PublicReportExportView.as_view()),
+    url(r'^generate_public/$', PublicReportExportView2.as_view()),
     #path(r'^reports/$', ReportListView.as_view()),
     url(r'^generate_export/$', ReportExportView2.as_view()),
     url(r'^generate_export_covid/$', CovidReportExportView2.as_view()),

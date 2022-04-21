@@ -67,6 +67,7 @@ class SupplyList(ListMix):
 class IsAdminOrCreateOnly(BasePermission):
 
     def has_permission(self, request, view):
+        print(view.action)
         if view.action == 'create':
             return True
         else:
@@ -197,8 +198,8 @@ class ReportView(ListCreateRetrieveUpdateMix):
 
 
 class ReportView2(ListCreateRetrieveUpdateMix):
-    #permission_classes = (IsAdminOrCreateOnly,)
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (IsAdminOrCreateOnly,)
+    #permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.ReportSerializer2
     queryset = Report.objects.all()
     pagination_class = HeavyResultsSetPagination
@@ -664,16 +665,14 @@ class ReportExportView2(GenericModelExport):
         [u"Presentacion escrita", "presentation_raw", 160],
         [u"id del Reporte", "report.id", 28],
         [u"Fecha de Registro", "report.created", 86],
-        #[u"Trimestre", "report.trimester", 86],
         [u"Tipo de informante", "report.informer_type", 86],
         [u"Padecimiento (escrito)", "report.disease_raw", 154],
         [u"Padecimiento", "disease.name", 154],
         [u"Nombre de contacto", "report.persona.informer_name", 140],
         [u"Correo de contacto", "report.persona.email", 140],
         [u"Número de contacto", "report.persona.phone", 85],
-        #[u"Nombre de contacto", "report.informer_name", 140],
-        #[u"Correo de contacto", "report.email", 140],
-        #[u"Número de contacto", "report.phone", 85],
+        [u"Apoyo Litig", "report.persona.want_litigation", 40],
+        [u"Apoyo Acomp", "report.persona.want_management", 40],
         [u"Edad", "report.age", 30],
         [u"Entidad", "report.state.short_name", 120],
         [u"Institución (raw)", "report.institution_raw", 80],
@@ -685,10 +684,6 @@ class ReportExportView2(GenericModelExport):
         [u"Relato de la corrupción", "report.complement.narration", 300],
         [u"Validado (por Nosotrxs)", "report.complement.validated", 30],
         [u"App", "report.complement.origin_app", 40],
-        #[u"¿Hubo corrupción?", "report.has_corruption", 40],
-        #[u"Relato de la corrupción", "report.narration", 300],
-        #[u"Validado (por Nosotrxs)", "report.validated", 30],
-        #[u"App", "report.origin_app", 40],
         [u"Testimonio", "report.complement.testimony", 300],
     ]
 
@@ -761,6 +756,7 @@ class CovidReportExportView2(GenericModelExport):
         [u"Nombre de contacto", "covid_report.persona.informer_name", 140],
         [u"Correo de contacto", "covid_report.persona.email", 140],
         [u"Número de contacto", "covid_report.persona.phone", 85],
+        [u"Apoyo Litig", "report.persona.want_litigation", 40],        
         [u"¿Hubo corrupción?", "covid_report.complement.has_corruption", 40],
         [u"Relato de la corrupción", "covid_report.complement.narration", 300],
         [u"Validado (por Nosotrxs)", "covid_report.complement.validated", 30],
@@ -801,31 +797,43 @@ class PublicReportExportView(views.APIView):
 
 class PublicReportExportView2(GenericModelExport):
     queryset = Supply.objects.filter(report__validated=True)\
+        .prefetch_related(
+            "report",
+            "report__state",
+            "report__institution",
+            "report__clues",
+            "report__complement",
+            "component",
+            "component__group",
+            "presentation",
+            "disease")\
         .order_by("report__created", "id")
+
+
     permission_classes = [permissions.AllowAny]
     columns_width_pixel = True
     xlsx_name = u"Exportación de Insumos y reportes"
     tab_name = u"Registros históricos"
     header_format = {'bold': True, "font_size": 13}
     data_config = [
-        [u"Fecha de Registro", "report.created", 86],
-        [u"Trimestre", "report.trimester", 86],
+        [u"id del Insumo", "id", 28],
         [u"Tipo de Medicina", "medicine_type", 134],
-        [u"Insumo (nombre real)", "medicine_real_name", 160],
-        [u"Padecimiento (escrito)", "report.disease_raw", 154],
-        [u"Padecimiento final", "disease.name", 154],
-        [u"Entidad", "report.state.short_name", 120],
-        [u"Institución (s/CLUES)", "report.get_institution_name", 60],
-        [u"Institución 2", "report.hospital_name_raw", 80],
-        [u"Clave CLUES", "report.clues.clues", 106],
-        [u"Hospital o clínica", "report.get_clues_hospital_name", 240],
+        [u"Grupo", "component.group.name", 160],
+        [u"Componente", "component.name", 160],
+        [u"Presentacion", "presentation.description", 160],
+        [u"id del Reporte", "report.id", 28],
+        [u"Fecha de Registro", "report.created", 86],
         [u"Tipo de informante", "report.informer_type", 86],
-        [u"Componente", "component.name", 40],
-        [u"Presentacion", "presentation.description", 40],
+        [u"Padecimiento", "disease.name", 154],
+        [u"Entidad", "report.state.short_name", 120],
+        [u"Institución", "report.institution.public_name", 60],
+        [u"Institución 2", "report.hospital_name_raw", 80],
+        [u"CLUES", "report.clues.clues", 106],
+        [u"Hospital o clínica", "report.get_clues_hospital_name", 240],
     ]
 
     def get_file_name(self, request, **kwargs):
-        return u"Exportación de Insumos y reportes público"
+        return u"Exportación pública de Insumos y reportes"
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
