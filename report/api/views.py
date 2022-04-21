@@ -340,11 +340,11 @@ class ReportView2(ListCreateRetrieveUpdateMix):
         pending = request.query_params.get("pending")
         if pending:
             if pending.lower() in ["si", "yes", "true"]:
-                query_kwargs["pending"] = True
+                query_kwargs["complement__pending"] = True
             elif pending.lower() in ["no", "false"]:
-                query_kwargs["pending"] = False
+                query_kwargs["complement__pending"] = False
         else:
-            query_kwargs["pending"] = False
+            query_kwargs["complement__pending"] = False
         report = Report.objects.filter(**query_kwargs)\
             .order_by("created").first()
 
@@ -381,22 +381,23 @@ class ReportView2(ListCreateRetrieveUpdateMix):
         pending = request.data.get("pending")
         validated = request.data.get("validated")
         report = self.get_object()
-        print(report)
+        complement = ComplementReport.objects.get(report=report)
+        #print(report)
         errors = []
 
         if pending in [True, "true"]:
-            report.pending = True
+            complement.pending = True
         elif pending in [False, "false"]:
-            report.pending = False
+            complement.pending = False
         elif pending:
             errors.append("pending invalido")
 
         if validated in [True, "true"]:
-            report.validated = True
+            complement.validated = True
         elif validated in [False, "false"]:
-            report.validated = False
+            complement.validated = False
         elif validated in ["null"]:
-            report.validated = None
+            complement.validated = None
         elif validated:
             errors.append("validated invalido")
 
@@ -404,7 +405,7 @@ class ReportView2(ListCreateRetrieveUpdateMix):
             return Response({"errors": errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        report.save()
+        complement.save()
 
         return Response(status=status.HTTP_202_ACCEPTED)
 
