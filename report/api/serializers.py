@@ -161,7 +161,7 @@ class ReportSerializer2(serializers.ModelSerializer):
 
 
 class ReportSimpleSerializer(serializers.ModelSerializer):
-    supplies = SupplyListSerializer(many=True)
+    #supplies = SupplyListSerializer(many=True)
 
     class Meta:
         model = Report
