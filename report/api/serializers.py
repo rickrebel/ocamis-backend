@@ -24,6 +24,14 @@ class SupplyListSerializer(serializers.ModelSerializer):
         read_only_fields = ["report"]
 
 
+class SupplySimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Supply
+        fields = "__all__"
+        read_only_fields = ["created", "report"]
+
+
 class DosisCovidListSerializer(serializers.ModelSerializer):
     state = serializers.ReadOnlyField(source="covid_report.state.id")
     municipality = serializers.ReadOnlyField(
@@ -133,6 +141,14 @@ class ComplementReportSerializer(serializers.ModelSerializer):
             "validated", "validator", "validated_date", "pending", "key"]
 
 
+class ComplementReportUpdateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ComplementReport
+        fields = "__all__"
+        read_only_fields = ["id", "report", "covid_report", "key"]
+
+
 class ReportSerializer2(serializers.ModelSerializer):
     supplies = SupplyListSerializer(many=True)
     persona = PersonaSerializer()
@@ -145,11 +161,20 @@ class ReportSerializer2(serializers.ModelSerializer):
 
 
 class ReportSimpleSerializer(serializers.ModelSerializer):
+    supplies = SupplyListSerializer(many=True)
 
     class Meta:
         model = Report
         fields = "__all__"
         read_only_fields = ["created", "supplies"]
+
+
+class ReportUpdateSerializer2(serializers.ModelSerializer):
+
+    class Meta:
+        model = Report
+        fields = "__all__"
+        read_only_fields = ["id", "created", "supplies"]
 
 
 class CovidReportSimpleSerializer(serializers.ModelSerializer):
@@ -178,8 +203,7 @@ class ReportUpdateSerializer(ReportSerializer):
         model = Report
         fields = ReportSerializer.Meta.fields
         read_only_fields = [
-            "id", "informer_type", "disease_raw", "created",
-            "want_litigation"]
+            "id", "informer_type", "disease_raw", "created"]
 
 
 class CovidReportUpdateSerializer(ReportSerializer):

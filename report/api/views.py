@@ -203,13 +203,12 @@ class ReportView2(ListCreateRetrieveUpdateMix):
     queryset = Report.objects.all()
     pagination_class = HeavyResultsSetPagination
     action_serializers = {
-        "update": serializers.ReportUpdateSerializer,
+        "update": serializers.ReportUpdateSerializer2,
         "create": serializers.ReportSimpleSerializer
     }
 
     def create(self, request, **kwargs):
         self.check_permissions(request)
-        print("ESTOY EN CREATE")
         data_rep = request.data
         if data_rep.get('persona', False):
             persona_data = data_rep.pop('persona')
@@ -247,7 +246,6 @@ class ReportView2(ListCreateRetrieveUpdateMix):
                             status=status.HTTP_400_BAD_REQUEST)
 
         for supply_item in supplies_items:
-            print(supply_item)
             supply = Supply()
             supply.report = report
 
@@ -260,30 +258,85 @@ class ReportView2(ListCreateRetrieveUpdateMix):
 
         new_serializer = serializers.ReportSerializer2(
             report, context={'request': request})
-        report.send_responsable()
+        #report.send_responsable()
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, **kwargs):
         from django.utils import timezone
         self.check_permissions(request)
+        print("ESTOY EN update")
         report = self.get_object()
-        report.validator = request.user.id
-        report.validated_date = timezone.now()
-        serializer = self.get_serializer_class()(report, data=request.data)
+        data_rep = request.data
+        if data_rep.get('persona', False):
+            persona_data = data_rep.pop('persona')
+            pers = Persona.objects.get(id=report.persona.id)
+            serializer_persona = serializers.PersonaSerializer(
+                pers, data=persona_data)
+            if serializer_persona.is_valid():
+                serializer_persona.save()
+            else:
+                return Response({"errors": serializer_persona.errors},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        supplies_items = data_rep.pop('supplies', [])
+        serializer = self.get_serializer_class()(report, data=data_rep)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
         else:
             return Response({"errors": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
+        complement_rep = ComplementReport.objects.get(report=report.id)
+        complement_rep.validator = request.user.id
+        complement_rep.validated_date = timezone.now()
+        serializer_comp = serializers.ComplementReportUpdateSerializer(
+            complement_rep, data=data_rep)
+        if serializer_comp.is_valid():
+            serializer_comp.save()
+        else:
+            print("Error en complement")
+            return Response({"errors": serializer_comp.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        actual_id_supplies = []
+        for supply_item in supplies_items:
+            if "id" in supply_item:
+                supply = Supply.objects.filter(
+                    id=supply_item["id"], report=report).first()
+                if not supply:
+                    continue
+            else:
+                supply = Supply()
+                supply.report = report
+
+            """if "component" in supply_item:
+                supply.component = supply_item.pop("component")
+            if "presentation" in supply_item:
+                supply.presentation = supply_item.pop("presentation")
+            if "disease" in supply_item:
+                supply.disease = supply_item.pop("disease")"""
+
+            serializer_supp = serializers.SupplyListSerializer(
+                supply, data=supply_item)
+            if serializer_supp.is_valid():
+                supply = serializer_supp.save()
+                actual_id_supplies.append(supply.id)
+            else:
+                print(serializer_supp.errors)
+        Supply.objects.filter(report=report)\
+            .exclude(id__in=actual_id_supplies).delete()
+
+        new_serializer = serializers.ReportSerializer2(
+            report, context={'request': request})
+        report.send_responsable()
+        return Response(
+            new_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], detail=False, url_path='next')
     def next(self, request, **kwargs):
         from datetime import timedelta
         if not request.user.is_staff:
             raise PermissionDenied()
-        query_kwargs = {"validated__isnull": True}
+        query_kwargs = {"complement__validated__isnull": True}
         pending = request.query_params.get("pending")
         if pending:
             if pending.lower() in ["si", "yes", "true"]:
@@ -328,6 +381,7 @@ class ReportView2(ListCreateRetrieveUpdateMix):
         pending = request.data.get("pending")
         validated = request.data.get("validated")
         report = self.get_object()
+        print(report)
         errors = []
 
         if pending in [True, "true"]:
