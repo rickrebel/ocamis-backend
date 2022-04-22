@@ -261,8 +261,9 @@ class Report(models.Model):
         except Exception as e:
             print(e)
             return
-        if not self.persona.email:
-            print("sin correo")
+        if not self.persona:
+            return
+        elif not self.persona.email:
             return
         dict_template = self.dict_template()
         dict_template["name"] = self.persona.informer_name

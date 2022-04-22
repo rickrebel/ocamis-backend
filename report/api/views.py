@@ -326,7 +326,8 @@ class ReportView2(ListCreateRetrieveUpdateMix):
 
         new_serializer = serializers.ReportSerializer2(
             report, context={'request': request})
-        report.send_responsable()
+        if data_rep["validated"] is True:
+            report.send_responsable()
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
