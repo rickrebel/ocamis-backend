@@ -251,7 +251,6 @@ class Report(models.Model):
         # Variables para templates--------------------------------------------
 
     def send_informer(self):
-        return None
         from email_sendgrid.models import (TemplateBase, EmailRecord,
                                            SendGridProfile)
         sendgrid_nosotrxs = SendGridProfile.objects\
