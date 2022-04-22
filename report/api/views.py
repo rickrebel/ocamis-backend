@@ -231,7 +231,6 @@ class ReportView2(ListCreateRetrieveUpdateMix):
         if serializer_rep.is_valid():
             report = serializer_rep.save()
         else:
-            print("Error en report")
             return Response({"errors": serializer_rep.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -242,7 +241,6 @@ class ReportView2(ListCreateRetrieveUpdateMix):
         if serializer_comp.is_valid():
             serializer_comp.save()
         else:
-            print("Error en complement")
             return Response({"errors": serializer_comp.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -259,7 +257,7 @@ class ReportView2(ListCreateRetrieveUpdateMix):
 
         new_serializer = serializers.ReportSerializer2(
             report, context={'request': request})
-        #report.send_responsable()
+        report.send_informer()
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
