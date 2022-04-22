@@ -258,15 +258,17 @@ class Report(models.Model):
         try:
             template_informer = TemplateBase.objects\
                 .get(name="template_informer")
-        except Exception:
+        except Exception as e:
+            print(e)
             return
-        if not self.email:
+        if not self.persona.email:
+            print("sin correo")
             return
         dict_template = self.dict_template()
-        dict_template["name"] = self.informer_name
+        dict_template["name"] = self.persona.informer_name
         email_record = EmailRecord()
         email_record.send_email = True
-        email_record.email = self.email
+        email_record.email = self.persona.email
         email_record.sendgrid_profile = sendgrid_nosotrxs
         email_record.template_base = template_informer
         email_record.type_message = "Cero Desabasto Informante"
