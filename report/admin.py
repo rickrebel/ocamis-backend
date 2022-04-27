@@ -42,6 +42,7 @@ class NullFilterSpec(SimpleListFilter):
 class ResponsableAdmin(admin.ModelAdmin):
     list_display = [
         "name",
+        "is_covid",
         "emails",
         "update_date",
         #"responsible",
@@ -50,7 +51,7 @@ class ResponsableAdmin(admin.ModelAdmin):
         "state",
         "clues",
     ]
-    list_filter = ["institution", "state"]
+    list_filter = ["is_covid", "institution", "state"]
     raw_id_fields = ["institution", "state", "clues", ]
     search_fields = [
         "name",

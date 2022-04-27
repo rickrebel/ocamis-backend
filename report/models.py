@@ -35,6 +35,8 @@ class Responsable(models.Model):
     notes = models.TextField(
         verbose_name="Notas", null=True, blank=True)
     #clues = models.IntegerField(blank=True, null=True)
+    is_covid = models.BooleanField(
+        default=False, verbose_name=u"Responsable COVID")
 
     def __str__(self):
         return u"%s - %s" % (self.name, self.institution)
