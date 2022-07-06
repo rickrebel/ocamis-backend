@@ -13,18 +13,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Disease',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50)),
-            ],
-            options={
-                'verbose_name': 'Padecimiento',
-                'verbose_name_plural': 'Padecimientos',
-                'db_table': 'desabasto_disease',
-            },
-        ),
-        migrations.CreateModel(
             name='Report',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),

@@ -329,7 +329,7 @@ class ReportView2(ListCreateRetrieveUpdateMix):
         if data_rep["validated"] is True:
             report.send_responsable()
         return Response(
-            new_serializer.data, status=status.HTTP_201_CREATED)
+            new_serializer.data, status=status.HTTP_206_PARTIAL_CONTENT)
 
     @action(methods=['get'], detail=False, url_path='next')
     def next(self, request, **kwargs):
@@ -514,24 +514,48 @@ class ReportList(views.APIView):
     permission_classes = (permissions.AllowAny, )
 
     def get(self, request):
+        
         clues = request.query_params.get("clues")
         state_inegi_code = request.query_params.get("estado")
         state_inegi_short_name = request.query_params.get("estado_nombre")
         institution_code = request.query_params.get("institucion")
         key = request.query_params.get("clave")
-        validados = request.query_params.get("validados", "yes")
-        supplies = request.query_params.get("supplies", "true")
+        validados = request.query_params.get("validados", "true")
+        simple = request.query_params.get("simple", "false")
+        selected_fields = request.query_params.get("fields", [])
+        
+        group_fields = {
+            "hospital": {
+                "finals": ["state", "institution", "clues", "hospital_name_raw"],
+                "prefetch": ["state", "institution", "clues"],
+            },
+            "stories": {
+                "finals": [
+                    "testimony", "has_corruption", "narra_corrup"],
+                "prefetch": ["complement"]
+            },
+            "supplies": {
+                "finals": ["supplies"],
+                "prefetch": [
+                    "supplies", "supplies__component",
+                    "supplies__presentation"]
+            }
+        }
+
+        fields_included = ["id", "informer_type", "created"]
+        prefetch_fields = []
+        for group, fields in group_fields.items():
+            #globals()[group] = False
+            if group in selected_fields:
+                #globals()[group] = True
+                fields_included += fields["finals"]
+                prefetch_fields += fields["prefetch"]
+        
         report_query_filter = {}
 
         any_filter = any([clues, state_inegi_code, state_inegi_short_name,
                           institution_code, key])
-        if not any_filter:
-            return Response({
-                "count": 0,
-                "data": [],
-                "warnings": ["requiere almenos uno de los filtros"]
-            })
-
+            
         if clues:
             report_query_filter["clues__clues"] = clues
         if state_inegi_code:
@@ -557,9 +581,10 @@ class ReportList(views.APIView):
             report_query_filter["validated"] = False
         elif validados in ["null"]:
             report_query_filter["validated"] = None
-        else:
-            # all, omision, error u otros
+        elif validados in ["all"]:
             pass
+        else:
+            report_query_filter["validated"] = True
 
         if report_query_filter:
             report_query = Report.objects.filter(**report_query_filter)
@@ -568,26 +593,214 @@ class ReportList(views.APIView):
 
         count = report_query.count()
 
-        if supplies in ["false"]:
-            report_serializer = serializers.ReportPublicListSimpleSerializer
-        else:
-            report_serializer = serializers.ReportPublicListSerializer
-
+        report_serializer = serializers.ReportApiSerializer
+        print("prefetch_fields: ", prefetch_fields)
+        print("fields_included: ", fields_included)
         serializer = report_serializer(
             report_query
-            .prefetch_related(
-                "state",
-                "institution",
-                "clues",
-                "supplies",
-                "supplies__component",
-                "supplies__presentation").order_by("created"),
-            many=True
+            .prefetch_related(*prefetch_fields).order_by("created"),
+            many=True, 
+            context={"request": request, "fields_included": fields_included}
         )
         return Response({
             "count": count,
             "data": serializer.data
         })
+
+        if simple in ["true"]:
+            serializer = serializers.ReportPublicMinimSerializer(
+                report_query
+                    .prefetch_related("complement")
+                    .order_by("created"),
+                many=True
+            )
+        elif not any_filter or supplies in ["false"]:
+            report_serializer = serializers.ReportPublicListSimpleSerializer
+            serializer = report_serializer(
+                report_query
+                .prefetch_related(
+                    "state",
+                    "institution",
+                    "complement",
+                    "clues").order_by("created"),
+                many=True
+            )
+        else:
+            report_serializer = serializers.ReportPublicListSerializer
+            serializer = report_serializer(
+                report_query
+                .prefetch_related(
+                    "state",
+                    "institution",
+                    "clues",
+                    "complement",
+                    "supplies",
+                    "supplies__component",
+                    "supplies__presentation").order_by("created"),
+                many=True
+            )
+        return Response({
+            "count": count,
+            "data": serializer.data
+        })
+
+
+class SupplyList2(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+
+    def get(self, request):
+
+        validados = request.query_params.get("validados", "true")
+        clues = request.query_params.get("clues")
+        state_inegi_code = request.query_params.get("estado")
+        state_inegi_short_name = request.query_params.get("estado_nombre")
+        institution_code = request.query_params.get("institucion")
+        key = request.query_params.get("clave")
+
+        supply_query_filter = {}
+
+        fields_included = ["id", "informer_type", "created"]
+        any_filter = any([clues, state_inegi_code, state_inegi_short_name,
+                          institution_code, key])
+            
+        if clues:
+            supply_query_filter["report__clues__clues"] = clues
+        if state_inegi_code:
+            supply_query_filter["report__state__inegi_code"] = state_inegi_code
+        if state_inegi_short_name:
+            supply_query_filter["report__state__short_name"] = state_inegi_short_name
+        if institution_code:
+            supply_query_filter["report__institution__code"] = institution_code
+
+        if validados in ["yes"]:
+            supply_query_filter["report__validated"] = True
+        elif validados in ["no"]:
+            supply_query_filter["report__validated"] = False
+        elif validados in ["null"]:
+            supply_query_filter["report__validated"] = None
+        elif validados in ["all"]:
+            pass
+        else:
+            supply_query_filter["report__validated"] = True
+
+        if supply_query_filter:
+            supply_query = Supply.objects.filter(**supply_query_filter)
+        else:
+            supply_query = Supply.objects.all()
+
+        count = supply_query.count()
+
+        serializer = serializers.SupplyDisaggSerializer(
+            supply_query
+            .prefetch_related(
+                "report", "report__complement", "component",
+                "presentation", "disease")
+            .order_by("report__created"),
+            many=True, 
+            context={"request": request, "fields_included": fields_included}
+        )
+
+        serializer_main = serializers.SupplyMainSerializer(
+            supply_query
+            .prefetch_related("report", "report__complement")
+            .order_by("report__created"),
+            many=True, 
+            context={"request": request, "fields_included": fields_included}
+        )
+        return Response({
+            "count": count,
+            "data": serializer.data
+        })
+
+
+class DiseaseList(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+    def get(self, request):
+        from django.db.models import Count, F
+        from django.db.models.functions import TruncMonth
+        data = Supply.objects\
+            .filter(
+                report__complement__validated=True,
+                report__state__isnull=False,
+                disease__isnull=False,
+                report__institution__isnull=False)\
+            .annotate(month=TruncMonth('report__created'))\
+            .values("report__state__short_name", "month", "disease__name")\
+            .annotate(
+                entidad=F('report__state__short_name'),
+                padecimiento=F('disease__name'),
+                mes=F('month'),
+                #institution=F('report__institution'),
+                count=Count('id'))\
+            .values('entidad', 'mes', 'count', 'padecimiento')
+        return Response(data)
+        #\ #.annotate(count=Count('id'))
+
+
+class InformerTypeList(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+    def get(self, request):
+        from django.db.models import Count, F
+        from django.db.models.functions import TruncMonth
+        data = Supply.objects\
+            .filter(
+                report__complement__validated=True,
+                report__state__isnull=False,
+                report__informer_type__isnull=False,
+                report__institution__isnull=False)\
+            .annotate(month=TruncMonth('report__created'))\
+            .values("report__state__short_name", "month", "report__informer_type")\
+            .annotate(
+                entidad=F('report__state__short_name'),
+                informer_type=F('report__informer_type'),
+                mes=F('month'),
+                #institution=F('report__institution'),
+                count=Count('id'))\
+            .values('entidad', 'mes', 'count', 'informer_type')
+        return Response(data)
+        #\ #.annotate(count=Count('id'))
+
+
+class MedicineTypeList(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+    def get(self, request):
+        from django.db.models import Count, F
+        from django.db.models.functions import TruncMonth
+        data = Supply.objects\
+            .filter(
+                report__complement__validated=True,
+                report__state__isnull=False,
+                medicine_type__isnull=False,
+                report__institution__isnull=False)\
+            .annotate(month=TruncMonth('report__created'))\
+            .values("report__state__short_name", "month", "medicine_type")\
+            .annotate(
+                entidad=F('report__state__short_name'),
+                mes=F('month'),
+                count=Count('id'))\
+            .values('entidad', 'mes', 'count', 'medicine_type')
+        return Response(data)
+
+
+class InstitutionShinyList(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+    def get(self, request):
+        from django.db.models import Count, F
+        from django.db.models.functions import TruncMonth
+        data = Supply.objects\
+            .filter(
+                report__complement__validated=True,
+                report__state__isnull=False,
+                report__institution__isnull=False)\
+            .annotate(month=TruncMonth('report__created'))\
+            .values("report__state__short_name", "month")\
+            .annotate(
+                entidad=F('report__state__short_name'),
+                mes=F('month'),
+                institucion=F('report__institution__code'),
+                count=Count('id'))\
+            .values('entidad', 'mes', 'count', 'institucion')
+        return Response(data)
 
 
 class ReportStateInstitutionCountList(views.APIView):

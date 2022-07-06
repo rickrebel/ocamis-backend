@@ -16,10 +16,6 @@ class Migration(migrations.Migration):
             options={'verbose_name': 'Reporte COVID', 'verbose_name_plural': '3. Reportes COVID'},
         ),
         migrations.AlterModelOptions(
-            name='disease',
-            options={'verbose_name': 'Padecimiento', 'verbose_name_plural': '7. Padecimientos'},
-        ),
-        migrations.AlterModelOptions(
             name='dosiscovid',
             options={'verbose_name': 'Dosis', 'verbose_name_plural': '5. Dosis aplicadas y negadas'},
         ),

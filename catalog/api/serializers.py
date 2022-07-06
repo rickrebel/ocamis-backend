@@ -22,6 +22,13 @@ class MunicipalityListSerializers(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class StateSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = State
+        fields = "__all__"
+
+
 class StateSerializer(serializers.ModelSerializer):
     municipalities = MunicipalityListSerializers(many=True)
 

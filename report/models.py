@@ -422,6 +422,9 @@ class ComplementReport(models.Model):
     narration = models.TextField(
         blank=True, null=True,
         verbose_name=u"Relato de la corrupción")
+    notes = models.TextField(
+        blank=True, null=True,
+        verbose_name=u"Notas (para corrección)")
 
     validated = models.NullBooleanField(default=None, blank=True, null=True)
     validator = models.IntegerField(blank=True, null=True)

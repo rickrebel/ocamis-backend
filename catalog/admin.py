@@ -76,7 +76,9 @@ class CLUESAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         "is_searchable",
-        "is_national"
+        "is_national",
+        "institution",
+        "state"
     ]
     raw_id_fields = ["state", "institution"]
     search_fields = [

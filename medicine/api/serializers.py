@@ -28,9 +28,16 @@ class ContainerSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class PresentationSerializer(serializers.ModelSerializer):
-    containers = ContainerSerializer(many=True)
+class PresentationSimpleSerializer(serializers.ModelSerializer):
     presentation_type = PresentationTypeSerializer()
+
+    class Meta:
+        model = Presentation
+        fields = "__all__"
+
+
+class PresentationSerializer(PresentationSimpleSerializer):
+    containers = ContainerSerializer(many=True)
 
     class Meta:
         model = Presentation

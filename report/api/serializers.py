@@ -5,10 +5,27 @@ from report.models import (
     Report, Supply, TestimonyMedia,
     CovidReport, DosisCovid, Persona, ComplementReport)
 from medicine.api.serializers import (
-    ComponentFullSerializer, PresentationSerializer)
+    ComponentFullSerializer, PresentationSerializer, 
+    PresentationSimpleSerializer, ComponentSerializer)
 from catalog.api.serializers import (
     InstitutionSerializer, CLUESSerializer, StateSerializer,
-    CLUESFullSerializer)
+    CLUESFullSerializer, StateSimpleSerializer, DiseaseSerializer)
+
+
+
+
+class ReportPublicDinamicSerializer(serializers.ModelSerializer):
+
+    def __init__(self, *args, **kwargs):
+        super(ReportPublicDinamicSerializer, self).__init__(*args, **kwargs)
+
+        selected_fields = self.context['fields_included']
+        report_query_filter = {}
+        allowed = set(selected_fields)
+        existing = set(self.fields.keys())
+        for field_name in existing - allowed:
+            self.fields.pop(field_name)
+
 
 
 class SupplyListSerializer(serializers.ModelSerializer):
@@ -255,19 +272,83 @@ class ReportListSerializer(serializers.ModelSerializer):
         fields = ["state", "institution", "month", "count"]
 
 
-class SupplyPublicSerializer(serializers.ModelSerializer):
-    component = ComponentFullSerializer()
-    presentation = PresentationSerializer()
+class ReportPublicMinimSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Report
+        fields = [
+            "id",
+            "state",
+            "institution",
+            "hospital_name_raw",
+            "clues",
+            "informer_type",
+            "created",
+        ]
+
+
+class SupplyDisaggSerializer(serializers.ModelSerializer):
+    component = ComponentSerializer()
+    presentation = PresentationSimpleSerializer()
+    disease = DiseaseSerializer()
+    report = ReportPublicMinimSerializer()
 
     class Meta:
         model = Supply
-        fields = ["id", "component", "presentation"]
+        fields = [
+            "id",
+            "medicine_type",
+            "component",
+            "presentation",
+            "medicine_name_raw",
+            "presentation_raw",
+            "disease",
+            "report",
+        ]
 
 
-class ReportPublicListSerializer(serializers.ModelSerializer):
-    state = StateSerializer()
+class SupplyMainSerializer(serializers.ModelSerializer):
+    report = ReportPublicMinimSerializer()
+
+    class Meta:
+        model = Supply
+        fields = [
+            "id",
+            "component",
+            "presentation",
+            "medicine_type",
+            "medicine_name_raw",
+            "presentation_raw",
+            "disease",
+            "report",
+        ]
+
+
+class SupplyPublicSerializer(serializers.ModelSerializer):
+    component = ComponentSerializer()
+    presentation = PresentationSimpleSerializer()
+
+    class Meta:
+        model = Supply
+        fields = [
+            "id",
+            "component",
+            "presentation",
+            "medicine_type",
+            "medicine_name_raw",
+            "presentation_raw",
+            "disease",
+        ]
+
+
+class ReportApiSerializer(ReportPublicDinamicSerializer):
+    state = StateSimpleSerializer()
     institution = InstitutionSerializer()
     clues = CLUESSerializer()
+    testimony = serializers.ReadOnlyField(source="complement.testimony")
+    has_corruption = serializers.ReadOnlyField(
+        source="complement.has_corruption")
+    narra_corrup = serializers.ReadOnlyField(source="complement.narration")
     supplies = SupplyPublicSerializer(many=True)
 
     class Meta:
@@ -279,15 +360,22 @@ class ReportPublicListSerializer(serializers.ModelSerializer):
             "hospital_name_raw",
             "clues",
             "informer_type",
+            "testimony",
+            "has_corruption",
+            "narra_corrup",
             "created",
-            "supplies",
+            "supplies"
         ]
 
 
 class ReportPublicListSimpleSerializer(serializers.ModelSerializer):
-    state = StateSerializer()
+    state = StateSimpleSerializer()
     institution = InstitutionSerializer()
     clues = CLUESSerializer()
+    testimony = serializers.ReadOnlyField(source="complement.testimony")
+    has_corruption = serializers.ReadOnlyField(
+        source="complement.has_corruption")
+    narra_corrup = serializers.ReadOnlyField(source="complement.narration")
 
     class Meta:
         model = Report
@@ -298,5 +386,28 @@ class ReportPublicListSimpleSerializer(serializers.ModelSerializer):
             "hospital_name_raw",
             "clues",
             "informer_type",
+            "testimony",
+            "has_corruption",
+            "narra_corrup",
             "created",
+        ]
+
+
+class ReportPublicListSerializer(ReportPublicListSimpleSerializer):
+    supplies = SupplyPublicSerializer(many=True)
+
+    class Meta:
+        model = Report
+        fields = [
+            "id",
+            "state",
+            "institution",
+            "hospital_name_raw",
+            "clues",
+            "informer_type",
+            "testimony",
+            "has_corruption",
+            "narra_corrup",
+            "created",
+            "supplies",
         ]

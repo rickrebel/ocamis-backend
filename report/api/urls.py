@@ -3,13 +3,14 @@ from rest_framework import routers
 from django.conf.urls import url
 
 from report.api.views import (
-    SupplyList,
+    SupplyList, SupplyList2,
     ReportView, ReportExportView, PublicReportExportView,
     ReportList, ReportStateInstitutionCountList,
     ReportMedicineView, CatalogView,
     CovidReportView2, ComplementReportView, ReportView2,
     ReportExportView2, CovidReportExportView2, CovidReportExportView,
-    PublicReportExportView2
+    PublicReportExportView2,
+    DiseaseList, InformerTypeList, MedicineTypeList, InstitutionShinyList
 )
 
 router = routers.DefaultRouter()
@@ -27,13 +28,18 @@ urlpatterns = [
     url(r'^export_covid/$', CovidReportExportView.as_view()),
     #url(r'^covid/$', CovidReportView.as_view()),
     #re_url(r'^new_covid/$', CovidReportView3, name="new-covid"),
-    #url(r'reports/$', ReportList.as_view()),
+    url(r'reports/$', ReportList.as_view()),
+    url(r'all_supplies/$', SupplyList2.as_view()),
     url(r'^state_count/$', ReportStateInstitutionCountList.as_view()),
     url(r'^public_export/$', PublicReportExportView.as_view()),
     url(r'^generate_public/$', PublicReportExportView2.as_view()),
     #path(r'^reports/$', ReportListView.as_view()),
     url(r'^generate_export/$', ReportExportView2.as_view()),
     url(r'^generate_export_covid/$', CovidReportExportView2.as_view()),
+    url(r'shiny/disease/$', DiseaseList.as_view()),
+    url(r'shiny/informer_type/$', InformerTypeList.as_view()),
+    url(r'shiny/medicine_type/$', MedicineTypeList.as_view()),
+    url(r'shiny/institution/$', InstitutionShinyList.as_view()),
 
 ]
 
