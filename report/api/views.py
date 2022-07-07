@@ -713,94 +713,151 @@ class SupplyList2(views.APIView):
         })
 
 
-class DiseaseList(views.APIView):
+class TotalList(views.APIView):
     permission_classes = (permissions.AllowAny, )
     def get(self, request):
         from django.db.models import Count, F
         from django.db.models.functions import TruncMonth
+        import math
+        from django.utils import timezone
+        from datetime import datetime
+        today = timezone.now()
+        date_time_str = "01/%s/%s" % (today.month, today.year)
+        date_time_obj = datetime.strptime(date_time_str, '%d/%m/%Y')
+        print(date_time_obj)
+        query_kwargs = {
+            "report__complement__validated": True,
+            "report__state__isnull": False,
+            "report__created__lt": date_time_obj,
+            "report__institution__isnull": False,
+        }
+        values_group = ["report__state__short_name", "month",
+                "report__state__inegi_code"]
+        annotates = {
+            "count": Count('id'),
+            "mes": F('month'),
+            "entidad_code": F('report__state__inegi_code'),
+            "entidad": F('report__state__short_name'),
+        }
         data = Supply.objects\
-            .filter(
-                report__complement__validated=True,
-                report__state__isnull=False,
-                disease__isnull=False,
-                report__institution__isnull=False)\
+            .filter(**query_kwargs)\
             .annotate(month=TruncMonth('report__created'))\
-            .values("report__state__short_name", "month", "disease__name")\
-            .annotate(
-                entidad=F('report__state__short_name'),
-                padecimiento=F('disease__name'),
-                mes=F('month'),
-                #institution=F('report__institution'),
-                count=Count('id'))\
-            .values('entidad', 'mes', 'count', 'padecimiento')
+            .values(*values_group)\
+            .annotate(**annotates)\
+            .values('entidad', 'mes', 'count', 'entidad_code')
+        final_data = []
+        for elem in data:
+            month = elem["mes"].month
+            elem["month"] = elem["mes"].month
+            year = elem["mes"].year
+            elem["year"] = year
+            cuatri = math.floor((month-1) / 4) + 1
+            elem["cuatri_number"] = cuatri
+            cuatri_names = ["Ene-Abr", "May-Ago", "Sep-Dic"]
+            year_last = str(year)
+            elem["cuatrimestre"] = "%s %s" % (cuatri_names[cuatri-1], year_last[2:])
         return Response(data)
         #\ #.annotate(count=Count('id'))
 
 
-class InformerTypeList(views.APIView):
+class DinamicList(views.APIView):
     permission_classes = (permissions.AllowAny, )
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         from django.db.models import Count, F
         from django.db.models.functions import TruncMonth
+        from django.utils import timezone
+        from datetime import datetime
+        import math
+        today = timezone.now()
+        date_time_str = "01/%s/%s" % (today.month, today.year)
+        date_time_obj = datetime.strptime(date_time_str, '%d/%m/%Y')
+        group_name = kwargs.get("group_name")
+        groups = {
+            "total": {},
+            "corruption": {
+                "vals": ["has_corruption", "report__complement__has_corruption"],
+            },
+            "disease": {
+                "filter": {"disease__isnull": False},
+                "vals": ["padecimiento", "disease__name"],
+            },
+            "informer_type": {
+                "filter": {"report__informer_type__isnull": False},
+                "vals": ["informer_type", "report__informer_type"],
+            },
+            "medicine_type": {
+                "filter": {"medicine_type__isnull": False},
+                "vals": ["medicine_type", "medicine_type"],
+            },
+            "institution": {
+                "vals": ["institucion", "report__institution__code"],
+            },
+        }
+        group_params = groups[group_name]
+        query_kwargs = {
+            "report__complement__validated": True,
+            "report__state__isnull": False,
+            "report__created__lt": date_time_obj,
+            "report__institution__isnull": False,
+        }
+        values_group = [
+            "report__state__short_name",
+            "month",
+            "report__state__inegi_code"
+        ]
+        annotates = {
+            "count": Count('id'),
+            "mes": F('month'),
+            "entidad_code": F('report__state__inegi_code'),
+            "entidad": F('report__state__short_name'),
+        }
+        display_vals = ['entidad', 'mes', 'count', 'entidad_code']
+        
+        vals = group_params.get("vals", None)
+        final_groups = values_group + [vals[1]] if vals else values_group
+        compl_annotates = {vals[0]: F(vals[1])} if vals else {}
+        final_display = display_vals + [vals[0]] if vals else display_vals
         data = Supply.objects\
-            .filter(
-                report__complement__validated=True,
-                report__state__isnull=False,
-                report__informer_type__isnull=False,
-                report__institution__isnull=False)\
+            .filter(**{**query_kwargs, **group_params.get("filter", {})})\
             .annotate(month=TruncMonth('report__created'))\
-            .values("report__state__short_name", "month", "report__informer_type")\
+            .values(*final_groups)\
+            .annotate(**{**annotates, **compl_annotates})\
+            .values(*final_display)
+        #.values(*values_group+group_params.get("values", []))\
+        #.annotate(**{**annotates, **group_params.get("annotates", {})})\
+        #.values(*display_vals+group_params.get("display_vals", []))
+        final_data = []
+        cuatri_names = ["Ene-Abr", "May-Ago", "Sep-Dic"]
+        for elem in data:
+            month = elem["mes"].month
+            elem["month"] = elem["mes"].month
+            year = elem["mes"].year
+            elem["year"] = year
+            cuatri = math.floor((month-1) / 4) + 1
+            elem["cuatri_number"] = cuatri
+            year_str = str(year)
+            elem["cuatrimestre"] = "%s %s" % (
+                cuatri_names[cuatri-1], year_str[2:])
+        return Response(data)
+
+
+class RelatosList(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+    def get(self, request):
+        from django.db.models import Count, F, Q
+        from django.db.models.functions import TruncMonth
+        data = ComplementReport.objects\
+            .filter(
+                Q(testimony__isnull=False, validated=True) 
+                    | Q(narration__isnull=False, validated=True))\
+            .values('testimony', 'narration')\
             .annotate(
-                entidad=F('report__state__short_name'),
-                informer_type=F('report__informer_type'),
-                mes=F('month'),
-                #institution=F('report__institution'),
-                count=Count('id'))\
-            .values('entidad', 'mes', 'count', 'informer_type')
+                testimonio=F('testimony'),
+                narracion_corrupcion=F('narration')
+            )\
+            .values('testimonio', 'narracion_corrupcion')
         return Response(data)
         #\ #.annotate(count=Count('id'))
-
-
-class MedicineTypeList(views.APIView):
-    permission_classes = (permissions.AllowAny, )
-    def get(self, request):
-        from django.db.models import Count, F
-        from django.db.models.functions import TruncMonth
-        data = Supply.objects\
-            .filter(
-                report__complement__validated=True,
-                report__state__isnull=False,
-                medicine_type__isnull=False,
-                report__institution__isnull=False)\
-            .annotate(month=TruncMonth('report__created'))\
-            .values("report__state__short_name", "month", "medicine_type")\
-            .annotate(
-                entidad=F('report__state__short_name'),
-                mes=F('month'),
-                count=Count('id'))\
-            .values('entidad', 'mes', 'count', 'medicine_type')
-        return Response(data)
-
-
-class InstitutionShinyList(views.APIView):
-    permission_classes = (permissions.AllowAny, )
-    def get(self, request):
-        from django.db.models import Count, F
-        from django.db.models.functions import TruncMonth
-        data = Supply.objects\
-            .filter(
-                report__complement__validated=True,
-                report__state__isnull=False,
-                report__institution__isnull=False)\
-            .annotate(month=TruncMonth('report__created'))\
-            .values("report__state__short_name", "month")\
-            .annotate(
-                entidad=F('report__state__short_name'),
-                mes=F('month'),
-                institucion=F('report__institution__code'),
-                count=Count('id'))\
-            .values('entidad', 'mes', 'count', 'institucion')
-        return Response(data)
 
 
 class ReportStateInstitutionCountList(views.APIView):

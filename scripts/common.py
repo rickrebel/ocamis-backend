@@ -37,3 +37,9 @@ def get_datetime_mx(datetime_utc):
     import pytz
     cdmx_tz = pytz.timezone("America/Mexico_City")
     return datetime_utc.astimezone(cdmx_tz)
+
+"""
+
+python ./manage.py dumpdata --exclude auth --exclude contenttypes --exclude authtoken --exclude admin.LogEntry --exclude sessions --indent 2 -v 2  > fixture/todo_desabasto.json 
+
+"""

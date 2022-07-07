@@ -9,8 +9,7 @@ from report.api.views import (
     ReportMedicineView, CatalogView,
     CovidReportView2, ComplementReportView, ReportView2,
     ReportExportView2, CovidReportExportView2, CovidReportExportView,
-    PublicReportExportView2,
-    DiseaseList, InformerTypeList, MedicineTypeList, InstitutionShinyList
+    PublicReportExportView2, RelatosList, DinamicList
 )
 
 router = routers.DefaultRouter()
@@ -36,11 +35,8 @@ urlpatterns = [
     #path(r'^reports/$', ReportListView.as_view()),
     url(r'^generate_export/$', ReportExportView2.as_view()),
     url(r'^generate_export_covid/$', CovidReportExportView2.as_view()),
-    url(r'shiny/disease/$', DiseaseList.as_view()),
-    url(r'shiny/informer_type/$', InformerTypeList.as_view()),
-    url(r'shiny/medicine_type/$', MedicineTypeList.as_view()),
-    url(r'shiny/institution/$', InstitutionShinyList.as_view()),
-
+    url(r'shiny/narrations/$', RelatosList.as_view()),
+    url(r'shiny/(?P<group_name>[-\w]+)/$', DinamicList.as_view()),
 ]
 
 urlpatterns += router.urls
