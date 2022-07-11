@@ -57,7 +57,8 @@ INSTALLED_APPS = [
     "intl_medicine.apps.IntlMedicineConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
     'ckeditor',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    "parameter.apps.ParameterConfig",
 ]
 
 MIDDLEWARE = [
