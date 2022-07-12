@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     'ckeditor',
     'rest_framework.authtoken',
     "parameter.apps.ParameterConfig",
+    "files_rows.apps.FilesRowsConfig",
+    "files_categories.apps.FilesCategoriesConfig",
 ]
 
 MIDDLEWARE = [
