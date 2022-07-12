@@ -33,10 +33,13 @@ class DocumentType(models.Model):
 
 @python_2_unicode_compatible
 class Medic(models.Model):
+    from catalog.models import Institution
     clave_medico = models.CharField(primary_key=True, max_length=30)
+    institution = models.ForeignKey(
+        Institution, null=True, blank=True, on_delete=models.CASCADE)
     nombre_medico = models.CharField(max_length=255)
     especialidad_medico = models.ForeignKey(
-        MedicalSpeciality, on_delete=models.CASCADE)
+        MedicalSpeciality, on_delete=models.CASCADE, blank=True, null=True)
     #especialidad_medico = models.IntegerField()
 
     class Meta:
@@ -74,15 +77,15 @@ class RecipeReport2(models.Model):
     #medico = models.CharField(max_length=48, blank=True, null=True)
 
     year_month = models.IntegerField(blank=True, null=True)
-    clave_presupuestal = models.CharField(max_length=20, blank=True, null=True)
+    clave_presupuestal = models.CharField(
+        max_length=20, blank=True, null=True)
     nivel_atencion = models.IntegerField(blank=True, null=True)
     delivered = models.CharField(max_length=3, blank=True, null=True)
-
     anomaly = models.TextField(blank=True, null=True)
 
     class Meta:
-        verbose_name = "RecipeReport2"
-        verbose_name_plural = "RecipeReports2"
+        verbose_name = "Receta"
+        verbose_name_plural = "Recetas"
         db_table = u'desabasto_recipereport2'
 
     def __str__(self):
@@ -91,10 +94,13 @@ class RecipeReport2(models.Model):
 
 @python_2_unicode_compatible
 class RecipeMedicine2(models.Model):
+    from medicine.models import Container
     recipe = models.ForeignKey(RecipeReport2, on_delete=models.CASCADE)
     #recipe = models.CharField(max_length=48)
 
-    clave_medicamento = models.CharField(max_length=20, blank=True, null=True)
+    #clave_medicamento = models.CharField(max_length=20, blank=True, null=True)
+    container = models.ForeignKey(
+        Container, blank=True, null=True, on_delete=models.CASCADE)
     cantidad_prescrita = models.IntegerField(blank=True, null=True)
     cantidad_entregada = models.IntegerField(blank=True, null=True)
 
@@ -104,8 +110,8 @@ class RecipeMedicine2(models.Model):
     delivered = models.CharField(max_length=3, blank=True, null=True)
 
     class Meta:
-        verbose_name = "RecipeItem"
-        verbose_name_plural = "RecipeItems"
+        verbose_name = "Insumos"
+        verbose_name_plural = "Insumos (medicamentos)"
         db_table = u'desabasto_recipemedicine2'
 
     def __str__(self):
