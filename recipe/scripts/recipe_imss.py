@@ -10,7 +10,7 @@ from django.utils import timezone
 
 especialidad_medico_list = {}
 tipo_documento_list = {}
-ISSSTE_ID = 4
+IMSS_ID = 3
 
 dbname = "postgres"
 user = "postgres"
@@ -59,13 +59,31 @@ data_file_container = []
 data_file_clues = []
 data_file_error_rr = []
 
+#Código original linux:
+#split req_abril_2019_02.txt -d -l1000000 --additional-suffix=abril_2019_02
+#RICK
+clues_imss_prev = {}
+clues_imss_after = {}
+clues_imss_type = {}
+clues_imss_name = {}
+clues_imss_alone = {}
+
+
+def split_file(path="G:/My Drive/YEEKO/Clientes/OCAMIS/imss"):
+    from filesplit.split import Split
+    curr_split = Split("%s/req_septiembre_2020_02.txt" % path, path)
+    curr_split.bylinecount(linecount=1000000)
 
 def massive_upload_csv_to_db(
-        path="", years=['2019', '2020', '2021'], institution="issste",
+        path="", years=['2019', '2020', '2021'], institution="imss",
         update_files=True):
     import os
-    from desabasto.models import RecipeReportLog, Institution
+    from recipe.models import RecipeReportLog
+    from catalog.models import Institution
     global institution_obj
+    months = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+        "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
     try:
         institution_obj = Institution.objects.get(code__iexact=institution)
         print("Procesando archivos para: ", institution_obj)
@@ -74,28 +92,29 @@ def massive_upload_csv_to_db(
         return
     print("start process: ", timezone.now())
     for year in years:
-        for mon in range(12):
-            month = mon + 1
-            base_path = "%s%s%s" % (year, '0' if month < 10 else '', month)
-            for file_num in range(8):
-                rr_file_name = "reporte_recetas_%s_%s.csv" % (
-                    base_path, file_num + 1)
-                recipe_path = "recipe_%s" % (rr_file_name)
-                medicine_path = "medicine_%s" % (rr_file_name)
+        #for mon in range(12):
+        for mon_idx, month in enumerate(months):
+            base_path = "req_%s_%s_02" % (month, year)
+            for file_num in range(99):
+                rr_file_name = "%s_%s" % (base_path, file_num + 1)
+                recipe_path = "recipe_imss_%s.csv" % (rr_file_name)
+                medicine_path = "medicine_imss_%s.csv" % (rr_file_name)
                 if path:
                     hash_dir = "" if path[-1] == "\\" else "\\"
-                    reporte_recetas_path = "%s%s%s" % (
+                    reporte_recetas_path = "%s%s%s.txt" % (
                         path, hash_dir, rr_file_name)
                     recipe_path = "%s%s%s" % (path, hash_dir, recipe_path)
                     medicine_path = "%s%s%s" % (path, hash_dir, medicine_path)
                 else:
-                    reporte_recetas_path = rr_file_name
+                    reporte_recetas_path = "%s.txt" % rr_file_name
                 if not os.path.exists(reporte_recetas_path):
                     # invalid path
-                    continue
+                    print("Invalid path", rr_file_name)
+                    break
                 if not os.path.isfile(reporte_recetas_path):
                     # is not a file
-                    continue
+                    print("Invalid path")
+                    break
                 if RecipeReportLog.objects.filter(
                         file_name=reporte_recetas_path,
                         successful=True).exists():
@@ -105,56 +124,38 @@ def massive_upload_csv_to_db(
                 print(reporte_recetas_path)
                 print("start converter_file_in_related_files: ",
                       timezone.now())
+                year_month = "%s%s%s" % (
+                    year, '0' if mon_idx < 10 else '', mon_idx)
                 successful, errors = converter_file_in_related_files(
-                    reporte_recetas_path, year_month=base_path,
+                    reporte_recetas_path, year_month=year_month,
                     institution=institution, recipe_path=recipe_path,
                     medicine_path=medicine_path, update_files=update_files)
                 print("finish converter_file_in_related_files: ",
                       timezone.now())
+                continue
                 rr_log, is_created = RecipeReportLog.objects\
                     .get_or_create(file_name=reporte_recetas_path)
                 rr_log.set_errors(errors)
                 rr_log.successful = successful
                 rr_log.save()
-    print("end process", timezone.now())
+            else:
+                continue
+    print("end all process", timezone.now())
 
 
-def get_data_from_file(reporte_recetas_path, clean_data=True):
+def get_data_from_file(reporte_recetas_path):
     import io
-
-    with_coma = False
-    from_excel = False
     try:
-        # with open(reporte_recetas_path) as file:
-        #with io.open(reporte_recetas_path, "r", encoding="latin-1") as file:
         with io.open(reporte_recetas_path, "r", encoding="latin-1") as file:
             data = file.read()
-            if "|" not in data[:3000]:
-                with_coma = True
-            if "," not in data[:5000] and "|" not in data[:5000]:
-                print("-------------------")
-                print('empty %s' % reporte_recetas_path)
-                return False, ['empty %s' % reporte_recetas_path], False
-            if ",,," in data[:5000]:
-                from_excel = True
-
-            if clean_data:
-                if with_coma:
-                    data = special_coma(data)
-                if from_excel:
-                    data = special_excel(data)
-                data = data.replace("\"", "").replace(first_null, "")
-                data = clean_special(data)
             file.close()
     except Exception as e:
+        print(e)
         return False, [u"%s" % (e)], False
 
     rr_data_rows = data.split("\n")
-    if not with_coma:
-        headers = rr_data_rows.pop(0)
-        print(u"se quitó headers del procesado: ", headers)
 
-    return rr_data_rows, [], with_coma
+    return rr_data_rows, []
 
 
 def get_tipo_documento(tipo_documento):
@@ -163,7 +164,7 @@ def get_tipo_documento(tipo_documento):
     si no existe tipo_documento, generar un registro en db y actualiar el
     archivo retornar el tipo_documento.id
     """
-    from desabasto.models import DocumentType
+    from recipe.models import DocumentType
     global catalog_document_type
     if not catalog_document_type:
         for document_type in DocumentType.objects.all():
@@ -176,7 +177,7 @@ def get_tipo_documento(tipo_documento):
 
 
 def get_state(state_name):
-    from desabasto.models import State
+    from catalog.models import State
 
     try:
         state_name = unidecode.unidecode(state_name).upper()
@@ -198,8 +199,12 @@ def get_state(state_name):
     return catalog_state[state_name]
 
 
-def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
+#def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
+def get_clues_id(entidad, unidad_medica, institution):
+
     from scripts.common import similar
+    import re
+
     """
     cargar los datos basicos de todos los Clues pertenecientes a
     la institucion dada
@@ -208,7 +213,87 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
     global data_file_clues
     global institution_obj
 
-    from desabasto.models import CLUES
+    #RICK
+    global clues_imss_prev
+    global clues_imss_after
+    global clues_imss_type
+    global clues_imss_name
+    global clues_imss_alone
+
+    try:
+        unidad_medica = unidecode.unidecode(unidad_medica).upper()
+    except Exception:
+        unidad_medica = unidad_medica.upper()
+
+    re_numbs = re.compile(r'^(\D+)(\d{1,3})\s?(.+)$')
+    final_name = re.sub(re_numbs, '\\1|\\2|\\3', unidad_medica)
+    splited = final_name.split("|")
+    prev = splited[0].strip()
+    if len(splited) == 1:
+        if not prev:
+            print("NO HAY PREVIO")
+            print(splited)
+            pass
+        elif prev in clues_imss_alone:
+            clues_imss_alone[prev] += 1
+        else:
+            clues_imss_alone[prev] = 1
+    elif len(splited) == 3:
+        numb = int(splited[1])
+        after = splited[2].strip()
+        re_consul = re.compile(
+            r'(.+)\s(CONSULTA MEDICINA FAMILIAR|CONSULTA DE ESPECIALIDADES'
+            r'|CONSULTA DENTAL|ATENCION MEDICA CONTINUA|HOSPITALIZACION'
+            r'|SERVICIOS DE MEDICINA PREVENTI|CONSULTA DE MEDICINA FAMILIAR'
+            r'|MODULOS FOMENTO SALUD|ADMISION CONTINUA|QUIROFANOS'
+            r'|ATENCION MED CONTI|TERAPIA INTENSIVA|CONSMEDFAMILIAR'
+            r'|CONS ESPECIALI|CONSULTORIO DENTAL|SALUD MATERNO INFANTIL'
+            r'|CONSULTORIO SERVIC MEDICO EXTERNA)')
+        final_name = re.sub(re_consul, '\\1|\\2', after)
+        splited = final_name.split("|")
+        name_clinic = None
+        type_clinic = after
+        if len(splited) == 2:
+            name_clinic = splited[0]
+            type_clinic = splited[1]
+        if type_clinic in clues_imss_type:
+            clues_imss_type[type_clinic] += 1
+        else:
+            clues_imss_type[type_clinic] = 1
+        if name_clinic:
+            if name_clinic in clues_imss_name:
+                clues_imss_name[name_clinic] += 1
+            else:
+                clues_imss_name[name_clinic] = 1
+        if after in clues_imss_after:
+            clues_imss_after[after] += 1
+        else:
+            clues_imss_after[after] = 1
+
+        if not prev:
+            print("NO HAY PREVIO")
+            print(splited)
+            pass
+        else:
+            re_no_point = re.compile(r'(\s[NO|MF].?)$')
+            prev = re.sub(re_no_point, '', prev)
+            if prev in clues_imss_prev:
+                clues_imss_prev[prev] += 1
+            else:
+                clues_imss_prev[prev] = 1
+    else:
+        print("!! hay un número raro de datos:")
+        print(splited)
+    return "algo"
+
+    """for case in case_tests:
+        print(case)
+        final_name = re.sub(re_numbs, '\\1|\\2|\\3', case)
+        splited = final_name.split("|")
+        print(splited)"""
+
+
+    from catalog.models import CLUES
     if not catalog_clues:
         institution_upper = institution.upper()
         clues_data_query = list(
@@ -291,7 +376,7 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
         else:
             last_clues_id = data_file_clues[-1][0]
         artificial_id = last_clues_id + 1
-        state = get_state(delegacion)
+        state = get_state(entidad)
         data_file_clues.append([
             artificial_id,
             state.id,
@@ -332,7 +417,7 @@ def check_clave_medicamento(clave_medicamento, descripcion_medicamento):
     # se eliminaran los "." de la clave para tener algo mas estandar y se usara
     # el enfoque de cargar la lista de todos los key2 en db, generar el archivo
     # para los que no existan
-    from desabasto.models import Container
+    from medicine.models import Container
     global claves_medicamento
     clave_medicamento = clave_medicamento.replace(".", "")
     if not claves_medicamento:
@@ -347,7 +432,7 @@ def check_clave_medicamento(clave_medicamento, descripcion_medicamento):
 
 
 def get_especialidad_medico_id(especialidad_medico):
-    from desabasto.models import MedicalSpeciality
+    from recipe.models import MedicalSpeciality
     global catalog_medical_speciality
 
     try:
@@ -366,7 +451,7 @@ def get_especialidad_medico_id(especialidad_medico):
 
 
 def check_clave_medico(clave_medico, nombre_medico, especialidad_medico):
-    from desabasto.models import Medic
+    from recipe.models import Medic
     global data_file_medico
     global claves_medico_dicc
     if not claves_medico_dicc:
@@ -375,7 +460,7 @@ def check_clave_medico(clave_medico, nombre_medico, especialidad_medico):
         claves_medico_dicc = {}
         for clave in claves_medico:
             claves_medico_dicc[clave] = True
-    if clave_medico not in claves_medico_dicc and clave_medico is not 1000000000:
+    if clave_medico not in claves_medico_dicc and clave_medico != 1000000000:
         claves_medico_dicc[clave_medico] = True
         data_file_medico.append([
             clave_medico, nombre_medico,
@@ -386,27 +471,33 @@ def check_clave_medico(clave_medico, nombre_medico, especialidad_medico):
 def divide_recipe_report_data(text_data):
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
-    if rr_data_count < 17:
-        return None
-    elif rr_data_count > 18:
-        return None
-    elif rr_data_count == 17:
-        # esto agrega RN para los casos en las que no lo trae
-        recipe_report_data.append("NULL")
-    return recipe_report_data
+    if rr_data_count == 14:
+        return recipe_report_data
+    print("conteo extraño: %s columnas" % rr_data_count)
+    print(recipe_report_data)
+    return None
 
 
 def get_recipe_report_data(recipe_report_data, institution="issste"):
-    delegacion = recipe_report_data[0]
-    unidad_medica = recipe_report_data[2]
-    tipo_unidad_med = recipe_report_data[3]
-    nivel_atencion = recipe_report_data[4]
+    entidad = recipe_report_data[0]
+    unidad_medica = recipe_report_data[1]
+    nivel_atencion = recipe_report_data[2]
 
-    clues_id = get_clues_id(
-        delegacion, unidad_medica, tipo_unidad_med, institution)
+
+    #clues_id = get_clues_id(
+    #    delegacion, unidad_medica, tipo_unidad_med, institution)
+    clues_id = get_clues_id(entidad, unidad_medica, institution)
+    return [
+        clues_id,
+        "--",
+        "--",
+        "--",
+        "--",
+    ]
     if not clues_id or clues_id == "":
         print(recipe_report_data)
     #clues_id = 0
+
 
     tipo_documento_id = get_tipo_documento(recipe_report_data[5])
     #tipo_documento_id = 0
@@ -483,17 +574,15 @@ def get_recipe_medicine_data(recipe_report_data):
 
 def converter_file_in_related_files(
         reporte_recetas_path, year_month=0, institution="issste",
-        clean_data=True, update_files=True,
+        update_files=True,
         recipe_path="test_recipe.csv", medicine_path="test_medicine.csv",
         medico_path="test_medico.csv", clues_path="test_clues.csv",
         container_path="test_container.csv"):
-    from desabasto.models import RecipeReport2
+    from recipe.models import RecipeReport2
     from datetime import datetime
+    from pprint import pprint
     #import io
-    print("start get_data_from_file: ", timezone.now())
-    rr_data_rows, errors, with_coma = get_data_from_file(
-        reporte_recetas_path, clean_data)
-    print("finish get_data_from_file: ", timezone.now())
+    rr_data_rows, errors = get_data_from_file(reporte_recetas_path)
     if errors:
         return False, errors
 
@@ -512,8 +601,8 @@ def converter_file_in_related_files(
     recipe_first = rr_data_rows[0].split("|")
     recipes_data = {}
 
-    if len(recipe_first) >= 17:
-        first_folio = recipe_first[6]
+    if len(recipe_first) >= 14:
+        first_folio = recipe_first[4]
         previus_recipe = RecipeReport2.objects\
             .filter(folio_documento=first_folio).first()
         if previus_recipe:
@@ -539,24 +628,31 @@ def converter_file_in_related_files(
         if not recipe_report_prev_data:
             continue
 
-        folio_documento = recipe_report_prev_data[6]
-        fecha_emision = recipe_report_prev_data[7]
+        folio_documento = recipe_report_prev_data[4]
+        fecha_emision = recipe_report_prev_data[6]
 
-        if last_date != fecha_emision[:10]:
-            last_date = fecha_emision[:10]
+        if last_date != fecha_emision:
+            last_date = fecha_emision
             #Cálculo de la semana epidemiológica:
-            curr_date = datetime.strptime(last_date, '%Y-%m-%d')
-            iso_date = curr_date.isocalendar()
-            if not first_iso:
-                first_iso = iso_date
+            try:
+                curr_date = datetime.strptime(last_date, '%d/%m/%Y')
+                iso_date = curr_date.isocalendar()
+                if not first_iso:
+                    first_iso = iso_date
+            except Exception as e:
+                print(e)
+                print(last_date)
+                print(recipe_report_prev_data)
+                continue
 
         folio_ocamis = "%s-%s-%s" % (iso_date[0], iso_date[1], folio_documento)
-        folio_ocamis = "{0}-{1}-{2}".format(iso_date[0], iso_date[1], folio_documento)
 
         if folio_ocamis not in recipes_data:
+            recipes_data[folio_ocamis] = True
+            
             recipe_report_data = get_recipe_report_data(
                 recipe_report_prev_data, institution)
-            (clues_id,
+            """(clues_id,
              tipo_documento_id,
              fecha_entrega,
              nivel_atencion,
@@ -576,7 +672,8 @@ def converter_file_in_related_files(
                 "clave_medico": clave_medico,
                 "delivered_medicine": [],
                 "year_month": year_month
-            }
+            }"""
+        continue
 
         recipe_medicine_data = get_recipe_medicine_data(
             recipe_report_prev_data)
@@ -601,6 +698,20 @@ def converter_file_in_related_files(
             delivered_type
         ])
 
+    print("clues_imss_prev")
+    pprint(clues_imss_prev)
+    print("clues_imss_after")
+    pprint(clues_imss_after)
+    print("clues_imss_type")
+    pprint(clues_imss_type)
+    print("clues_imss_name")
+    pprint(clues_imss_name)
+    print("clues_imss_alone")
+    pprint(clues_imss_alone)
+    
+
+    return True, False
+    
     print("finish for rr_data_rows: ", timezone.now())
     # creacion del archivo de folios apartir del recipes_data
     #folios_list = sorted([folio for folio in recipes_data])

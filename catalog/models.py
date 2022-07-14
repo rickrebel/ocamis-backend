@@ -31,7 +31,7 @@ class Municipality(models.Model):
         null=True, on_delete=models.CASCADE,
         related_name="municipalities")
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s - %s" % (self.name, self.state)
 
     class Meta:
@@ -65,7 +65,8 @@ class Institution(models.Model):
 class CLUES(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
     #state = models.IntegerField()
-    institution = models.ForeignKey(Institution, on_delete=models.CASCADE)
+    institution = models.ForeignKey(
+        Institution, on_delete=models.CASCADE)
     #institution = models.IntegerField()
     name = models.CharField(
         max_length=255, verbose_name=u"NOMBRE DE LA UNIDAD")
