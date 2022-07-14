@@ -63,7 +63,7 @@ class TypeData(models.Model):
 class FinalField(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE)
-    name = models.CharField(max_length=120)
+    name = models.CharField(max_length=120, blank=True, null=True)
     verbose_name = models.TextField(blank=True, null=True)
     type_data = models.ForeignKey(
         TypeData, 
