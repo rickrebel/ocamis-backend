@@ -468,13 +468,28 @@ def check_clave_medico(clave_medico, nombre_medico, especialidad_medico):
         # agregar al medico al archivo para generar medico
 
 
-def divide_recipe_report_data(text_data):
+#Divide toda una fila en columnas
+def divide_recipe_report_data(
+        text_data, control_parameter=None, file=None, row_seq=None):
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
-    if rr_data_count == 14:
+    #Comprobación del número de columnas
+    from files_rows.models import Column, MissingRows
+    current_columns = Column.objects.filter(
+        group_file__controlparameters=control_parameter)
+    columns_count = current_columns.filter(
+        position_in_data__isnull=False).count()
+    if rr_data_count == columns_count:
+    #if rr_data_count == 14:
         return recipe_report_data
-    print("conteo extraño: %s columnas" % rr_data_count)
-    print(recipe_report_data)
+    else:
+        MissingRows.objects.create(
+            file=file,
+            original_data=recipe_report_data,
+            row_seq=row_seq
+        )
+        print("conteo extraño: %s columnas" % rr_data_count)
+        print(recipe_report_data)
     return None
 
 
@@ -597,7 +612,9 @@ def converter_file_in_related_files(
     data_file_container = []
     data_file_clues = []
 
-    # revicion de la existencia del primer folio ----------
+    # -----------------------------------------------------
+    # revisión de la existencia del primer folio ----------
+    # Comprobación de la primera fila como encabezado
     recipe_first = rr_data_rows[0].split("|")
     recipes_data = {}
 
@@ -624,7 +641,8 @@ def converter_file_in_related_files(
             print("idx: %s" % idx, timezone.now())
         # rr_data_row = rr_data_row.decode('latin-1').encode("utf-8")
         # rr_data_row = rr_data_row.encode("utf-8")
-        recipe_report_prev_data = divide_recipe_report_data(rr_data_row)
+        recipe_report_prev_data = divide_recipe_report_data(
+            rr_data_row, row_seq=idx)
         if not recipe_report_prev_data:
             continue
 
