@@ -51,7 +51,6 @@ class Medic(models.Model):
         return str(self.clave_medico)
 
 
-@python_2_unicode_compatible
 class RecipeReport2(models.Model):
     from catalog.models import CLUES, State
     """Nueva vercion del modelo Recipe con atomizado de datos"""

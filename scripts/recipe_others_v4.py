@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+from rest_framework.response import Response
+from rest_framework import permissions, views, status
 
 
 
@@ -7,13 +10,20 @@ def explore_first_time(file, group_file):
     print(pathlib.Path("hello/foo.bar.tar.gz").suffixes) # ['.bar', '.tar', '.gz']
     #REVISAR:
     suffixes = pathlib.Path(file.file_name).suffixes
-    format_file = group_file.format_file
-    if format_file == 'txt' or 'csv'
+    #format_file = group_file.format_file
+    if 'txt' in suffixes or 'csv' in suffixes:
+        group_file.separator = get_separator()
+        get_data_from_file_simple()
+    elif 'xlsx' in suffixes or 'xls' in suffixes:
+        get_data_from_excel()
+    else:
+        errors = ["Formato no válido", u"%s" % suffixes]
+        file.error_process = errors
+        return Response(
+            {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
-def get_data_from_file(reporte_recetas_path):
+def get_data_from_file_simple(reporte_recetas_path):
     import io
     try:
         with io.open(reporte_recetas_path, "r", encoding="latin-1") as file:
@@ -26,6 +36,10 @@ def get_data_from_file(reporte_recetas_path):
     rr_data_rows = data.split("\n")
 
     return rr_data_rows, []
+
+
+def get_data_from_excel():
+    print("Por ahora no está desarrollado")
 
 
 

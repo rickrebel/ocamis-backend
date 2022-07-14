@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "corsheaders",
     "rest_framework",
-    "desabasto.apps.DesabastoConfig",
+    #"desabasto.apps.DesabastoConfig",
     "catalog.apps.CatalogConfig",
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",

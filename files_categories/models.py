@@ -37,7 +37,8 @@ class FormatFile(models.Model):
     name = models.CharField(max_length=255)
     extension = models.CharField(max_length=80)
     is_default = models.BooleanField(default=False)
-    has_data = models.BooleanField(default=True)
+    has_data = models.NullBooleanField(
+        verbose_name="Tiene datos procesables")
     icon = models.CharField(max_length=80)
 
     def __str__(self):
@@ -46,6 +47,3 @@ class FormatFile(models.Model):
     class Meta:
         verbose_name = u"Formato de documento"
         verbose_name_plural = u"Formato de documentos"
-
-
-
