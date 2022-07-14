@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import permissions, views, status
 
 
-
 def explore_first_time(file, group_file):
     import pathlib
     print(pathlib.Path('yourPath.example').suffix) # '.example'
@@ -32,14 +31,35 @@ def get_data_from_file_simple(reporte_recetas_path):
     except Exception as e:
         print(e)
         return False, [u"%s" % (e)], False
-
     rr_data_rows = data.split("\n")
-
     return rr_data_rows, []
 
 
-def get_data_from_excel():
-    print("Por ahora no está desarrollado")
+
+#Divide toda una fila en columnas
+def divide_recipe_report_data(
+        text_data, control_parameter=None, file=None, row_seq=None):
+    recipe_report_data = text_data.split("|")
+    rr_data_count = len(recipe_report_data)
+    #Comprobación del número de columnas
+    from files_rows.models import Column, MissingRows
+    current_columns = Column.objects.filter(
+        group_file__controlparameters=control_parameter)
+    columns_count = current_columns.filter(
+        position_in_data__isnull=False).count()
+    if rr_data_count == columns_count:
+    #if rr_data_count == 14:
+        return recipe_report_data
+    else:
+        MissingRows.objects.create(
+            file=file,
+            original_data=recipe_report_data,
+            row_seq=row_seq
+        )
+        print("conteo extraño: %s columnas" % rr_data_count)
+        print(recipe_report_data)
+    return None
+
 
 
 
