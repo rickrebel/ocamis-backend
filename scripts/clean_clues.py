@@ -4,6 +4,13 @@ from django.db.models import Q
 import unidecode
 
 
+def get_int(numb):
+    if numb.is_digit():
+        return int(row[17])
+    else:
+        return 0
+
+
 def import_clues():
     import csv
     from pprint import pprint
@@ -13,25 +20,25 @@ def import_clues():
         #contents = f.read().decode("UTF-8")
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
-        for row in csv_reader:
-            row=[item.decode('latin-1').encode("utf-8") for item in row]
+        for idx, row in enumerate(csv_reader):
+            row = [item.decode('latin-1').encode("utf-8") for item in row]
             if not len(row) == 25:
-                print("linea: %s"%line_count)
-                print(len(row))
+                print("No coincide el número de columnas, hay %s" % len(row))
+                print("linea: %s"%idx+1)
+                print(row)
+                print("----------")
                 continue
-            if line_count in [0,1]:
-                line_count += 1
+            if line_count <= 1:
                 continue
             else:
-                line_count += 1
-                state_inegi_code=row[1]
+                state_inegi_code = row[1]
                 try:
-                    state=State.objects.get(inegi_code=state_inegi_code)
+                    state = State.objects.get(inegi_code=state_inegi_code)
                 except Exception as e:
-                    state=None
-                institution_clave=row[2]
-                institution=Institution.objects.get(code=institution_clave)
-                clues=CLUES.objects.create(
+                    state = None
+                institution_clave = row[2]
+                institution = Institution.objects.get(code=institution_clave)
+                clues = CLUES.objects.create(
                     name=row[0],
                     state=state,
                     institution=institution,
@@ -49,11 +56,11 @@ def import_clues():
                     jurisdiction=row[14],
                     jurisdiction_clave=row[15],
                     establishment_type=row[16],
-                    consultings_general=int(row[17]) if row[17].isdigit() else 0,
-                    consultings_other=int(row[18]) if row[18].isdigit() else 0,
-                    beds_hopital=int(row[19]) if row[19].isdigit() else 0,
-                    beds_other=int(row[20]) if row[20].isdigit() else 0,
-                    total_unities=int(row[21]) if row[21].isdigit() else 0,
+                    consultings_general=get_int(row[17]),
+                    consultings_other=get_int(row[18]),
+                    beds_hopital=get_int(row[19]),
+                    beds_other=get_int(row[20]),
+                    total_unities=get_int(row[21]),
                     admin_institution=row[22],
                     atention_level=row[23],
                     stratum=row[24],
@@ -64,8 +71,8 @@ def import_clues():
 def update_institution_public():
     from desabasto.models import Institution
     for institution in Institution.objects.all():
-        institution.public_name=institution.name
-        institution.public_code=institution.code
+        institution.public_name = institution.name
+        institution.public_code = institution.code
         institution.save()
 
 

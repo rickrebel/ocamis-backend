@@ -11,6 +11,7 @@ ACTUALIZACIÓN DE BASE DE DATOS:
 		-Migrarlos y probarlos
 	-Crear un archivo csv a partir del catálogo original de CLUES con los campos relevantes (o hacerlo directo del .xls)
 	-Modificar función para insertar los campos nuevos a partir de función scripts.clean_clues.import_clues, tomando en cuenta:
+		-Guardar el municipio como Foreign Key, además del texto (Agregarlo al modelo).
 		-Identificar los de modificación reciente (2020 a la fecha), a partir de "FECHA ULTIMO MOVIMIENTO" --> "last_change"
 		-Con base en "CLUES" o CLUES.clues, reescribir todos los registros con modificaciones recientes.
 			tip: 
