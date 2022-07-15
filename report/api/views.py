@@ -787,7 +787,7 @@ class DinamicList(views.APIView):
             },
             "medicine_type": {
                 "filter": {"medicine_type__isnull": False},
-                "vals": ["medic_type", "medicine_type"],
+                "vals": ["medicine_type", "medicine_type"],
             },
             "institution": {
                 "vals": ["institucion", "report__institution__code"],
@@ -815,7 +815,8 @@ class DinamicList(views.APIView):
         
         vals = group_params.get("vals", None)
         final_groups = values_group + [vals[1]] if vals else values_group
-        compl_annotates = {vals[0]: F(vals[1])} if vals else {}
+        has_vals = vals and vals[0] != vals[0]
+        compl_annotates = {vals[0]: F(vals[1])} if has_vals else {}
         final_display = display_vals + [vals[0]] if vals else display_vals
         data = Supply.objects\
             .filter(**{**query_kwargs, **group_params.get("filter", {})})\
