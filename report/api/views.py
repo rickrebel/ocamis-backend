@@ -787,7 +787,7 @@ class DinamicList(views.APIView):
             },
             "medicine_type": {
                 "filter": {"medicine_type__isnull": False},
-                "vals": ["medicine_type", "medicine_type"],
+                "vals": ["medic_type", "medicine_type"],
             },
             "institution": {
                 "vals": ["institucion", "report__institution__code"],
