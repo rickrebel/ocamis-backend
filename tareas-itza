@@ -26,5 +26,16 @@ ACTUALIZACIÓN DE BASE DE DATOS:
 	-Probar la actualización
 
 
+REPENSAR LA FUNCIÓN DE MATCH "NOMBRE DE UNIDAD" -> "CLUES"
+	Tomar en cuenta que del nombre extraemos:
+		-Número de unidad; tipología en clave y en nombre; el nombre solito
+	Considerar la entidad y la institución para filtrar los CLUES del catálogo.
+	El número de la unidad que sea idéntico.
+
+
+
+
+
+
 
 

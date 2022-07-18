@@ -149,6 +149,28 @@ class CLUES(models.Model):
         db_table = u'desabasto_clues'
 
 
+class Delegation(models.Model):
+    name = models.CharField(max_length=255, verbose_name=u"Nombre")
+    institution = models.ForeignKey(
+        Institution, verbose_name="Institución",
+        on_delete=models.CASCADE)
+    state = models.ForeignKey(
+        State, verbose_name="Entidad",
+        on_delete=models.CASCADE)
+    clues = models.ForeignKey(
+        CLUES, blank=True, null=True,
+        on_delete=models.CASCADE)
+    other_names = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s -- %s --%s" (
+            self.name, self.state, self.institution)
+
+    class Meta:
+        verbose_name = u"Delegación"
+        verbose_name_plural = u"Delegaciones"
+
+
 class Disease(models.Model):
     name = models.CharField(max_length=50)
 

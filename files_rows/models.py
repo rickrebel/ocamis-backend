@@ -120,6 +120,18 @@ class File(models.Model):
     def __str__(self):
         return "%s -- %s" % (self.group_file, self.petition)
 
+    def save_errors(self, errors, error_name):
+        from files_categories.models import StatusProcess
+        errors = ['No se pudo descomprimir el archivo gz']
+        curr_errors = self.errors_process or []
+        curr_errors += errors
+        current_status, created = StatusProcess.objects.get_or_create(
+            name=error_name)
+        self.error_process = curr_errors
+        self.status_process = current_status 
+        print(curr_errors)
+        self.save()
+
     class Meta:
         verbose_name = u"Documento"
         verbose_name_plural = u"Documentos"

@@ -10,6 +10,53 @@ def get_int(numb):
     else:
         return 0
 
+# ------------EJEMPLO HIDRATED---------------- #
+
+def getFileCsv(file_path):
+    import io
+    with io.open(file_path, "r", encoding="utf-8") as file:
+        data = file.read()
+        rr_data_rows = data.split("\n")
+        headers = rr_data_rows.pop(0)
+        all_headers = headers.split("|")
+        print(all_headers)
+        return all_headers, rr_data_rows
+
+def hydrateCol(row, all_headers):
+    hydrated = {}
+    cols = row.split("|")
+    if not len(cols):
+        return False
+    for idx_head, header in enumerate(all_headers):
+        try:
+            hydrated[header] = cols[idx_head]
+        except Exception as e:
+            print(cols)
+            print(hydrated)
+            return False
+    return hydrated
+
+
+def import_subcats(init_delete=True):
+    from commitment.models import CategoryProduct, SubCategory
+    if init_delete:
+        SubCategory.objects.all().delete()    
+    all_headers, rr_data_rows = getFileCsv('fixture/subcats.csv')
+    for idx, row in enumerate(rr_data_rows):
+        hydrated = hydrateCol(row, all_headers) ## {"name": "categoría"}
+        if not hydrated:
+            break        
+        for category in CategoryProduct.objects.all():
+            field = "category_%s" % str(category.number)
+            try:
+                has_category = int(hydrated[field])
+                SubCategory.objects.create(
+                    category_product=category,
+                    name=hydrated["name"])
+            except:
+                pass
+
+# ------------EJEMPLO HIDRATED---------------- #
 
 def import_clues():
     import csv
@@ -68,14 +115,6 @@ def import_clues():
                 print(clues)
 
 
-def update_institution_public():
-    from desabasto.models import Institution
-    for institution in Institution.objects.all():
-        institution.public_name = institution.name
-        institution.public_code = institution.code
-        institution.save()
-
-
 def set_searcheable_clues():
     from desabasto.models import (State, Institution, CLUES)
     from django.db.models import Q
@@ -87,6 +126,14 @@ def set_searcheable_clues():
             |Q(tipology_cve='BS')|Q(tipology_cve='X')
             |Q(tipology_cve='P')|Q(tipology_cve='UMM'))
     is_seach.update(is_searchable=True)
+
+
+def update_institution_public():
+    from desabasto.models import Institution
+    for institution in Institution.objects.all():
+        institution.public_name = institution.name
+        institution.public_code = institution.code
+        institution.save()
 
 
 tipologies = [
@@ -482,7 +529,6 @@ tipologies = [
     },
     ]
 
-
 tipologies2 = [
     {
         'tipology_cve': '99',
@@ -615,7 +661,6 @@ tipologies_rurb=[
     }]
 
 
-
 def insert_names(clues, tipo, char=False):
     the_clues = clues#.filter(real_name__isnull=True)
     if char:
@@ -660,7 +705,6 @@ def rururb():
         if (tipo["all_clues"]):
             print(tipo)
             insert_names(clues, tipo)
-
 
 
 def insert_names_other():
