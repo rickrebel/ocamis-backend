@@ -42,9 +42,7 @@ def test_data_from_file():
     print("primeros datos:\n", final_data[:20]) ## [[----],[----],...]
 
 
-#############
 ##FUNCION PARA CARAGA XLSX
-#################################################
 
 one_path= #direccion donde se encuentra el archivo de excel 
 
@@ -56,9 +54,6 @@ def get_data_from_excel(file, is_explore,empty_row: int= 0):
     from files_rows.models import Column 
     one_path = file.file_name
     try:
-        '''data= pd.read_excel(io=one_path)
-        with open(data) as frows:  #Era para contar el numero de filas vacías
-            empty_row= sum(line.isspace() for line in f) #Esto era para contar las filas vacias'''
         if not is_explore:
             columns = Column.objects.filter(group_file=file.group_file)
             dtype= {}
@@ -79,6 +74,10 @@ def get_data_from_excel(file, is_explore,empty_row: int= 0):
 ###DUDAS DE FUNCION:
 ## Quien use la función asignara el parametro como path o como nombre del documento
 ## Se asigna use el parametro 'usecols' dentro del comando read_excel sacando la columna A folio rep, se puede hacer un parametro para que se asigne que columnas se deben scar
+
+        '''data= pd.read_excel(io=one_path)
+        with open(data) as frows:  #Era para contar el numero de filas vacías
+            empty_row= sum(line.isspace() for line in f) #Esto era para contar las filas vacias '''
 
 ##funcion para porbar carga
 def test_data_from_file():
