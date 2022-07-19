@@ -313,11 +313,14 @@ def get_clues_id(entidad, unidad_medica, institution):
                     clues_name = clues_data[1]
                 prov_name = u"%s %s" % (cve, clues_name)
                 real_name = unidecode.unidecode(prov_name).upper()
+                state_name = clues_data[0]
+                builded_name = "%s$%s" % (real_name, state_name)
                 if real_name not in catalog_clues:
                     catalog_clues[real_name] = [clues_data]
                 else:
                     catalog_clues[real_name].append(clues_data)
-            if clues_data[4]:
+            alt_names = clues_data[4]
+            if alt_names:
                 for alt_name in clues_data[4]:
                     if alt_name not in catalog_clues:
                         catalog_clues[alt_name] = [clues_data]

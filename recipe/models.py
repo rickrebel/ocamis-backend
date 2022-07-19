@@ -53,7 +53,7 @@ class Medic(models.Model):
 
 class RecipeReport2(models.Model):
     from catalog.models import CLUES, State
-    """Nueva vercion del modelo Recipe con atomizado de datos"""
+    """Nueva versión del modelo Recipe con atomizado de datos"""
     folio_ocamis = models.CharField(max_length=48, primary_key=True)
     tipo_documento = models.ForeignKey(
         DocumentType, on_delete=models.CASCADE)

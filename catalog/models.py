@@ -62,6 +62,24 @@ class Institution(models.Model):
         db_table = u'desabasto_institution'
 
 
+class Tipology(models.Model):
+    clave = models.CharField(
+        max_length=50, verbose_name="Clave oficial")
+    name = models.CharField(
+        max_length=255, verbose_name="Nombre oficial")
+    public_name = models.CharField(
+        max_length=255, verbose_name="Nombre corto (modificado)",
+        blank=True, null=True)
+    alternative_names = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s (%s)" % (self.clave, self.name)
+
+    class Meta:
+        verbose_name = u"Tipología"
+        verbose_name_plural = u"Tipologías"
+
+
 class CLUES(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
     #state = models.IntegerField()
@@ -79,6 +97,9 @@ class CLUES(models.Model):
         max_length=3, verbose_name=u"CLAVE DEL MUNICIPIO")
     tipology = models.CharField(
         max_length=255, verbose_name=u"NOMBRE DE TIPOLOGIA")
+    tipology_obj = models.ForeignKey(
+        Tipology, verbose_name=u"Tipología (Catálogo)",
+        blank=True, null=True, on_delete=django.CASCADE)
     tipology_cve = models.CharField(
         max_length=12, verbose_name=u"CLAVE DE TIPOLOGIA")
     id_clues = models.CharField(max_length=10, verbose_name=u"ID_CLUES")

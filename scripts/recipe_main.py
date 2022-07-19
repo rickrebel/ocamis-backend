@@ -1,11 +1,23 @@
 # -*- coding: utf-8 -*-
 from rest_framework.response import Response
 from rest_framework import permissions, views, status
+import unidecode
+from parameter.models import FinalField
+recipe_fields = FinalField.objects.filter(
+    collection__model_name='RecipeReport2').values()
+medicine_fields = FinalField.objects.filter(
+    collection__model_name='RecipeMedicine2').values()
+catalog_clues = {}
+catalog_state = {}
+catalog_delegation = {}
+claves_medico_dicc = {}
+columns = {}
+institution = None
+state = None
 
-#path_imss = "G:\\Mi unidad\\YEEKO\\Proyectos\\OCAMIS\\imss\\req_abril_2019_02.txt.gz"
-#decompress_file_gz(path_imss)
 
-def transform_data(file, group_file, is_explore=False):
+def start_file_process(file, group_file, is_explore=False):
+    from files_rows.models import File
     file.error_process = None
     file.save()
     first_file, count_splited, errors, suffix = split_and_decompress(file)
@@ -18,18 +30,225 @@ def transform_data(file, group_file, is_explore=False):
             " procesarse, espera por favor")]
         return Response(
             {"errors": warnings}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    if not is_explore:
+        build_catalogs(file)
+    if is_explore:
+        data = transform_files_in_data(
+            first_file, group_file, is_explore, suffix)
+    elif count_splited:
+        #FALTA AFINAR FUNCIÓN PARA ESTO
+        children_files = File.objects.filter(origin_file=file)
+        for ch_file in children_files:
+            data = transform_files_in_data(
+                ch_file, group_file, is_explore, suffix)
+    else:
+        data = transform_files_in_data(file, group_file, is_explore, suffix)
+
+
+def transform_files_in_data(file, group_file, is_explore, suffix)
+    data_rows = []
+    headers = []
+    status_error = 'initial_explore' if is_explore else 'fail_extraction'
     if suffix in ['txt', 'csv']:
-        group_file.separator = get_separator()
         data_rows, errors = get_data_from_file_simple(file)
+        if errors:
+            file.save_errors(errors, status_error)
+            return Response(
+                {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)            
+        if file.row_headers == 1:
+            headers = data_rows.pop(0)
+        #group_file.separator = get_separator(data_rows[:40])
+        elif file.row_headers:
+            errors = ["No podemos procesar ahora headers en posiciones distintas"]
+            file.save_errors(errors, status_error)
+            return Response(
+                {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+        pops_count = file.row_start_data - file.row_headers - 1
+        for pop in range(pops_count):
+            data_rows.pop(0)
     elif suffix in ['xlsx', 'xls']:
-        data_rows, errors = get_data_from_excel(file)
+        headers, data_rows, errors = get_data_from_excel(file)
     if errors:
-        file.save_errors(errors)
+        file.save_errors(errors, status_error)
         return Response(
             {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+    structured_data = []
+    #RICK: Pendiente este tema
+    #meta_columns = 
+    if is_explore:
+        for idx, row in enumerate(data_rows[:50]):
+            data_divided = divide_recipe_report_data(row, file, idx)
+            if data_divided:
+                structured_data.append(data_divided)
+        final_response = {"headers": headers, "structured_data": structured_data}
+        return Response(final_response, status=status.HTTP_200_OK)
+    build_catalogs(file)
+    total_rows = len(data_rows)
+    inserted_rows = 0
+    completed_rows = 0
+    for idx, row in enumerate(data_rows):
+        data_divided = divide_recipe_report_data(row, file, idx)
+        structured_data.append(data_divided)
+    for row in structured_data:
+        final_row = execute_matches(row, file)
 
-def get_data_from_excel():
-    return [], []
+
+def build_catalogs(file):
+    global columns
+    global institution
+    global state
+    institution = file.petition.entity.institution
+    state = file.petition.entity.state
+    all_columns = Column.objects.filter(group_file=file.group_file)
+    columns["all"] = all_columns.values()
+    columns["clues"] = all_columns.filter(
+        final_field__collection='CLUES').values()
+    columns["state"] = all_columns.filter(
+        final_field__collection='CLUES').values()
+    build_catalog_delegation()
+    #RICK, evaluar la segunda condición:
+    if not state and columns["state"]:
+        build_catalog_state()
+    build_catalog_clues()
+    for collection, collection_name in collections.items():
+        columns[collection] = all_columns.filter(
+            final_field__collection=collection_name).values_list('name')
+
+
+def build_catalog_delegation():
+    from catalog.models import Delegation
+    global catalog_delegation
+    #RICK Evaluar si es necesario declarar global acá:
+    global state
+    global institution
+    curr_delegations = Delegation.objects.filter(institution=institution)
+    if state:
+        curr_delegations = curr_delegations.filter(state=state)
+    delegs_query = list(curr_delegations.values_list(
+        'name', 'other_names', 'state__short_name'))
+    for deleg in delegs_query:
+        try:
+            deleg_name = unidecode.unidecode(deleg[0]).upper()
+        except Exception:
+            deleg_name = deleg[0].upper()
+        if deleg_name not in catalog_delegation:
+            catalog_delegation[deleg_name] = [deleg]
+        alt_names = deleg[1] or []
+        for alt_name in alt_names:
+            if alt_name not in catalog_delegation:
+                catalog_delegation[alt_name] = [deleg]
+            else:
+                catalog_delegation[alt_name].append(deleg)
+
+
+def build_catalog_state():
+    from catalog.models import State
+    global catalog_state
+    curr_states = State.objects.all()
+    states_query = list(curr_states.values_list('name', 'short_name'))
+    for estado in states_query:
+        try:
+            state_name = unidecode.unidecode(estado[0]).upper()
+        except Exception:
+            state_name = estado[0].upper()
+        if state_name not in catalog_state:
+            catalog_state[state_name] = [estado]
+        try:
+            state_short_name = unidecode.unidecode(estado[1]).upper()
+        except Exception:
+            state_short_name = estado[1].upper()
+        if state_short_name not in catalog_state:
+            catalog_state[state_short_name] = [estado]
+
+
+#Función que se modificará con el trabajo de Itza:
+def build_catalog_clues():
+    from catalog.models import CLUES
+    global catalog_clues
+    #RICK Evaluar si es necesario declarar global acá:
+    global institution
+    global state
+    clues_data_query = CLUES.objects.filter(institution=institution)
+    if state:
+        clues_data_query.filter(state=state)
+    clues_data_query = list(
+        clues_data_query.values_list(
+            "state__name", "name", "tipology_cve",
+            "id", "alternative_names", "state__short_name"
+        )
+    )
+    for clues_data in clues_data_query:
+        cves = clues_data[2].split("/")
+        state_short_name = clues_data[5]
+        for cve in cves:
+            try:
+                clues_name = unidecode.unidecode(clues_data[1])
+            except Exception:
+                clues_name = clues_data[1]
+            prov_name = u"%s %s" % (cve, clues_name)
+            real_name = unidecode.unidecode(prov_name).upper()
+            if not state:
+                real_name = "%s$%s" % (real_name, state_short_name)
+            if real_name not in catalog_clues:
+                catalog_clues[real_name] = [clues_data]
+            else:
+                catalog_clues[real_name].append(clues_data)
+        if clues_data[4]:
+            for alt_name in clues_data[4]:
+                if not state:
+                    alt_name = "%s$%s" % (alt_name, state_short_name)
+                if alt_name not in catalog_clues:
+                    catalog_clues[alt_name] = [clues_data]
+                else:
+                    catalog_clues[alt_name].append(clues_data)
+
+
+def execute_matches(row, file):    
+    from files_rows import Column, MissingField, MissingRow
+    delegation = None
+    missing_row = None
+    if not state:
+        columns_state = columns.filter(final_field__collection='State')
+        if columns_state.exists():
+            state = state_match(row, columns_state, 'State')
+    #Delegación
+    columns_deleg = columns.filter(final_field__collection='Delegation')
+    if columns_deleg.exists():
+        delegation = delegation_match(row, columns_state, 'Delegation')
+        if not delegation:
+            #missing_row = MissingRow.objects.get_or_create(file=file)
+            missing_row = MissingRow.objects.create(
+                file=file, row_seq = row[0], orinal_data=row)
+        if delegation and not state:
+            state = delegation.state
+    if not state:
+
+
+    recipe_row = []
+
+
+def state_match(row, columns, collection):
+    #ITZA: Hay que investigar cómo importar genérico con variable 'collection'
+    from catalog.models import State
+    query_filter = build_query_filter(row, columns)
+    #ITZA: Investigar nombramiento genérico
+    state = State.objects.filter(**query_filter).first()
+    return state
+
+
+def delegation_match(row, columns, collection):
+    from catalog.models import Delegation
+    query_filter = build_query_filter(row, columns)
+    delegation = Delegation.objects.filter(**query_filter).first()
+    return delegation
+
+
+def build_query_filter(row, columns):
+    query_filter = {}
+    for column in columns:
+        name_column = column.final_field
+        query_filter[name_column] = row[column.position_in_data]
+    return query_filter
 
 
 def split_and_decompress(file):
@@ -69,13 +288,15 @@ def split_and_decompress(file):
     if 'zip' in suffixes:
         [directory, only_name] = file.file_name.rsplit("/", 1)
         [base_name, extension] = only_name.rsplit(".", 1)
-        path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
+        #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
+        zip_file = zipfile.ZipFile(file.file_name)
+        all_files = zip_file.namelist()
         with zipfile.ZipFile(file.file_name, 'r') as zip_ref:
             zip_ref.extractall(directory)
-        for f in os.listdir(directory):
-            print(f)
+        #for f in os.listdir(directory):
+        for f in all_files:
             new_file = File.objects.create(
-                file=file_without_extension,
+                file="%s%s" % (directory, f),
                 origin_file=file,
                 date=file.date,
                 status=initial_status,
@@ -84,14 +305,8 @@ def split_and_decompress(file):
                 petition=file.petition,
                 petition_month=file.petition_month,
                 )
-
-            full_file_path = "%s%s" % (mypath, f)
-            if isfile(full_file_path) and (".png" in f and "PP-" in f):
-                all_pdf_files.append([f, full_file_path])
-
-
-
-        suffixes.remove('gz')
+        file = new_file
+        suffixes.remove('zip')
     #Obtener el tamaño
     file_name = file.file_name
     if (len(suffixes) != 1):
@@ -162,40 +377,32 @@ def decompress_file_gz(file_path):
         return e
 
 
-
-
-catalgo_tipologies ['UMF', 'HRM']
-
-
-
-
-
 #Divide toda una fila en columnas
-def divide_recipe_report_data(
-        text_data, control_parameter=None, file=None, row_seq=None):
+def divide_recipe_report_data(row, file=None, row_seq=None):
     from files_rows.models import Column, MissingRows
-    recipe_report_data = text_data.split("|")
-    rr_data_count = len(recipe_report_data)
+    separator = file.group_file.separator
+    row_data = row.split(separator) if separator else row
     #Comprobación del número de columnas
-    current_columns = Column.objects.filter(
-        group_file__controlparameters=control_parameter)
+    current_columns = Column.objects.filter(group_file=file.group_file)
     columns_count = current_columns.filter(
         position_in_data__isnull=False).count()
-    if rr_data_count == columns_count:
-    #if rr_data_count == 14:
-        return recipe_report_data
+    row_seq = row_seq + file.row_start_data
+    if len(row_data) == columns_count:
+        return [row_seq] + row_data
     else:
         MissingRows.objects.create(
             file=file,
-            original_data=recipe_report_data,
-            row_seq=row_seq
+            original_data=row_data,
+            row_seq=row_seq,
         )
         print("conteo extraño: %s columnas" % rr_data_count)
-        print(recipe_report_data)
+        print(row_data)
     return None
 
 
 def get_data_from_file_simple(file):
+    from scripts.recipe_specials import (
+        special_coma, special_excel, clean_special)
     import io
     try:
         with io.open(file.file_name, "r", encoding="latin-1") as file_open:
@@ -204,47 +411,26 @@ def get_data_from_file_simple(file):
     except Exception as e:
         print(e)
         return False, [u"%s" % e]
+    is_issste = file.petition.entity.institution.code == 'ISSSTE'
+    group_file = file.group_file
+    if "|" in data[:5000]:
+        group_file.separator = '|'
+    elif "," in data[:5000]:
+        group_file.separator = ','
+        if is_issste:
+            data = special_coma(data)
+            if ",,," in data[:5000]:
+                data = special_excel(data)
+    #elif not set([',', '|']).issubset(data[:5000]):
+    else:
+        return False, ['El documento está vacío']
+    group_file.save()
+    if is_issste:
+        data = clean_special(data)
     rr_data_rows = data.split("\n")
     return rr_data_rows, []
 
 
-def get_data_from_file(
-        reporte_recetas_path, clean_data=True):
-    import io
-
-    with_coma = False
-    from_excel = False
-    try:
-        # with open(reporte_recetas_path) as file:
-        #with io.open(reporte_recetas_path, "r", encoding="latin-1") as file:
-        with io.open(reporte_recetas_path, "r", encoding="latin-1") as file:
-            data = file.read()
-            if "|" not in data[:3000]:
-                with_coma = True
-            if "," not in data[:5000] and "|" not in data[:5000]:
-                print("-------------------")
-                print('empty %s' % reporte_recetas_path)
-                return False, ['empty %s' % reporte_recetas_path], False
-            if ",,," in data[:5000]:
-                from_excel = True
-
-            if clean_data:
-                if with_coma:
-                    data = special_coma(data)
-                if from_excel:
-                    data = special_excel(data)
-                data = data.replace("\"", "").replace(first_null, "")
-                data = clean_special(data)
-            file.close()
-    except Exception as e:
-        return False, [u"%s" % (e)], False
-
-    rr_data_rows = data.split(sep_rows)
-    if not with_coma:
-        headers = rr_data_rows.pop(0)
-        print(u"se quitó headers del procesado: ", headers)
-
-    return rr_data_rows, [], with_coma
-
-
+def get_data_from_excel():
+    return [], []
 
