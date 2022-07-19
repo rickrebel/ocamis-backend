@@ -1,21 +1,25 @@
 # -*- coding: utf-8 -*-
 from rest_framework.response import Response
 from rest_framework import permissions, views, status
-
-#path_imss = "G:\\Mi unidad\\YEEKO\\Proyectos\\OCAMIS\\imss\\req_abril_2019_02.txt.gz"
-#decompress_file_gz(path_imss)
+import unidecode
 from parameter.models import FinalField
 recipe_fields = FinalField.objects.filter(
     collection__model_name='RecipeReport2').values()
 medicine_fields = FinalField.objects.filter(
     collection__model_name='RecipeMedicine2').values()
+catalog_clues = {}
+catalog_state = {}
+catalog_delegation = {}
+claves_medico_dicc = {}
+columns = {}
+institution = None
+state = None
 
 
 def start_file_process(file, group_file, is_explore=False):
     from files_rows.models import File
     file.error_process = None
     file.save()
-    data_rows = []
     first_file, count_splited, errors, suffix = split_and_decompress(file)
     if errors:
         file.save_errors(errors, 'initial_explore')
@@ -26,18 +30,22 @@ def start_file_process(file, group_file, is_explore=False):
             " procesarse, espera por favor")]
         return Response(
             {"errors": warnings}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    if not is_explore:
+        build_catalogs(file)
     if is_explore:
-        data = transform_files_in_data(first_file, group_file, is_explore)
+        data = transform_files_in_data(
+            first_file, group_file, is_explore, suffix)
     elif count_splited:
         #FALTA AFINAR FUNCIÓN PARA ESTO
         children_files = File.objects.filter(origin_file=file)
         for ch_file in children_files:
-            data = transform_files_in_data(ch_file, group_file, is_explore)
+            data = transform_files_in_data(
+                ch_file, group_file, is_explore, suffix)
     else:
-        data = transform_files_in_data(file, group_file, is_explore)
+        data = transform_files_in_data(file, group_file, is_explore, suffix)
 
 
-def transform_files_in_data(file, group_file, is_explore)
+def transform_files_in_data(file, group_file, is_explore, suffix)
     data_rows = []
     headers = []
     status_error = 'initial_explore' if is_explore else 'fail_extraction'
@@ -74,6 +82,10 @@ def transform_files_in_data(file, group_file, is_explore)
                 structured_data.append(data_divided)
         final_response = {"headers": headers, "structured_data": structured_data}
         return Response(final_response, status=status.HTTP_200_OK)
+    build_catalogs(file)
+    total_rows = len(data_rows)
+    inserted_rows = 0
+    completed_rows = 0
     for idx, row in enumerate(data_rows):
         data_divided = divide_recipe_report_data(row, file, idx)
         structured_data.append(data_divided)
@@ -81,19 +93,126 @@ def transform_files_in_data(file, group_file, is_explore)
         final_row = execute_matches(row, file)
 
 
-def execute_matches(row, file):    
-    from files_rows import Column, MissingField, MissingRow
-    columns = Column.objects.filter(group_file=file.group_file)
+def build_catalogs(file):
+    global columns
+    global institution
+    global state
     institution = file.petition.entity.institution
     state = file.petition.entity.state
+    all_columns = Column.objects.filter(group_file=file.group_file)
+    columns["all"] = all_columns.values()
+    columns["clues"] = all_columns.filter(
+        final_field__collection='CLUES').values()
+    columns["state"] = all_columns.filter(
+        final_field__collection='CLUES').values()
+    build_catalog_delegation()
+    #RICK, evaluar la segunda condición:
+    if not state and columns["state"]:
+        build_catalog_state()
+    build_catalog_clues()
+    for collection, collection_name in collections.items():
+        columns[collection] = all_columns.filter(
+            final_field__collection=collection_name).values_list('name')
+
+
+def build_catalog_delegation():
+    from catalog.models import Delegation
+    global catalog_delegation
+    #RICK Evaluar si es necesario declarar global acá:
+    global state
+    global institution
+    curr_delegations = Delegation.objects.filter(institution=institution)
+    if state:
+        curr_delegations = curr_delegations.filter(state=state)
+    delegs_query = list(curr_delegations.values_list(
+        'name', 'other_names', 'state__short_name'))
+    for deleg in delegs_query:
+        try:
+            deleg_name = unidecode.unidecode(deleg[0]).upper()
+        except Exception:
+            deleg_name = deleg[0].upper()
+        if deleg_name not in catalog_delegation:
+            catalog_delegation[deleg_name] = [deleg]
+        alt_names = deleg[1] or []
+        for alt_name in alt_names:
+            if alt_name not in catalog_delegation:
+                catalog_delegation[alt_name] = [deleg]
+            else:
+                catalog_delegation[alt_name].append(deleg)
+
+
+def build_catalog_state():
+    from catalog.models import State
+    global catalog_state
+    curr_states = State.objects.all()
+    states_query = list(curr_states.values_list('name', 'short_name'))
+    for estado in states_query:
+        try:
+            state_name = unidecode.unidecode(estado[0]).upper()
+        except Exception:
+            state_name = estado[0].upper()
+        if state_name not in catalog_state:
+            catalog_state[state_name] = [estado]
+        try:
+            state_short_name = unidecode.unidecode(estado[1]).upper()
+        except Exception:
+            state_short_name = estado[1].upper()
+        if state_short_name not in catalog_state:
+            catalog_state[state_short_name] = [estado]
+
+
+#Función que se modificará con el trabajo de Itza:
+def build_catalog_clues():
+    from catalog.models import CLUES
+    global catalog_clues
+    #RICK Evaluar si es necesario declarar global acá:
+    global institution
+    global state
+    clues_data_query = CLUES.objects.filter(institution=institution)
+    if state:
+        clues_data_query.filter(state=state)
+    clues_data_query = list(
+        clues_data_query.values_list(
+            "state__name", "name", "tipology_cve",
+            "id", "alternative_names", "state__short_name"
+        )
+    )
+    for clues_data in clues_data_query:
+        cves = clues_data[2].split("/")
+        state_short_name = clues_data[5]
+        for cve in cves:
+            try:
+                clues_name = unidecode.unidecode(clues_data[1])
+            except Exception:
+                clues_name = clues_data[1]
+            prov_name = u"%s %s" % (cve, clues_name)
+            real_name = unidecode.unidecode(prov_name).upper()
+            if not state:
+                real_name = "%s$%s" % (real_name, state_short_name)
+            if real_name not in catalog_clues:
+                catalog_clues[real_name] = [clues_data]
+            else:
+                catalog_clues[real_name].append(clues_data)
+        if clues_data[4]:
+            for alt_name in clues_data[4]:
+                if not state:
+                    alt_name = "%s$%s" % (alt_name, state_short_name)
+                if alt_name not in catalog_clues:
+                    catalog_clues[alt_name] = [clues_data]
+                else:
+                    catalog_clues[alt_name].append(clues_data)
+
+
+def execute_matches(row, file):    
+    from files_rows import Column, MissingField, MissingRow
     delegation = None
     missing_row = None
     if not state:
-        columns_state = columns.filter(final_data__collection='State')
+        columns_state = columns.filter(final_field__collection='State')
         if columns_state.exists():
-            state = generic_match(row, columns_state, 'State')
+            state = state_match(row, columns_state, 'State')
     #Delegación
-    columns_deleg = columns.filter(final_data__collection='Delegation')
+    columns_deleg = columns.filter(final_field__collection='Delegation')
     if columns_deleg.exists():
         delegation = delegation_match(row, columns_state, 'Delegation')
         if not delegation:
@@ -108,7 +227,7 @@ def execute_matches(row, file):
     recipe_row = []
 
 
-def generic_match(row, columns, collection):
+def state_match(row, columns, collection):
     #ITZA: Hay que investigar cómo importar genérico con variable 'collection'
     from catalog.models import State
     query_filter = build_query_filter(row, columns)

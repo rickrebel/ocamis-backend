@@ -497,6 +497,7 @@ def converter_file_in_related_files(
     #V4.0
     #file.total_rows = total_rows
     #file.save()
+    total_rows = 0
     inserted_rows = 0
     completed_rows = 0
     for idx, rr_data_row in enumerate(rr_data_rows):
