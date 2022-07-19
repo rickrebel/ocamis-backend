@@ -28,7 +28,6 @@ class StateAdmin(admin.ModelAdmin):
         "code_name",
         "other_names"]
 
-
 admin.site.register(State, StateAdmin)
 
 
@@ -89,7 +88,6 @@ class CLUESAdmin(admin.ModelAdmin):
         "clues",
         "jurisdiction"
     ]
-
 
 admin.site.register(CLUES, CLUESAdmin)
 
