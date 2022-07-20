@@ -33,13 +33,15 @@ class StateAdmin(admin.ModelAdmin):
 class EntityAdmin(admin.ModelAdmin):
     list_display = [
         "name",
-        #"institution__code",
-        #"state__short_name",
+        "institution",
+        "state",
         "clues"]
+    raw_id_fields = ["clues"]
+
     search_fields = [
         "name",
-        #"institution__code",
-        #"state__short_name"
+        "institution__code",
+        "state__short_name"
         ]
 
 admin.site.register(Entity, EntityAdmin)
