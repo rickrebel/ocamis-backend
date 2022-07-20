@@ -13,6 +13,7 @@ django-ckeditor==6.2.0
 django-cors-headers==3.10.1
 django-js-asset==1.2.2
 djangorestframework==3.13.1
+filesplit==4.0.0
 flake8==4.0.1
 idna==3.3
 kombu==5.2.2

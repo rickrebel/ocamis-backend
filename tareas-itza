@@ -1,0 +1,41 @@
+GRUPOS DE TAREAS ITZA:
+
+
+
+CLUES:
+
+ACTUALIZACIÓN DE BASE DE DATOS:
+	-Identificar los nuevos campos
+	new_fields = ["type_street", "street", "street_number", "suburb", "postal_code", "rfc", "last_change"]
+		-Agregar los campos al modelo CLUES
+		-Migrarlos y probarlos
+	-Crear un archivo csv a partir del catálogo original de CLUES con los campos relevantes (o hacerlo directo del .xls)
+	-Modificar función para insertar los campos nuevos a partir de función scripts.clean_clues.import_clues, tomando en cuenta:
+		-Guardar el municipio como Foreign Key, además del texto (Agregarlo al modelo).
+		-Identificar los de modificación reciente (2020 a la fecha), a partir de "FECHA ULTIMO MOVIMIENTO" --> "last_change"
+		-Con base en "CLUES" o CLUES.clues, reescribir todos los registros con modificaciones recientes.
+			tip: 
+			clues, created = CLUES.object.get_or_create(clues=row["CLUES"])
+			#Alternativa 1:
+			clues.update(jurisdiction=row["jurisdiction"])
+			#Alternativa 2:
+			clues.juristiction = row["jurisdiction"]
+			clues.save()
+		-Con base en "CLUES" o CLUES.clues, crear los nuevos CLUES.
+		-Considerar los campos compuestos (no presentes en base original)
+	-Probar la actualización
+
+
+REPENSAR LA FUNCIÓN DE MATCH "NOMBRE DE UNIDAD" -> "CLUES"
+	Tomar en cuenta que del nombre extraemos:
+		-Número de unidad; tipología en clave y en nombre; el nombre solito
+	Considerar la entidad y la institución para filtrar los CLUES del catálogo.
+	El número de la unidad que sea idéntico.
+
+
+
+
+
+
+
+

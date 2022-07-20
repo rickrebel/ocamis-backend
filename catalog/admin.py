@@ -10,7 +10,8 @@ from .models import (
     Institution,
     State,
     Municipality,
-    Disease
+    Disease,
+    Entity
 )
 
 
@@ -27,6 +28,21 @@ class StateAdmin(admin.ModelAdmin):
         "short_name",
         "code_name",
         "other_names"]
+
+
+class EntityAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        #"institution__code",
+        #"state__short_name",
+        "clues"]
+    search_fields = [
+        "name",
+        #"institution__code",
+        #"state__short_name"
+        ]
+
+admin.site.register(Entity, EntityAdmin)
 
 
 admin.site.register(State, StateAdmin)
@@ -89,7 +105,6 @@ class CLUESAdmin(admin.ModelAdmin):
         "clues",
         "jurisdiction"
     ]
-
 
 admin.site.register(CLUES, CLUESAdmin)
 

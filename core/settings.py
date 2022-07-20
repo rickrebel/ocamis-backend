@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "corsheaders",
     "rest_framework",
-    "desabasto.apps.DesabastoConfig",
+    #"desabasto.apps.DesabastoConfig",
     "catalog.apps.CatalogConfig",
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",
@@ -57,7 +57,10 @@ INSTALLED_APPS = [
     "intl_medicine.apps.IntlMedicineConfig",
     "email_sendgrid.apps.EmailSendgridConfig",
     'ckeditor',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    "parameter.apps.ParameterConfig",
+    "files_rows.apps.FilesRowsConfig",
+    "files_categories.apps.FilesCategoriesConfig",
 ]
 
 MIDDLEWARE = [

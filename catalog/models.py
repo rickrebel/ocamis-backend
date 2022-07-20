@@ -62,6 +62,24 @@ class Institution(models.Model):
         db_table = u'desabasto_institution'
 
 
+class Tipology(models.Model):
+    clave = models.CharField(
+        max_length=50, verbose_name="Clave oficial")
+    name = models.CharField(
+        max_length=255, verbose_name="Nombre oficial")
+    public_name = models.CharField(
+        max_length=255, verbose_name="Nombre corto (modificado)",
+        blank=True, null=True)
+    alternative_names = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s (%s)" % (self.clave, self.name)
+
+    class Meta:
+        verbose_name = u"Tipología"
+        verbose_name_plural = u"Tipologías"
+
+
 class CLUES(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
     #state = models.IntegerField()
@@ -79,6 +97,9 @@ class CLUES(models.Model):
         max_length=3, verbose_name=u"CLAVE DEL MUNICIPIO")
     tipology = models.CharField(
         max_length=255, verbose_name=u"NOMBRE DE TIPOLOGIA")
+    tipology_obj = models.ForeignKey(
+        Tipology, verbose_name=u"Tipología (Catálogo)",
+        blank=True, null=True, on_delete=models.CASCADE)
     tipology_cve = models.CharField(
         max_length=12, verbose_name=u"CLAVE DE TIPOLOGIA")
     id_clues = models.CharField(max_length=10, verbose_name=u"ID_CLUES")
@@ -149,6 +170,28 @@ class CLUES(models.Model):
         db_table = u'desabasto_clues'
 
 
+class Delegation(models.Model):
+    name = models.CharField(max_length=255, verbose_name=u"Nombre")
+    institution = models.ForeignKey(
+        Institution, verbose_name="Institución",
+        on_delete=models.CASCADE)
+    state = models.ForeignKey(
+        State, verbose_name="Entidad",
+        on_delete=models.CASCADE)
+    clues = models.ForeignKey(
+        CLUES, blank=True, null=True,
+        on_delete=models.CASCADE)
+    other_names = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s -- %s --%s" % (
+            self.name, self.state, self.institution)
+
+    class Meta:
+        verbose_name = u"Delegación"
+        verbose_name_plural = u"Delegaciones"
+
+
 class Disease(models.Model):
     name = models.CharField(max_length=50)
 
@@ -193,3 +236,77 @@ class Alliances(models.Model):
 
     def __str__(self):
         return self.name
+
+
+#Pruebas para crear catalogo Entity 
+
+class Entity(models.Model):
+    name = models.CharField(
+        max_length=120, blank=True, null=True,
+        verbose_name="Nombre",
+        help_text="Solo cuando sea distinta al nombre de la institución/CLUES"
+        )
+    institution = models.ForeignKey(
+        'Institution', on_delete=models.CASCADE)
+    state = models.ForeignKey(
+        'State',
+        null= True, blank=True,
+        on_delete=models.CASCADE)
+    clues = models.ForeignKey(
+        'CLUES', null=True, 
+        blank=True, on_delete=models.CASCADE)
+    addl_params = JSONField(blank=True, null=True)
+    vigencia = models.NullBooleanField(default=True)
+
+    def __str__(self):
+        return self.name or u"%s -%s -%s" % (
+            self.institution, self.state, self.clues)
+
+    class Meta:
+        verbose_name = u"Sujeto Obligado"
+        verbose_name_plural = u"Sujetos Obligados"
+
+
+
+#Otros catalogos
+''' 
+class GroupParameter(models.Model):
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True, null=True)
+    group_data = models.ForeignKey(
+        group_data, on_delete=models.CASCADE) ####
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = u"Grupo Parametro"
+        verbose_name_plural = u"Entidades"
+        db_table = u'desabasto_estado'
+
+
+class Parameter(models.Model):
+    group_parameter = models.ForeignKey(
+        GroupParameter, on_delate=models.CASCADE)
+    name = models.CharField(max_lenght= 255)
+    default_name = models.CharField(max_length=255)
+    variations = JSONField(blank=True, null= True)
+    almost_requiered =  ###
+    is_common = ###
+    final_field = models.ForeignKey(
+        FinalField,  ####
+        null=True, blank= True,
+        on_delete=models.CASCADE,)
+    is_verified = ###
+    addl_params = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return u"%s" % (self.group_data)
+
+
+class Parameter(models.Model):
+    group_parameter = models.ForeignKey(
+        Institution)
+
+
+'''
