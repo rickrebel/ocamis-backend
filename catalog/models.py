@@ -99,7 +99,7 @@ class CLUES(models.Model):
         max_length=255, verbose_name=u"NOMBRE DE TIPOLOGIA")
     tipology_obj = models.ForeignKey(
         Tipology, verbose_name=u"Tipología (Catálogo)",
-        blank=True, null=True, on_delete=django.CASCADE)
+        blank=True, null=True, on_delete=models.CASCADE)
     tipology_cve = models.CharField(
         max_length=12, verbose_name=u"CLAVE DE TIPOLOGIA")
     id_clues = models.CharField(max_length=10, verbose_name=u"ID_CLUES")
@@ -184,7 +184,7 @@ class Delegation(models.Model):
     other_names = JSONField(blank=True, null=True)
 
     def __str__(self):
-        return "%s -- %s --%s" (
+        return "%s -- %s --%s" % (
             self.name, self.state, self.institution)
 
     class Meta:
@@ -241,6 +241,11 @@ class Alliances(models.Model):
 #Pruebas para crear catalogo Entity 
 
 class Entity(models.Model):
+    name = models.CharField(
+        max_length=120, blank=True, null=True,
+        verbose_name="Nombre",
+        help_text="Solo cuando sea distinta al nombre de la institución/CLUES"
+        )
     institution = models.ForeignKey(
         'Institution', on_delete=models.CASCADE)
     state = models.ForeignKey(
@@ -254,7 +259,8 @@ class Entity(models.Model):
     vigencia = models.NullBooleanField(default=True)
 
     def __str__(self):
-        return u"%s -%s -%s" % (self.institution, self.state, self.clues)
+        return self.name or u"%s -%s -%s" % (
+            self.institution, self.state, self.clues)
 
     class Meta:
         verbose_name = u"Sujeto Obligado"

@@ -477,7 +477,7 @@ def divide_recipe_report_data(
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
     #Comprobación del número de columnas
-    from files_rows.models import Column, MissingRows
+    from files_rows.models import Column, MissingRow
     current_columns = Column.objects.filter(
         group_file__controlparameters=control_parameter)
     columns_count = current_columns.filter(
@@ -486,7 +486,7 @@ def divide_recipe_report_data(
     #if rr_data_count == 14:
         return recipe_report_data
     else:
-        MissingRows.objects.create(
+        MissingRow.objects.create(
             file=file,
             original_data=recipe_report_data,
             row_seq=row_seq

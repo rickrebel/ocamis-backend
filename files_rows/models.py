@@ -5,10 +5,11 @@ from catalog.models import Entity
 from files_categories.models import FormatFile, StatusProcessing, TypeFile
 
 from recipe.models import RecipeReport2, RecipeMedicine2
-from parameter.models import Parameter, TypeData, FinalField
+from parameter.models import Parameter, TypeData, FinalField, Transformation
+from files_categories.models import ColumnType
 
 
-class ControlParameters(models.Model):
+"""class ControlParameters(models.Model):
     entity = models.ForeignKey(
         Entity, on_delete=models.CASCADE)
     start_month = models.CharField(max_length=80)
@@ -22,14 +23,14 @@ class ControlParameters(models.Model):
 
     class Meta:
         verbose_name = u"Parametro de control"
-        verbose_name_plural = u"Parametros de control"
+        verbose_name_plural = u"Parametros de control" """
 
 
 class Petition(models.Model):
     entity = models.ForeignKey(
         Entity, on_delete=models.CASCADE)
-    control_parameters = models.ForeignKey(
-        ControlParameters, blank=True, null=True, on_delete=models.CASCADE)
+    #control_parameters = models.ForeignKey(
+    #    ControlParameters, blank=True, null=True, on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
     date_send = models.DateTimeField(blank=True, null=True)
     date_response = models.DateTimeField(blank=True, null=True)
@@ -47,8 +48,8 @@ class GroupFile(models.Model):
     def default_addl_params():
         return {"need_partition": True, "need_transform": False}
 
-    control_parameters= models.ForeignKey(
-        ControlParameters, on_delete=models.CASCADE)
+    #control_parameters= models.ForeignKey(
+    #    ControlParameters, on_delete=models.CASCADE)
     name = models.CharField(
         max_length=120, default='grupo único')
     type_file = models.ForeignKey(
@@ -58,8 +59,16 @@ class GroupFile(models.Model):
     final_data = models.NullBooleanField(
         verbose_name="Es información final")
     notes = models.TextField(blank=True, null=True)
+    row_start_data = models.IntegerField(
+        default=1, verbose_name='# de fila donde inician los datos')
+    row_headers = models.IntegerField(
+        blank=True, null=True,
+        verbose_name='# de fila donde se encuentran los encabezados')
     in_percent = models.BooleanField(default= False)
     addl_params = JSONField(default=default_addl_params)
+    delimiter = models.CharField(
+        max_length=3, blank=True, null=True, 
+        verbose_name="Delimitador de columnas")
 
     def __str__(self):
         return self.name
@@ -67,6 +76,20 @@ class GroupFile(models.Model):
     class Meta:
         verbose_name = u"Grupo de archivos"
         verbose_name_plural = u"Grupos de archivos"
+
+
+class PetitionGroupFile(models.Model):
+    petition = models.ForeignKey(
+        Petition, on_delete=models.CASCADE)
+    group_file = models.ForeignKey(
+        GroupFile, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "%s - %s" % (self.petition, self.group_file)
+
+    class Meta:
+        verbose_name = u"Relacional: petición -- group_file"
+        verbose_name_plural = u"Relacional: petición -- group_file"
 
 
 class MonthEntity(models.Model):
@@ -108,11 +131,12 @@ class File(models.Model):
         PetitionMonth, on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
     is_final = models.BooleanField(default= True)
-    origen_file = models.ForeignKey("self", on_delete=models.CASCADE)
-    status_processing = models.ForeignKey(
+    origin_file = models.ForeignKey("self", on_delete=models.CASCADE)
+    status_process = models.ForeignKey(
         StatusProcessing,
         blank=True, null=True,
         on_delete=models.CASCADE)
+    error_process = JSONField(blank=True, null=True)
     inserted_rows = models.IntegerField(default=1)
     completed_rows = models.IntegerField(default=1)
     total_rows = models.IntegerField(default=1)
@@ -137,7 +161,7 @@ class File(models.Model):
         verbose_name_plural = u"Documentos"
 
 
-class MissingRows(models.Model):
+class MissingRow(models.Model):
     file = models.ForeignKey(
         File, on_delete=models.CASCADE)
     recipe_report = models.ForeignKey(
@@ -151,7 +175,8 @@ class MissingRows(models.Model):
     original_data = JSONField(
         blank=True, null=True)
     row_seq = models.IntegerField(default=1)
-    tab = models.CharField(max_length=255)
+    #tab = models.CharField(max_length=255, blank=True, null=True)
+    errors = JSONField(blank=True, null=True)
 
     def __str__(self):
         return "%s -- %s" % (self.file, self.recipe_report or self.recipe_medicine)
@@ -164,6 +189,8 @@ class MissingRows(models.Model):
 class Column (models.Model):
     name_in_data = models.TextField(blank=True, null=True)
     position_in_data = models.IntegerField(default=1)
+    column_type=models.ForeignKey(
+        ColumnType, on_delete=models.CASCADE)
     parameter = models.ForeignKey(
         Parameter, 
         blank=True, null=True,
@@ -182,7 +209,18 @@ class Column (models.Model):
         on_delete=models.CASCADE)
     clean_params = JSONField(
         blank=True, null=True) 
-    requiered_row= models.BooleanField(default= False)
+    requiered_row = models.BooleanField(default=False)
+    tranformations = models.ManyToManyField(
+        Transformation, verbose_name="Tranformaciones", blank=True)
+    parent_row = models.ForeignKey(
+        "Column", related_name="parents",
+        verbose_name="Columna padre de la que derivó", 
+        blank=True, null=True, on_delete=models.CASCADE)
+    children_row = models.ForeignKey(
+        "Column", related_name="childrens",
+        verbose_name="Hijo resultado (junto a otras columnas)",
+        blank=True, null=True, on_delete=models.CASCADE)
+
 
     def __str__(self):
         return "%s -- %s" % (self.name_in_data, self.position_in_data)
@@ -192,9 +230,9 @@ class Column (models.Model):
         verbose_name_plural = u"Columnas"   
 
 
-class MissingFields(models.Model):
+class MissingField(models.Model):
     missing_row = models.ForeignKey(
-        MissingRows,
+        MissingRow,
         on_delete=models.CASCADE)
     column = models.ForeignKey(
         Column,
@@ -203,8 +241,7 @@ class MissingFields(models.Model):
     final_value = models.TextField(blank=True, null=True)
     other_values = JSONField(
         blank=True, null=True)
-    errors = JSONField(
-        blank=True, null=True)
+    errors = JSONField(blank=True, null=True)
 
     def __str__(self):
         return "%s -- %s" % (self.missing_row, self.column)

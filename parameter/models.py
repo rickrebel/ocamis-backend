@@ -8,6 +8,8 @@ from django.contrib.postgres.fields import JSONField
 class GroupData(models.Model):
     name = models.CharField(max_length=80)
     is_default = models.BooleanField(default=False)
+    can_has_percent = models.BooleanField(
+        default=False, verbose_name="Puede tener porcentajes")
 
     def __str__(self):
         return self.name
@@ -45,10 +47,13 @@ class Collection(models.Model):
 
 
 class TypeData(models.Model):
+    def default_params_type_data():
+        return {"name_pandas": ''}
     name = models.CharField(max_length=225)
     description =  models.TextField(blank=True, null=True)
     addl_params = JSONField(
-        blank=True, null=True, verbose_name="Otras configuraciones")
+        default=default_params_type_data,
+        verbose_name="Otras configuraciones")
     is_common = models.BooleanField(default=True)
     order = models.IntegerField(default=1)
 
@@ -69,6 +74,8 @@ class FinalField(models.Model):
         TypeData, 
         null=True, blank= True,
         on_delete=models.CASCADE,)
+    addl_params = JSONField(
+        blank=True, null=True, verbose_name="Otras configuraciones")
 
     def __str__(self):
         return self.name
@@ -104,3 +111,20 @@ class Parameter(models.Model):
     class Meta:
         verbose_name = u"Parametro"
         verbose_name_plural = u"Parametros"
+
+
+class Transformation(models.Model):
+    name = models.CharField(max_length=80)
+    public_name = models.CharField(max_length=120, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    pririty = models.SmallIntegerField(
+        default=5, verbose_name="Nivel de prioridad (5 niveles)")
+    for_all_data = models.BooleanField(
+        default=False, verbose_name="Es una tranformación para toda la info")
+
+    def __str__(self):
+        return "%s (%s)" (self.name, self.public_name)
+
+    class Meta:
+        verbose_name = u"Función de Transformación"
+        verbose_name_plural = u"Funciones de transformación"

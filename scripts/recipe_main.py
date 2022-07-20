@@ -379,7 +379,7 @@ def decompress_file_gz(file_path):
 
 #Divide toda una fila en columnas
 def divide_recipe_report_data(row, file=None, row_seq=None):
-    from files_rows.models import Column, MissingRows
+    from files_rows.models import Column, MissingRow
     separator = file.group_file.separator
     row_data = row.split(separator) if separator else row
     #Comprobación del número de columnas
@@ -390,7 +390,7 @@ def divide_recipe_report_data(row, file=None, row_seq=None):
     if len(row_data) == columns_count:
         return [row_seq] + row_data
     else:
-        MissingRows.objects.create(
+        MissingRow.objects.create(
             file=file,
             original_data=row_data,
             row_seq=row_seq,
