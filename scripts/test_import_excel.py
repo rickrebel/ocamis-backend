@@ -1,5 +1,8 @@
 
 #Ejemplo de funcion para cargar txt
+from tkinter import N
+
+
 def get_data_from_file_txt(
         reporte_recetas_path, number_columns,
         row_start_data=None, row_headers=None):
@@ -92,6 +95,113 @@ def test_data_from_file():
     print("error_number_columns: ", error_number_columns) ## 0
     print("primeros datos:\n", final_data[:20]) ## [[----],[----],...]
 
+###DUDAS DE LA FUNCION DE PRUEBA:
+#a los excel no se les define por medio de funcion el total de columanas, las columnas se generan de manera automatica en la
+
+
+
+###Pruebas para cargar CLUES con nuevos campos en formato 
+#Los campos nuevos de la base clues ya se definieron en el catalogo CLUES pero falta verificar los que ocupan creacion con dos campos (streat_number and suburb
+# )
+def import_clues_p():
+    import pandas as pd
+    import unidecode
+    from pprint import pprint  #visualice the data with more structure
+    from django.utils.dateparse import parse_datetime #parse_datime converts text to a datetime with time
+    from catalog.models import (State, Institution, CLUES)
+    with pd.read_excel('prueba_clues.xlsx') as prueba_clues:
+        #the next command create a nested dictionary (a dictionary of dictionaries)
+        reader_clues = prueba_clues.set_index('NOMBRE DE LA UNIDAD').to_dict('index') #Se hace al NOMBRE DE LA UNIDAD el index
+        #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_dict.html
+        try:
+            reader_clues.index = unidecode.unidecode(reader_clues.index).upper() #str en lugar de unicode#checar
+        except Exception:
+            reader_clues.index = reader_clues.upper()
+        #Como se hace la importacion?
+        ##llamar a catalogos para las fK
+        try:
+            state = State.objects.get(inegi_code = reader_clues['CLAVE DE LA ENTIDAD']) #Se llama al catalogo State
+            institution = Institution.objects.get(code = reader_clues['CLAVE DE LA INSTITUCION']) #Se llama al catalogo Institutions (nomenclatura de instituciones)
+        except Exception as exc:
+            state = None
+            institution = None
+            ##Crear (importar datos a modelo CLUEs)
+            clues = CLUES.objects.create(
+            #el index aqui es el NOMBRE DE LA UNIDADAD y cada unidad tiene un field. Como llamo a todos los field uno a uno (for) para caragarlos en el field correspondiente?
+                name = reader_clues.index
+                for c_unidad, c_info in reader_clues.items():
+                    for key in c_info:
+                        for tfield in CLUES.objects.all():
+                            key = tfield  #Estos tres for funcionarian si el archivo original CLUES de excel tiene el mismo orden que los field de modelo CLUES
+            ) #las variables del archivo de excel de CLUES no tienen el mismo orden por lo que se debe llamar a una o acomodar en la funcion
+            print(clues)
+
+
+####
+
+def import_clues():
+    import csv
+    from pprint import pprint
+    from django.utils.dateparse import parse_datetime
+    from desabasto.models import (State, Institution, CLUES)
+    with open('clues.csv') as csv_file:
+        #contents = f.read().decode("UTF-8")
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        line_count = 0
+        for idx, row in enumerate(csv_reader):
+            row = [item.decode('latin-1').encode("utf-8") for item in row]
+            if not len(row) == 25:
+                print("No coincide el número de columnas, hay %s" % len(row))
+                print("linea: %s"%idx+1)
+                print(row)
+                print("----------")
+                continue
+            if line_count <= 1:
+                continue
+            else:
+                state_inegi_code = row[1]
+                try:
+                    state = State.objects.get(inegi_code=state_inegi_code)
+                except Exception as e:
+                    state = None
+                institution_clave = row[2]
+                institution = Institution.objects.get(code=institution_clave)
+                clues = CLUES.objects.create(
+                    name=row[0],
+                    state=state,
+                    institution=institution,
+                    municipality=row[3],
+                    municipality_inegi_code=row[4],
+                    tipology=row[5],
+                    tipology_cve=row[6],
+                    id_clues=row[7],
+                    clues=row[8],
+                    status_operation=row[9],
+                    longitude=row[10],
+                    latitude=row[11],
+                    locality=row[12],
+                    locality_inegi_code=row[13],
+                    jurisdiction=row[14],
+                    jurisdiction_clave=row[15],
+                    establishment_type=row[16],
+                    consultings_general=get_int(row[17]),
+                    consultings_other=get_int(row[18]),
+                    beds_hopital=get_int(row[19]),
+                    beds_other=get_int(row[20]),
+                    total_unities=get_int(row[21]),
+                    admin_institution=row[22],
+                    atention_level=row[23],
+                    stratum=row[24],
+                )
+                print(clues)
+
+
+
+
+
+
+##Pruebas no usadas
+'''
 
 #Prueba
 #Carga de varios archivos de Excel de manera automatizada
@@ -103,20 +213,6 @@ from files_rows.models import GroupFile
 from parameter.models import TypeData #obtencion del nombre de la delagacion, el cual esta contenido en el nombre del archivo
     deleg_nom = Delegation.objects.filter(name=name).first()
 
-
-
-
-
-
-
-
-
-
-
-
-
-##Pruebas no usadas
-'''
 #Abrir excel
 #PS: python -m pip install pandas
 import pandas as pd
