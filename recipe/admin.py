@@ -4,9 +4,9 @@ from __future__ import unicode_literals
 from django.contrib import admin
 
 from .models import (
-    RecipeMedicine2,
-    RecipeReport2,
-    # RecipeReportLog2,
+    Medicine,
+    Recipe,
+    # RecipeLog2,
     DocumentType,
     Medic,
     MedicalSpeciality,
@@ -38,36 +38,36 @@ class MedicAdmin(admin.ModelAdmin):
 admin.site.register(Medic, MedicAdmin)
 
 
-class RecipeMedicineInline(admin.TabularInline):
-    model = RecipeMedicine2
+class MedicineInline(admin.TabularInline):
+    model = Medicine
     extra = 0
     #raw_id_fields = ["container"]
 
 
-class RecipeReportAdmin(admin.ModelAdmin):
+class RecipeAdmin(admin.ModelAdmin):
 
     list_display = [
-        "year_month",
+        #"year_month",
         "clues",
-        "tipo_documento",
+        "type_document",
         "folio_documento",
     ]
     inlines = [
-        RecipeMedicineInline,
+        MedicineInline,
     ]
     raw_id_fields = ["clues"]
-    search_fields = ["tipo_documento", ]
+    search_fields = ["type_document", ]
 
-admin.site.register(RecipeReport2, RecipeReportAdmin)
+admin.site.register(Recipe, RecipeAdmin)
 
 
-class RecipeMedicineAdmin(admin.ModelAdmin):
+class MedicineAdmin(admin.ModelAdmin):
     list_display = [
         "recipe",
         "cantidad_prescrita",
         "cantidad_entregada",
         "precio_medicamento",
-        "rn"]
+        ]
     readonly_fields = ["recipe"]
 
-admin.site.register(RecipeMedicine2, RecipeMedicineAdmin)
+admin.site.register(Medicine, MedicineAdmin)

@@ -9,7 +9,7 @@ import unidecode
 from django.utils import timezone
 
 especialidad_medico_list = {}
-tipo_documento_list = {}
+type_document_list = {}
 IMSS_ID = 3
 
 dbname = "postgres"
@@ -32,13 +32,13 @@ first_null = (
 year = '2019'
 base_sql = (
     "COPY desabasto_recipereportraw(delegacion,clave_presupuestal,"
-    "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
+    "unidad_medica,tipo_unidad_med,nivel_atencion,type_document,"
     "folio_documento,fecha_emision,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,cantidad_prescrita,cantidad_entregada,"
     "clave_medico,nombre_medico,especialidad_medico,precio_medicamento,rn)")
 base_sql2 = (
     "COPY desabasto_recipereportraw(delegacion,clave_presupuestal,"
-    "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
+    "unidad_medica,tipo_unidad_med,nivel_atencion,type_document,"
     "folio_documento,fecha_emision,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,cantidad_prescrita,cantidad_entregada,"
     "clave_medico,nombre_medico,especialidad_medico,precio_medicamento)")
@@ -78,7 +78,7 @@ def massive_upload_csv_to_db(
         path="", years=['2019', '2020', '2021'], institution="imss",
         update_files=True):
     import os
-    from recipe.models import RecipeReportLog
+    from recipe.models import RecipeLog
     from catalog.models import Institution
     global institution_obj
     months = [
@@ -115,7 +115,7 @@ def massive_upload_csv_to_db(
                     # is not a file
                     print("Invalid path")
                     break
-                if RecipeReportLog.objects.filter(
+                if RecipeLog.objects.filter(
                         file_name=reporte_recetas_path,
                         successful=True).exists():
                     # previus successful processing
@@ -133,7 +133,7 @@ def massive_upload_csv_to_db(
                 print("finish converter_file_in_related_files: ",
                       timezone.now())
                 continue
-                rr_log, is_created = RecipeReportLog.objects\
+                rr_log, is_created = RecipeLog.objects\
                     .get_or_create(file_name=reporte_recetas_path)
                 rr_log.set_errors(errors)
                 rr_log.successful = successful
@@ -158,22 +158,22 @@ def get_data_from_file(reporte_recetas_path):
     return rr_data_rows, []
 
 
-def get_tipo_documento(tipo_documento):
+def get_type_document(type_document):
     """
     archivo local, si no existe, cargar los datos de db y generar el archivo
-    si no existe tipo_documento, generar un registro en db y actualiar el
-    archivo retornar el tipo_documento.id
+    si no existe type_document, generar un registro en db y actualiar el
+    archivo retornar el type_document.id
     """
     from recipe.models import DocumentType
     global catalog_document_type
     if not catalog_document_type:
         for document_type in DocumentType.objects.all():
             catalog_document_type[document_type.name] = document_type.id
-    if tipo_documento not in catalog_document_type:
+    if type_document not in catalog_document_type:
         rr_document_type, is_created = DocumentType.objects\
-            .get_or_create(name=tipo_documento)
-        catalog_document_type[tipo_documento] = rr_document_type.id
-    return catalog_document_type[tipo_documento]
+            .get_or_create(name=type_document)
+        catalog_document_type[type_document] = rr_document_type.id
+    return catalog_document_type[type_document]
 
 
 def get_state(state_name):
@@ -477,7 +477,8 @@ def divide_recipe_report_data(
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
     #Comprobación del número de columnas
-    from files_rows.models import Column, MissingRow
+    from files_rows.models import Column
+    #from recipe.models import MissingRow
     current_columns = Column.objects.filter(
         group_file__controlparameters=control_parameter)
     columns_count = current_columns.filter(
@@ -517,8 +518,8 @@ def get_recipe_report_data(recipe_report_data, institution="issste"):
     #clues_id = 0
 
 
-    tipo_documento_id = get_tipo_documento(recipe_report_data[5])
-    #tipo_documento_id = 0
+    type_document_id = get_type_document(recipe_report_data[5])
+    #type_document_id = 0
 
     fecha_entrega = recipe_report_data[8]
 
@@ -535,7 +536,7 @@ def get_recipe_report_data(recipe_report_data, institution="issste"):
 
     return [
         clues_id,
-        tipo_documento_id,
+        type_document_id,
         fecha_entrega,
         nivel_atencion,
         clave_medico,
@@ -596,7 +597,7 @@ def converter_file_in_related_files(
         recipe_path="test_recipe.csv", medicine_path="test_medicine.csv",
         medico_path="test_medico.csv", clues_path="test_clues.csv",
         container_path="test_container.csv"):
-    from recipe.models import RecipeReport2
+    from recipe.models import Recipe
     from datetime import datetime
     from pprint import pprint
     #import io
@@ -623,7 +624,7 @@ def converter_file_in_related_files(
 
     if len(recipe_first) >= 14:
         first_folio = recipe_first[4]
-        previus_recipe = RecipeReport2.objects\
+        previus_recipe = Recipe.objects\
             .filter(folio_documento=first_folio).first()
         if previus_recipe:
             recipes_data[first_folio] = {
@@ -674,7 +675,7 @@ def converter_file_in_related_files(
             recipe_report_data = get_recipe_report_data(
                 recipe_report_prev_data, institution)
             """(clues_id,
-             tipo_documento_id,
+             type_document_id,
              fecha_entrega,
              nivel_atencion,
              clave_medico) = recipe_report_data
@@ -682,7 +683,7 @@ def converter_file_in_related_files(
             recipes_data[folio_ocamis] = {
                 "clues_id": clues_id,
                 "folio_ocamis": folio_ocamis,
-                "tipo_documento_id": tipo_documento_id,
+                "type_document_id": type_document_id,
                 "folio_documento": folio_documento,
                 "iso_year": iso_date[0],
                 "iso_week": iso_date[1],
@@ -740,7 +741,7 @@ def converter_file_in_related_files(
     #folio_gt = folios_list[-1]
 
     range_folios = list(
-        RecipeReport2.objects
+        Recipe.objects
         .filter(iso_year=first_iso[0], iso_week=first_iso[1])
         .values_list("folio_ocamis", flat=True))
 
@@ -775,7 +776,7 @@ def converter_file_in_related_files(
         data_file_recipe.append([
             recipe_data.get("clues_id"),
             folio_ocamis,
-            recipe_data.get("tipo_documento_id"),
+            recipe_data.get("type_document_id"),
             recipe_data.get("folio_documento"),
             recipe_data.get("iso_year"),
             recipe_data.get("iso_week"),
@@ -831,7 +832,7 @@ def converter_file_in_related_files(
             "fields": [
                 "clues_id",
                 "folio_ocamis",
-                "tipo_documento_id",
+                "type_document_id",
                 "folio_documento",
                 "iso_year",
                 "iso_week",

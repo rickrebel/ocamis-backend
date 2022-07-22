@@ -9,8 +9,8 @@ from desabasto.models import (
     DocumentType,
     Medic,
     MedicalSpeciality,
-    RecipeMedicine,
-    RecipeReport,
+    Medicine,
+    Recipe,
 )
 
 from django.conf import settings
@@ -108,10 +108,10 @@ def get_data(file="reporte_recetas_202011_4.csv", start_index=3, base_print=1):
             precio_medicamento = data[16].decode('latin-1').encode("utf-8")
             rn = data[17].decode('latin-1').encode("utf-8")
             try:
-                recipe_report = RecipeReport.objects\
+                recipe_report = Recipe.objects\
                     .filter(folio_documento=folio_documento).first()
                 if not recipe_report:
-                    recipe_report = RecipeReport()
+                    recipe_report = Recipe()
                     recipe_report.year_month = date_name
                     clues, lost_ref = get_clues(
                         delegacion=delegacion,
@@ -135,7 +135,7 @@ def get_data(file="reporte_recetas_202011_4.csv", start_index=3, base_print=1):
                         recipe_report.especialidad_medico = recipe_report\
                             .medic.especialidad_medico
                     recipe_report.save()
-                recipemedicine = RecipeMedicine()
+                recipemedicine = Medicine()
                 recipemedicine.recipereport = recipe_report
                 # recipemedicine.fecha_emision = datetime_format(fecha_emision)
                 # recipemedicine.fecha_entrega = datetime_format(fecha_entrega)
@@ -366,7 +366,7 @@ def converter_file_in_related_files(
         clean_data=True, update_files=True,
         recipe_path="test_recipe.csv",
         medicine_path="test_medicine.csv"):
-    from desabasto.models import RecipeReport
+    from desabasto.models import Recipe
     with_coma = False
     try:
         with open(file_path) as file:
@@ -395,7 +395,7 @@ def converter_file_in_related_files(
 
     if len(recipe_first) >= 17:
         first_folio = recipe_first[6]
-        previus_recipe = RecipeReport.objects\
+        previus_recipe = Recipe.objects\
             .filter(folio_documento=first_folio).first()
         if previus_recipe:
             recipes_data[first_folio] = {

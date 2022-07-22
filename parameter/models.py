@@ -113,7 +113,7 @@ class Parameter(models.Model):
         verbose_name_plural = u"Parametros"
 
 
-class Transformation(models.Model):
+class CleanFunction(models.Model):
     name = models.CharField(max_length=80)
     public_name = models.CharField(max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
@@ -121,6 +121,10 @@ class Transformation(models.Model):
         default=5, verbose_name="Nivel de prioridad (5 niveles)")
     for_all_data = models.BooleanField(
         default=False, verbose_name="Es una tranformación para toda la info")
+    restricted_field = models.ForeignKey(
+        FinalField, blank=True, null=True,
+        verbose_name="Campo final al cual solo puede aplicarse",
+        on_delete=models.CASCADE)
 
     def __str__(self):
         return "%s (%s)" (self.name, self.public_name)

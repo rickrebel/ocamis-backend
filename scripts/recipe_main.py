@@ -3,10 +3,12 @@ from rest_framework.response import Response
 from rest_framework import permissions, views, status
 import unidecode
 from parameter.models import FinalField
+from files_categories.models import StatusControl
+
 recipe_fields = FinalField.objects.filter(
-    collection__model_name='RecipeReport2').values()
+    collection__model_name='Recipe').values()
 medicine_fields = FinalField.objects.filter(
-    collection__model_name='RecipeMedicine2').values()
+    collection__model_name='Medicine').values()
 catalog_clues = {}
 catalog_state = {}
 catalog_delegation = {}
@@ -204,7 +206,8 @@ def build_catalog_clues():
 
 
 def execute_matches(row, file):    
-    from files_rows import Column, MissingField, MissingRow
+    from files_rows import Column, MissingField
+    #from recipe.models import MissingRow
     delegation = None
     missing_row = None
     if not state:
@@ -254,7 +257,6 @@ def build_query_filter(row, columns):
 def split_and_decompress(file):
     import pathlib
     from files_rows.models import File
-    from files_categories.models import StatusProcess
     import os
     import zipfile 
     count_splited = 0
@@ -267,9 +269,9 @@ def split_and_decompress(file):
             errors = ['No se pudo descomprimir el archivo gz %s' % final_path]            
             return None, None, errors, None
         file_without_extension = file_path[:-3]
-        decompressed_status, created = StatusProcess.objects.get_or_create(
+        decompressed_status, created = StatusControl.objects.get_or_create(
             name='decompressed')
-        initial_status, created = StatusProcess.objects.get_or_create(
+        initial_status, created = StatusControl.objects.get_or_create(
             name='initial')
         file.status_process = decompressed_status
         file.save()
@@ -328,13 +330,12 @@ def split_and_decompress(file):
 #def split_file(path="G:/My Drive/YEEKO/Clientes/OCAMIS/imss"):
 def split_file(file):
     from filesplit.split import Split
-    from files_categories.models import StatusProcess
     from files_rows.models import File
     [directory, only_name] = file.file_name.rsplit("/", 1)
     [base_name, extension] = only_name.rsplit(".", 1)
     curr_split = Split(file.file_name, directory)
     curr_split.bylinecount(linecount=1000000)
-    initial_status = StatusProcess.objects.get_or_create(
+    initial_status = StatusControl.objects.get_or_create(
         name='initial')
     count_splited = 0
     original_file = file.origin_file or file

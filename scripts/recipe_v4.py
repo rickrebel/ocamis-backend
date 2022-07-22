@@ -39,7 +39,7 @@ def massive_upload_csv_to_db(
         path="", years=['2019', '2020', '2021'], institution="issste",
         update_files=True):
     import os
-    from desabasto.models import RecipeReportLog, Institution
+    from desabasto.models import RecipeLog, Institution
     global institution_obj
     try:
         institution_obj = Institution.objects.get(code__iexact=institution)
@@ -71,7 +71,7 @@ def massive_upload_csv_to_db(
                 if not os.path.isfile(reporte_recetas_path):
                     # is not a file
                     continue
-                if RecipeReportLog.objects.filter(
+                if RecipeLog.objects.filter(
                         file_name=reporte_recetas_path,
                         successful=True).exists():
                     # previus successful processing
@@ -86,7 +86,7 @@ def massive_upload_csv_to_db(
                     medicine_path=medicine_path, update_files=update_files)
                 print("finish converter_file_in_related_files: ",
                       timezone.now())
-                rr_log, is_created = RecipeReportLog.objects\
+                rr_log, is_created = RecipeLog.objects\
                     .get_or_create(file_name=reporte_recetas_path)
                 rr_log.set_errors(errors)
                 rr_log.successful = successful
@@ -450,7 +450,7 @@ def converter_file_in_related_files(
         recipe_path="test_recipe.csv", medicine_path="test_medicine.csv",
         medico_path="test_medico.csv", clues_path="test_clues.csv",
         container_path="test_container.csv"):
-    from desabasto.models import RecipeReport2
+    from desabasto.models import Recipe
     from datetime import datetime
     #import io
     print("start get_data_from_file: ", timezone.now())
@@ -477,7 +477,7 @@ def converter_file_in_related_files(
 
     if len(recipe_first) >= 17:
         first_folio = recipe_first[6]
-        previus_recipe = RecipeReport2.objects\
+        previus_recipe = Recipe.objects\
             .filter(folio_documento=first_folio).first()
         if previus_recipe:
             recipes_data[first_folio] = {
@@ -579,7 +579,7 @@ def converter_file_in_related_files(
     #folio_gt = folios_list[-1]
 
     range_folios = list(
-        RecipeReport2.objects
+        Recipe.objects
         .filter(iso_year=first_iso[0], iso_week=first_iso[1])
         .values_list("folio_ocamis", flat=True))
 
