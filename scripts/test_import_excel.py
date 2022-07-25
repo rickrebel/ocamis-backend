@@ -189,7 +189,7 @@ def import_clues_p01():
     
 #Codigo (en construccion) para obtener model's fields in Django
 #https://stackoverflow.com/questions/3647805/get-models-fields-in-django
-#El siguiente 
+#El siguiente
 from django.contrib.auth.models import User
 User._meta.get_fields()
 [field.name for field in User._meta.get_fields()]
