@@ -195,7 +195,7 @@ class File(models.Model):
         verbose_name = u"Documento"
         verbose_name_plural = u"Documentos"
 
-class Column (models.Model):
+class NameColumn (models.Model):
     name_in_data = models.TextField(blank=True, null=True)
     position_in_data = models.IntegerField(default=1)
     column_type=models.ForeignKey(
@@ -220,11 +220,11 @@ class Column (models.Model):
         blank=True, null=True) 
     requiered_row = models.BooleanField(default=False)
     parent_row = models.ForeignKey(
-        "Column", related_name="parents",
+        "NameColumn", related_name="parents",
         verbose_name="Columna padre de la que derivó", 
         blank=True, null=True, on_delete=models.CASCADE)
     children_row = models.ForeignKey(
-        "Column", related_name="childrens",
+        "NameColumn", related_name="childrens",
         verbose_name="Hijo resultado (junto a otras columnas)",
         blank=True, null=True, on_delete=models.CASCADE)
 
@@ -233,8 +233,8 @@ class Column (models.Model):
         return "%s -- %s" % (self.name_in_data, self.position_in_data)
 
     class Meta:
-        verbose_name = u"Columna"
-        verbose_name_plural = u"Columnas"   
+        verbose_name = u"Nombre de Columna"
+        verbose_name_plural = u"Nombres de Columnas"   
 
 
 class Transformation(models.Model):
@@ -247,7 +247,7 @@ class Transformation(models.Model):
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Grupo de archivos")
     column = models.ForeignKey(
-        Column, 
+        NameColumn, 
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Columna")
     addl_params = JSONField(blank=True, null=True)

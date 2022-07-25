@@ -477,9 +477,9 @@ def divide_recipe_report_data(
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
     #Comprobación del número de columnas
-    from files_rows.models import Column
+    from files_rows.models import NameColumn
     #from recipe.models import MissingRow
-    current_columns = Column.objects.filter(
+    current_columns = NameColumn.objects.filter(
         group_file__controlparameters=control_parameter)
     columns_count = current_columns.filter(
         position_in_data__isnull=False).count()
