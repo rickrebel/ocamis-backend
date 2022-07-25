@@ -147,7 +147,7 @@ def import_clues_p():
         ) #las variables del archivo de excel de CLUES no tienen el mismo orden por lo que se debe llamar a una o acomodar en la funcion
         print(clues)
 
-
+##
 #Prueba 2:24/07/22
 ###Pruebas para cargar CLUES con nuevos campos en formato 
 def import_clues_p01():
