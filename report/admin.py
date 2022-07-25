@@ -56,7 +56,7 @@ class ResponsableAdmin(admin.ModelAdmin):
     search_fields = [
         "name",
         "emails",
-        "responsible",
+        #"responsible",
         "position",
         "institution__name",
         "state__name",
