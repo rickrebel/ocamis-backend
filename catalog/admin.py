@@ -102,9 +102,11 @@ class CLUESAdmin(admin.ModelAdmin):
     search_fields = [
         "name",
         "institution__name",
+        "institution__code",
         "state__name",
         "state__short_name",
         "clues",
+        "tipology_cve",
         "jurisdiction"
     ]
 
