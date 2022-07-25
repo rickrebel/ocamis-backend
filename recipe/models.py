@@ -2,9 +2,10 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from files_rows.models import Column, File
+from files_rows.models import NameColumn, File
 from django.contrib.postgres.fields import JSONField
 from django.utils.encoding import python_2_unicode_compatible
+
 
 class MedicalSpeciality(models.Model):
     name = models.CharField(max_length=255)
@@ -87,7 +88,7 @@ class Recipe(models.Model):
     folio_documento = models.CharField(max_length=40)
     #tipo_documento = models.IntegerField()
     type_document = models.ForeignKey(
-        DocumentType, on_delete=models.CASCADE)
+        DocumentType, on_delete=models.CASCADE, blank=True, null=True)
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
     fecha_emision = models.DateTimeField(blank=True, null=True)
     fecha_entrega = models.DateTimeField(blank=True, null=True)
@@ -96,8 +97,6 @@ class Recipe(models.Model):
     clave_presupuestal = models.CharField(
         max_length=20, blank=True, null=True)
     #nivel_atencion = models.IntegerField(blank=True, null=True)
-    file = models.ForeignKey(
-        File, blank=True, null=True, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = "Receta"
@@ -125,6 +124,7 @@ class Medicine(models.Model):
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     #OTROS DATOS NO TAN RELEVANTES:
     precio_medicamento = models.FloatField(blank=True, null=True)
+    file = models.ForeignKey(File, on_delete=models.CASCADE)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
     #rn = models.IntegerField(blank=True, null=True)
 
@@ -197,7 +197,7 @@ class MissingField(models.Model):
         MissingRow,
         on_delete=models.CASCADE)
     column = models.ForeignKey(
-        Column,
+        NameColumn,
         on_delete=models.CASCADE)
     original_value = models.TextField(blank=True, null=True)
     final_value = models.TextField(blank=True, null=True)

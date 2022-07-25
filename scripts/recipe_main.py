@@ -101,7 +101,7 @@ def build_catalogs(file):
     global state
     institution = file.petition.entity.institution
     state = file.petition.entity.state
-    all_columns = Column.objects.filter(group_file=file.group_file)
+    all_columns = NameColumn.objects.filter(group_file=file.group_file)
     columns["all"] = all_columns.values()
     columns["clues"] = all_columns.filter(
         final_field__collection='CLUES').values()
@@ -206,7 +206,7 @@ def build_catalog_clues():
 
 
 def execute_matches(row, file):    
-    from files_rows import Column, MissingField
+    from files_rows import NameColumn, MissingField
     #from recipe.models import MissingRow
     delegation = None
     missing_row = None
@@ -380,11 +380,11 @@ def decompress_file_gz(file_path):
 
 #Divide toda una fila en columnas
 def divide_recipe_report_data(row, file=None, row_seq=None):
-    from files_rows.models import Column, MissingRow
+    from files_rows.models import NameColumn, MissingRow
     separator = file.group_file.separator
     row_data = row.split(separator) if separator else row
     #Comprobación del número de columnas
-    current_columns = Column.objects.filter(group_file=file.group_file)
+    current_columns = NameColumn.objects.filter(group_file=file.group_file)
     columns_count = current_columns.filter(
         position_in_data__isnull=False).count()
     row_seq = row_seq + file.row_start_data
