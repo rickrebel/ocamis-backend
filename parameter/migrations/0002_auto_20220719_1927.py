@@ -78,7 +78,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='typedata',
             name='addl_params',
-            field=django.contrib.postgres.fields.jsonb.JSONField(default=parameter.models.TypeData.default_params_type_data, verbose_name='Otras configuraciones'),
+            field=django.contrib.postgres.fields.jsonb.JSONField(verbose_name='Otras configuraciones'),
         ),
         migrations.AlterField(
             model_name='typedata',

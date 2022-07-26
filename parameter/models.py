@@ -50,12 +50,12 @@ class Collection(models.Model):
 
 
 class DataType(models.Model):
-    def default_params_type_data():
+    def default_params_data_type():
         return {"name_pandas": ''}
     name = models.CharField(max_length=225)
     description =  models.TextField(blank=True, null=True)
     addl_params = JSONField(
-        default=default_params_type_data,
+        default=default_params_data_type,
         verbose_name="Otras configuraciones")
     is_common = models.BooleanField(default=True)
     order = models.IntegerField(default=1)
@@ -73,7 +73,7 @@ class FinalField(models.Model):
         Collection, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
     verbose_name = models.TextField(blank=True, null=True)
-    type_data = models.ForeignKey(
+    data_type = models.ForeignKey(
         DataType, 
         null=True, blank= True,
         on_delete=models.CASCADE,)
@@ -142,7 +142,7 @@ class CleanFunction(models.Model):
         verbose_name="Otras configuraciones")
 
     def __str__(self):
-        return "%s (%s)" (self.name, self.public_name)
+        return "%s (%s)" % (self.name, self.public_name)
 
     class Meta:
         verbose_name = u"Función de limpieza y tranformación"

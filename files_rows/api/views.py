@@ -15,7 +15,7 @@ class FileControlViewSet(ListRetrieveUpdateMix):
     queryset = FileControl.objects.all().prefetch_related(
                 "columns",
                 "columns__column_type",
-                "columns__type_data",
+                "columns__data_type",
                 "columns__column_tranformations",
                 "columns__column_tranformations__clean_function",
                 "columns__final_field",

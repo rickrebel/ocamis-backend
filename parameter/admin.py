@@ -16,7 +16,7 @@ admin.site.register(Collection, CollectionAdmin)
 
 
 class FinalFieldAdmin(admin.ModelAdmin):
-    list_display = ["name", "collection", "verbose_name", "type_data"]
+    list_display = ["name", "collection", "verbose_name", "data_type"]
     search_fields = [
         "name", "collection__name", "collection__model_name", "verbose_name"]
 

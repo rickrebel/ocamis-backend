@@ -37,7 +37,7 @@ class TransformationSerializer(serializers.ModelSerializer):
 
 
 class NameColumnSerializer(serializers.ModelSerializer):
-    type_data = DataTypeSimpleSerializer()
+    data_type = DataTypeSimpleSerializer()
     column_type = ColumnTypeSimpleSerializer()
     tranformations = TransformationSerializer(
         many=True, source="column_tranformations")

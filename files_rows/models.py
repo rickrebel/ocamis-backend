@@ -245,7 +245,7 @@ class NameColumn (models.Model):
         related_name="columns",
         blank=True, null=True,
         on_delete=models.CASCADE)
-    type_data = models.ForeignKey(
+    data_type = models.ForeignKey(
         DataType, 
         blank=True, null=True,
         on_delete=models.CASCADE)

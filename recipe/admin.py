@@ -62,11 +62,11 @@ admin.site.register(Prescription, PrescriptionAdmin)
 
 class DrougAdmin(admin.ModelAdmin):
     list_display = [
-        "prescription",
+        #"prescription",
         "cantidad_prescrita",
         "cantidad_entregada",
         "precio_medicamento",
         ]
-    readonly_fields = ["prescription"]
+    #readonly_fields = ["prescription"]
 
 admin.site.register(Droug, DrougAdmin)
