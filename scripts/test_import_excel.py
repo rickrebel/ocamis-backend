@@ -1,6 +1,8 @@
 
 #Ejemplo de funcion para cargar txt
+import string
 from tkinter import N
+from wsgiref.handlers import read_environ
 
 
 def get_data_from_file_txt(
@@ -49,6 +51,7 @@ def test_data_from_file():
 
 one_path= #direccion donde se encuentra el archivo de excel 
 
+#Prueba 1: 19/07/2022
 #Para cargar xslx
 def get_data_from_excel(file, is_explore,empty_row: int= 0):
     import pandas as pd
@@ -78,9 +81,7 @@ def get_data_from_excel(file, is_explore,empty_row: int= 0):
 ## Quien use la función asignara el parametro como path o como nombre del documento
 ## Se asigna use el parametro 'usecols' dentro del comando read_excel sacando la columna A folio rep, se puede hacer un parametro para que se asigne que columnas se deben scar
 
-        '''data= pd.read_excel(io=one_path)
-        with open(data) as frows:  #Era para contar el numero de filas vacías
-            empty_row= sum(line.isspace() for line in f) #Esto era para contar las filas vacias '''
+
 
 ##funcion para porbar carga
 def test_data_from_file():
@@ -94,24 +95,31 @@ def test_data_from_file():
     print("headers: ", headers) ## None
     print("error_number_columns: ", error_number_columns) ## 0
     print("primeros datos:\n", final_data[:20]) ## [[----],[----],...]
-
 ###DUDAS DE LA FUNCION DE PRUEBA:
 #a los excel no se les define por medio de funcion el total de columanas, las columnas se generan de manera automatica en la
 
 
-
+##Prueba 1: 21/07/2022 
 ###Pruebas para cargar CLUES con nuevos campos en formato 
-#Los campos nuevos de la base clues ya se definieron en el catalogo CLUES pero falta verificar los que ocupan creacion con dos campos (streat_number and suburb
-# )
+#Los campos nuevos de la base clues ya se definieron en el catalogo CLUES pero falta verificar los que ocupan creacion con dos campos 
+# (streat_number and suburb)
 def import_clues_p():
     import pandas as pd
     import unidecode
-    from pprint import pprint  #visualice the data with more structure
+    #from pprint import pprint  #visualice the data with more structure
     from django.utils.dateparse import parse_datetime #parse_datime converts text to a datetime with time
     from catalog.models import (State, Institution, CLUES)
-    with pd.read_excel('prueba_clues.xlsx') as prueba_clues:
+    #with pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx') as prueba_clues:
+    prueba_clues = pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx', dtype ="string") ###
+    prueba_clues['ID'].isna().sum() #No hay NAs ###
+    prueba_clues['NOMBRE DE LA UNIDAD'].isna().sum() #No hay NAs ###
+    #El comando .astype(str) convierte a str 
+    prueba_clues['ID_PRUEBA'] = prueba_clues['ID'] +'_'+ prueba_clues['NOMBRE DE LA UNIDAD'] ###
+    #d= {'ID_PRUEBA' : [prueba_clues['ID'].astype(str) +'_'+ prueba_clues['NOMBRE DE LA UNIDAD']]}
+    #prueba_clues = prueba_clues.append(pd.DataFrame(d))
+    #prueba_clues['ID_PRUEBA'] = pd.(ID_PRUEBA)
         #the next command create a nested dictionary (a dictionary of dictionaries)
-        reader_clues = prueba_clues.set_index('NOMBRE DE LA UNIDAD').to_dict('index') #Se hace al NOMBRE DE LA UNIDAD el index
+        reader_clues = prueba_clues.set_index('ID_PRUEBA').to_dict('index') #Se hace al NOMBRE DE LA UNIDAD el index ###
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_dict.html
         try:
             reader_clues.index = unidecode.unidecode(reader_clues.index).upper() #str en lugar de unicode#checar
@@ -119,6 +127,7 @@ def import_clues_p():
             reader_clues.index = reader_clues.upper()
         #Como se hace la importacion?
         ##llamar a catalogos para las fK
+        ##no es necesario para la importacion mayusculas unidecode
         try:
             state = State.objects.get(inegi_code = reader_clues['CLAVE DE LA ENTIDAD']) #Se llama al catalogo State
             institution = Institution.objects.get(code = reader_clues['CLAVE DE LA INSTITUCION']) #Se llama al catalogo Institutions (nomenclatura de instituciones)
@@ -126,26 +135,79 @@ def import_clues_p():
             state = None
             institution = None
             ##Crear (importar datos a modelo CLUEs)
-            clues = CLUES.objects.create(
-            #el index aqui es el NOMBRE DE LA UNIDADAD y cada unidad tiene un field. Como llamo a todos los field uno a uno (for) para caragarlos en el field correspondiente?
-                name = reader_clues.index
-                for c_unidad, c_info in reader_clues.items():
-                    for key in c_info:
-                        for tfield in CLUES.objects.all():
-                            key = tfield  #Estos tres for funcionarian si el archivo original CLUES de excel tiene el mismo orden que los field de modelo CLUES
-            ) #las variables del archivo de excel de CLUES no tienen el mismo orden por lo que se debe llamar a una o acomodar en la funcion
-            print(clues)
+        print()    
+        print(reader_clues)
+        clues = CLUES.objects.create()
+        #el index aqui es el NOMBRE DE LA UNIDADAD y cada unidad tiene un field. Como llamo a todos los field uno a uno (for) para caragarlos en el field correspondiente?
+            name = reader_clues.index
+            for c_unidad, c_info in reader_clues.items():
+                for key in c_info:
+                    for tfield in CLUES.objects.all():
+                        key = tfield  #Estos tres for funcionarian si el archivo original CLUES de excel tiene el mismo orden que los field de modelo CLUES
+        ) #las variables del archivo de excel de CLUES no tienen el mismo orden por lo que se debe llamar a una o acomodar en la funcion
+        print(clues)
+
+##
+#Prueba 2:24/07/22
+###Pruebas para cargar CLUES con nuevos campos en formato 
+def import_clues_p01():
+    import pandas as pd
+    import unidecode
+    #from pprint import pprint  #visualice the data with more structure
+    #parse_datime converts text to a datetime with time
+    from django.utils.dateparse import parse_datetime 
+    from catalog.models import (State, Institution, CLUES)
+    #Se carga archivo xlsx y desde el comienzo todas se declaran string para prueba
+    #se puede asignar el datatype de cada variable con el comand pd.read_excel
+    prueba_clues = pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx', dtype ="string")
+    #Se crea nuevo item en diccionario para asigarlo como index
+    prueba_clues['ID_PRUEBA'] = prueba_clues['ID'] +'_'+ prueba_clues['NOMBRE DE LA UNIDAD']
+    #el siguiente comando ayuda a asignar como index el item creado
+    #se crea un nested dictionary (a dictionary of dictionaries)
+    #no se usa comando de linea 169 porque sale error al llamarlo dentro de los loops
+    #reader_clues = prueba_clues.set_index('ID_PRUEBA').to_dict('index')
+    #Se crean listas con los elementos del diccionario prueba clues
+    pr_st= list(prueba_clues['CLAVE DE LA ENTIDAD'])
+    pr_inst = list(prueba_clues['CLAVE DE LA INSTITUCION'])
+    #Se itera la lista pr_st y se llama a los objetos del modelo State
+    try:
+        for row in pr_st:
+            state = State.objects.get(inegi_code = row)
+    except Exception as e:
+        state = None
+    #Se itera lista de las claves de la institucion 
+    #no encuentra las claves en modelo institution
+    try:
+        for row1 in pr_inst:
+            institution = Institution.objects.get(code = row1)
+    except Exception as e:
+        institution = None
+    #loop para obtener names of dictionary
+    #por ahora solo imprime los nombres de los objetos del dictionary prueba_clues
+    for name in prueba_clues:
+        print(name)
+    
+#Codigo (en construccion) para obtener model's fields in Django
+#https://stackoverflow.com/questions/3647805/get-models-fields-in-django
+#El siguiente
+from django.contrib.auth.models import User
+User._meta.get_fields()
+[field.name for field in User._meta.get_fields()]
 
 
-####
 
+
+
+
+#Funcion de ejemplo:
 def import_clues():
     import csv
     from pprint import pprint
     from django.utils.dateparse import parse_datetime
     from desabasto.models import (State, Institution, CLUES)
-    with open('clues.csv') as csv_file:
+    with open('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\clues.csv') as csv_file:
         #contents = f.read().decode("UTF-8")
+        #csv_reader = csv.reader('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\clues.csv', delimiter=',')
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
         for idx, row in enumerate(csv_reader):
@@ -197,11 +259,52 @@ def import_clues():
 
 
 
+import pandas as pd
+import unidecode
+
+from django.utils.dateparse import parse_datetime #parse_datime converts text to a datetime with time
+from catalog.models import (State, Institution, CLUES)
 
 
+for idx, row in enumerate(csv_reader):
+    row = [item.decode('latin-1').encode("utf-8") for item in row]
+
+for idx, row in d:
+    row = [item.decode('latin-1').encode("utf-8") for item in row]
+    if not len(row) == 25:
+        print("No coincide el número de columnas, hay %s" % len(row))
+        print("linea: %s"%idx+1)
+        print(row)
+        print("----------")
+        continue
+    if line_count <= 1:
+        continue
+    else:
+        state_inegi_code = row[1]
+        try:
+            state = State.objects.get(inegi_code=state_inegi_code)
+        except Exception as e:
+            state = None
 
 ##Pruebas no usadas
 '''
+##Pruebas 25/07/22
+with open(path) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            created = Teacher.objects.get_or_create(
+                first_name=row[0],
+                last_name=row[1],
+                middle_name=row[2],
+                )
+            # creates a tuple of the new object or
+            # current object and a boolean of if it was created
+
+
+#CELDAS CODIGO PARA QUITAR VACIAS EN EXCEL:
+#data= pd.read_excel(io=one_path)
+with open(data) as frows:  #Era para contar el numero de filas vacías
+empty_row= sum(line.isspace() for line in f) #Esto era para contar las filas vacias '''
 
 #Prueba
 #Carga de varios archivos de Excel de manera automatizada
