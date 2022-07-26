@@ -57,11 +57,10 @@ INSTALLED_APPS = [
     "email_sendgrid.apps.EmailSendgridConfig",
     'ckeditor',
     'rest_framework.authtoken',
-    
-    #"formula.apps.FormulaConfig",
-    #"data_param.apps.DataParamConfig",
-    #"inai.apps.InaiConfig",
-    #"category.apps.CategoryConfig",
+    "formula.apps.FormulaConfig",
+    "data_param.apps.DataParamConfig",
+    "inai.apps.InaiConfig",
+    "category.apps.CategoryConfig",
 ]
 
 MIDDLEWARE = [
