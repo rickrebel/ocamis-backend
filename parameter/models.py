@@ -19,7 +19,7 @@ class GroupData(models.Model):
         verbose_name_plural = u"Grupos de datos"
 
 
-class GroupParameter(models.Model):
+""" class GroupParameter(models.Model):
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True, null=True)
     group_data = models.ForeignKey(
@@ -30,7 +30,7 @@ class GroupParameter(models.Model):
 
     class Meta:
         verbose_name = u"Grupo de Parametros"
-        verbose_name_plural = u"Grupos de Parametros"
+        verbose_name_plural = u"Grupos de Parametros" """
 
 
 class Collection(models.Model):
@@ -85,7 +85,7 @@ class FinalField(models.Model):
         verbose_name_plural = u"Documentos finales"
 
 
-class Parameter(models.Model):
+""" class Parameter(models.Model):
     group_parameter = models.ForeignKey(
         GroupParameter, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
@@ -110,14 +110,14 @@ class Parameter(models.Model):
 
     class Meta:
         verbose_name = u"Parametro"
-        verbose_name_plural = u"Parametros"
+        verbose_name_plural = u"Parametros" """
 
 
 class CleanFunction(models.Model):
     name = models.CharField(max_length=80)
     public_name = models.CharField(max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    pririty = models.SmallIntegerField(
+    priority = models.SmallIntegerField(
         default=5, verbose_name="Nivel de prioridad (5 niveles)")
     for_all_data = models.BooleanField(
         default=False, verbose_name="Es una tranformación para toda la info")
@@ -125,6 +125,9 @@ class CleanFunction(models.Model):
         FinalField, blank=True, null=True,
         verbose_name="Campo final al cual solo puede aplicarse",
         on_delete=models.CASCADE)
+    addl_params = JSONField(
+        blank=True, null=True,
+        verbose_name="Otras configuraciones")
 
     def __str__(self):
         return "%s (%s)" (self.name, self.public_name)

@@ -23,4 +23,6 @@ urlpatterns = [
     re_path(r'^medicine/', include('medicine.api.urls')),
     re_path(r'^report/', include('report.api.urls')),
     re_path(r'^recipe/', include('recipe.api.urls')),
+    re_path(r'^files_rows/', include('files_rows.api.urls')),
+    re_path(r'^', include('core.api.urls')),
 ]

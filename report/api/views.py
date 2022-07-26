@@ -163,39 +163,6 @@ class ReportView(ListCreateRetrieveUpdateMix):
         return Response(
             serializers.ReportNextSerializer(final_query, many=True).data)
 
-    @action(methods=["post"], detail=True, url_path='pending')
-    def pending(self, request, **kwargs):
-        if not request.user.is_staff:
-            raise PermissionDenied()
-        pending = request.data.get("pending")
-        validated = request.data.get("validated")
-        report = self.get_object()
-        errors = []
-
-        if pending in [True, "true"]:
-            report.pending = True
-        elif pending in [False, "false"]:
-            report.pending = False
-        elif pending:
-            errors.append("pending invalido")
-
-        if validated in [True, "true"]:
-            report.validated = True
-        elif validated in [False, "false"]:
-            report.validated = False
-        elif validated in ["null"]:
-            report.validated = None
-        elif validated:
-            errors.append("validated invalido")
-
-        if errors:
-            return Response({"errors": errors},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        report.save()
-
-        return Response(status=status.HTTP_202_ACCEPTED)
-
 
 class ReportView2(ListCreateRetrieveUpdateMix):
     permission_classes = (IsAdminOrCreateOnly,)

@@ -2,13 +2,8 @@ from django.contrib import admin
 
 # Register your models here.
 from .models import (
-    GroupParameter, GroupData, Collection, FinalField, TypeData)
-
-
-class GroupParameterAdmin(admin.ModelAdmin):
-    list_display = ["name", "group_data"]
-
-admin.site.register(GroupParameter, GroupParameterAdmin)
+    #GroupParameter,
+    GroupData, Collection, FinalField, TypeData, CleanFunction)
 
 
 admin.site.register(GroupData)
@@ -32,3 +27,11 @@ class TypeDataAdmin(admin.ModelAdmin):
     list_display = ["name", "addl_params", "is_common", "order"]
 
 admin.site.register(TypeData, TypeDataAdmin)
+
+
+class CleanFunctionAdmin(admin.ModelAdmin):
+    list_display = [
+        "name", "public_name", "for_all_data", "restricted_field",
+        "priority"]
+
+admin.site.register(CleanFunction, CleanFunctionAdmin)

@@ -262,6 +262,15 @@ class Entity(models.Model):
         return self.name or u"%s -%s -%s" % (
             self.institution, self.state, self.clues)
 
+    @property
+    def entity_type(self):
+        if self.clues:
+            return 'Hospital Federal'
+        elif self.state:
+            return 'Estatal'
+        else:
+            return 'Nacional'
+
     class Meta:
         verbose_name = u"Sujeto Obligado"
         verbose_name_plural = u"Sujetos Obligados"

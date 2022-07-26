@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from report.models import Responsable
 from catalog.models import (
-    State, Institution, CLUES, Alliances, Municipality, Disease
+    State, Institution, CLUES, Alliances, Municipality, Disease, Entity
 )
 #from report.api.serializers import ResponsableListSerializer
 
@@ -96,8 +96,32 @@ class AlliancesSerializer(serializers.ModelSerializer):
         model = Alliances
         fields = "__all__"
 
+
 class DiseaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Disease
+        fields = "__all__"
+
+
+class EntitySerializer(serializers.ModelSerializer):
+    institution = InstitutionSerializer()
+    state = StateSimpleSerializer()
+    clues = CLUESSerializer()
+
+    class Meta:
+        model = Entity
+        fields = [
+            "id", "institution", "state", "clues", "name", 
+            "addl_params", "vigencia", "entity_type"]
+
+
+class EntityFullSerializer(EntitySerializer):
+    from files_rows.api.serializers import (
+        PetitionFullSerializer, MonthEntitySimpleSerializer)
+    petitions = PetitionFullSerializer(many=True)
+    months = MonthEntitySimpleSerializer(many=True)
+
+    class Meta:
+        model = Entity
         fields = "__all__"

@@ -4,7 +4,7 @@ from django.contrib.postgres.fields import JSONField
 from catalog.models import Entity
 from files_categories.models import (
     StatusControl, TypeFile, ColumnType, NegativeReason)
-from parameter.models import Parameter, TypeData, FinalField, CleanFunction
+from parameter.models import TypeData, FinalField, CleanFunction
 
 
 """class ControlParameters(models.Model):
@@ -25,7 +25,9 @@ from parameter.models import Parameter, TypeData, FinalField, CleanFunction
 
 class Petition(models.Model):
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE)
+        Entity,
+        related_name="petitions",
+        on_delete=models.CASCADE)
     date_send = models.DateTimeField(blank=True, null=True)
     limit_response = models.DateTimeField(blank=True, null=True)
     date_response = models.DateTimeField(blank=True, null=True)
@@ -54,7 +56,7 @@ class Petition(models.Model):
         on_delete=models.CASCADE)
 
     def __str__(self):
-        return "%s -- %s" % (self.entity, self.control_parameters)
+        return "%s -- %s" % (self.entity, self.id)
 
     class Meta:
         verbose_name = u"Solicitud"
@@ -115,7 +117,9 @@ class GroupFile(models.Model):
 
 class PetitionGroupFile(models.Model):
     petition = models.ForeignKey(
-        Petition, on_delete=models.CASCADE)
+        Petition,
+        related_name="file_groups",
+        on_delete=models.CASCADE)
     group_file = models.ForeignKey(
         GroupFile, on_delete=models.CASCADE)
 
@@ -129,7 +133,9 @@ class PetitionGroupFile(models.Model):
 
 class MonthEntity(models.Model):
     entity = models.ForeignKey(
-        Entity,  on_delete=models.CASCADE)
+        Entity, 
+        related_name="months",
+        on_delete=models.CASCADE)
     year_month = models.CharField(max_length=10)
 
     def __str__(self):
@@ -142,8 +148,10 @@ class MonthEntity(models.Model):
 
 class PetitionMonth(models.Model):
     petition = models.ForeignKey(
-        Petition, on_delete=models.CASCADE)
-    monthentity = models.ForeignKey(
+        Petition, 
+        related_name="petition_months",
+        on_delete=models.CASCADE)
+    month_entity = models.ForeignKey(
         MonthEntity, on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
 
@@ -155,19 +163,27 @@ class PetitionMonth(models.Model):
         verbose_name_plural = u"Meses de peticion"
 
 
-class File(models.Model):
-    group_file = models.ForeignKey(
-        GroupFile, on_delete=models.CASCADE)
-    petition = models.ForeignKey(
-        Petition, on_delete=models.CASCADE)
+class DataFile(models.Model):
+    #group_file = models.ForeignKey(
+    #    GroupFile, on_delete=models.CASCADE)
+    #petition = models.ForeignKey(
+    #    Petition, on_delete=models.CASCADE)
     ori_file = models.FileField(max_length=100) 
-    date = models.DateTimeField(blank=True, null=True)
+    date = models.DateTimeField(auto_now_add=True)
     month_entity = models.ForeignKey(
         MonthEntity, blank=True, null=True,
         on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
-    is_final = models.BooleanField(default= True)
-    origin_file = models.ForeignKey("self", on_delete=models.CASCADE)
+    #is_final = models.BooleanField(default= True)
+    origin_file = models.ForeignKey(
+        "DataFile",
+        blank=True, null=True, related_name="child_files",
+        on_delete=models.CASCADE)
+    petition_group_file = models.ForeignKey(
+        PetitionGroupFile,
+        related_name="data_files",
+        blank=True, null=True,
+        on_delete=models.CASCADE)
     status_process = models.ForeignKey(
         StatusControl,
         blank=True, null=True,
@@ -178,7 +194,7 @@ class File(models.Model):
     total_rows = models.IntegerField(default=1)
 
     def __str__(self):
-        return "%s -- %s" % (self.group_file, self.petition)
+        return self.ori_file
 
     def save_errors(self, errors, error_name):
         errors = ['No se pudo descomprimir el archivo gz']
@@ -192,20 +208,41 @@ class File(models.Model):
         self.save()
 
     class Meta:
+        verbose_name = u"Archivo con datos"
+        verbose_name_plural = u"Archivos con datos"
+
+
+class ProcessFile(models.Model):
+    petition = models.ForeignKey(
+        Petition,
+        related_name="process_files",
+        on_delete=models.CASCADE)
+    ori_file = models.FileField(max_length=100) 
+    date = models.DateTimeField(auto_now_add=True)
+    type_file = models.ForeignKey(
+        TypeFile, on_delete=models.CASCADE)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s -- %s" % (self.ori_file, self.petition)
+
+    class Meta:
         verbose_name = u"Documento"
         verbose_name_plural = u"Documentos"
+
 
 class NameColumn (models.Model):
     name_in_data = models.TextField(blank=True, null=True)
     position_in_data = models.IntegerField(default=1)
     column_type=models.ForeignKey(
         ColumnType, on_delete=models.CASCADE)
-    parameter = models.ForeignKey(
-        Parameter, 
-        blank=True, null=True,
-        on_delete=models.CASCADE)
+    #parameter = models.ForeignKey(
+    #    Parameter, 
+    #    blank=True, null=True,
+    #    on_delete=models.CASCADE)
     group_file = models.ForeignKey(
-        GroupFile, 
+        GroupFile,
+        related_name="columns",
         blank=True, null=True,
         on_delete=models.CASCADE)
     type_data = models.ForeignKey(
@@ -244,10 +281,12 @@ class Transformation(models.Model):
         verbose_name="Función de limpieza o tranformación")
     group_file = models.ForeignKey(
         GroupFile, 
+        related_name="group_tranformations",
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Grupo de archivos")
     column = models.ForeignKey(
         NameColumn, 
+        related_name="column_tranformations",
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Columna")
     addl_params = JSONField(blank=True, null=True)

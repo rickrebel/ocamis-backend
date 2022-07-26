@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from files_rows.models import NameColumn, File
+from files_rows.models import NameColumn, DataFile
 from django.contrib.postgres.fields import JSONField
 from django.utils.encoding import python_2_unicode_compatible
 
@@ -66,7 +66,7 @@ class Medic(models.Model):
 @python_2_unicode_compatible
 class Recipe(models.Model):
     from catalog.models import CLUES, Delegation
-    from files_rows.models import File
+    from files_rows.models import DataFile
     #Nueva versión del modelo Recipe con atomizado de datos
     folio_ocamis = models.CharField(max_length=48, primary_key=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
@@ -124,7 +124,7 @@ class Medicine(models.Model):
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     #OTROS DATOS NO TAN RELEVANTES:
     precio_medicamento = models.FloatField(blank=True, null=True)
-    file = models.ForeignKey(File, on_delete=models.CASCADE)
+    file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
     #rn = models.IntegerField(blank=True, null=True)
 
@@ -168,7 +168,7 @@ class Medicine(models.Model):
 
 class MissingRow(models.Model):
     file = models.ForeignKey(
-        File, on_delete=models.CASCADE)
+        DataFile, on_delete=models.CASCADE)
     recipe_report = models.ForeignKey(
         Recipe, 
         blank=True, null=True,
