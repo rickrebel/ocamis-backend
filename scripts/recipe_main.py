@@ -2,8 +2,8 @@
 from rest_framework.response import Response
 from rest_framework import permissions, views, status
 import unidecode
-from parameter.models import FinalField
-from files_categories.models import StatusControl
+from data_param.models import FinalField
+from category.models import StatusControl
 
 recipe_fields = FinalField.objects.filter(
     collection__model_name='Prescription').values()
@@ -19,7 +19,7 @@ state = None
 
 
 def start_file_process(file, file_control, is_explore=False):
-    from files_rows.models import File
+    from inai.models import File
     file.error_process = None
     file.save()
     first_file, count_splited, errors, suffix = split_and_decompress(file)
@@ -206,8 +206,8 @@ def build_catalog_clues():
 
 
 def execute_matches(row, file):    
-    from files_rows import NameColumn, MissingField
-    #from recipe.models import MissingRow
+    from inai import NameColumn, MissingField
+    #from formula.models import MissingRow
     delegation = None
     missing_row = None
     if not state:
@@ -256,7 +256,7 @@ def build_query_filter(row, columns):
 
 def split_and_decompress(file):
     import pathlib
-    from files_rows.models import File
+    from inai.models import File
     import os
     import zipfile 
     count_splited = 0
@@ -330,7 +330,7 @@ def split_and_decompress(file):
 #def split_file(path="G:/My Drive/YEEKO/Clientes/OCAMIS/imss"):
 def split_file(file):
     from filesplit.split import Split
-    from files_rows.models import File
+    from inai.models import File
     [directory, only_name] = file.file_name.rsplit("/", 1)
     [base_name, extension] = only_name.rsplit(".", 1)
     curr_split = Split(file.file_name, directory)
@@ -380,7 +380,7 @@ def decompress_file_gz(file_path):
 
 #Divide toda una fila en columnas
 def divide_recipe_report_data(row, file=None, row_seq=None):
-    from files_rows.models import NameColumn, MissingRow
+    from inai.models import NameColumn, MissingRow
     separator = file.file_control.separator
     row_data = row.split(separator) if separator else row
     #Comprobación del número de columnas

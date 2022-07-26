@@ -117,7 +117,7 @@ class EntitySerializer(serializers.ModelSerializer):
 
 
 """class EntityFullSerializer(EntitySerializer):
-    from files_rows.api.serializers import (
+    from inai.api.serializers import (
         PetitionFullSerializer, MonthEntitySimpleSerializer)
     petitions = PetitionFullSerializer(many=True)
     months = MonthEntitySimpleSerializer(many=True)

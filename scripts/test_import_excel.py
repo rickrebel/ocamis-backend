@@ -57,7 +57,7 @@ def get_data_from_excel(file, is_explore,empty_row: int= 0):
     import pandas as pd
     import io
     from django.utils import timezone
-    from files_rows.models import Column 
+    from inai.models import Column 
     one_path = file.file_name
     try:
         if not is_explore:
@@ -312,8 +312,8 @@ empty_row= sum(line.isspace() for line in f) #Esto era para contar las filas vac
 one_path= #direcciones donde se encuntran los archivos
 mes= #lista de meses
 from catalog.models import Delegation
-from files_rows.models import GroupFile
-from parameter.models import TypeData #obtencion del nombre de la delagacion, el cual esta contenido en el nombre del archivo
+from inai.models import GroupFile
+from data_param.models import TypeData #obtencion del nombre de la delagacion, el cual esta contenido en el nombre del archivo
     deleg_nom = Delegation.objects.filter(name=name).first()
 
 #Abrir excel

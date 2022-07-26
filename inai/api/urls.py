@@ -1,7 +1,7 @@
 from rest_framework import routers
 from django.conf.urls import url, include
 
-"""from files_categories.models import (
+"""from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason)
 from .views import FileControlViewSet"""
 

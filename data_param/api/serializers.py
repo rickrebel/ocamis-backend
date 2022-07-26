@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-"""from parameter.models import (
+"""from data_param.models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction)
 
 

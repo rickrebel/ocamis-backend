@@ -53,7 +53,7 @@ class StateViewSet(ListRetrieveUpdateMix):
 """ @action(methods=["post"], detail=True, url_path='create_months')
     def create_months(self, request, **kwargs):
         import json
-        from files_rows.models import MonthEntity
+        from inai.models import MonthEntity
         if not request.user.is_staff:
             raise PermissionDenied()
         limiters = request.data.get("limiters")

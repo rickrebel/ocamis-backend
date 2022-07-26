@@ -78,7 +78,7 @@ def massive_upload_csv_to_db(
         path="", years=['2019', '2020', '2021'], institution="imss",
         update_files=True):
     import os
-    from recipe.models import PrescriptionLog
+    from formula.models import PrescriptionLog
     from catalog.models import Institution
     global institution_obj
     months = [
@@ -164,7 +164,7 @@ def get_type_document(type_document):
     si no existe type_document, generar un registro en db y actualiar el
     archivo retornar el type_document.id
     """
-    from recipe.models import DocumentType
+    from formula.models import DocumentType
     global catalog_document_type
     if not catalog_document_type:
         for document_type in DocumentType.objects.all():
@@ -435,7 +435,7 @@ def check_clave_medicamento(clave_medicamento, descripcion_medicamento):
 
 
 def get_especialidad_medico_id(especialidad_medico):
-    from recipe.models import MedicalSpeciality
+    from formula.models import MedicalSpeciality
     global catalog_medical_speciality
 
     try:
@@ -454,7 +454,7 @@ def get_especialidad_medico_id(especialidad_medico):
 
 
 def check_clave_doctor(clave_doctor, nombre_medico, especialidad_medico):
-    from recipe.models import Doctor
+    from formula.models import Doctor
     global data_file_medico
     global claves_medico_dicc
     if not claves_medico_dicc:
@@ -477,8 +477,8 @@ def divide_recipe_report_data(
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
     #Comprobación del número de columnas
-    from files_rows.models import NameColumn
-    #from recipe.models import MissingRow
+    from inai.models import NameColumn
+    #from formula.models import MissingRow
     current_columns = NameColumn.objects.filter(
         file_control__controlparameters=control_parameter)
     columns_count = current_columns.filter(
@@ -597,7 +597,7 @@ def converter_file_in_related_files(
         recipe_path="test_recipe.csv", medicine_path="test_medicine.csv",
         medico_path="test_medico.csv", clues_path="test_clues.csv",
         container_path="test_container.csv"):
-    from recipe.models import Prescription
+    from formula.models import Prescription
     from datetime import datetime
     from pprint import pprint
     #import io

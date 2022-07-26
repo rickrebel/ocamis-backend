@@ -2,9 +2,9 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 
 from catalog.models import Entity
-from files_categories.models import (
+from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason)
-from parameter.models import DataType, FinalField, CleanFunction
+from data_param.models import DataType, FinalField, CleanFunction
 
 
 class Petition(models.Model):

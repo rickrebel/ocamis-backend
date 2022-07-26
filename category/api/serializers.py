@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-"""from files_categories.models import (
+"""from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason)
 
 

@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-"""from files_rows.models import (
+"""from inai.models import (
     FileControl, Petition, PetitionFileControl, Transformation,
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn)
 
-from files_categories.api.serializers import (
+from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer)
 
-from parameter.api.serializers import (
+from data_param.api.serializers import (
     CleanFunctionSimpleSerializer, DataGroupSimpleSerializer,
     DataTypeSimpleSerializer, FinalFieldSimpleSerializer)
 

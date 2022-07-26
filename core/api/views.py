@@ -3,24 +3,24 @@
 from rest_framework import (permissions, status, views)
 from rest_framework.response import Response
 
-"""from parameter.models import (
+"""from data_param.models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction)
-from parameter.api.serializers import (
+from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
     CleanFunctionSimpleSerializer)
 
-from files_categories.models import (
+from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason)
-from files_categories.api.serializers import (
+from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
 
-from files_rows.models import FileControl
-from files_rows.api.serializers import FileControlSimpleSerializer
+from inai.models import FileControl
+from inai.api.serializers import FileControlSimpleSerializer
 
 
 

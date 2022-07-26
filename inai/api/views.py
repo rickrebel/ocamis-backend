@@ -3,7 +3,7 @@ from . import serializers
 from rest_framework.response import Response
 from rest_framework import (permissions, views, status)
 
-"""from files_rows.models import FileControl
+"""from inai.models import FileControl
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 

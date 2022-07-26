@@ -15,7 +15,7 @@ def generate_key2():
 def clean_old_imports():
     #from desabasto.models import (
     #    Container, CLUES, PrescriptionLog, Doctor, MedicalSpeciality)
-    from recipe.models import PrescriptionLog, Doctor, MedicalSpeciality
+    from formula.models import PrescriptionLog, Doctor, MedicalSpeciality
     from catalog.models import CLUES
     from medicine.models import Container
     Container.objects.filter(presentation__isnull=True).delete()

@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from files_rows.models import NameColumn, DataFile
+from inai.models import NameColumn, DataFile
 from django.contrib.postgres.fields import JSONField
 
 
@@ -12,7 +12,6 @@ class MedicalSpeciality(models.Model):
     class Meta:
         verbose_name = "MedicalSpeciality"
         verbose_name_plural = "MedicalSpecialitys"
-        db_table = u'desabasto_medicalspeciality'
 
     def __str__(self):
         return self.name
@@ -24,7 +23,6 @@ class DocumentType(models.Model):
     class Meta:
         verbose_name = "DocumentType"
         verbose_name_plural = "DocumentTypes"
-        db_table = u'desabasto_documenttype'
 
     def __str__(self):
         return self.name
@@ -56,7 +54,6 @@ class Doctor(models.Model):
     class Meta:
         verbose_name = "Doctor"
         verbose_name_plural = "Doctores"
-        #db_table = u'medic'
 
     def __str__(self):
         return str(self.clave_doctor)
@@ -64,7 +61,7 @@ class Doctor(models.Model):
 
 class Prescription(models.Model):
     from catalog.models import CLUES, Delegation
-    from files_rows.models import DataFile
+    from inai.models import DataFile
     #Nueva versión del modelo Prescription con atomizado de datos
     folio_ocamis = models.CharField(max_length=48, primary_key=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
@@ -99,7 +96,6 @@ class Prescription(models.Model):
     class Meta:
         verbose_name = "Receta"
         verbose_name_plural = "Recetas"
-        #db_table = u'desabasto_recipereport2'
 
     def __str__(self):
         return self.folio_ocamis
@@ -128,7 +124,6 @@ class Droug(models.Model):
     class Meta:
         verbose_name = "Insumos"
         verbose_name_plural = "Insumos (medicamentos)"
-        #db_table = u'desabasto_recipemedicine2'
 
     def __str__(self):
         return str(self.rn)
