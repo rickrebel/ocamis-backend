@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-from files_categories.models import (
+"""from files_categories.models import (
     FileType, StatusControl, ColumnType, NegativeReason)
 
 
@@ -32,3 +32,4 @@ class NegativeReasonSimpleSerializer(serializers.ModelSerializer):
         model = NegativeReason
         fields = "__all__"
 
+"""

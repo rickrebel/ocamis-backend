@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 
-from catalog.models import Entity
+"""from catalog.models import Entity
 from files_categories.models import (
     StatusControl, FileType, ColumnType, NegativeReason)
 from parameter.models import DataType, FinalField, CleanFunction
@@ -290,3 +290,4 @@ class Transformation(models.Model):
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Columna")
     addl_params = JSONField(blank=True, null=True)
+"""

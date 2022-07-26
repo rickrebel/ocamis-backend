@@ -4,7 +4,7 @@ from django.contrib.postgres.fields import JSONField
 # Create your models here.
 
 
-class StatusControl(models.Model):
+"""class StatusControl(models.Model):
     GROUP_CHOICES = (
         ("petition", "Proceso de Solicitud"),
         ("data", "Datos de la Solicitud"),
@@ -27,22 +27,6 @@ class StatusControl(models.Model):
     class Meta:
         verbose_name = u"Status de control"
         verbose_name_plural = u"Status de control (TODOS)"
-
-
-"""class FormatFile(models.Model):
-    name = models.CharField(max_length=255)
-    extension = models.CharField(max_length=80)
-    is_default = models.BooleanField(default=False)
-    has_data = models.NullBooleanField(
-        verbose_name="Tiene datos procesables")
-    icon = models.CharField(max_length=80)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = u"Formato de documento"
-        verbose_name_plural = u"Formato de documentos" """
 
 
 class FileType(models.Model):
@@ -87,3 +71,20 @@ class NegativeReason(models.Model):
         verbose_name = u"Razón de negación de datos"
         verbose_name_plural = u"Razones de negación de datos"
 
+"""
+
+
+"""class FormatFile(models.Model):
+    name = models.CharField(max_length=255)
+    extension = models.CharField(max_length=80)
+    is_default = models.BooleanField(default=False)
+    has_data = models.NullBooleanField(
+        verbose_name="Tiene datos procesables")
+    icon = models.CharField(max_length=80)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = u"Formato de documento"
+        verbose_name_plural = u"Formato de documentos" """

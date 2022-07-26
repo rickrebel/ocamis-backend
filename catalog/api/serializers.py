@@ -116,7 +116,7 @@ class EntitySerializer(serializers.ModelSerializer):
             "addl_params", "vigencia", "entity_type"]
 
 
-class EntityFullSerializer(EntitySerializer):
+"""class EntityFullSerializer(EntitySerializer):
     from files_rows.api.serializers import (
         PetitionFullSerializer, MonthEntitySimpleSerializer)
     petitions = PetitionFullSerializer(many=True)
@@ -125,3 +125,4 @@ class EntityFullSerializer(EntitySerializer):
     class Meta:
         model = Entity
         fields = "__all__"
+"""

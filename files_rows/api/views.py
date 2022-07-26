@@ -3,7 +3,7 @@ from . import serializers
 from rest_framework.response import Response
 from rest_framework import (permissions, views, status)
 
-from files_rows.models import FileControl
+"""from files_rows.models import FileControl
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 
@@ -34,4 +34,4 @@ class FileControlViewSet(ListRetrieveUpdateMix):
             file_contol, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
         return Response()
-
+"""

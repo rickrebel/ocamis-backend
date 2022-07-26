@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('row_start_data', models.IntegerField(default=1, verbose_name='# de fila donde inician los datos')),
                 ('row_headers', models.IntegerField(blank=True, null=True, verbose_name='# de fila donde se encuentran los encabezados')),
                 ('in_percent', models.BooleanField(default=False)),
-                ('addl_params', django.contrib.postgres.fields.jsonb.JSONField(default=files_rows.models.FileControl.default_addl_params)),
+                ('addl_params', django.contrib.postgres.fields.jsonb.JSONField()),
                 ('delimiter', models.CharField(blank=True, max_length=3, null=True, verbose_name='Delimitador de columnas')),
             ],
             options={

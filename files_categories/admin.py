@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import FileType, StatusControl, ColumnType, NegativeReason
+"""from .models import FileType, StatusControl, ColumnType, NegativeReason
 
 
 class StatusControlAdmin(admin.ModelAdmin):
@@ -29,3 +29,4 @@ class NegativeReasonAdmin(admin.ModelAdmin):
     list_display = ["name", "description"]
 
 admin.site.register(NegativeReason, NegativeReasonAdmin)
+"""

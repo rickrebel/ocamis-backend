@@ -4,7 +4,7 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 ##Otros catalogos
 
-
+"""
 class DataGroup(models.Model):
     name = models.CharField(max_length=80)
     is_default = models.BooleanField(default=False)
@@ -17,20 +17,6 @@ class DataGroup(models.Model):
     class Meta:
         verbose_name = u"Grupo de datos"
         verbose_name_plural = u"Grupos de datos"
-
-
-""" class GroupParameter(models.Model):
-    name = models.CharField(max_length=120)
-    description = models.TextField(blank=True, null=True)
-    data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE) 
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = u"Grupo de Parametros"
-        verbose_name_plural = u"Grupos de Parametros" """
 
 
 class Collection(models.Model):
@@ -97,6 +83,44 @@ class FinalField(models.Model):
         verbose_name_plural = u"Documentos finales"
 
 
+class CleanFunction(models.Model):
+    name = models.CharField(max_length=80)
+    public_name = models.CharField(max_length=120, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    priority = models.SmallIntegerField(
+        default=5, verbose_name="Nivel de prioridad (5 niveles)")
+    for_all_data = models.BooleanField(
+        default=False, verbose_name="Es una tranformación para toda la info")
+    restricted_field = models.ForeignKey(
+        FinalField, blank=True, null=True,
+        verbose_name="Campo final al cual solo puede aplicarse",
+        on_delete=models.CASCADE)
+    addl_params = JSONField(
+        blank=True, null=True,
+        verbose_name="Otras configuraciones")
+
+    def __str__(self):
+        return "%s (%s)" % (self.name, self.public_name)
+
+    class Meta:
+        verbose_name = u"Función de limpieza y tranformación"
+        verbose_name_plural = u"Funciones de limpieza y tranformación"
+"""
+
+""" class GroupParameter(models.Model):
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True, null=True)
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE) 
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = u"Grupo de Parametros"
+        verbose_name_plural = u"Grupos de Parametros" """
+
+
 """ class Parameter(models.Model):
     group_parameter = models.ForeignKey(
         GroupParameter, on_delete=models.CASCADE)
@@ -123,27 +147,3 @@ class FinalField(models.Model):
     class Meta:
         verbose_name = u"Parametro"
         verbose_name_plural = u"Parametros" """
-
-
-class CleanFunction(models.Model):
-    name = models.CharField(max_length=80)
-    public_name = models.CharField(max_length=120, blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
-    priority = models.SmallIntegerField(
-        default=5, verbose_name="Nivel de prioridad (5 niveles)")
-    for_all_data = models.BooleanField(
-        default=False, verbose_name="Es una tranformación para toda la info")
-    restricted_field = models.ForeignKey(
-        FinalField, blank=True, null=True,
-        verbose_name="Campo final al cual solo puede aplicarse",
-        on_delete=models.CASCADE)
-    addl_params = JSONField(
-        blank=True, null=True,
-        verbose_name="Otras configuraciones")
-
-    def __str__(self):
-        return "%s (%s)" % (self.name, self.public_name)
-
-    class Meta:
-        verbose_name = u"Función de limpieza y tranformación"
-        verbose_name_plural = u"Funciones de limpieza y tranformación"

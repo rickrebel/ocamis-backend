@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from files_rows.models import NameColumn, DataFile
+"""from files_rows.models import NameColumn, DataFile
 from django.contrib.postgres.fields import JSONField
 
 
@@ -56,7 +56,7 @@ class Doctor(models.Model):
     class Meta:
         verbose_name = "Doctor"
         verbose_name_plural = "Doctores"
-        db_table = u'medic'
+        #db_table = u'medic'
 
     def __str__(self):
         return str(self.clave_doctor)
@@ -99,7 +99,7 @@ class Prescription(models.Model):
     class Meta:
         verbose_name = "Receta"
         verbose_name_plural = "Recetas"
-        db_table = u'desabasto_recipereport2'
+        #db_table = u'desabasto_recipereport2'
 
     def __str__(self):
         return self.folio_ocamis
@@ -128,7 +128,7 @@ class Droug(models.Model):
     class Meta:
         verbose_name = "Insumos"
         verbose_name_plural = "Insumos (medicamentos)"
-        db_table = u'desabasto_recipemedicine2'
+        #db_table = u'desabasto_recipemedicine2'
 
     def __str__(self):
         return str(self.rn)
@@ -178,4 +178,4 @@ class MissingField(models.Model):
     class Meta:
         verbose_name = u"Documento Faltante"
         verbose_name_plural = u"Documentos Faltantes"
-
+"""

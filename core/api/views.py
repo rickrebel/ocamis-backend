@@ -3,7 +3,7 @@
 from rest_framework import (permissions, status, views)
 from rest_framework.response import Response
 
-from parameter.models import (
+"""from parameter.models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction)
 from parameter.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
@@ -57,7 +57,7 @@ class CatalogView(views.APIView):
                 NegativeReason.objects.all(), many=True).data,
         }
         return Response(data)
-
+"""
 
 """class CatalogViewStig(views.APIView):
     permission_classes = [permissions.AllowAny]

@@ -1,12 +1,12 @@
 from rest_framework import routers
 from django.conf.urls import url, include
 
-from files_categories.models import (
+"""from files_categories.models import (
     FileType, StatusControl, ColumnType, NegativeReason)
-from .views import FileControlViewSet
+from .views import FileControlViewSet"""
 
 router = routers.DefaultRouter()
-router.register(r'file_control', FileControlViewSet)
+#router.register(r'file_control', FileControlViewSet)
 
 urlpatterns = [
     #url(r'^commitmentgroup/$', FileTypeSimpleSerializer.as_view()),

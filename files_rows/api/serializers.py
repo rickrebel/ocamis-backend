@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-from files_rows.models import (
+"""from files_rows.models import (
     FileControl, Petition, PetitionFileControl, Transformation,
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn)
 
 from files_categories.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer)
+
 from parameter.api.serializers import (
     CleanFunctionSimpleSerializer, DataGroupSimpleSerializer,
     DataTypeSimpleSerializer, FinalFieldSimpleSerializer)
@@ -116,3 +117,4 @@ class PetitionFullSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         fields = ["id", "date_send"]
+"""

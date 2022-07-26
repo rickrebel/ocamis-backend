@@ -1,8 +1,6 @@
 from django.contrib import admin
 
-# Register your models here.
-from .models import (
-    #GroupParameter,
+"""from .models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction)
 
 
@@ -35,3 +33,4 @@ class CleanFunctionAdmin(admin.ModelAdmin):
         "priority"]
 
 admin.site.register(CleanFunction, CleanFunctionAdmin)
+"""
