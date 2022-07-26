@@ -3,13 +3,11 @@ from __future__ import unicode_literals
 
 from django.core.validators import validate_email
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 from catalog.models import Institution, State, CLUES, Municipality, Disease
 from medicine.models import Component, Presentation
 from django.contrib.postgres.fields import JSONField
 
 
-@python_2_unicode_compatible
 class Responsable(models.Model):
     name = models.CharField(max_length=255, verbose_name=u"Nombre")
     emails = models.CharField(
@@ -73,7 +71,6 @@ class Persona(models.Model):
             self.informer_name or "sin datos", self.email or '--')
 
 
-@python_2_unicode_compatible
 class Report(models.Model):
     TYPE = (
         ("paciente", u"Paciente"),
@@ -456,7 +453,6 @@ class ComplementReport(models.Model):
         verbose_name_plural = u"Complementos de reportes"
 
 
-@python_2_unicode_compatible
 class TestimonyMedia(models.Model):
     report = models.ForeignKey(
         Report, related_name=u"testimonies_media", on_delete=models.CASCADE)
@@ -478,7 +474,6 @@ class TestimonyMedia(models.Model):
             return self.url
 
 
-@python_2_unicode_compatible
 class Supply(models.Model):
     MEDICINE_TYPE = (
         ("medicamento", u"Medicamento"),

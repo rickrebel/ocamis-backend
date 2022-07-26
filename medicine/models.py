@@ -2,11 +2,9 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 #from report.models import Supply
 
 
-@python_2_unicode_compatible
 class Group(models.Model):
     name = models.CharField(max_length=255)
     number = models.IntegerField(blank=True, null=True)
@@ -20,7 +18,6 @@ class Group(models.Model):
         db_table = u'desabasto_group'
 
 
-@python_2_unicode_compatible
 class Component(models.Model):
     name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=255, blank=True, null=True)
@@ -66,7 +63,6 @@ class Component(models.Model):
         db_table = u'desabasto_component'
 
 
-@python_2_unicode_compatible
 class PresentationType(models.Model):
     name = models.CharField(max_length=255)
     common_name = models.CharField(max_length=255, blank=True, null=True)
@@ -97,7 +93,6 @@ class PresentationType(models.Model):
         db_table = u'desabasto_presentationtype'
 
 
-@python_2_unicode_compatible
 class Presentation(models.Model):
     component = models.ForeignKey(
         Component, related_name=u"presentations", on_delete=models.CASCADE)
@@ -129,7 +124,6 @@ class Presentation(models.Model):
         db_table = u'desabasto_presentation'
 
 
-@python_2_unicode_compatible
 class Container(models.Model):
     presentation = models.ForeignKey(
         Presentation, related_name=u"containers", blank=True, null=True,
