@@ -4,11 +4,10 @@ from __future__ import unicode_literals
 from django.contrib import admin
 
 from .models import (
-    Medicine,
-    Recipe,
-    # RecipeLog2,
+    Droug,
+    Prescription,
     DocumentType,
-    Medic,
+    Doctor,
     MedicalSpeciality,
 )
 
@@ -29,22 +28,22 @@ class MedicalSpecialityAdmin(admin.ModelAdmin):
 admin.site.register(MedicalSpeciality, MedicalSpecialityAdmin)
 
 
-class MedicAdmin(admin.ModelAdmin):
+class DoctorAdmin(admin.ModelAdmin):
 
-    list_display = ["clave_medico", "nombre_medico", "especialidad_medico"]
-    search_fields = ["clave_medico", "nombre_medico"]
-
-
-admin.site.register(Medic, MedicAdmin)
+    list_display = ["clave_doctor", "nombre_medico", "especialidad_medico"]
+    search_fields = ["clave_doctor", "nombre_medico"]
 
 
-class MedicineInline(admin.TabularInline):
-    model = Medicine
+admin.site.register(Doctor, DoctorAdmin)
+
+
+class DrougInline(admin.TabularInline):
+    model = Droug
     extra = 0
     #raw_id_fields = ["container"]
 
 
-class RecipeAdmin(admin.ModelAdmin):
+class PrescriptionAdmin(admin.ModelAdmin):
 
     list_display = [
         #"year_month",
@@ -53,21 +52,21 @@ class RecipeAdmin(admin.ModelAdmin):
         "folio_documento",
     ]
     inlines = [
-        MedicineInline,
+        DrougInline,
     ]
     raw_id_fields = ["clues"]
     search_fields = ["type_document", ]
 
-admin.site.register(Recipe, RecipeAdmin)
+admin.site.register(Prescription, PrescriptionAdmin)
 
 
-class MedicineAdmin(admin.ModelAdmin):
+class DrougAdmin(admin.ModelAdmin):
     list_display = [
-        "recipe",
+        "prescription",
         "cantidad_prescrita",
         "cantidad_entregada",
         "precio_medicamento",
         ]
-    readonly_fields = ["recipe"]
+    readonly_fields = ["prescription"]
 
-admin.site.register(Medicine, MedicineAdmin)
+admin.site.register(Droug, DrougAdmin)

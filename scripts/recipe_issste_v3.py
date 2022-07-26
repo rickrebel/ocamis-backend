@@ -35,13 +35,13 @@ base_sql = (
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
     "folio_documento,fecha_emision,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,cantidad_prescrita,cantidad_entregada,"
-    "clave_medico,nombre_medico,especialidad_medico,precio_medicamento,rn)")
+    "clave_doctor,nombre_medico,especialidad_medico,precio_medicamento,rn)")
 base_sql2 = (
     "COPY desabasto_recipereportraw(delegacion,clave_presupuestal,"
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
     "folio_documento,fecha_emision,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,cantidad_prescrita,cantidad_entregada,"
-    "clave_medico,nombre_medico,especialidad_medico,precio_medicamento)")
+    "clave_doctor,nombre_medico,especialidad_medico,precio_medicamento)")
 options = "csv DELIMITER '|' NULL 'NULL' HEADER ENCODING 'LATIN1'"
 options2 = "csv DELIMITER '|' NULL 'NULL' ENCODING 'LATIN1'"
 
@@ -65,7 +65,7 @@ def massive_upload_csv_to_db(
         path="", years=['2019', '2020', '2021'], institution="issste",
         update_files=True):
     import os
-    from desabasto.models import RecipeLog, Institution
+    from desabasto.models import PrescriptionLog, Institution
     global institution_obj
     try:
         institution_obj = Institution.objects.get(code__iexact=institution)
@@ -97,7 +97,7 @@ def massive_upload_csv_to_db(
                 if not os.path.isfile(reporte_recetas_path):
                     # is not a file
                     continue
-                if RecipeLog.objects.filter(
+                if PrescriptionLog.objects.filter(
                         file_name=reporte_recetas_path,
                         successful=True).exists():
                     # previus successful processing
@@ -112,7 +112,7 @@ def massive_upload_csv_to_db(
                     medicine_path=medicine_path, update_files=update_files)
                 print("finish converter_file_in_related_files: ",
                       timezone.now())
-                rr_log, is_created = RecipeLog.objects\
+                rr_log, is_created = PrescriptionLog.objects\
                     .get_or_create(file_name=reporte_recetas_path)
                 rr_log.set_errors(errors)
                 rr_log.successful = successful
@@ -366,20 +366,20 @@ def get_especialidad_medico_id(especialidad_medico):
     return catalog_medical_speciality[especialidad_medico]
 
 
-def check_clave_medico(clave_medico, nombre_medico, especialidad_medico):
-    from desabasto.models import Medic
+def check_clave_doctor(clave_doctor, nombre_medico, especialidad_medico):
+    from desabasto.models import Doctor
     global data_file_medico
     global claves_medico_dicc
     if not claves_medico_dicc:
         claves_medico = list(
-            Medic.objects.values_list("clave_medico", flat=True))
+            Doctor.objects.values_list("clave_doctor", flat=True))
         claves_medico_dicc = {}
         for clave in claves_medico:
             claves_medico_dicc[clave] = True
-    if clave_medico not in claves_medico_dicc and clave_medico is not 1000000000:
-        claves_medico_dicc[clave_medico] = True
+    if clave_doctor not in claves_medico_dicc and clave_doctor is not 1000000000:
+        claves_medico_dicc[clave_doctor] = True
         data_file_medico.append([
-            clave_medico, nombre_medico,
+            clave_doctor, nombre_medico,
             get_especialidad_medico_id(especialidad_medico)])
         # agregar al medico al archivo para generar medico
 
@@ -414,23 +414,23 @@ def get_recipe_report_data(recipe_report_data, institution="issste"):
 
     fecha_entrega = recipe_report_data[8]
 
-    # ###revicion de existencia de clave_medico
-    clave_medico = recipe_report_data[13]
+    # ###revicion de existencia de clave_doctor
+    clave_doctor = recipe_report_data[13]
     nombre_medico = recipe_report_data[14]
     especialidad_medico = recipe_report_data[15]
-    clave_medico = clave_medico if not clave_medico == "NULL" else 1000000000
+    clave_doctor = clave_doctor if not clave_doctor == "NULL" else 1000000000
     nombre_medico = nombre_medico if not nombre_medico == "NULL" else "unknown"
     especialidad_medico = (especialidad_medico
                            if not especialidad_medico == "NULL"
                            else "unknown")
-    check_clave_medico(clave_medico, nombre_medico, especialidad_medico)
+    check_clave_doctor(clave_doctor, nombre_medico, especialidad_medico)
 
     return [
         clues_id,
         tipo_documento_id,
         fecha_entrega,
         nivel_atencion,
-        clave_medico,
+        clave_doctor,
     ]
 
 
@@ -488,7 +488,7 @@ def converter_file_in_related_files(
         recipe_path="test_recipe.csv", medicine_path="test_medicine.csv",
         medico_path="test_medico.csv", clues_path="test_clues.csv",
         container_path="test_container.csv"):
-    from desabasto.models import Recipe
+    from desabasto.models import Prescription
     from datetime import datetime
     #import io
     print("start get_data_from_file: ", timezone.now())
@@ -515,7 +515,7 @@ def converter_file_in_related_files(
 
     if len(recipe_first) >= 17:
         first_folio = recipe_first[6]
-        previus_recipe = Recipe.objects\
+        previus_recipe = Prescription.objects\
             .filter(folio_documento=first_folio).first()
         if previus_recipe:
             recipes_data[first_folio] = {
@@ -561,7 +561,7 @@ def converter_file_in_related_files(
              tipo_documento_id,
              fecha_entrega,
              nivel_atencion,
-             clave_medico) = recipe_report_data
+             clave_doctor) = recipe_report_data
 
             recipes_data[folio_ocamis] = {
                 "clues_id": clues_id,
@@ -574,7 +574,7 @@ def converter_file_in_related_files(
                 "fecha_emision": fecha_emision,
                 "fecha_entrega": fecha_entrega,
                 "nivel_atencion": nivel_atencion,
-                "clave_medico": clave_medico,
+                "clave_doctor": clave_doctor,
                 "delivered_medicine": [],
                 "year_month": year_month
             }
@@ -609,7 +609,7 @@ def converter_file_in_related_files(
     #folio_gt = folios_list[-1]
 
     range_folios = list(
-        Recipe.objects
+        Prescription.objects
         .filter(iso_year=first_iso[0], iso_week=first_iso[1])
         .values_list("folio_ocamis", flat=True))
 
@@ -652,7 +652,7 @@ def converter_file_in_related_files(
             recipe_data.get("fecha_emision"),
             recipe_data.get("fecha_entrega"),
             recipe_data.get("nivel_atencion"),
-            recipe_data.get("clave_medico"),
+            recipe_data.get("clave_doctor"),
             recipe_delivered,
             year_month])
     # ordenado por folio_documento
@@ -684,7 +684,7 @@ def converter_file_in_related_files(
         {
             "path": medico_path,
             "fields": [
-                "clave_medico", "nombre_medico", "especialidad_medico_id"
+                "clave_doctor", "nombre_medico", "especialidad_medico_id"
             ],
             "table_name": "desabasto_medic",
             "data_file": data_file_medico,

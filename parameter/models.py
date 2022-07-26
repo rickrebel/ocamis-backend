@@ -5,7 +5,7 @@ from django.contrib.postgres.fields import JSONField
 ##Otros catalogos
 
 
-class GroupData(models.Model):
+class DataGroup(models.Model):
     name = models.CharField(max_length=80)
     is_default = models.BooleanField(default=False)
     can_has_percent = models.BooleanField(
@@ -22,8 +22,8 @@ class GroupData(models.Model):
 """ class GroupParameter(models.Model):
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True, null=True)
-    group_data = models.ForeignKey(
-        GroupData, on_delete=models.CASCADE) 
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE) 
 
     def __str__(self):
         return self.name
@@ -37,6 +37,9 @@ class Collection(models.Model):
     name = models.CharField(max_length=225)
     model_name = models.CharField(
         max_length=225, verbose_name="Nombre en el código")
+    description = models.TextField(blank=True, null=True)
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE) 
 
     def __str__(self):
         return self.name
@@ -46,7 +49,7 @@ class Collection(models.Model):
         verbose_name_plural = u"Modelos o Tablas"
 
 
-class TypeData(models.Model):
+class DataType(models.Model):
     def default_params_type_data():
         return {"name_pandas": ''}
     name = models.CharField(max_length=225)
@@ -68,14 +71,23 @@ class TypeData(models.Model):
 class FinalField(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE)
-    name = models.CharField(max_length=120, blank=True, null=True)
+    name = models.CharField(max_length=120)
     verbose_name = models.TextField(blank=True, null=True)
     type_data = models.ForeignKey(
-        TypeData, 
+        DataType, 
         null=True, blank= True,
         on_delete=models.CASCADE,)
     addl_params = JSONField(
         blank=True, null=True, verbose_name="Otras configuraciones")
+    variatrions = JSONField(
+        blank=True, null=True, 
+        verbose_name="Otros posibles nombres")
+    requiered = models.BooleanField(
+        default=False, verbose_name="Es indispensable para registrar fila")
+    is_common = models.BooleanField(
+        default=False, verbose_name="Es una variable muy común")
+    verified = models.BooleanField(
+        default=False, verbose_name="Verificado (solo devs)")
 
     def __str__(self):
         return self.name
@@ -133,5 +145,5 @@ class CleanFunction(models.Model):
         return "%s (%s)" (self.name, self.public_name)
 
     class Meta:
-        verbose_name = u"Función de Transformación"
-        verbose_name_plural = u"Funciones de transformación"
+        verbose_name = u"Función de limpieza y tranformación"
+        verbose_name_plural = u"Funciones de limpieza y tranformación"

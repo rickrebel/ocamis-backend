@@ -3,10 +3,10 @@ from django.contrib import admin
 # Register your models here.
 from .models import (
     #GroupParameter,
-    GroupData, Collection, FinalField, TypeData, CleanFunction)
+    DataGroup, Collection, FinalField, DataType, CleanFunction)
 
 
-admin.site.register(GroupData)
+admin.site.register(DataGroup)
 
 
 class CollectionAdmin(admin.ModelAdmin):
@@ -23,10 +23,10 @@ class FinalFieldAdmin(admin.ModelAdmin):
 admin.site.register(FinalField, FinalFieldAdmin)
 
 
-class TypeDataAdmin(admin.ModelAdmin):
+class DataTypeAdmin(admin.ModelAdmin):
     list_display = ["name", "addl_params", "is_common", "order"]
 
-admin.site.register(TypeData, TypeDataAdmin)
+admin.site.register(DataType, DataTypeAdmin)
 
 
 class CleanFunctionAdmin(admin.ModelAdmin):

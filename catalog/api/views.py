@@ -26,15 +26,15 @@ class EntityViewSet(ListRetrieveUpdateMix):
     queryset = Entity.objects.all().prefetch_related(
             "petitions",
             "petitions__petition_months",
-            "petitions__file_groups",
-            "petitions__file_groups__group_file",
-            "petitions__file_groups__group_file__group_data",
-            "petitions__file_groups__group_file__type_file",
-            "petitions__file_groups__group_file__group_tranformations",
-            "petitions__file_groups__group_file__group_tranformations__clean_function",
-            "petitions__file_groups__data_files",
-            "petitions__file_groups__data_files__status_process",
-            "petitions__file_groups__data_files__month_entity",
+            "petitions__file_controls",
+            "petitions__file_controls__file_control",
+            "petitions__file_controls__file_control__data_group",
+            "petitions__file_controls__file_control__file_type",
+            "petitions__file_controls__file_control__file_tranformations",
+            "petitions__file_controls__file_control__file_tranformations__clean_function",
+            "petitions__file_controls__data_files",
+            "petitions__file_controls__data_files__status_process",
+            "petitions__file_controls__data_files__month_entity",
         )
     
     action_serializers = {

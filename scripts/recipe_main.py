@@ -6,9 +6,9 @@ from parameter.models import FinalField
 from files_categories.models import StatusControl
 
 recipe_fields = FinalField.objects.filter(
-    collection__model_name='Recipe').values()
-medicine_fields = FinalField.objects.filter(
-    collection__model_name='Medicine').values()
+    collection__model_name='Prescription').values()
+droug_fields = FinalField.objects.filter(
+    collection__model_name='Droug').values()
 catalog_clues = {}
 catalog_state = {}
 catalog_delegation = {}
@@ -18,7 +18,7 @@ institution = None
 state = None
 
 
-def start_file_process(file, group_file, is_explore=False):
+def start_file_process(file, file_control, is_explore=False):
     from files_rows.models import File
     file.error_process = None
     file.save()
@@ -36,18 +36,18 @@ def start_file_process(file, group_file, is_explore=False):
         build_catalogs(file)
     if is_explore:
         data = transform_files_in_data(
-            first_file, group_file, is_explore, suffix)
+            first_file, file_control, is_explore, suffix)
     elif count_splited:
         #FALTA AFINAR FUNCIÓN PARA ESTO
         children_files = File.objects.filter(origin_file=file)
         for ch_file in children_files:
             data = transform_files_in_data(
-                ch_file, group_file, is_explore, suffix)
+                ch_file, file_control, is_explore, suffix)
     else:
-        data = transform_files_in_data(file, group_file, is_explore, suffix)
+        data = transform_files_in_data(file, file_control, is_explore, suffix)
 
 
-def transform_files_in_data(file, group_file, is_explore, suffix)
+def transform_files_in_data(file, file_control, is_explore, suffix)
     data_rows = []
     headers = []
     status_error = 'initial_explore' if is_explore else 'fail_extraction'
@@ -59,7 +59,7 @@ def transform_files_in_data(file, group_file, is_explore, suffix)
                 {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)            
         if file.row_headers == 1:
             headers = data_rows.pop(0)
-        #group_file.separator = get_separator(data_rows[:40])
+        #file_control.separator = get_separator(data_rows[:40])
         elif file.row_headers:
             errors = ["No podemos procesar ahora headers en posiciones distintas"]
             file.save_errors(errors, status_error)
@@ -101,7 +101,7 @@ def build_catalogs(file):
     global state
     institution = file.petition.entity.institution
     state = file.petition.entity.state
-    all_columns = NameColumn.objects.filter(group_file=file.group_file)
+    all_columns = NameColumn.objects.filter(file_control=file.file_control)
     columns["all"] = all_columns.values()
     columns["clues"] = all_columns.filter(
         final_field__collection='CLUES').values()
@@ -262,7 +262,7 @@ def split_and_decompress(file):
     count_splited = 0
     file_name = file.file_name
     suffixes = pathlib.Path(file_name).suffixes
-    format_file = file.group_file.format_file
+    format_file = file.file_control.format_file
     if 'gz' in suffixes:
         final_path = decompress_file_gz(file_name)
         if final_path != True:
@@ -281,7 +281,7 @@ def split_and_decompress(file):
             date=file.date,
             status=initial_status,
             #Revisar si lo más fácil es poner o no los siguientes:
-            group_file=group_file,
+            file_control=file_control,
             petition=file.petition,
             petition_month=file.petition_month,
             )
@@ -303,7 +303,7 @@ def split_and_decompress(file):
                 date=file.date,
                 status=initial_status,
                 #Revisar si lo más fácil es poner o no los siguientes:
-                group_file=group_file,
+                file_control=file_control,
                 petition=file.petition,
                 petition_month=file.petition_month,
                 )
@@ -353,7 +353,7 @@ def split_file(file):
             date=original_file.date,
             status=initial_status,
             #Revisar si lo más fácil es poner o no los siguientes:
-            group_file=original_file.group_file,
+            file_control=original_file.file_control,
             petition=original_file.petition,
             petition_month=original_file.petition_month)
         count_splited += 1
@@ -381,10 +381,10 @@ def decompress_file_gz(file_path):
 #Divide toda una fila en columnas
 def divide_recipe_report_data(row, file=None, row_seq=None):
     from files_rows.models import NameColumn, MissingRow
-    separator = file.group_file.separator
+    separator = file.file_control.separator
     row_data = row.split(separator) if separator else row
     #Comprobación del número de columnas
-    current_columns = NameColumn.objects.filter(group_file=file.group_file)
+    current_columns = NameColumn.objects.filter(file_control=file.file_control)
     columns_count = current_columns.filter(
         position_in_data__isnull=False).count()
     row_seq = row_seq + file.row_start_data
@@ -413,11 +413,11 @@ def get_data_from_file_simple(file):
         print(e)
         return False, [u"%s" % e]
     is_issste = file.petition.entity.institution.code == 'ISSSTE'
-    group_file = file.group_file
+    file_control = file.file_control
     if "|" in data[:5000]:
-        group_file.separator = '|'
+        file_control.separator = '|'
     elif "," in data[:5000]:
-        group_file.separator = ','
+        file_control.separator = ','
         if is_issste:
             data = special_coma(data)
             if ",,," in data[:5000]:
@@ -425,7 +425,7 @@ def get_data_from_file_simple(file):
     #elif not set([',', '|']).issubset(data[:5000]):
     else:
         return False, ['El documento está vacío']
-    group_file.save()
+    file_control.save()
     if is_issste:
         data = clean_special(data)
     rr_data_rows = data.split("\n")

@@ -2,13 +2,13 @@
 from rest_framework import serializers
 
 from files_categories.models import (
-    TypeFile, StatusControl, ColumnType, NegativeReason)
+    FileType, StatusControl, ColumnType, NegativeReason)
 
 
-class TypeFileSimpleSerializer(serializers.ModelSerializer):
+class FileTypeSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = TypeFile
+        model = FileType
         fields = "__all__"
 
 

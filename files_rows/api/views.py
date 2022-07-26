@@ -3,16 +3,16 @@ from . import serializers
 from rest_framework.response import Response
 from rest_framework import (permissions, views, status)
 
-from files_rows.models import GroupFile
+from files_rows.models import FileControl
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 
 
 
-class GroupFileViewSet(ListRetrieveUpdateMix):
+class FileControlViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.AllowAny,)
-    serializer_class = serializers.GroupFileSerializer
-    queryset = GroupFile.objects.all().prefetch_related(
+    serializer_class = serializers.FileControlSerializer
+    queryset = FileControl.objects.all().prefetch_related(
                 "columns",
                 "columns__column_type",
                 "columns__type_data",
@@ -23,15 +23,15 @@ class GroupFileViewSet(ListRetrieveUpdateMix):
             )
     
     action_serializers = {
-        "list": serializers.GroupFileSerializer,
-        "retrieve": serializers.GroupFileFullSerializer,
+        "list": serializers.FileControlSerializer,
+        "retrieve": serializers.FileControlFullSerializer,
     }
 
     def get(self, request):
         print("ESTOY EN GET")
-        group_file = self.get_object()
-        serializer = serializers.GroupFileFullSerializer(
-            group_file, context={'request': request})
+        file_contol = self.get_object()
+        serializer = serializers.FileControlFullSerializer(
+            file_contol, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
         return Response()
 

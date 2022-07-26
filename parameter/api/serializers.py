@@ -2,13 +2,13 @@
 from rest_framework import serializers
 
 from parameter.models import (
-    GroupData, Collection, FinalField, TypeData, CleanFunction)
+    DataGroup, Collection, FinalField, DataType, CleanFunction)
 
 
-class GroupDataSimpleSerializer(serializers.ModelSerializer):
+class DataGroupSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = GroupData
+        model = DataGroup
         fields = "__all__"
 
 
@@ -26,10 +26,10 @@ class FinalFieldSimpleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class TypeDataSimpleSerializer(serializers.ModelSerializer):
+class DataTypeSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = TypeData
+        model = DataType
         fields = "__all__"
 
 

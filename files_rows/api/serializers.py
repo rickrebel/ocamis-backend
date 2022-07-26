@@ -2,27 +2,26 @@
 from rest_framework import serializers
 
 from files_rows.models import (
-    GroupFile, Petition, PetitionGroupFile, Transformation,
+    FileControl, Petition, PetitionFileControl, Transformation,
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn)
 
 from files_categories.api.serializers import (
-    TypeFileSimpleSerializer, StatusControlSimpleSerializer,
+    FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer)
 from parameter.api.serializers import (
-    CleanFunctionSimpleSerializer, GroupDataSimpleSerializer,
-    TypeDataSimpleSerializer, FinalFieldSimpleSerializer)
+    CleanFunctionSimpleSerializer, DataGroupSimpleSerializer,
+    DataTypeSimpleSerializer, FinalFieldSimpleSerializer)
 
 
-
-class GroupFileSimpleSerializer(serializers.ModelSerializer):
+class FileControlSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = GroupFile
+        model = FileControl
         fields = "__all__"
 
 
 class ProcessFileSerializer(serializers.ModelSerializer):
-    type_file = TypeFileSimpleSerializer()
+    file_type = FileTypeSimpleSerializer()
 
     class Meta:
         model = ProcessFile
@@ -38,7 +37,7 @@ class TransformationSerializer(serializers.ModelSerializer):
 
 
 class NameColumnSerializer(serializers.ModelSerializer):
-    type_data = TypeDataSimpleSerializer()
+    type_data = DataTypeSimpleSerializer()
     column_type = ColumnTypeSimpleSerializer()
     tranformations = TransformationSerializer(
         many=True, source="column_tranformations")
@@ -49,23 +48,23 @@ class NameColumnSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class GroupFileSerializer(serializers.ModelSerializer):
-    group_data = GroupDataSimpleSerializer()
-    type_file = TypeFileSimpleSerializer()
+class FileControlSerializer(serializers.ModelSerializer):
+    data_group = DataGroupSimpleSerializer()
+    file_type = FileTypeSimpleSerializer()
     status_register = StatusControlSimpleSerializer()
     tranformations = TransformationSerializer(
-        many=True, source="group_tranformations")
+        many=True, source="file_tranformations")
 
     class Meta:
-        model = GroupFile
+        model = FileControl
         fields = "__all__"
 
 
-class GroupFileFullSerializer(GroupFileSerializer):
+class FileControlFullSerializer(FileControlSerializer):
     columns = NameColumnSerializer(many=True)
 
     class Meta:
-        model = GroupFile
+        model = FileControl
         fields = "__all__"
 
 
@@ -100,17 +99,17 @@ class PetitionMonthSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class PetitionGroupFileSerializer(serializers.ModelSerializer):
-    group_file = GroupFileSerializer()
+class PetitionFileControlSerializer(serializers.ModelSerializer):
+    file_control = FileControlSerializer()
     data_files = DataFileSerializer(many=True)
 
     class Meta:
-        model = PetitionGroupFile
+        model = PetitionFileControl
         fields = "__all__"
 
 
 class PetitionFullSerializer(serializers.ModelSerializer):
-    file_groups = PetitionGroupFileSerializer(many=True)
+    file_control = PetitionFileControlSerializer(many=True)
     petition_months = PetitionMonthSerializer(many=True)
     process_files = ProcessFileSerializer(many=True)
 

@@ -5,6 +5,6 @@ from django.conf.urls import url, include
 router = routers.DefaultRouter()
 
 urlpatterns = [
-    #url(r'^commitmentgroup/$', TypeFileSimpleSerializer.as_view()),
+    #url(r'^commitmentgroup/$', FileTypeSimpleSerializer.as_view()),
     url('', include(router.urls)),
 ]

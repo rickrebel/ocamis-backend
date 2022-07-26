@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from django.db import models
 from files_rows.models import NameColumn, DataFile
 from django.contrib.postgres.fields import JSONField
-from django.utils.encoding import python_2_unicode_compatible
 
 
 class MedicalSpeciality(models.Model):
@@ -44,9 +43,9 @@ class Delivered(models.Model):
         return self.name
 
 
-class Medic(models.Model):
+class Doctor(models.Model):
     from catalog.models import Institution
-    clave_medico = models.CharField(primary_key=True, max_length=30)
+    clave_doctor = models.CharField(primary_key=True, max_length=30)
     institution = models.ForeignKey(
         Institution, null=True, blank=True, on_delete=models.CASCADE)
     nombre_medico = models.CharField(max_length=255)
@@ -55,19 +54,18 @@ class Medic(models.Model):
     #especialidad_medico = models.IntegerField()
 
     class Meta:
-        verbose_name = "Medic"
-        verbose_name_plural = "Medics"
+        verbose_name = "Doctor"
+        verbose_name_plural = "Doctores"
         db_table = u'medic'
 
     def __str__(self):
-        return str(self.clave_medico)
+        return str(self.clave_doctor)
 
 
-@python_2_unicode_compatible
-class Recipe(models.Model):
+class Prescription(models.Model):
     from catalog.models import CLUES, Delegation
     from files_rows.models import DataFile
-    #Nueva versión del modelo Recipe con atomizado de datos
+    #Nueva versión del modelo Prescription con atomizado de datos
     folio_ocamis = models.CharField(max_length=48, primary_key=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
     iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
@@ -92,8 +90,8 @@ class Recipe(models.Model):
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
     fecha_emision = models.DateTimeField(blank=True, null=True)
     fecha_entrega = models.DateTimeField(blank=True, null=True)
-    medico = models.ForeignKey(
-        Medic, blank=True, null=True, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(
+        Doctor, blank=True, null=True, on_delete=models.CASCADE)
     clave_presupuestal = models.CharField(
         max_length=20, blank=True, null=True)
     #nivel_atencion = models.IntegerField(blank=True, null=True)
@@ -107,10 +105,9 @@ class Recipe(models.Model):
         return self.folio_ocamis
 
 
-@python_2_unicode_compatible
-class Medicine(models.Model):
+class Droug(models.Model):
     from medicine.models import Container
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    recipe_prescr = models.ForeignKey(Prescription, on_delete=models.CASCADE)
     #recipe = models.CharField(max_length=48)
     #clave_medicamento = models.CharField(max_length=20, blank=True, null=True)
     container = models.ForeignKey(
@@ -124,7 +121,7 @@ class Medicine(models.Model):
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     #OTROS DATOS NO TAN RELEVANTES:
     precio_medicamento = models.FloatField(blank=True, null=True)
-    file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
     #rn = models.IntegerField(blank=True, null=True)
 
@@ -136,45 +133,15 @@ class Medicine(models.Model):
     def __str__(self):
         return str(self.rn)
 
-
-"""class RecipeLog(models.Model):
-    file_name = models.TextField()
-    processing_date = models.DateTimeField(auto_now=True)
-    errors = models.TextField(blank=True, null=True)
-    successful = models.BooleanField(default=True)
-
-    def get_errors(self):
-        import json
-        try:
-            return json.loads(self.errors)
-        except Exception:
-            return []
-
-    def set_errors(self, errors_data):
-        import json
-        try:
-            self.errors = json.dumps(errors_data)
-        except Exception:
-            self.errors = None
-
-    class Meta:
-        verbose_name = "RecipeLog"
-        verbose_name_plural = "RecipeLogs"
-        db_table = u'desabasto_recipereportlog'
-
-    def __str__(self):
-        return self.folio_documento """
-
-
 class MissingRow(models.Model):
     file = models.ForeignKey(
         DataFile, on_delete=models.CASCADE)
-    recipe_report = models.ForeignKey(
-        Recipe, 
+    prescription = models.ForeignKey(
+        Prescription, 
         blank=True, null=True,
         on_delete=models.CASCADE)
-    recipe_medicine = models.ForeignKey(
-        Medicine, 
+    droug = models.ForeignKey(
+        Droug, 
         blank=True, null=True,
         on_delete=models.CASCADE)
     original_data = JSONField(
@@ -196,7 +163,7 @@ class MissingField(models.Model):
     missing_row = models.ForeignKey(
         MissingRow,
         on_delete=models.CASCADE)
-    column = models.ForeignKey(
+    name_column = models.ForeignKey(
         NameColumn,
         on_delete=models.CASCADE)
     original_value = models.TextField(blank=True, null=True)

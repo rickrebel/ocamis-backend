@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import TypeFile, StatusControl, ColumnType, NegativeReason
+from .models import FileType, StatusControl, ColumnType, NegativeReason
 
 
 class StatusControlAdmin(admin.ModelAdmin):
@@ -12,11 +12,11 @@ class StatusControlAdmin(admin.ModelAdmin):
 admin.site.register(StatusControl, StatusControlAdmin)
 
 
-class TypeFileAdmin(admin.ModelAdmin):
+class FileTypeAdmin(admin.ModelAdmin):
     list_display = ["name", "is_default", "has_data", "order"]
     list_filter = ["has_data"]
 
-admin.site.register(TypeFile, TypeFileAdmin)
+admin.site.register(FileType, FileTypeAdmin)
 
 
 class ColumnTypeAdmin(admin.ModelAdmin):

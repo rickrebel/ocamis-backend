@@ -4,23 +4,23 @@ from rest_framework import (permissions, status, views)
 from rest_framework.response import Response
 
 from parameter.models import (
-    GroupData, Collection, FinalField, TypeData, CleanFunction)
+    DataGroup, Collection, FinalField, DataType, CleanFunction)
 from parameter.api.serializers import (
-    GroupDataSimpleSerializer, CollectionSimpleSerializer,
-    FinalFieldSimpleSerializer, TypeDataSimpleSerializer,
+    DataGroupSimpleSerializer, CollectionSimpleSerializer,
+    FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
     CleanFunctionSimpleSerializer)
 
 from files_categories.models import (
-    TypeFile, StatusControl, ColumnType, NegativeReason)
+    FileType, StatusControl, ColumnType, NegativeReason)
 from files_categories.api.serializers import (
-    TypeFileSimpleSerializer, StatusControlSimpleSerializer,
+    FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
 
-from files_rows.models import GroupFile
-from files_rows.api.serializers import GroupFileSimpleSerializer
+from files_rows.models import FileControl
+from files_rows.api.serializers import FileControlSimpleSerializer
 
 
 
@@ -32,23 +32,23 @@ class CatalogView(views.APIView):
     def get(self, request):
         #data = {}
         data = {
-            "group_files": GroupFileSimpleSerializer(
-                GroupFile.objects.all(), many=True).data,
+            "file_controls": FileControlSimpleSerializer(
+                FileControl.objects.all(), many=True).data,
             "entities": EntitySerializer(
                 Entity.objects.all(), many=True).data,
             ## CATÁLOGOS GENERALES:
-            "group_data": GroupDataSimpleSerializer(
-                GroupData.objects.all(), many=True).data,
+            "data_groups": DataGroupSimpleSerializer(
+                DataGroup.objects.all(), many=True).data,
             "colleccions": CollectionSimpleSerializer(
                 Collection.objects.all(), many=True).data,
             "final_fields": FinalFieldSimpleSerializer(
                 FinalField.objects.all(), many=True).data,
-            "data_types": TypeDataSimpleSerializer(
-                TypeData.objects.all(), many=True).data,
+            "data_types": DataTypeSimpleSerializer(
+                DataType.objects.all(), many=True).data,
             "clean_funcions": CleanFunctionSimpleSerializer(
                 CleanFunction.objects.all(), many=True).data,
-            "file_types": TypeFileSimpleSerializer(
-                TypeFile.objects.all(), many=True).data,
+            "file_types": FileTypeSimpleSerializer(
+                FileType.objects.all(), many=True).data,
             "status": StatusControlSimpleSerializer(
                 StatusControl.objects.all(), many=True).data,
             "column_types": ColumnTypeSimpleSerializer(

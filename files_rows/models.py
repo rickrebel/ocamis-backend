@@ -3,25 +3,9 @@ from django.contrib.postgres.fields import JSONField
 
 from catalog.models import Entity
 from files_categories.models import (
-    StatusControl, TypeFile, ColumnType, NegativeReason)
-from parameter.models import TypeData, FinalField, CleanFunction
+    StatusControl, FileType, ColumnType, NegativeReason)
+from parameter.models import DataType, FinalField, CleanFunction
 
-
-"""class ControlParameters(models.Model):
-    entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE)
-    start_month = models.CharField(max_length=80)
-    end_month = models.CharField(max_length=80)
-    notes = models.TextField(blank=True, null=True)
-    many_months = models.BooleanField(default=False)
-    name = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = u"Parametro de control"
-        verbose_name_plural = u"Parametros de control" """
 
 class Petition(models.Model):
     entity = models.ForeignKey(
@@ -50,10 +34,16 @@ class Petition(models.Model):
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
-    negative_reason = models.ForeignKey(
-        NegativeReason, null=True, blank=True, 
-        verbose_name="Razón de la negativa",
-        on_delete=models.CASCADE)
+    #negative_reason = models.ForeignKey(
+    #    NegativeReason, null=True, blank=True, 
+    #    verbose_name="Razón de la negativa",
+    #    on_delete=models.CASCADE)
+    folio_petition = models.IntegerField(
+        verbose_name="Folio de la solicitud", 
+        blank=True, null=True)
+    folio_queja = models.IntegerField(
+        verbose_name="Folio de la queja", 
+        blank=True, null=True)
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.id)
@@ -63,7 +53,23 @@ class Petition(models.Model):
         verbose_name_plural = u"Solicitudes"
 
 
-class GroupFile(models.Model):
+class PetitionNegativeReason(models.Model):
+    petition = models.ForeignKey(
+        Petition, on_delete=models.CASCADE)
+    negative_reason = models.ForeignKey(
+        NegativeReason, on_delete=models.CASCADE)
+    is_main = models.BooleanField(
+        verbose_name="Es la razón principal")
+
+    def __str__(self):
+        return "%s, %s" % (self.petition, self.negative_reason)
+
+    class Meta:
+        verbose_name = "Petición - razón negativa (m2m)"
+        verbose_name_plural = "Peticiones - razones negativas (m2m)"
+
+
+class FileControl(models.Model):
 
     FORMAT_CHOICES = (
         ("pdf", "PDF"),
@@ -77,19 +83,17 @@ class GroupFile(models.Model):
     def default_addl_params():
         return {"need_partition": True, "need_transform": False}
 
-    #control_parameters= models.ForeignKey(
-    #    ControlParameters, on_delete=models.CASCADE)
     name = models.CharField(
         max_length=120, default='grupo único')
-    type_file = models.ForeignKey(
-        TypeFile, on_delete=models.CASCADE)
+    file_type = models.ForeignKey(
+        FileType, on_delete=models.CASCADE)
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,
         null=True,
         blank=True)
     other_format = models.CharField(max_length=80, blank=True, null=True)
-    final_data = models.NullBooleanField(
+    final_data = models.BooleanField(
         verbose_name="Es información final")
     notes = models.TextField(blank=True, null=True)
     row_start_data = models.IntegerField(
@@ -111,24 +115,24 @@ class GroupFile(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = u"Grupo de archivos"
-        verbose_name_plural = u"Grupos de archivos"
+        verbose_name = "Grupo de archivos"
+        verbose_name_plural = "Grupos de archivos"
 
 
-class PetitionGroupFile(models.Model):
+class PetitionFileControl(models.Model):
     petition = models.ForeignKey(
         Petition,
-        related_name="file_groups",
+        related_name="file_controls",
         on_delete=models.CASCADE)
-    group_file = models.ForeignKey(
-        GroupFile, on_delete=models.CASCADE)
+    file_control = models.ForeignKey(
+        FileControl, on_delete=models.CASCADE)
 
     def __str__(self):
-        return "%s - %s" % (self.petition, self.group_file)
+        return "%s - %s" % (self.petition, self.file_control)
 
     class Meta:
-        verbose_name = u"Relacional: petición -- group_file"
-        verbose_name_plural = u"Relacional: petición -- group_file"
+        verbose_name = u"Relacional: petición -- file_control"
+        verbose_name_plural = u"Relacional: petición -- file_control"
 
 
 class MonthEntity(models.Model):
@@ -164,10 +168,6 @@ class PetitionMonth(models.Model):
 
 
 class DataFile(models.Model):
-    #group_file = models.ForeignKey(
-    #    GroupFile, on_delete=models.CASCADE)
-    #petition = models.ForeignKey(
-    #    Petition, on_delete=models.CASCADE)
     ori_file = models.FileField(max_length=100) 
     date = models.DateTimeField(auto_now_add=True)
     month_entity = models.ForeignKey(
@@ -179,8 +179,8 @@ class DataFile(models.Model):
         "DataFile",
         blank=True, null=True, related_name="child_files",
         on_delete=models.CASCADE)
-    petition_group_file = models.ForeignKey(
-        PetitionGroupFile,
+    petition_file_control = models.ForeignKey(
+        PetitionFileControl,
         related_name="data_files",
         blank=True, null=True,
         on_delete=models.CASCADE)
@@ -219,9 +219,13 @@ class ProcessFile(models.Model):
         on_delete=models.CASCADE)
     ori_file = models.FileField(max_length=100) 
     date = models.DateTimeField(auto_now_add=True)
-    type_file = models.ForeignKey(
-        TypeFile, on_delete=models.CASCADE)
-    notes = models.TextField(blank=True, null=True)
+    file_type = models.ForeignKey(
+        FileType, on_delete=models.CASCADE, blank=True, null=True)
+    text = models.TextField(blank=True, null=True, 
+        verbose_name="Texto (en caso de no haber archivo)")
+    notes = models.TextField(blank=True, null=True, verbose_name="Notas")
+    addl_params = JSONField(
+        blank=True, null=True, verbose_name="Otras configuraciones")
 
     def __str__(self):
         return "%s -- %s" % (self.ori_file, self.petition)
@@ -236,17 +240,13 @@ class NameColumn (models.Model):
     position_in_data = models.IntegerField(default=1)
     column_type=models.ForeignKey(
         ColumnType, on_delete=models.CASCADE)
-    #parameter = models.ForeignKey(
-    #    Parameter, 
-    #    blank=True, null=True,
-    #    on_delete=models.CASCADE)
-    group_file = models.ForeignKey(
-        GroupFile,
+    file_control = models.ForeignKey(
+        FileControl,
         related_name="columns",
         blank=True, null=True,
         on_delete=models.CASCADE)
     type_data = models.ForeignKey(
-        TypeData, 
+        DataType, 
         blank=True, null=True,
         on_delete=models.CASCADE)
     final_field = models.ForeignKey(
@@ -279,12 +279,12 @@ class Transformation(models.Model):
         CleanFunction, 
         on_delete=models.CASCADE,
         verbose_name="Función de limpieza o tranformación")
-    group_file = models.ForeignKey(
-        GroupFile, 
-        related_name="group_tranformations",
+    file_control = models.ForeignKey(
+        FileControl, 
+        related_name="file_tranformations",
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Grupo de archivos")
-    column = models.ForeignKey(
+    name_column = models.ForeignKey(
         NameColumn, 
         related_name="column_tranformations",
         on_delete=models.CASCADE, blank=True, null=True,

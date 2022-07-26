@@ -3,11 +3,11 @@ from django.conf.urls import url, include
 
 
 from files_categories.models import (
-    TypeFile, StatusControl, ColumnType, NegativeReason)
+    FileType, StatusControl, ColumnType, NegativeReason)
 
 router = routers.DefaultRouter()
 
 urlpatterns = [
-    #url(r'^commitmentgroup/$', TypeFileSimpleSerializer.as_view()),
+    #url(r'^commitmentgroup/$', FileTypeSimpleSerializer.as_view()),
     url('', include(router.urls)),
 ]
