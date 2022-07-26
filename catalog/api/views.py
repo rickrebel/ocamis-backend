@@ -20,7 +20,7 @@ class StateViewSet(ListRetrieveUpdateMix):
     }
 
 
-"""class EntityViewSet(ListRetrieveUpdateMix):
+class EntityViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.EntitySerializer
     queryset = Entity.objects.all().prefetch_related(
@@ -49,7 +49,7 @@ class StateViewSet(ListRetrieveUpdateMix):
             entity, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
         return Response()
-"""
+
 """ @action(methods=["post"], detail=True, url_path='create_months')
     def create_months(self, request, **kwargs):
         import json

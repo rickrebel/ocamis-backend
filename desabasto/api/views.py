@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from rest_framework.pagination import PageNumberPagination
 
-from catalog.models import State, Institution, Alliances
+from catalog.models import State, Institution, Alliances, Disease
 from catalog.api.serializers import (
-    StateSerializer, InstitutionSerializer, AlliancesSerializer)
-from catalog.models import Disease
-from catalog.api.serializers import DiseaseSerializer
+    StateSerializer, InstitutionSerializer, AlliancesSerializer,
+    DiseaseSerializer)
 from rest_framework import (permissions, views)
 from rest_framework.response import Response
 # --------Paginacion-----------------------------------------------------------

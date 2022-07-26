@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-"""from data_param.models import (
+from data_param.models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction)
 
 
@@ -38,4 +38,3 @@ class CleanFunctionSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = CleanFunction
         fields = "__all__"
-"""

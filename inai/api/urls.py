@@ -1,9 +1,9 @@
 from rest_framework import routers
 from django.conf.urls import url, include
 
-"""from category.models import (
+from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason)
-from .views import FileControlViewSet"""
+from .views import FileControlViewSet
 
 router = routers.DefaultRouter()
 #router.register(r'file_control', FileControlViewSet)

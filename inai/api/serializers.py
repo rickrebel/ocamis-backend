@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-"""from inai.models import (
+from inai.models import (
     FileControl, Petition, PetitionFileControl, Transformation,
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn)
 
@@ -117,4 +117,3 @@ class PetitionFullSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         fields = ["id", "date_send"]
-"""
