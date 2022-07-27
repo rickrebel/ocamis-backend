@@ -57,7 +57,7 @@ def get_data_from_excel(file, is_explore,empty_row: int= 0):
     import pandas as pd
     import io
     from django.utils import timezone
-    from inai.models import Column 
+    from files_rows.models import Column 
     one_path = file.file_name
     try:
         if not is_explore:
@@ -159,7 +159,8 @@ def import_clues_p01():
     from catalog.models import (State, Institution, CLUES)
     #Se carga archivo xlsx y desde el comienzo todas se declaran string para prueba
     #se puede asignar el datatype de cada variable con el comand pd.read_excel
-    prueba_clues = pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx', dtype ="string")
+    prueba_clues = pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx', dtype ="string", nrows= 50)
+    prueba_clues.items()
     #Se crea nuevo item en diccionario para asigarlo como index
     prueba_clues['ID_PRUEBA'] = prueba_clues['ID'] +'_'+ prueba_clues['NOMBRE DE LA UNIDAD']
     #el siguiente comando ayuda a asignar como index el item creado
@@ -171,29 +172,119 @@ def import_clues_p01():
     pr_inst = list(prueba_clues['CLAVE DE LA INSTITUCION'])
     #Se itera la lista pr_st y se llama a los objetos del modelo State
     try:
-        for row in pr_st:
+        for st in pr_st:
             state = State.objects.get(inegi_code = row)
     except Exception as e:
         state = None
+        print(pr_st)
     #Se itera lista de las claves de la institucion 
-    #no encuentra las claves en modelo institution
+
+    for inst in pr_inst:
+        try:
+            institution = Institution.objects.get(code = inst)
+        except Exception as e:
+            institution = None
+    #Prueba para iterar con diccionario
     try:
-        for row1 in pr_inst:
-            institution = Institution.objects.get(code = row1)
+        #En esta iteracion sale un error porque falla la restriccion de no nulo
+        for elem in prueba_clues["NOMBRE DE LA UNIDAD"]:
+            clues = CLUES.objects.create(
+                name=elem)
     except Exception as e:
         institution = None
-    #loop para obtener names of dictionary
-    #por ahora solo imprime los nombres de los objetos del dictionary prueba_clues
-    for name in prueba_clues:
-        print(name)
+        print(e)
     
+    ##Comentarios sobre los elemetos del modelo CLUES:
+    for elem in prueba_clues.values():
+        clues = CLUES.objects.create(
+                    state=state,
+                    #institution field viene de 'CLAVE DE LA INSTITUCION'
+                    institution=institution,
+                    name=prueba_clues["NOMBRE DE LA UNIDAD"],
+                    #is_searchable 
+                    #municipality - se carga field municipality? en el modelo CLUES esta
+                    municipality_inegi_code=prueba_clues['CLAVE DEL MUNICIPIO'],
+                    tipology=prueba_clues['NOMBRE DE TIPOLOGIA'],
+                    #tipology_obj - field en modelo clues que no esta en la base
+                    tipology_cve=prueba_clues['CLAVE DE TIPOLOGIA'],
+                    id_clues=prueba_clues['ID'],
+                    clues=prueba_clues['CLUES'],
+                    #status operation -
+                    longitude=prueba_clues['LONGITUD'],
+                    latitude=prueba_clues['LATITUD'],
+                    locality=prueba_clues['NOMBRE DE LA LOCALIDAD'],
+                    locality_inegi_code=prueba_clues['CLAVE DE LA LOCALIDAD'],
+                    jurisdiction=prueba_clues['NOMBRE DE LA JURISDICCION'],
+                    jurisdiction_clave=prueba_clues['CLAVE DE LA JURISDICCION'],
+                    establishment_type=prueba_clues['NOMBRE TIPO DE ESTABLECIMIENTO'],
+                    consultings_general=get_int(prueba_clues['CONSULTORIOS DE MED GRAL']),
+                    consultings_other=get_int(prueba_clues['CONSULTORIOS EN OTRAS AREAS']),
+                    beds_hopital=get_int(prueba_clues['CAMAS EN AREA DE HOS']),
+                    beds_other=get_int(prueba_clues['CAMAS EN OTRAS AREAS']),
+                    total_unities=get_int(prueba_clues['CAMAS EN AREA DE HOS']) + get_int(prueba_clues['CAMAS EN OTRAS AREAS']),
+                    admin_institution=prueba_clues['NOMBRE DE LA INS ADM'],
+                    atention_level=prueba_clues['NIVEL ATENCION'],
+                    stratum=prueba_clues['ESTRATO UNIDAD'],
+                    #real_name 
+                    #alter_clasif
+                    #clasif_name
+                    #prev_clasif_name
+                    #number_unity -cual es el numero de la unidad en la base?
+                    #FALTA POR INTEGRAR EN EL CLUES:
+                    #NOMBRE DE LA INSTTITUCION? o no es necesario por que esta en el modelo institutions
+                    #TIPO DE VIALIDAD
+                    #VIALIDAD
+                    #NUMERO INTERIOR 
+                    #NUMERO EXTERIOR
+                    #TIPO DE ASENTAMIETO
+                    #ASENTAMIENTO
+                    #CODIGO POSTAL
+                    #ESTATUS DE OPERACION?
+                    #RFC DEL ESTABLECIMIENTO
+                    #FECHA ULTIMO MOVIMIENTO
+                )
+                print(clues)
+
+
+#CODIGOS PARA REVISION
+#Se obtienen una lista de los nombres de las variables del excel
+var_names = [name for name in prueba_clues]
+#SE obtiene una lista de los nombres de los field de CLUES 
+#Este comando trae toda la información del model de django
+#se pueden extraer los nombres por medio de expresiones regulares
+clues_fiel = str([field for field in CLUES._meta.fields])
+
+pr_st= list(prueba_clues['CLAVE DE LA ENTIDAD'])
+pr_inst = list(prueba_clues['CLAVE DE LA INSTITUCION'])
+
+
+#loop para obtener names of dictionary
+#por ahora solo imprime los nombres de los objetos del dictionary prueba_clues
+#var_names = []
+#for name in prueba_clues:
+#    var_names.append(name)
+
 #Codigo (en construccion) para obtener model's fields in Django
 #https://stackoverflow.com/questions/3647805/get-models-fields-in-django
 #El siguiente
-from django.contrib.auth.models import User
-User._meta.get_fields()
-[field.name for field in User._meta.get_fields()]
+#from django.contrib.auth.models import User
+#User._meta.get_fields()
+#[field.name for field in User._meta.get_fields()]
 
+#from django.utils.dateparse import parse_datetime 
+#from catalog.models import (State, Institution, CLUES)
+
+#    try:
+#       for row in pr_st:
+#           state = State.objects.get(inegi_code = row)
+#   except Exception as e:
+#       state = None
+#    str_clues = []
+#   for elem in clues_fiel:
+#       str_clues.append = str(elem)
+#   elem_clues_fiel = [sub for sub in clues_fiel ]
+#for field in CLUES._meta.fields:
+#   print(field.name)
 
 
 
@@ -312,8 +403,8 @@ empty_row= sum(line.isspace() for line in f) #Esto era para contar las filas vac
 one_path= #direcciones donde se encuntran los archivos
 mes= #lista de meses
 from catalog.models import Delegation
-from inai.models import GroupFile
-from data_param.models import TypeData #obtencion del nombre de la delagacion, el cual esta contenido en el nombre del archivo
+from files_rows.models import GroupFile
+from parameter.models import TypeData #obtencion del nombre de la delagacion, el cual esta contenido en el nombre del archivo
     deleg_nom = Delegation.objects.filter(name=name).first()
 
 #Abrir excel
