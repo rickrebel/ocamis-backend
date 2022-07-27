@@ -161,20 +161,27 @@ class CLUES(models.Model):
     rr_data = models.TextField(blank=True, null=True)
     alternative_names = JSONField(blank=True, null=True)
     
+    #Nuevos fields
     type_street = models.CharField(
-        max_length=80, verbose_name=u"TIPO DE VIALIDAD")
+        max_length=80, blank=True, null=True, 
+        verbose_name=u"TIPO DE VIALIDAD")
     street = models.CharField(
-        max_length=255, verbose_name=u"VIALIDAD")    
+        max_length=255, blank=True, null=True,
+        verbose_name=u"VIALIDAD")    
     streat_number = models.CharField(
-        max_length=80, verbose_name=u"NÚMERO CALLE")
+        max_length=80, blank=True, null=True, 
+        verbose_name=u"NÚMERO CALLE")
     suburb = models.CharField(
-        max_length=255, verbose_name=u"SUBURBIO")
+        max_length=255, blank=True, null=True,
+        verbose_name=u"SUBURBIO")
     postal_code = models.CharField(
-        max_length=6, verbose_name=u"CODIGO POSTAL")
+        max_length=6, blank=True, null=True,
+        verbose_name=u"CODIGO POSTAL")
     rfc = models.CharField(
         max_length=30, verbose_name=u"RFC")
     last_change = models.DateTimeField(
-        blank=True, null=True, verbose_name=u"FECHA ULTIMO MOVIMIENTO")
+        blank=True, null=True,
+         verbose_name=u"FECHA ULTIMO MOVIMIENTO")
 
 
 
