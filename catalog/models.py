@@ -178,7 +178,8 @@ class CLUES(models.Model):
         max_length=6, blank=True, null=True,
         verbose_name=u"CODIGO POSTAL")
     rfc = models.CharField(
-        max_length=30, verbose_name=u"RFC")
+        max_length=6, blank=True, null=True,
+        verbose_name=u"RFC")
     last_change = models.DateTimeField(
         blank=True, null=True,
          verbose_name=u"FECHA ULTIMO MOVIMIENTO")
