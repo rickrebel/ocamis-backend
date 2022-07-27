@@ -1,8 +1,11 @@
 
 #Ejemplo de funcion para cargar txt
+from array import array
 import string
 from tkinter import N
 from wsgiref.handlers import read_environ
+from wsgiref.validate import IteratorWrapper
+from xmlrpc.client import DateTime
 
 
 def get_data_from_file_txt(
@@ -185,15 +188,16 @@ def import_clues_p01():
         except Exception as e:
             institution = None
     #Prueba para iterar con diccionario
-    try:
+    for elem in prueba_clues["NOMBRE DE LA UNIDAD"]:
         #En esta iteracion sale un error porque falla la restriccion de no nulo
-        for elem in prueba_clues["NOMBRE DE LA UNIDAD"]:
+        try:
             clues = CLUES.objects.create(
                 name=elem)
-    except Exception as e:
-        institution = None
-        print(e)
+        except Exception as e:
+            institution = None
+            print(e)
     
+IteratorWrapperarray
     ##Comentarios sobre los elemetos del modelo CLUES:
     for elem in prueba_clues.values():
         clues = CLUES.objects.create(
@@ -245,8 +249,7 @@ def import_clues_p01():
                 )
                 print(clues)
 
-
-#CODIGOS PARA REVISION
+#CODIGOS PARA REVISION 
 #Se obtienen una lista de los nombres de las variables del excel
 var_names = [name for name in prueba_clues]
 #SE obtiene una lista de los nombres de los field de CLUES 
@@ -254,8 +257,57 @@ var_names = [name for name in prueba_clues]
 #se pueden extraer los nombres por medio de expresiones regulares
 clues_fiel = str([field for field in CLUES._meta.fields])
 
-pr_st= list(prueba_clues['CLAVE DE LA ENTIDAD'])
-pr_inst = list(prueba_clues['CLAVE DE LA INSTITUCION'])
+
+###27/07/2022
+##FUNCION PARA IDENTIFICAR LOS MOVIMIENTOS DESPUES DEL 2019-12-31
+def is_new_mov():
+    import pandas as pd
+    from datetime import date
+    path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
+    prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
+    date_mod = prueba_clues['FECHA ULTIMO MOVIMIENTO'].array
+    dates_idm =[]
+    datet = date.fromisoformat('2019-12-31')
+    for i in date_mod:
+        #datesm.append(date.fromisoformat(i)) 
+        if (date.fromisoformat(i)) > datet: 
+            dates_idm.append("True")
+        else:
+            dates_idm.append("False")
+    print(dates_idm)
+
+#Para nombres de columnas
+def hydrateCol(row, all_headers):
+    hydrated = {}
+    #cols = row.split("|")
+    cols = row
+    if not len(cols):
+        return False
+    for idx_head, header in enumerate(all_headers):
+        try:
+            hydrated[header] = cols[idx_head]
+        except Exception as e:
+            print(cols)
+            print(hydrated)
+            return False
+    return hydrated
+
+
+##Para carga o actualizacion
+path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
+prueba_clues = pd.read_excel(path_excel, dtype ="string", nrows= 50)
+headers = prueba_clues.keys().array
+prueba_clues.items()
+
+for row in prueba_clues.iterrows():
+    print(row)
+
+
+#Funcion para sumar campos
+#Funcion para concatenar campos
+
+
+
 
 
 #loop para obtener names of dictionary
@@ -527,5 +579,71 @@ def hydrateCol(row, all_headers):
             return False
     return hydrated
 
-'''
+
+
+
+
+def ejemplo()
+    path_excel = 'G:\\Mi unidad\\YEEKO\\Proyectos\\OCAMIS\\Ejercicios Itza\\prueba_clues.xlsx'
+    prueba_clues = pd.read_excel(path_excel, dtype ="string", nrows= 50)
+    
+    headers
+    #for row in prueba_clues.iterrows():
+    all_rows = [["34", "IMSS"], ]
+
+    def is_new(update_date):
+        if update_date
+
+
+    for row in all_rows:
+        index = row[0]
+        data_row = row[1].array
+        data_dict = hydrateCol(data_row, headers)
+        #CHECAR LA FUNCIÓN .split() POR CADA ELEMENTO.
+        #FALTA COMPROBAR SI YA EXISTA, PARA NO CREARLO, EN SU CASO USAR .update()
+        print(clues)
+        create_clues(row)
+
+###
+#Importar diccionarios 
+
+
+
+
+
+
+
+
+#TESTEAR ANTES
+#dummy_row = {""}
+#create_clues(dummy_row)
+
+def create_clues(row):
+    clues = CLUES.objects.create(
+        name=row[0],
+        state=state,
+        institution=institution,
+        municipality=row[3],
+        municipality_inegi_code=row[4],
+        tipology=row[5],
+        tipology_cve=row[6],
+        id_clues=row[7],
+        clues=row[8],
+        status_operation=row[9],
+        longitude=row[10],
+        latitude=row[11],
+        locality=row[12],
+        locality_inegi_code=row[13],
+        jurisdiction=row[14],
+        jurisdiction_clave=row[15],
+        establishment_type=row[16],
+        consultings_general=get_int(row[17]),
+        consultings_other=get_int(row[18]),
+        beds_hopital=get_int(row[19]),
+        beds_other=get_int(row[20]),
+        total_unities=get_int(row[21]),
+        admin_institution=row[22],
+        atention_level=row[23],
+        stratum=row[24],
+    )
 
