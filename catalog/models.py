@@ -93,8 +93,8 @@ class CLUES(models.Model):
         help_text="Puede buscarse por el usuario")
     municipality = models.CharField(
         max_length=255, verbose_name=u"NOMBRE DEL MUNICIPIO")
-    municipality_inegi_code = models.CharField(
-        max_length=3, verbose_name=u"CLAVE DEL MUNICIPIO")
+    municipality_inegi_code = models.ForeignKey(
+        Municipality, on_delete=models.CASCADE)
     tipology = models.CharField(
         max_length=255, verbose_name=u"NOMBRE DE TIPOLOGIA")
     tipology_obj = models.ForeignKey(
