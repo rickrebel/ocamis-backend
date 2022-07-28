@@ -1,4 +1,277 @@
 
+##28/07/2022
+###ELEMENTOS PARA LA FUNCION DE CARGA CLUES 
+
+#################################
+
+#Para cargar las clues
+import pandas as pd
+path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
+prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
+
+#Nombres de columnas
+headers = prueba_clues.keys().array
+
+#Renglones de las variables
+rows= []
+for row in prueba_clues.iterrows():
+    rows.append(row)
+
+#Extraer datos de tuple (quitar nombre index)
+rowsf= []
+rowsf= [a_row[1] for a_row in rows]
+
+#Extraer datos a lista
+listval=[]
+for lis in rowsf:
+    listval.append(lis.tolist())
+
+#Cambiar orden 
+#lista de listas
+flist = [list(i) for i in zip(*listval)]
+
+#Para nombres de columnas
+def hydrateCol(row, all_headers):
+    hydrated = {}
+    #cols = row.split("|")
+    cols = row
+    if not len(cols):
+        return False
+    for idx_head, header in enumerate(all_headers):
+        try:
+            hydrated[header] = cols[idx_head]
+        except Exception as e:
+            print(cols)
+            print(hydrated)
+            return False
+    return hydrated
+
+#Lista de listas con nombres de columnas (dict)
+dtaclues= hydrateCol(flist, headers)
+
+#Identificar los movimientos de clues despues del 2019-12-31
+from datetime import date
+dates_idm =[]
+datet = date.fromisoformat('2019-12-31')
+for i in flist[32]:
+    #datesm.append(date.fromisoformat(i)) 
+    if (date.fromisoformat(i)) > datet: 
+        dates_idm.append("True")
+    else:
+        dates_idm.append("False")
+print(dates_idm)
+
+
+#Nombrar variable dentro de la lista de listas
+dtaclues['FECHA ULTIMO MOVIMIENTO'] = dates_idm
+
+####Crear variables compuestas
+#total_unities
+cons_gral= []
+for i in dtaclues['CONSULTORIOS DE MED GRAL']:
+    cons_gral.append(int(i))
+
+cons_otar= []
+for i in dtaclues['CONSULTORIOS EN OTRAS AREAS']:
+    cons_otar.append(int(i))
+
+camas_hos= []
+for i in dtaclues['CAMAS EN AREA DE HOS']:
+    camas_hos.append(int(i))
+
+camas_otr= []
+for i in dtaclues['CAMAS EN AREA DE HOS']:
+    camas_otr.append(int(i))
+
+#total_unities final
+t_unid=[]
+for i in cons_gral:
+    t_unid.append(cons_gral[i] + cons_otar[i] + camas_hos[i] + camas_otr[i])
+
+dtaclues['UNIDADES TOTALES'] = t_unid
+
+###NO SE HAN TERMINADO VARIABLES COMPUESTAS
+#streat_number
+dtaclues['NUMERO CALLE'] = dtaclues['NUMERO EXTERIOR'] + dtaclues['NUMERO INTERIOR']
+#suburb
+
+#
+
+###CARGA DE INFORMACION EJEMPLO
+
+#Prueba de carga a CLUES 
+dpr = [item[0] for item in dtaclues.values()]
+dprheader=dtaclues.keys()
+ejmdta= hydrateCol(dpr, dprheader)
+
+#Actualizar id para carga de ejemplo
+ejmdta['ID']= 'AAABCEJEMPLO'
+#https://stackoverflow.com/questions/42215526/django-create-object-if-field-not-in-database
+
+from catalog.models import CLUES
+for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
+    if i == "False":
+        cluesjem= CLUES.objects.get_or_create(
+                    #state=
+                    #institution=
+                    name=ejmdta["NOMBRE DE LA UNIDAD"],
+                    #municipality - se carga field municipality? en el modelo CLUES esta
+                    #municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
+                    tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
+                    #tipology_obj =
+                    tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
+                    id_clues=ejmdta['ID'],
+                    clues=ejmdta['CLUES'],
+                    status_operation = ejmdta['ESTATUS DE OPERACION'],
+                    longitude=ejmdta['LONGITUD'],
+                    latitude=ejmdta['LATITUD'],
+                    locality=ejmdta['NOMBRE DE LA LOCALIDAD'],
+                    locality_inegi_code=ejmdta['CLAVE DE LA LOCALIDAD'],
+                    jurisdiction=ejmdta['NOMBRE DE LA JURISDICCION'],
+                    jurisdiction_clave=ejmdta['CLAVE DE LA JURISDICCION'],
+                    establishment_type=ejmdta['NOMBRE TIPO DE ESTABLECIMIENTO'],
+                    consultings_general=get_int(ejmdta['CONSULTORIOS DE MED GRAL']),
+                    consultings_other=get_int(ejmdta['CONSULTORIOS EN OTRAS AREAS']),
+                    beds_hopital=get_int(ejmdta['CAMAS EN AREA DE HOS']),
+                    beds_other=get_int(ejmdta['CAMAS EN OTRAS AREAS']),
+                    #total_unities=get_int(ejmdta['UNIDADES TOTALES'], ##
+                    admin_institution=ejmdta['NOMBRE DE LA INS ADM'],
+                    atention_level=ejmdta['NIVEL ATENCION'],
+                    stratum=ejmdta['ESTRATO UNIDAD'],
+                    #real_name=
+                    #alter_clasif=
+                    #clasif_name=
+                    #prev_clasif_name=
+                    #number_unity=
+                    name_in_issten=ejmdta['NOMBRE DE LA UNIDAD'],
+                    #rr_data=
+                    #alternative_names=
+                    type_street=ejmdta['TIPO DE VIALIDAD'],
+                    street=ejmdta['VIALIDAD'],
+                    #streat_number= ejmdta['NUMERO CALLE'], ##
+                    #suburb=ejmdta['SUBURBIO']
+                    postal_code=ejmdta['CODIGO POSTAL'],
+                    rfc=ejmdta['RFC DEL ESTABLECIMIENTO'],
+                    last_change=ejmdta['FECHA ULTIMO MOVIMIENTO']
+                    )
+        cluesjem.save()
+
+#Otra prueba (field individual)
+from catalog.models import CLUES
+for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
+    if i == "False":
+        cluesjem= CLUES.objects.create(
+                    #state=
+                    #institution=
+                    name=ejmdta["NOMBRE DE LA UNIDAD"])
+        cluesjem.save()
+
+### AQUI ME QUEDE ###
+
+###Para todos los clues
+
+#Para todos los CLUES
+for i in dtaclues['ID']:
+    for j in dtaclues['FECHA ULTIMO MOVIMIENTO']:
+        if j == "True":
+            CLUES.objects.get(ID = i).update(
+
+            )
+
+
+#Condicional de registro
+from catalog.models import CLUES
+for i in dtaclues['FECHA ULTIMO MOVIMIENTO']:
+    if i == "True":
+        clues = CLUES.objects.update(
+                #state=
+                #institution=
+                name=dtaclues["NOMBRE DE LA UNIDAD"],
+                #municipality - se carga field municipality? en el modelo CLUES esta
+                #municipality_inegi_code=dtaclues['CLAVE DEL MUNICIPIO'],
+                tipology=dtaclues['NOMBRE DE TIPOLOGIA'],
+                #tipology_obj =
+                tipology_cve=dtaclues['CLAVE DE TIPOLOGIA'],
+                id_clues=dtaclues['ID'],
+                clues=dtaclues['CLUES'],
+                status_operation = dtaclues['ESTATUS DE OPERACION'],
+                longitude=dtaclues['LONGITUD'],
+                latitude=dtaclues['LATITUD'],
+                locality=dtaclues['NOMBRE DE LA LOCALIDAD'],
+                locality_inegi_code=dtaclues['CLAVE DE LA LOCALIDAD'],
+                jurisdiction=dtaclues['NOMBRE DE LA JURISDICCION'],
+                jurisdiction_clave=dtaclues['CLAVE DE LA JURISDICCION'],
+                establishment_type=dtaclues['NOMBRE TIPO DE ESTABLECIMIENTO'],
+                consultings_general=get_int(dtaclues['CONSULTORIOS DE MED GRAL']),
+                consultings_other=get_int(dtaclues['CONSULTORIOS EN OTRAS AREAS']),
+                beds_hopital=get_int(dtaclues['CAMAS EN AREA DE HOS']),
+                beds_other=get_int(dtaclues['CAMAS EN OTRAS AREAS']),
+                #total_unities=get_int(dtaclues['UNIDADES TOTALES'], ##
+                admin_institution=dtaclues['NOMBRE DE LA INS ADM'],
+                atention_level=dtaclues['NIVEL ATENCION'],
+                stratum=dtaclues['ESTRATO UNIDAD'],
+                #real_name=
+                #alter_clasif=
+                #clasif_name=
+                #prev_clasif_name=
+                #number_unity=
+                name_in_issten=dtaclues['NOMBRE DE LA UNIDAD'],
+                #rr_data=
+                #alternative_names=
+                type_street=dtaclues['TIPO DE VIALIDAD'],
+                street=dtaclues['VIALIDAD'],
+                #streat_number= dtaclues['NUMERO CALLE'], ##
+                #suburb=dtaclues['SUBURBIO']
+                postal_code=dtaclues['CODIGO POSTAL'],
+                rfc=dtaclues['RFC DEL ESTABLECIMIENTO'],
+                last_change=dtaclues['FECHA ULTIMO MOVIMIENTO']
+                )
+
+
+###PRUEBAS SENCILLAS PARA CARGAR Y ACTUALIZAR INFORMACION EN 
+#Consultar un objeto
+CLUES.objects.get(id=1)
+
+#Crear un objeto
+dprueba = State(inegi_code = '40',
+                name ='prueba',
+                short_name= 'pr', 
+                code_name ='pr',
+                other_names = 'P' )
+dprueba.save()
+
+#Actualizar un objeto
+State.objects.filter(inegi_code='40').update(inegi_code='98')
+#Eliminar un objeto
+State.objects.filter(inegi_code ='98').delete()
+
+
+##PEQUEÑA FUNCION PARA IDENTIFICAR LOS MOVIMIENTOS DESPUES DEL 2019-12-31
+def is_new_mov():
+    import pandas as pd
+    from datetime import date
+    path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
+    prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
+    date_mod = prueba_clues['FECHA ULTIMO MOVIMIENTO'].array
+    dates_idm =[]
+    datet = date.fromisoformat('2019-12-31')
+    for i in date_mod:
+        #datesm.append(date.fromisoformat(i)) 
+        if (date.fromisoformat(i)) > datet: 
+            dates_idm.append("True")
+        else:
+            dates_idm.append("False")
+    print(dates_idm)
+
+
+
+
+
+#########FUNCIONES Y TODO LO DEMAS DE APOYO 
+
+
+
+
 #Ejemplo de funcion para cargar txt
 from array import array
 import string
@@ -276,24 +549,9 @@ def is_new_mov():
             dates_idm.append("False")
     print(dates_idm)
 
-#Para nombres de columnas
-def hydrateCol(row, all_headers):
-    hydrated = {}
-    #cols = row.split("|")
-    cols = row
-    if not len(cols):
-        return False
-    for idx_head, header in enumerate(all_headers):
-        try:
-            hydrated[header] = cols[idx_head]
-        except Exception as e:
-            print(cols)
-            print(hydrated)
-            return False
-    return hydrated
 
-
-##Para carga o actualizacion
+##Cachos para crear funcion
+##Carga de CLUES en formato xlsx
 path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
 prueba_clues = pd.read_excel(path_excel, dtype ="string", nrows= 50)
 headers = prueba_clues.keys().array
@@ -306,9 +564,8 @@ for row in prueba_clues.iterrows():
 #Funcion para sumar campos
 #Funcion para concatenar campos
 
-
-
-
+#Extraer valores de df
+#df= rowsf[0].rename(None).to_frame().T
 
 #loop para obtener names of dictionary
 #por ahora solo imprime los nombres de los objetos del dictionary prueba_clues
@@ -337,9 +594,6 @@ for row in prueba_clues.iterrows():
 #   elem_clues_fiel = [sub for sub in clues_fiel ]
 #for field in CLUES._meta.fields:
 #   print(field.name)
-
-
-
 
 
 #Funcion de ejemplo:
@@ -428,6 +682,8 @@ for idx, row in d:
             state = State.objects.get(inegi_code=state_inegi_code)
         except Exception as e:
             state = None
+
+
 
 ##Pruebas no usadas
 '''
@@ -580,9 +836,6 @@ def hydrateCol(row, all_headers):
     return hydrated
 
 
-
-
-
 def ejemplo()
     path_excel = 'G:\\Mi unidad\\YEEKO\\Proyectos\\OCAMIS\\Ejercicios Itza\\prueba_clues.xlsx'
     prueba_clues = pd.read_excel(path_excel, dtype ="string", nrows= 50)
@@ -605,45 +858,9 @@ def ejemplo()
         create_clues(row)
 
 ###
-#Importar diccionarios 
-
-
-
-
-
-
-
+#Importar diccionarios
 
 #TESTEAR ANTES
 #dummy_row = {""}
 #create_clues(dummy_row)
-
-def create_clues(row):
-    clues = CLUES.objects.create(
-        name=row[0],
-        state=state,
-        institution=institution,
-        municipality=row[3],
-        municipality_inegi_code=row[4],
-        tipology=row[5],
-        tipology_cve=row[6],
-        id_clues=row[7],
-        clues=row[8],
-        status_operation=row[9],
-        longitude=row[10],
-        latitude=row[11],
-        locality=row[12],
-        locality_inegi_code=row[13],
-        jurisdiction=row[14],
-        jurisdiction_clave=row[15],
-        establishment_type=row[16],
-        consultings_general=get_int(row[17]),
-        consultings_other=get_int(row[18]),
-        beds_hopital=get_int(row[19]),
-        beds_other=get_int(row[20]),
-        total_unities=get_int(row[21]),
-        admin_institution=row[22],
-        atention_level=row[23],
-        stratum=row[24],
-    )
 
