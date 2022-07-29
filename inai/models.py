@@ -3,7 +3,7 @@ from django.contrib.postgres.fields import JSONField
 
 from catalog.models import Entity
 from category.models import (
-    StatusControl, FileType, ColumnType, NegativeReason)
+    StatusControl, FileType, ColumnType, NegativeReason, DateBreak)
 from data_param.models import DataType, FinalField, CleanFunction
 
 
@@ -44,6 +44,8 @@ class Petition(models.Model):
     folio_queja = models.IntegerField(
         verbose_name="Folio de la queja", 
         blank=True, null=True)
+    #break_dates = models.ManyToManyField(
+    #    DateBreak, blank=True, verbose_name="Fechas de corte")
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.id)
@@ -51,6 +53,21 @@ class Petition(models.Model):
     class Meta:
         verbose_name = u"Solicitud"
         verbose_name_plural = u"Solicitudes"
+
+
+class PetitionBreak(models.Model):
+    petition = models.ForeignKey(
+        Petition, on_delete=models.CASCADE)
+    date_break = models.ForeignKey(
+        DateBreak, on_delete=models.CASCADE)
+    date = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s, %s" % (self.petition, self.date_break)
+
+    class Meta:
+        verbose_name = "Petición - fecha de corte (m2m)"
+        verbose_name_plural = "Peticiones - fechas de corte (m2m)"
 
 
 class PetitionNegativeReason(models.Model):
@@ -144,6 +161,15 @@ class MonthEntity(models.Model):
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.year_month)
+
+    @property
+    def human_name(self):
+        months = [
+            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        month_numb = int(self.year_month[-2:])
+        month_name = months[month_numb-1]
+        return "%s/%s" % (month_name, self.year_month[:-2])
 
     class Meta:
         verbose_name = u"Mes de entidad"
