@@ -9,7 +9,7 @@ import pandas as pd
 path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
 prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
 
-#Nombres de columnas
+#Nombres de columnas (pandaarray)
 headers = prueba_clues.keys().array
 
 #Renglones de las variables
@@ -59,7 +59,6 @@ for i in flist[32]:
         dates_idm.append("True")
     else:
         dates_idm.append("False")
-print(dates_idm)
 
 
 #Nombrar variable dentro de la lista de listas
@@ -71,33 +70,66 @@ cons_gral= []
 for i in dtaclues['CONSULTORIOS DE MED GRAL']:
     cons_gral.append(int(i))
 
+dtaclues['CONSULTORIOS DE MED GRAL']=cons_gral
+
 cons_otar= []
 for i in dtaclues['CONSULTORIOS EN OTRAS AREAS']:
     cons_otar.append(int(i))
+
+dtaclues['CONSULTORIOS EN OTRAS AREAS']=cons_otar
 
 camas_hos= []
 for i in dtaclues['CAMAS EN AREA DE HOS']:
     camas_hos.append(int(i))
 
+dtaclues['CAMAS EN AREA DE HOS']=camas_hos
+
 camas_otr= []
 for i in dtaclues['CAMAS EN AREA DE HOS']:
     camas_otr.append(int(i))
 
-#total_unities final
-t_unid=[]
-for i in cons_gral:
-    t_unid.append(cons_gral[i] + cons_otar[i] + camas_hos[i] + camas_otr[i])
+dtaclues['CAMAS EN AREA DE HOS']=camas_otr
 
+#total_unities final
+t_uni= [cons_gral,cons_otar,camas_hos,camas_otr]
+t_unid= list(map(sum, zip(*t_uni)))
 dtaclues['UNIDADES TOTALES'] = t_unid
 
 ###NO SE HAN TERMINADO VARIABLES COMPUESTAS
 #streat_number
-dtaclues['NUMERO CALLE'] = dtaclues['NUMERO EXTERIOR'] + dtaclues['NUMERO INTERIOR']
+dtaclues['NUMERO CALLE'] = list(map(''.join,zip(dtaclues['NUMERO EXTERIOR'],dtaclues['NUMERO INTERIOR']))) 
+
+def streatnum(colA, colB):
+    import numpy as np
+    clle_num= []
+    k='nan'
+    a= colA
+    b= colB
+    for i in a:
+        for j in b:
+            if pd.isnull(i) and pd.isnull(j):
+                return k== np.nan
+            if pd.isnull(i) and not pd.isnull(j):
+                return k== 'S/N' + j
+            if not pd.isnull(i) and pd.isnull(i):
+                return k== i
+            if not pd.isnull(i) and not pd. isnull(j):
+                return k== i +j
+    clle_num.append(k)
+
+            
+
 #suburb
 
 #
 
 ###CARGA DE INFORMACION EJEMPLO
+
+
+
+
+
+
 
 #Prueba de carga a CLUES 
 dpr = [item[0] for item in dtaclues.values()]
@@ -108,13 +140,71 @@ ejmdta= hydrateCol(dpr, dprheader)
 ejmdta['ID']= 'AAABCEJEMPLO'
 #https://stackoverflow.com/questions/42215526/django-create-object-if-field-not-in-database
 
+returns = Return.objects.all()
+for ret in returns:
+   return_in_database = Return.objects.filter(ItemId="UUID").exists()
+   if not return_in_database:
+       obj, created = Return.objects.get_or_create(ItemID="UUID", 
+                      ItemName="Hodaddy", State="Started")
+       obj.save() 
+
+
+from catalog.models import CLUES
+returns = CLUES.objects.all()
+for ret in returns:
+    return_db = CLUES.objects.filter(name = 'AAABCEJEMPLO').exists()
+    if not return_db:
+        obj, created=CLUES.objects.get_or_create(
+                    name=ejmdta["NOMBRE DE LA UNIDAD"],
+                    #municipality - se carga field municipality? en el modelo CLUES esta
+                    #municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
+                    #tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
+                    #tipology_obj =
+                    #tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
+                    #id_clues=ejmdta['ID'],
+                    #clues=ejmdta['CLUES'],
+                    #status_operation = ejmdta['ESTATUS DE OPERACION'],
+                    #longitude=ejmdta['LONGITUD'],
+                    #latitude=ejmdta['LATITUD'],
+                    #locality=ejmdta['NOMBRE DE LA LOCALIDAD'],
+                    #locality_inegi_code=ejmdta['CLAVE DE LA LOCALIDAD'],
+                    #jurisdiction=ejmdta['NOMBRE DE LA JURISDICCION'],
+                    #jurisdiction_clave=ejmdta['CLAVE DE LA JURISDICCION'],
+                    #establishment_type=ejmdta['NOMBRE TIPO ESTABLECIMIENTO'],
+                    #consultings_general=ejmdta['CONSULTORIOS DE MED GRAL'],
+                    #consultings_other=ejmdta['CONSULTORIOS EN OTRAS AREAS'],
+                    #beds_hopital=ejmdta['CAMAS EN AREA DE HOS'],
+                    #beds_other=ejmdta['CAMAS EN OTRAS AREAS'],
+                    #total_unities=get_int(ejmdta['UNIDADES TOTALES'], ##
+                    #admin_institution=ejmdta['NOMBRE DE LA INS ADM'],
+                    #atention_level=ejmdta['NIVEL ATENCION'],
+                    #stratum=ejmdta['ESTRATO UNIDAD'],
+                    #real_name=
+                    #alter_clasif=
+                    #clasif_name=
+                    #prev_clasif_name=
+                    #number_unity=
+                    #name_in_issten=ejmdta['NOMBRE DE LA UNIDAD'],
+                    #rr_data=
+                    #alternative_names=
+                    #type_street=ejmdta['TIPO DE VIALIDAD'],
+                    #street=ejmdta['VIALIDAD'],
+                    #streat_number= ejmdta['NUMERO CALLE'], ##
+                    #suburb=ejmdta['SUBURBIO']
+                    #postal_code=ejmdta['CODIGO POSTAL'],
+                    #rfc=ejmdta['RFC DEL ESTABLECIMIENTO'],
+                    #last_change=ejmdta['FECHA ULTIMO MOVIMIENTO']
+                    )
+        obj.save()
+
+
 from catalog.models import CLUES
 for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
     if i == "False":
         cluesjem= CLUES.objects.get_or_create(
                     #state=
                     #institution=
-                    name=ejmdta["NOMBRE DE LA UNIDAD"],
+                    name=ejmdta["NOMBRE DE LA UNIDAD"],x
                     #municipality - se carga field municipality? en el modelo CLUES esta
                     #municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
                     tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
@@ -244,6 +334,24 @@ dprueba.save()
 State.objects.filter(inegi_code='40').update(inegi_code='98')
 #Eliminar un objeto
 State.objects.filter(inegi_code ='98').delete()
+
+from catalog.models import State
+returns = State.objects.all()
+for ret in returns:
+    try:
+        return_in_database = State.objects.get(inegi_code='40').exists()
+    except:
+        obj, created = State.objects.get_or_create(inegi_code = '40',
+                                                    name = 'prueba',
+                                                    short_name = 'pr', 
+                                                    code_name = 'pr',
+                                                    other_names = 'P')
+    obj.save() 
+
+
+
+
+
 
 
 ##PEQUEÑA FUNCION PARA IDENTIFICAR LOS MOVIMIENTOS DESPUES DEL 2019-12-31
