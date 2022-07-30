@@ -3,7 +3,8 @@ from rest_framework import serializers
 
 from inai.models import (
     FileControl, Petition, PetitionFileControl, Transformation,
-    DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn)
+    DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
+    PetitionBreak)
 
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
@@ -109,13 +110,43 @@ class PetitionFileControlSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+
+class PetitionBreakSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PetitionBreak
+        fields = "__all__"
+        read_only_fields = ["petition"]
+
+
+class PetitionBreakSerializer(serializers.ModelSerializer):
+    from category.api.serializers import DateBreakSimpleSerializer
+    date_break = DateBreakSimpleSerializer()
+
+    class Meta:
+        model = PetitionBreak
+        fields = "__all__"
+        #read_only_fields = ["petition"]
+
+
 class PetitionFullSerializer(serializers.ModelSerializer):
-    file_control = PetitionFileControlSerializer(many=True)
+    file_controls = PetitionFileControlSerializer(many=True)
     petition_months = PetitionMonthSerializer(many=True)
     process_files = ProcessFileSerializer(many=True)
-    #break_dates = BreakDateSerializer(many=True)
+    break_dates = PetitionBreakSerializer(many=True)
+    status_data = StatusControlSimpleSerializer()
+    status_petition = StatusControlSimpleSerializer()
 
     class Meta:
         model = Petition
         #fields = ["id", "date_send"]
         fields = "__all__"
+
+
+class PetitionEditSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Petition
+        read_only_fields = ["id"]
+        fields = "__all__"
+

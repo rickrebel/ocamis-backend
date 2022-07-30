@@ -1,5 +1,30 @@
 # -*- coding: utf-8 -*-
 
+
+def clean_field(text):
+    import re
+    try:
+        final_txt = text
+        final_txt = re.sub(r'(\S|^)\s{2,4}(\S|$)', r'\1 \2', final_txt)
+        #espacio antes del cierre de comillas (con cosas intermedias)
+        final_txt = re.sub(
+            r'(\S)\s\"([^\:|\}|\,]*[\:|\}|\,])', r'\1"\2', final_txt)
+        #espacio antes del cierre de comillas
+        final_txt = re.sub(r'(\S)\s\"(\:|\}|\,)', r'\1"\2', final_txt)
+        #dobles comillas con espacio
+        final_txt = re.sub(r'\"\s\"', r'""', final_txt)
+        final_txt = final_txt.replace('\\r\\n', '\r\n')
+        final_txt = final_txt.replace('\\n', '\n')
+        final_txt = final_txt.replace('True', 'true')
+        #print final_txt
+        return final_txt
+    except Exception as e:
+        print(e)
+        print(text)
+        return text
+
+
+
 def hydrateCol(row, all_headers):
     hydrated = {}
     cols = row.split("|")
@@ -7,7 +32,11 @@ def hydrateCol(row, all_headers):
         return False
     for idx_head, header in enumerate(all_headers):
         try:
-            hydrated[header] = cols[idx_head]
+            if "$" in header:
+                header = header.replace("$", "")
+                hydrated[header] = clean_field(cols[idx_head])
+            else:
+                hydrated[header] = cols[idx_head]
         except Exception as e:
             print(e)
             print(cols)
@@ -35,8 +64,15 @@ def generate_file(app_name, model_name):
     fields = []
     for field in MyModel._meta.fields:
         is_foreign = field.get_internal_type() == 'ForeignKey'
-        final_name = "%s_id" % field.name if is_foreign else field.name
+        is_json = field.get_internal_type() == 'JSONField'
+        if is_foreign:
+            final_name = "%s_id" % field.name
+        elif is_json:
+            final_name = "%s$" % field.name
+        else:
+            final_name = field.name
         fields.append(final_name)
+    #final_value = clean_field(field.name)
     #fields = [field.name for field in MyModel._meta.fields]
     final_data = list(all_objects)
     final_data.insert(0, fields)
@@ -82,6 +118,7 @@ def sincronize_entities(app_name, model_name):
 
 #generate_file('catalog', 'Entity')
 
-#generate_file('category', 'StatusControl')
+#sincronize_entities('category', 'StatusControl')
 #sincronize_entities('category', 'StatusControl')
 
+#sincronize_entities('category', 'DateBreak')

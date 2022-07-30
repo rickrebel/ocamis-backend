@@ -298,5 +298,6 @@ class Entity(models.Model):
             return 'Nacional'
 
     class Meta:
+        ordering = ["state__name"]
         verbose_name = u"Sujeto Obligado"
         verbose_name_plural = u"Sujetos Obligados"

@@ -12,14 +12,6 @@ class Petition(models.Model):
         Entity,
         related_name="petitions",
         on_delete=models.CASCADE)
-    date_send = models.DateTimeField(blank=True, null=True)
-    limit_response = models.DateTimeField(blank=True, null=True)
-    date_response = models.DateTimeField(blank=True, null=True)
-    limit_pickup = models.DateTimeField(
-        blank=True, null=True, verbose_name="límite para recoger datos")
-    limit_complain = models.DateTimeField(
-        blank=True, null=True,
-        verbose_name="límite para presentar queja")
     ask_extension = models.NullBooleanField(
         blank=True, null=True,
         verbose_name="Se solicitó extensión")
@@ -34,18 +26,12 @@ class Petition(models.Model):
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
-    #negative_reason = models.ForeignKey(
-    #    NegativeReason, null=True, blank=True, 
-    #    verbose_name="Razón de la negativa",
-    #    on_delete=models.CASCADE)
     folio_petition = models.IntegerField(
         verbose_name="Folio de la solicitud", 
         blank=True, null=True)
-    folio_queja = models.IntegerField(
+    folio_complain = models.IntegerField(
         verbose_name="Folio de la queja", 
         blank=True, null=True)
-    #break_dates = models.ManyToManyField(
-    #    DateBreak, blank=True, verbose_name="Fechas de corte")
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.id)
@@ -57,10 +43,12 @@ class Petition(models.Model):
 
 class PetitionBreak(models.Model):
     petition = models.ForeignKey(
-        Petition, on_delete=models.CASCADE)
+        Petition, 
+        related_name="break_dates",
+        on_delete=models.CASCADE)
     date_break = models.ForeignKey(
         DateBreak, on_delete=models.CASCADE)
-    date = models.DateTimeField(blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return "%s, %s" % (self.petition, self.date_break)

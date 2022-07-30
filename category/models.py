@@ -17,6 +17,7 @@ class StatusControl(models.Model):
     public_name = models.CharField(max_length=255)
     color = models.CharField(max_length=20, blank=True, null=True)
     icon = models.CharField(max_length=20, blank=True, null=True)
+    order = models.IntegerField(default=4)
     description = models.TextField(blank=True, null=True)
     addl_params = JSONField(blank=True, null=True)
 
@@ -24,6 +25,7 @@ class StatusControl(models.Model):
         return self.name
 
     class Meta:
+        ordering = ["order"]
         verbose_name = u"Status de control"
         verbose_name_plural = u"Status de control (TODOS)"
 
@@ -42,6 +44,7 @@ class FileType(models.Model):
         return self.name
 
     class Meta:
+        ordering = ["order"]
         verbose_name = u"Tipo de documento"
         verbose_name_plural = u"Tipos de documentos"
 
@@ -81,6 +84,7 @@ class DateBreak(models.Model):
         return self.name
 
     class Meta:
+        ordering = ["order"]
         verbose_name = u"Fecha de corte"
         verbose_name_plural = u"Fechas de corte"
 
