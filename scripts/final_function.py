@@ -32,6 +32,7 @@ def import_excel(path_excel):
     listval=[]
     for lis in rowsf:
         listval.append(lis.tolist())
+    flist = [list(i) for i in zip(*listval)]
     dtafin={}
-    dtafin = hydrateCol(listval,headers)
+    dtafin = hydrateCol(flist,headers)
     print(dtafin)
