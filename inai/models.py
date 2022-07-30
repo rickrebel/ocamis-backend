@@ -4,7 +4,7 @@ from django.contrib.postgres.fields import JSONField
 from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, DateBreak)
-from data_param.models import DataType, FinalField, CleanFunction
+from data_param.models import DataType, FinalField, CleanFunction, DataGroup
 
 
 class Petition(models.Model):
@@ -91,7 +91,9 @@ class FileControl(models.Model):
     name = models.CharField(
         max_length=120, default='grupo único')
     file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE)
+        FileType, on_delete=models.CASCADE, blank=True, null=True)
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE)
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,
@@ -120,8 +122,8 @@ class FileControl(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Grupo de archivos"
-        verbose_name_plural = "Grupos de archivos"
+        verbose_name = "Grupo control de archivos"
+        verbose_name_plural = "Grupos control de archivos"
 
 
 class PetitionFileControl(models.Model):
@@ -130,7 +132,8 @@ class PetitionFileControl(models.Model):
         related_name="file_controls",
         on_delete=models.CASCADE)
     file_control = models.ForeignKey(
-        FileControl, on_delete=models.CASCADE)
+        FileControl, on_delete=models.CASCADE,
+        related_name="petitions",)
 
     def __str__(self):
         return "%s - %s" % (self.petition, self.file_control)

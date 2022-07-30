@@ -52,7 +52,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         new_petition = Petition()
         petition = None
         range_months = data_petition.pop('range_months', [])
-        petition_breaks = data_petition.pop('petition_breaks', [])
+        petition_breaks = data_petition.pop('build_petition_breaks', [])
         supplies_items = data_petition.pop('supplies', [])
         entity = data_petition.pop('entity', [])
         data_petition["entity"] = entity["id"]
@@ -77,13 +77,12 @@ class PetitionViewSet(ListRetrieveUpdateMix):
                 petition=petition, month_entity=month_entity)
 
         print(petition)
+        print("petition_breaks", petition_breaks)
         for pet_break in petition_breaks:
             petition_break = PetitionBreak()
             petition_break.petition = petition
-            date_break = pet_break.pop('date_break', {})
-            pet_break["date_break"] = date_break["id"]
 
-            serializer_pb = serializers.PetitionBreakSimpleSerializer(
+            serializer_pb = serializers.PetitionBreakSerializer(
                 petition_break, data=pet_break)
             if serializer_pb.is_valid():
                 serializer_pb.save()

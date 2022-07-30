@@ -110,23 +110,19 @@ class PetitionFileControlSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-
-class PetitionBreakSimpleSerializer(serializers.ModelSerializer):
+class PetitionBreakSerializer(serializers.ModelSerializer):
+    from category.api.serializers import DateBreakSimpleSerializer
+    from category.models import DateBreak
+    date_break = DateBreakSimpleSerializer(read_only=True)
+    date_break_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="date_break",
+        queryset=DateBreak.objects.all())
 
     class Meta:
         model = PetitionBreak
         fields = "__all__"
         read_only_fields = ["petition"]
-
-
-class PetitionBreakSerializer(serializers.ModelSerializer):
-    from category.api.serializers import DateBreakSimpleSerializer
-    date_break = DateBreakSimpleSerializer()
-
-    class Meta:
-        model = PetitionBreak
-        fields = "__all__"
-        #read_only_fields = ["petition"]
+        #write_only_fields = ('date_break_id',)
 
 
 class PetitionFullSerializer(serializers.ModelSerializer):
@@ -147,6 +143,6 @@ class PetitionEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Petition
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "break_dates"]
         fields = "__all__"
 
