@@ -2,6 +2,7 @@ from distutils import extension
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 
+
 class StatusControl(models.Model):
     GROUP_CHOICES = (
         ("petition", "Proceso de Solicitud"),
@@ -68,6 +69,20 @@ class NegativeReason(models.Model):
     class Meta:
         verbose_name = u"Razón de negación de datos"
         verbose_name_plural = u"Razones de negación de datos"
+
+
+class DateBreak(models.Model):
+    name = models.CharField(max_length=50)
+    public_name = models.CharField(max_length=120)
+    order = models.IntegerField(default=5)
+    break_params = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = u"Fecha de corte"
+        verbose_name_plural = u"Fechas de corte"
 
 
 """class FormatFile(models.Model):

@@ -8,6 +8,7 @@ from desabasto.api.views import StandardResultsSetPagination
 
 from catalog.models import Institution, State, CLUES, Entity
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 
 class StateViewSet(ListRetrieveUpdateMix):
@@ -50,42 +51,25 @@ class EntityViewSet(ListRetrieveUpdateMix):
         return Response(serializer.data, status=status.HTTP_200_OK)
         return Response()
 
-""" @action(methods=["post"], detail=True, url_path='create_months')
+    @action(methods=["post"], detail=True, url_path='create_months')
     def create_months(self, request, **kwargs):
         import json
         from inai.models import MonthEntity
         if not request.user.is_staff:
             raise PermissionDenied()
-        limiters = request.data.get("limiters")
-        limiters = json.loads(limiters)
+        year = request.data.get("year")
         entity = self.get_object()
-        
-        MonthEntity.objects.create()
-        errors = []
+        for month in range(12):
+            try:
+                month += 1
+                ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
+                MonthEntity.objects.create(entity=entity, year_month=ye_mo)
+            except Exception as e:
+                return Response(
+                    {"errors": ["No se pudo crear", "%s" % e]},
+                    status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_202_ACCEPTED)
 
-        if pending in [True, "true"]:
-            report.pending = True
-        elif pending in [False, "false"]:
-            report.pending = False
-        elif pending:
-            errors.append("pending invalido")
-
-        if validated in [True, "true"]:
-            report.validated = True
-        elif validated in [False, "false"]:
-            report.validated = False
-        elif validated in ["null"]:
-            report.validated = None
-        elif validated:
-            errors.append("validated invalido")
-
-        if errors:
-            return Response({"errors": errors},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        report.save()
-
-        return Response(status=status.HTTP_202_ACCEPTED)"""
 
 
 class InstitutionList(ListMix):

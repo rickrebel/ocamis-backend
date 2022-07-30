@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from category.models import (
-    FileType, StatusControl, ColumnType, NegativeReason)
+    FileType, StatusControl, ColumnType, NegativeReason, DateBreak)
 
 
 class FileTypeSimpleSerializer(serializers.ModelSerializer):
@@ -30,5 +30,12 @@ class NegativeReasonSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NegativeReason
+        fields = "__all__"
+
+
+class DateBreakSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DateBreak
         fields = "__all__"
 

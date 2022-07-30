@@ -11,10 +11,11 @@ from data_param.api.serializers import (
     CleanFunctionSimpleSerializer)
 
 from category.models import (
-    FileType, StatusControl, ColumnType, NegativeReason)
+    FileType, StatusControl, ColumnType, NegativeReason, DateBreak)
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
-    ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer)
+    ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
+    DateBreakSimpleSerializer)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
@@ -55,6 +56,8 @@ class CatalogView(views.APIView):
                 ColumnType.objects.all(), many=True).data,
             "negative_reasons": NegativeReasonSimpleSerializer(
                 NegativeReason.objects.all(), many=True).data,
+            "date_breaks": DateBreakSimpleSerializer(
+                DateBreak.objects.all(), many=True).data,
         }
         return Response(data)
 

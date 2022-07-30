@@ -80,7 +80,7 @@ class MonthEntitySimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MonthEntity
-        fields = ["year_month"]
+        fields = ["year_month", "human_name"]
 
 
 class DataFileSerializer(serializers.ModelSerializer):
@@ -113,7 +113,9 @@ class PetitionFullSerializer(serializers.ModelSerializer):
     file_control = PetitionFileControlSerializer(many=True)
     petition_months = PetitionMonthSerializer(many=True)
     process_files = ProcessFileSerializer(many=True)
+    #break_dates = BreakDateSerializer(many=True)
 
     class Meta:
         model = Petition
-        fields = ["id", "date_send"]
+        #fields = ["id", "date_send"]
+        fields = "__all__"

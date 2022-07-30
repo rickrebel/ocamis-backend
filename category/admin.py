@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import FileType, StatusControl, ColumnType, NegativeReason
+from .models import (
+    FileType, StatusControl, ColumnType, NegativeReason, DateBreak)
 
 
 class StatusControlAdmin(admin.ModelAdmin):
@@ -21,6 +22,12 @@ class ColumnTypeAdmin(admin.ModelAdmin):
     list_display = ["name", "public_name", "description"]
 
 admin.site.register(ColumnType, ColumnTypeAdmin)
+
+
+class DateBreakAdmin(admin.ModelAdmin):
+    list_display = ["name", "public_name", "order"]
+
+admin.site.register(DateBreak, DateBreakAdmin)
 
 
 class NegativeReasonAdmin(admin.ModelAdmin):
