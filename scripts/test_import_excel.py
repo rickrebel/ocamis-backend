@@ -1,4 +1,53 @@
 
+##FUNCIONES FINALES 30/07/22
+
+#Para nombres
+def hydrateCol(row, all_headers):
+    hydrated = {}
+    cols = row
+    if not len(cols):
+        return False
+    for idx_head, header in enumerate(all_headers):
+        try:
+            hydrated[header] = cols[idx_head]
+        except Exception as e:
+            print(cols)
+            print(hydrated)
+            return False
+    return hydrated
+
+
+#Para cargar Excel
+path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
+def import_excel(path_excel):
+    import pandas as pd
+    prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
+    #Nombres de columnas (pandaarray)
+    headers = prueba_clues.keys().array
+    #Renglones de las variables
+    rows= []
+    for row in prueba_clues.iterrows():
+        rows.append(row)
+    #Extraer datos de tuple (quitar nombre index)
+    rowsf= [a_row[1] for a_row in rows]
+    print(rowsf)
+    #Extraer datos a lista
+    listval=[]
+    for lis in rowsf:
+        listval.append(lis.tolist())
+    dtafin={}
+    dtafin = hydrateCol(listval,headers)
+    print(dtafin)
+
+
+
+
+
+
+
+
+
+
 ##28/07/2022
 ###ELEMENTOS PARA LA FUNCION DE CARGA CLUES 
 
@@ -6,6 +55,7 @@
 
 #Para cargar las clues
 import pandas as pd
+#def import_excel(path_excel):
 path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
 prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
 
@@ -18,7 +68,6 @@ for row in prueba_clues.iterrows():
     rows.append(row)
 
 #Extraer datos de tuple (quitar nombre index)
-rowsf= []
 rowsf= [a_row[1] for a_row in rows]
 
 #Extraer datos a lista
@@ -30,7 +79,7 @@ for lis in rowsf:
 #lista de listas
 flist = [list(i) for i in zip(*listval)]
 
-#Para nombres de columnas
+#Para nombres
 def hydrateCol(row, all_headers):
     hydrated = {}
     #cols = row.split("|")
@@ -48,6 +97,27 @@ def hydrateCol(row, all_headers):
 
 #Lista de listas con nombres de columnas (dict)
 dtaclues= hydrateCol(flist, headers)
+
+def hydrateCol(row, all_headers):
+    hydrated = {}
+    cols = row
+    if not len(cols):
+        return False  
+    for idx_head, header in enumerate(all_headers):
+        try:
+            hydrated[header] = cols[idx_head][idx_head]
+        except Exception as e:
+            print(cols)
+            print(hydrated)
+            return False
+    return hydrated
+    
+    #Cambiar orden 
+    #lista de listas
+    #flist = [list(i) for i in zip(*listval)]
+    #print(flist)
+
+
 
 #Identificar los movimientos de clues despues del 2019-12-31
 from datetime import date
@@ -91,7 +161,7 @@ for i in dtaclues['CAMAS EN AREA DE HOS']:
 dtaclues['CAMAS EN AREA DE HOS']=camas_otr
 
 #total_unities final
-t_uni= [cons_gral,cons_otar,camas_hos,camas_otr]
+t_uni= [cons_gral, cons_otar, camas_hos, camas_otr]
 t_unid= list(map(sum, zip(*t_uni)))
 dtaclues['UNIDADES TOTALES'] = t_unid
 
@@ -323,7 +393,7 @@ for i in dtaclues['FECHA ULTIMO MOVIMIENTO']:
 CLUES.objects.get(id=1)
 
 #Crear un objeto
-dprueba = State(inegi_code = '40',
+dprueba = State(inegi_code = '41',
                 name ='prueba',
                 short_name= 'pr', 
                 code_name ='pr',
@@ -335,18 +405,21 @@ State.objects.filter(inegi_code='40').update(inegi_code='98')
 #Eliminar un objeto
 State.objects.filter(inegi_code ='98').delete()
 
+#Diccionario
+
+
 from catalog.models import State
-returns = State.objects.all()
-for ret in returns:
+states = State.objects.all()
+for state in states:
     try:
-        return_in_database = State.objects.get(inegi_code='40').exists()
+        new_state = State.objects.get(inegi_code='40').exists()
     except:
-        obj, created = State.objects.get_or_create(inegi_code = '40',
+        new_state, created = State.objects.get_or_create(inegi_code = '40',
                                                     name = 'prueba',
                                                     short_name = 'pr', 
                                                     code_name = 'pr',
                                                     other_names = 'P')
-    obj.save() 
+    new_state.save() 
 
 
 
