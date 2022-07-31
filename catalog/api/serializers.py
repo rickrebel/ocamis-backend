@@ -121,6 +121,8 @@ class EntityFullSerializer(EntitySerializer):
         PetitionFullSerializer, MonthEntitySimpleSerializer)
     petitions = PetitionFullSerializer(many=True)
     months = MonthEntitySimpleSerializer(many=True)
+    #entity_type = read_only_fields(many=True)
+    entity_type = serializers.ReadOnlyField()
 
     class Meta:
         model = Entity

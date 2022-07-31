@@ -50,3 +50,6 @@ Thumbs.db
 *.wmv
 
 *.sqlite3
+
+core/production.py
+core/local.py

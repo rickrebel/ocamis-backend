@@ -29,6 +29,8 @@ class StateAdmin(admin.ModelAdmin):
         "code_name",
         "other_names"]
 
+admin.site.register(State, StateAdmin)
+
 
 class EntityAdmin(admin.ModelAdmin):
     list_display = [
@@ -46,9 +48,6 @@ class EntityAdmin(admin.ModelAdmin):
         ]
 
 admin.site.register(Entity, EntityAdmin)
-
-
-admin.site.register(State, StateAdmin)
 
 
 class MunicipalityAdmin(admin.ModelAdmin):

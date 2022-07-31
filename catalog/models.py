@@ -272,6 +272,9 @@ class Entity(models.Model):
         verbose_name="Nombre",
         help_text="Solo cuando sea distinta al nombre de la institución/CLUES"
         )
+    acronym = models.CharField(
+        max_length=20, verbose_name=u"Siglas del Sujeto Obligado",
+        blank=True, null=True)
     institution = models.ForeignKey(
         'Institution', on_delete=models.CASCADE)
     state = models.ForeignKey(
@@ -298,5 +301,6 @@ class Entity(models.Model):
             return 'Nacional'
 
     class Meta:
+        ordering = ["state__name"]
         verbose_name = u"Sujeto Obligado"
         verbose_name_plural = u"Sujetos Obligados"

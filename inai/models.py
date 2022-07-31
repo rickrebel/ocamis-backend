@@ -4,7 +4,7 @@ from django.contrib.postgres.fields import JSONField
 from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, DateBreak)
-from data_param.models import DataType, FinalField, CleanFunction
+from data_param.models import DataType, FinalField, CleanFunction, DataGroup
 
 
 class Petition(models.Model):
@@ -12,14 +12,6 @@ class Petition(models.Model):
         Entity,
         related_name="petitions",
         on_delete=models.CASCADE)
-    date_send = models.DateTimeField(blank=True, null=True)
-    limit_response = models.DateTimeField(blank=True, null=True)
-    date_response = models.DateTimeField(blank=True, null=True)
-    limit_pickup = models.DateTimeField(
-        blank=True, null=True, verbose_name="límite para recoger datos")
-    limit_complain = models.DateTimeField(
-        blank=True, null=True,
-        verbose_name="límite para presentar queja")
     ask_extension = models.NullBooleanField(
         blank=True, null=True,
         verbose_name="Se solicitó extensión")
@@ -34,18 +26,12 @@ class Petition(models.Model):
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
-    #negative_reason = models.ForeignKey(
-    #    NegativeReason, null=True, blank=True, 
-    #    verbose_name="Razón de la negativa",
-    #    on_delete=models.CASCADE)
     folio_petition = models.IntegerField(
         verbose_name="Folio de la solicitud", 
         blank=True, null=True)
-    folio_queja = models.IntegerField(
+    folio_complain = models.IntegerField(
         verbose_name="Folio de la queja", 
         blank=True, null=True)
-    #break_dates = models.ManyToManyField(
-    #    DateBreak, blank=True, verbose_name="Fechas de corte")
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.id)
@@ -57,10 +43,12 @@ class Petition(models.Model):
 
 class PetitionBreak(models.Model):
     petition = models.ForeignKey(
-        Petition, on_delete=models.CASCADE)
+        Petition, 
+        related_name="break_dates",
+        on_delete=models.CASCADE)
     date_break = models.ForeignKey(
         DateBreak, on_delete=models.CASCADE)
-    date = models.DateTimeField(blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return "%s, %s" % (self.petition, self.date_break)
@@ -103,7 +91,9 @@ class FileControl(models.Model):
     name = models.CharField(
         max_length=120, default='grupo único')
     file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE)
+        FileType, on_delete=models.CASCADE, blank=True, null=True)
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE)
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,
@@ -132,8 +122,8 @@ class FileControl(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Grupo de archivos"
-        verbose_name_plural = "Grupos de archivos"
+        verbose_name = "Grupo control de archivos"
+        verbose_name_plural = "Grupos control de archivos"
 
 
 class PetitionFileControl(models.Model):
@@ -142,7 +132,8 @@ class PetitionFileControl(models.Model):
         related_name="file_controls",
         on_delete=models.CASCADE)
     file_control = models.ForeignKey(
-        FileControl, on_delete=models.CASCADE)
+        FileControl, on_delete=models.CASCADE,
+        related_name="petitions",)
 
     def __str__(self):
         return "%s - %s" % (self.petition, self.file_control)

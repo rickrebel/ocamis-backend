@@ -5,7 +5,8 @@ from .models import (
 
 
 class StatusControlAdmin(admin.ModelAdmin):
-    list_display = ["group", "name", "public_name", "addl_params"]
+    list_display = [
+        "group", "name", "public_name", "description", "order", "addl_params"]
     list_filter = ["group"]
 
 admin.site.register(StatusControl, StatusControlAdmin)
