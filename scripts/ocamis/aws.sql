@@ -21,4 +21,3 @@ SELECT aws_s3.table_import_from_s3(
 'us-west-2',
 'AKIAICSGL3ROH3GVALGQ', 'fFq7NwQyj/FmdtK/weXRwgrlEArkOatITD/mJYzL'
 )
-
