@@ -30,6 +30,25 @@ class ProcessFileSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class ProcessFileEditSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+
+    class Meta:
+        model = ProcessFile
+        fields = "__all__"
+        read_only_fields = ["petition"]
+
+
+class AscertainableSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+
+    class Meta:
+        model = ProcessFile
+        fields = ["id", "name", "url"]
+
+
 class TransformationSerializer(serializers.ModelSerializer):
     clean_function = CleanFunctionSimpleSerializer()
 
@@ -102,7 +121,7 @@ class PetitionMonthSerializer(serializers.ModelSerializer):
 
 
 class PetitionFileControlSerializer(serializers.ModelSerializer):
-    file_control = FileControlSerializer()
+    #file_control = FileControlSerializer()
     data_files = DataFileSerializer(many=True)
 
     class Meta:
@@ -125,18 +144,20 @@ class PetitionBreakSerializer(serializers.ModelSerializer):
         #write_only_fields = ('date_break_id',)
 
 
-class PetitionFullSerializer(serializers.ModelSerializer):
-    file_controls = PetitionFileControlSerializer(many=True)
+class PetitionSmallSerializer(serializers.ModelSerializer):
     petition_months = PetitionMonthSerializer(many=True)
     process_files = ProcessFileSerializer(many=True)
-    break_dates = PetitionBreakSerializer(many=True)
-    status_data = StatusControlSimpleSerializer()
-    status_petition = StatusControlSimpleSerializer()
 
     class Meta:
         model = Petition
-        #fields = ["id", "date_send"]
         fields = "__all__"
+
+
+class PetitionFullSerializer(PetitionSmallSerializer):
+    file_controls = PetitionFileControlSerializer(many=True)
+    break_dates = PetitionBreakSerializer(many=True)
+    status_data = StatusControlSimpleSerializer()
+    status_petition = StatusControlSimpleSerializer()
 
 
 class PetitionEditSerializer(serializers.ModelSerializer):

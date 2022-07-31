@@ -4,9 +4,11 @@ from rest_framework.response import Response
 from rest_framework import (permissions, views, status)
 
 from inai.models import (
-    FileControl, Petition, MonthEntity, PetitionMonth, PetitionBreak)
+    FileControl, Petition, MonthEntity, PetitionMonth, PetitionBreak,
+    ProcessFile)
 from api.mixins import (
-    ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
+    ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
+    MultiSerializerCreateRetrieveMix as CreateRetrievView,)
 
 
 
@@ -95,3 +97,44 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             petition, context={'request': request})
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ProcessFileViewSet(CreateRetrievView):
+    queryset = ProcessFile.objects.all()
+    serializer_class = serializers.ProcessFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "list": serializers.ProcessFileSerializer,
+        "retrieve": serializers.ProcessFileSerializer,
+        "create": serializers.ProcessFileEditSerializer,
+        "delete": serializers.ProcessFileEditSerializer,
+    }
+
+    def get_queryset(self):
+        if "petition_id" in self.kwargs:
+            return ProcessFile.objects.filter(
+                petition=self.kwargs["petition_id"])
+        return ProcessFile.objects.all()
+
+    def create(self, request, petition_id=False):
+        from rest_framework.exceptions import (
+            #ParseError,  #400
+            NotFound)  # 404
+
+        serializer = serializers.ProcessFileEditSerializer(data=request.data)
+        if not serializer.is_valid:
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        file = request.data.get("file")
+        try:
+            petition = Petition.objects.get(id=petition_id)
+        except:
+            raise NotFound(detail="petición no encontrada")
+
+        obj = ProcessFile.objects.create(
+            ori_file=file, petition=petition)
+
+        serializer = self.serializer_class(obj)
+
+        return Response(serializer.data)

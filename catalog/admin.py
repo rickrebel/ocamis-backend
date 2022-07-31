@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from inai.admin import ocamis_admin_site
 
 from django.contrib import admin
 #from django.contrib.admin import AdminSite
@@ -30,24 +31,28 @@ class StateAdmin(admin.ModelAdmin):
         "other_names"]
 
 admin.site.register(State, StateAdmin)
+ocamis_admin_site.register(State, StateAdmin)
 
 
 class EntityAdmin(admin.ModelAdmin):
     list_display = [
+        "acronym",
         "name",
         "entity_type",
-        "institution",
         "state",
+        "institution",
         "clues"]
     raw_id_fields = ["clues"]
 
     search_fields = [
+        "acronym",
         "name",
         "institution__code",
         "state__short_name"
         ]
 
-admin.site.register(Entity, EntityAdmin)
+#admin.site.register(Entity, EntityAdmin)
+ocamis_admin_site.register(Entity, EntityAdmin)
 
 
 class MunicipalityAdmin(admin.ModelAdmin):
@@ -76,8 +81,8 @@ class InstitutionAdmin(admin.ModelAdmin):
         "public_code",
         "relevance"]
 
-
 admin.site.register(Institution, InstitutionAdmin)
+ocamis_admin_site.register(Institution, InstitutionAdmin)
 
 
 class CLUESAdmin(admin.ModelAdmin):
@@ -111,6 +116,7 @@ class CLUESAdmin(admin.ModelAdmin):
     ]
 
 admin.site.register(CLUES, CLUESAdmin)
+ocamis_admin_site.register(CLUES, CLUESAdmin)
 
 
 class AlliancesAdmin(admin.ModelAdmin):

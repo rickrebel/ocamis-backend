@@ -1,10 +1,40 @@
+import os
+
 from django.db import models
 from django.contrib.postgres.fields import JSONField
+from django.utils.deconstruct import deconstructible
 
 from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, DateBreak)
 from data_param.models import DataType, FinalField, CleanFunction, DataGroup
+
+def set_upload_path(instance, filename):
+    #from django.conf import settings
+    #files_path = getattr(settings, "FILES_PATH")
+    try:
+        petition = instance.petition_file_control.petition
+    except:
+        petition = instance.petition
+    entity_type = petition.entity.entity_type[:8].lower()
+    try:
+        acronym = petition.entity.acronym.lower()
+
+    except:
+        acronym = 'others'
+    try:
+        last_year_month = instance.month_entity.year_month
+    except AttributeError:
+        try:
+            last_year_month = petition.petition_months[-1].month_entity.year_month
+        except :
+            last_year_month = "others"
+    except:
+        last_year_month = "others"
+    #final_path = "/".join([entity_type, acronym, last_year_month, filename])
+    #print(os.path.join('/media/%s/' % instance.id, filename))
+    #print(os.path.join(files_path, final_path))
+    return "/".join([entity_type, acronym, last_year_month, filename])
 
 
 class Petition(models.Model):
@@ -27,8 +57,7 @@ class Petition(models.Model):
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
     folio_petition = models.IntegerField(
-        verbose_name="Folio de la solicitud", 
-        blank=True, null=True)
+        verbose_name="Folio de la solicitud")
     folio_complain = models.IntegerField(
         verbose_name="Folio de la queja", 
         blank=True, null=True)
@@ -37,8 +66,8 @@ class Petition(models.Model):
         return "%s -- %s" % (self.entity, self.id)
 
     class Meta:
-        verbose_name = u"Solicitud"
-        verbose_name_plural = u"Solicitudes"
+        verbose_name = u"Solicitud - Petición"
+        verbose_name_plural = u"Solicitudes (Petiticiones)"
 
 
 class PetitionBreak(models.Model):
@@ -91,7 +120,8 @@ class FileControl(models.Model):
     name = models.CharField(
         max_length=120, default='grupo único')
     file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE, blank=True, null=True)
+        FileType, on_delete=models.CASCADE,
+        blank=True, null=True,)
     data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE)
     format_file = models.CharField(
@@ -133,7 +163,7 @@ class PetitionFileControl(models.Model):
         on_delete=models.CASCADE)
     file_control = models.ForeignKey(
         FileControl, on_delete=models.CASCADE,
-        related_name="petitions",)
+        related_name="petition_file_control",)
 
     def __str__(self):
         return "%s - %s" % (self.petition, self.file_control)
@@ -185,7 +215,9 @@ class PetitionMonth(models.Model):
 
 
 class DataFile(models.Model):
-    ori_file = models.FileField(max_length=100) 
+
+    ori_file = models.FileField(max_length=150,
+        upload_to=set_upload_path) 
     date = models.DateTimeField(auto_now_add=True)
     month_entity = models.ForeignKey(
         MonthEntity, blank=True, null=True,
@@ -211,7 +243,9 @@ class DataFile(models.Model):
     total_rows = models.IntegerField(default=1)
 
     def __str__(self):
-        return self.ori_file
+        return "%s %s" % (str(self.ori_file), self.petition_file_control)
+        #return "%s %s" % (self.petition_file_control, self.date)
+        #return "hola"
 
     def save_errors(self, errors, error_name):
         errors = ['No se pudo descomprimir el archivo gz']
@@ -230,11 +264,12 @@ class DataFile(models.Model):
 
 
 class ProcessFile(models.Model):
+
     petition = models.ForeignKey(
         Petition,
         related_name="process_files",
         on_delete=models.CASCADE)
-    ori_file = models.FileField(max_length=100) 
+    ori_file = models.FileField(max_length=150, upload_to=set_upload_path)
     date = models.DateTimeField(auto_now_add=True)
     file_type = models.ForeignKey(
         FileType, on_delete=models.CASCADE, blank=True, null=True)

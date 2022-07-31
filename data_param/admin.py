@@ -1,4 +1,5 @@
 from django.contrib import admin
+from inai.admin import ocamis_admin_site
 
 from .models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction)
@@ -17,7 +18,7 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "name", "collection__name", "collection__model_name",
         "verbose_name"]
 
-admin.site.register(FinalField, FinalFieldAdmin)
+ocamis_admin_site.register(FinalField, FinalFieldAdmin)
 
 
 class FinalFieldInline(admin.TabularInline):
@@ -36,7 +37,7 @@ class CollectionAdmin(admin.ModelAdmin):
         FinalFieldInline,
     ]
 
-admin.site.register(Collection, CollectionAdmin)
+ocamis_admin_site.register(Collection, CollectionAdmin)
 
 
 class CollectionInline(admin.TabularInline):
@@ -51,7 +52,7 @@ class DataGroupAdmin(admin.ModelAdmin):
     ]
     inlines = [ CollectionInline ]
 
-admin.site.register(DataGroup, DataGroupAdmin)
+ocamis_admin_site.register(DataGroup, DataGroupAdmin)
 
 
 
@@ -63,7 +64,7 @@ class DataTypeAdmin(admin.ModelAdmin):
         "order",
     ]
 
-admin.site.register(DataType, DataTypeAdmin)
+ocamis_admin_site.register(DataType, DataTypeAdmin)
 
 
 
@@ -72,4 +73,4 @@ class CleanFunctionAdmin(admin.ModelAdmin):
         "name", "public_name", "for_all_data", "restricted_field",
         "priority"]
 
-admin.site.register(CleanFunction, CleanFunctionAdmin)
+ocamis_admin_site.register(CleanFunction, CleanFunctionAdmin)

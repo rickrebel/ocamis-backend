@@ -39,6 +39,7 @@ class FileType(models.Model):
     order = models.IntegerField(default=15)
     #default_format = models.ForeignKey(
     #    FormatFile, on_delete=models.CASCADE, blank=True, null=True)
+    addl_params = JSONField(blank=True, null=True)
 
     def __str__(self):
         return self.name

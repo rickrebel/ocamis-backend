@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from inai.admin import ocamis_admin_site
 
 from django.contrib import admin
 
@@ -17,7 +18,7 @@ class DocumentTypeAdmin(admin.ModelAdmin):
     search_fields = ["name"]
 
 
-admin.site.register(DocumentType, DocumentTypeAdmin)
+ocamis_admin_site.register(DocumentType, DocumentTypeAdmin)
 
 
 class MedicalSpecialityAdmin(admin.ModelAdmin):
@@ -25,7 +26,7 @@ class MedicalSpecialityAdmin(admin.ModelAdmin):
     search_fields = ["name"]
 
 
-admin.site.register(MedicalSpeciality, MedicalSpecialityAdmin)
+ocamis_admin_site.register(MedicalSpeciality, MedicalSpecialityAdmin)
 
 
 class DoctorAdmin(admin.ModelAdmin):
@@ -34,7 +35,7 @@ class DoctorAdmin(admin.ModelAdmin):
     search_fields = ["clave_doctor", "nombre_medico"]
 
 
-admin.site.register(Doctor, DoctorAdmin)
+ocamis_admin_site.register(Doctor, DoctorAdmin)
 
 
 class DrougInline(admin.TabularInline):
@@ -57,7 +58,7 @@ class PrescriptionAdmin(admin.ModelAdmin):
     raw_id_fields = ["clues"]
     search_fields = ["type_document", ]
 
-admin.site.register(Prescription, PrescriptionAdmin)
+ocamis_admin_site.register(Prescription, PrescriptionAdmin)
 
 
 class DrougAdmin(admin.ModelAdmin):
@@ -69,4 +70,4 @@ class DrougAdmin(admin.ModelAdmin):
         ]
     #readonly_fields = ["prescription"]
 
-admin.site.register(Droug, DrougAdmin)
+ocamis_admin_site.register(Droug, DrougAdmin)

@@ -28,14 +28,14 @@ class EntityViewSet(ListRetrieveUpdateMix):
             "petitions",
             "petitions__petition_months",
             "petitions__file_controls",
-            "petitions__file_controls__file_control",
-            "petitions__file_controls__file_control__data_group",
-            "petitions__file_controls__file_control__file_type",
-            "petitions__file_controls__file_control__file_tranformations",
-            "petitions__file_controls__file_control__file_tranformations__clean_function",
-            "petitions__file_controls__data_files",
-            "petitions__file_controls__data_files__status_process",
-            "petitions__file_controls__data_files__month_entity",
+            #"petitions__file_controls__file_control",
+            #"petitions__file_controls__file_control__data_group",
+            #"petitions__file_controls__file_control__file_type",
+            #"petitions__file_controls__file_control__file_tranformations",
+            #"petitions__file_controls__file_control__file_tranformations__clean_function",
+            #"petitions__file_controls__data_files",
+            #"petitions__file_controls__data_files__status_process",
+            #"petitions__file_controls__data_files__month_entity",
         )
     
     action_serializers = {

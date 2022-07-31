@@ -46,7 +46,7 @@ class CatalogView(views.APIView):
                 FinalField.objects.all(), many=True).data,
             "data_types": DataTypeSimpleSerializer(
                 DataType.objects.all(), many=True).data,
-            "clean_funcions": CleanFunctionSimpleSerializer(
+            "clean_functions": CleanFunctionSimpleSerializer(
                 CleanFunction.objects.all(), many=True).data,
             "file_types": FileTypeSimpleSerializer(
                 FileType.objects.all(), many=True).data,
