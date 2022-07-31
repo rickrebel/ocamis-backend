@@ -5,8 +5,8 @@ from django.contrib.postgres.fields import JSONField
 
 class StatusControl(models.Model):
     GROUP_CHOICES = (
-        ("petition", "Proceso de Solicitud"),
-        ("data", "Datos de la Solicitud"),
+        ("petition", "de Solicitud"),
+        ("data", "Datos entregados"),
         ("process", "Procesamiento de archivos (solo devs)"),
         ("register", "Registro de variables (solo devs)"),
     )
