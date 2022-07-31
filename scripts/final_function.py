@@ -27,12 +27,27 @@ def import_excel(path_excel):
         rows.append(row)
     #Extraer datos de tuple (quitar nombre index)
     rowsf= [a_row[1] for a_row in rows]
-    print(rowsf)
+    #print(rowsf)
     #Extraer datos a lista
     listval=[]
     for lis in rowsf:
         listval.append(lis.tolist())
-    flist = [list(i) for i in zip(*listval)]
-    dtafin={}
-    dtafin = hydrateCol(flist,headers)
-    print(dtafin)
+    #Guardar con nombres
+    listfin=[]
+    for lis in range(len(listval)):
+        dict = hydrateCol(listval[lis],headers)
+        listfin.append(dict)
+    return(listfin)
+
+
+#Corregir
+#Identificar los movimientos de clues despues del 2019-12-31
+from datetime import date
+dates_idm =[]
+datet = date.fromisoformat('2019-12-31')
+for i in flist[32]:
+    #datesm.append(date.fromisoformat(i)) 
+    if (date.fromisoformat(i)) > datet: 
+        dates_idm.append("True")
+    else:
+        dates_idm.append("False")
