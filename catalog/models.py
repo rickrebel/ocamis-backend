@@ -288,11 +288,13 @@ class Entity(models.Model):
         max_length=20, verbose_name=u"Siglas del Sujeto Obligado",
         blank=True, null=True)
     idSujetoObligado = models.IntegerField(
-        verbose_name=u"idSujetoObligado (inai)",
+        verbose_name="idSujetoObligado",
+        help_text="idSujetoObligado del INAI",
         blank=True, null=True)
     nombreSujetoObligado = models.CharField(
         max_length=160,
-        verbose_name=u"nombreSujetoObligado (inai)",
+        verbose_name="nombreSujetoObligado)",
+        help_text="nombreSujetoObligado del INAI",
         blank=True, null=True)
     institution = models.ForeignKey(
         'Institution', on_delete=models.CASCADE)
@@ -304,7 +306,12 @@ class Entity(models.Model):
         'CLUES', null=True, 
         blank=True, on_delete=models.CASCADE)
     addl_params = JSONField(blank=True, null=True)
-    vigencia = models.NullBooleanField(default=True)
+    vigencia = models.NullBooleanField(
+        default=True, help_text="Actualmente se le sigue preguntando")
+    compentent = models.BooleanField(
+        default=True,
+        verbose_name="compentente",
+        help_text="Es compentente porque tiene pacientes y debe tener la información")
 
     def __str__(self):
         return self.name or u"%s -%s -%s" % (
