@@ -21,9 +21,19 @@ class FinalFieldAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(FinalField, FinalFieldAdmin)
 
 
-class FinalFieldInline(admin.TabularInline):
+class FinalFieldInLine(admin.StackedInline):
     model = FinalField
     extra = 0
+    show_change_link = True
+    fieldsets=(
+        (None, {
+            "fields":("collection","name","verbose_name","data_type","addl_params",)
+        }),
+        ("Más configuraciones:", {
+            #"classes": ("collapse",),
+            "fields": ("variations", "requiered", "is_common", "dashboard_hide", "in_data_base", "verified")
+        }),
+        )
 
 
 class CollectionAdmin(admin.ModelAdmin):
@@ -34,7 +44,7 @@ class CollectionAdmin(admin.ModelAdmin):
         "description",
     ]
     inlines = [
-        FinalFieldInline,
+        FinalFieldInLine,
     ]
 
 ocamis_admin_site.register(Collection, CollectionAdmin)

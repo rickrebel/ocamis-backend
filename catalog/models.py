@@ -6,13 +6,25 @@ from django.contrib.postgres.fields import JSONField
 
 
 class State(models.Model):
+    def default_alternative_names():
+        return []
     inegi_code = models.CharField(max_length=2, verbose_name=u"Clave INEGI")
     name = models.CharField(max_length=50, verbose_name=u"Nombre")
     short_name = models.CharField(
-        max_length=20, verbose_name=u"Nombre Corto", blank=True, null=True)
+        max_length=20, verbose_name=u"Nombre Corto",
+        blank=True, null=True)
     code_name = models.CharField(
-        max_length=6, verbose_name=u"Nombre Clave", blank=True, null=True)
-    other_names = models.CharField(max_length=255, blank=True, null=True)
+        max_length=6, verbose_name=u"Nombre Clave",
+        blank=True, null=True)
+    other_names = models.CharField(
+        verbose_name="Otros nombres",
+        help_text="No utilizar para OCAMIS, es solo para para cero desabasto",
+        max_length=255, blank=True, null=True)
+    alternative_names = JSONField(
+        default=default_alternative_names,
+        verbose_name="Lista nombres alternativos",
+        help_text="Ocupar para OCAMIS",
+        )
 
     def __str__(self):
         return self.short_name or self.code_name or self.name
@@ -274,6 +286,13 @@ class Entity(models.Model):
         )
     acronym = models.CharField(
         max_length=20, verbose_name=u"Siglas del Sujeto Obligado",
+        blank=True, null=True)
+    idSujetoObligado = models.IntegerField(
+        verbose_name=u"idSujetoObligado (inai)",
+        blank=True, null=True)
+    nombreSujetoObligado = models.CharField(
+        max_length=160,
+        verbose_name=u"nombreSujetoObligado (inai)",
         blank=True, null=True)
     institution = models.ForeignKey(
         'Institution', on_delete=models.CASCADE)

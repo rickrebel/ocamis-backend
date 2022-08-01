@@ -39,6 +39,7 @@ class EntityAdmin(admin.ModelAdmin):
         "acronym",
         "name",
         "entity_type",
+        "idSujetoObligado",
         "state",
         "institution",
         "clues"]
