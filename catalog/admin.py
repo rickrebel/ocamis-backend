@@ -39,11 +39,14 @@ class EntityAdmin(admin.ModelAdmin):
         "acronym",
         "name",
         "entity_type",
+        "vigencia",
+        "compentent",
+        "idSujetoObligado",
         "state",
         "institution",
         "clues"]
     raw_id_fields = ["clues"]
-
+    list_editable = ["idSujetoObligado", "vigencia", "compentent"]  
     search_fields = [
         "acronym",
         "name",

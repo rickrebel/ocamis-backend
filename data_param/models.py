@@ -20,12 +20,17 @@ class DataGroup(models.Model):
 
 
 class Collection(models.Model):
-    name = models.CharField(max_length=225)
+    name = models.CharField(
+        max_length=225, verbose_name="verbose_name_plural",
+        help_text="Nombre del Modelo público (Meta.verbose_name_plural)")
     model_name = models.CharField(
-        max_length=225, verbose_name="Nombre en el código")
-    description = models.TextField(blank=True, null=True)
+        max_length=225,
+        verbose_name="Nombre en el código")
+    description = models.TextField(
+        blank=True, null=True)
     data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE) 
+        DataGroup, on_delete=models.CASCADE, 
+        verbose_name="Conjunto de datos")
 
     def __str__(self):
         return self.name
@@ -38,7 +43,8 @@ class Collection(models.Model):
 class DataType(models.Model):
     def default_params_data_type():
         return {"name_pandas": ''}
-    name = models.CharField(max_length=225)
+    name = models.CharField(
+        max_length=225)
     description =  models.TextField(blank=True, null=True)
     addl_params = JSONField(
         default=default_params_data_type,
@@ -57,30 +63,45 @@ class DataType(models.Model):
 class FinalField(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE)
-    name = models.CharField(max_length=120)
-    verbose_name = models.TextField(blank=True, null=True)
+    name = models.CharField(
+        max_length=120, verbose_name="Nombre del campo en BD")
+    verbose_name = models.CharField(
+        max_length=255, blank=True, null=True)
     data_type = models.ForeignKey(
         DataType, 
         null=True, blank= True,
         on_delete=models.CASCADE,)
     addl_params = JSONField(
-        blank=True, null=True, verbose_name="Otras configuraciones")
-    variatrions = JSONField(
         blank=True, null=True, 
-        verbose_name="Otros posibles nombres")
+        verbose_name="Otras configuraciones", 
+        help_text="Por ejemplo, max_length, null, blank, help_text,"
+            " así como otras configuraciones que se nos vayan ocurriendo")
+    variations = JSONField(
+        blank=True, null=True, 
+        verbose_name="Otros posibles nombres (variaciones)",
+        help_text="Nombres como pueden venir en las tablas de INAI",
+        )
     requiered = models.BooleanField(
         default=False, verbose_name="Es indispensable para registrar fila")
     is_common = models.BooleanField(
         default=False, verbose_name="Es una variable muy común")
+    dashboard_hide = models.BooleanField(
+        default=False,
+        verbose_name="Oculta en dashboard",
+        help_text="Ocultar en el dashboard (es complementaria o equivalente)")
+    in_data_base = models.BooleanField(
+        default=False, verbose_name="Verificado (solo devs)", 
+        help_text="Ya está en la base de datos comprobado")
     verified = models.BooleanField(
-        default=False, verbose_name="Verificado (solo devs)")
+        default=False, verbose_name="Verificado (solo rick)", 
+        help_text="Ricardo ya verificó que todos los parámetros están bien")
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = u"Documento final"
-        verbose_name_plural = u"Documentos finales"
+        verbose_name = u"Campo final"
+        verbose_name_plural = u"Campos finales (en DB)"
 
 
 class CleanFunction(models.Model):

@@ -42,24 +42,29 @@ def get_data_from_file_txt(
             error_number_columns += 1
     return final_data, headers, error_number_columns
 
-intento_de_limpieza()
+def intento_de_limpieza():
     import io
     import csv
     import json
     data = None
-    path_imss = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_0.json"
-    with io.open(path_imss, "r", encoding="latin-1") as file:
+    path_json = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_0.json"
+    with io.open(path_json, "r", encoding="latin-1") as file:
         data = file.read()
         file.close()
-
     #data_json = data.replace('\r', '').replace('\n', '')
-    data_json = data.replace('\r', '').replace('\n', '')
+    #Enmedio de DescripcionSolicitud y FechaRespuesta
+    data_file = data.replace("\n","\\n")
+    #Lo que está fuera
+    data_file = data_file.replace('\n', '')
+    csv_path2 = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_1.json"
+    with open(csv_path2, 'w', encoding="latin-1") as outfile:
+        outfile.write(data_file)
+
 
     data_file = data.replace("}\n,","},")
     print(data_file.count("}\n,"))
     print(data_file.count("\n"))
 
-    data_file = data.replace("\n","\\n")
     print(data_file.count("\\n"))
     data_file = data.replace("}\\n,{", "},\n{")
     print(data_file.count("\\n"))
@@ -78,12 +83,6 @@ intento_de_limpieza()
         write.writerows(data_file)
         csv_file.close()"""
 
-    csv_path2 = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_1.json"
-    with open(csv_path2, 'w', encoding="latin-1") as outfile:
-        #final_json = json.dump(data_json, outfile, indent=None)
-        #print(final_json)
-        #outfile.write(final_json)
-        outfile.write(data_json)
         
 
 
