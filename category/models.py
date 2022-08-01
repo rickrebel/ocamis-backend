@@ -3,13 +3,15 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 
 
+GROUP_CHOICES = (
+    ("petition", "de Solicitud"),
+    ("data", "Datos entregados"),
+    ("complain", "Quejas - Revisiones"),
+    ("process", "Procesamiento de archivos (solo devs)"),
+    ("register", "Registro de variables (solo devs)"),
+)
+
 class StatusControl(models.Model):
-    GROUP_CHOICES = (
-        ("petition", "de Solicitud"),
-        ("data", "Datos entregados"),
-        ("process", "Procesamiento de archivos (solo devs)"),
-        ("register", "Registro de variables (solo devs)"),
-    )
     group = models.CharField(
         max_length=10, choices=GROUP_CHOICES, 
         verbose_name="grupo de status", default="petition")
@@ -37,6 +39,10 @@ class FileType(models.Model):
     has_data = models.BooleanField(default= False)
     is_original = models.BooleanField(default= False)
     order = models.IntegerField(default=15)
+    color = models.CharField(max_length=20, blank=True, null=True)
+    group = models.CharField(
+        max_length=10, choices=GROUP_CHOICES, 
+        verbose_name="grupo", default="petition")
     #default_format = models.ForeignKey(
     #    FormatFile, on_delete=models.CASCADE, blank=True, null=True)
     addl_params = JSONField(blank=True, null=True)
@@ -77,9 +83,13 @@ class NegativeReason(models.Model):
 
 class DateBreak(models.Model):
     name = models.CharField(max_length=50)
+    group = models.CharField(
+        max_length=10, choices=GROUP_CHOICES, 
+        verbose_name="grupo", default="petition")
     public_name = models.CharField(max_length=120)
     order = models.IntegerField(default=5)
     break_params = JSONField(blank=True, null=True)
+
 
     def __str__(self):
         return self.name

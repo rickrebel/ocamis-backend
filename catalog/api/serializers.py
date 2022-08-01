@@ -113,7 +113,7 @@ class EntitySerializer(serializers.ModelSerializer):
         model = Entity
         fields = [
             "id", "institution", "state", "clues", "name", 
-            "addl_params", "vigencia", "entity_type"]
+            "addl_params", "vigencia", "entity_type", "acronym"]
 
 
 class EntityFullSerializer(EntitySerializer):

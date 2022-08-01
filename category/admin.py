@@ -7,15 +7,17 @@ from .models import (
 
 class StatusControlAdmin(admin.ModelAdmin):
     list_display = [
-        "group", "name", "public_name", "description", "order", "addl_params"]
+        "group", "name", "public_name", "description", "order",
+        "addl_params", "color"]
     list_filter = ["group"]
 
 ocamis_admin_site.register(StatusControl, StatusControlAdmin)
 
 
 class FileTypeAdmin(admin.ModelAdmin):
-    list_display = ["name", "is_default", "has_data", "order", "addl_params"]
-    list_filter = ["has_data"]
+    list_display = ["name", "group", "is_default", "has_data", "order",
+        "addl_params"]
+    list_filter = ["has_data", "group"]
 
 ocamis_admin_site.register(FileType, FileTypeAdmin)
 
@@ -27,7 +29,8 @@ ocamis_admin_site.register(ColumnType, ColumnTypeAdmin)
 
 
 class DateBreakAdmin(admin.ModelAdmin):
-    list_display = ["name", "public_name", "order"]
+    list_display = ["name", "public_name", "group", "order"]
+    list_filter = ["group"]
 
 ocamis_admin_site.register(DateBreak, DateBreakAdmin)
 

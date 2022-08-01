@@ -6,6 +6,8 @@ from inai.models import (
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
     PetitionBreak)
 
+from category.models import StatusControl
+
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer)
@@ -161,6 +163,14 @@ class PetitionFullSerializer(PetitionSmallSerializer):
 
 
 class PetitionEditSerializer(serializers.ModelSerializer):
+    status_data = StatusControlSimpleSerializer(read_only=True)
+    status_data_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="status_data",
+        queryset=StatusControl.objects.all())
+    status_petition = StatusControlSimpleSerializer(read_only=True)
+    status_petition_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="status_petition",
+        queryset=StatusControl.objects.all())
 
     class Meta:
         model = Petition

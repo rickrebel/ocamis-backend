@@ -120,8 +120,11 @@ def sincronize_entities(app_name, model_name):
 #generate_file('data_param', 'DataType')
 #sincronize_entities('data_param', 'DataType')
 
-#generate_file('category', 'StatusControl')
-#sincronize_entities('category', 'StatusControl')
+#generate_file('catalog', 'Entity')
+#sincronize_entities('catalog', 'Entity')
+
+#generate_file('category', 'DateBreak')
+#sincronize_entities('category', 'DateBreak')
 
 #generate_file('category', 'FileType')
 #sincronize_entities('category', 'FileType')
