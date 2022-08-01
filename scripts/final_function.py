@@ -51,3 +51,59 @@ for i in flist[32]:
         dates_idm.append("True")
     else:
         dates_idm.append("False")
+
+
+
+
+#Con nombres de variables CLUES
+ejmdta=listval
+from catalog.models import CLUES
+alldata = CLUES.objects.all()
+for dat in alldata:
+    alldata_db = CLUES.objects.filter(name = "listval[17]").exists()
+    if not return_db:
+        obj, created=CLUES.objects.get_or_create(
+                    name=ejmdta["NOMBRE DE LA UNIDAD"],
+                    municipality - se carga field municipality? en el modelo CLUES esta
+                    municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
+                    tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
+                    tipology_obj =
+                    tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
+                    id_clues=ejmdta['ID'],
+                    clues=ejmdta['CLUES'],
+                    status_operation = ejmdta['ESTATUS DE OPERACION'],
+                    longitude=ejmdta['LONGITUD'],
+                    latitude=ejmdta['LATITUD'],
+                    locality=ejmdta['NOMBRE DE LA LOCALIDAD'],
+                    locality_inegi_code=ejmdta['CLAVE DE LA LOCALIDAD'],
+                    jurisdiction=ejmdta['NOMBRE DE LA JURISDICCION'],
+                    jurisdiction_clave=ejmdta['CLAVE DE LA JURISDICCION'],
+                    establishment_type=ejmdta['NOMBRE TIPO ESTABLECIMIENTO'],
+                    consultings_general=ejmdta['CONSULTORIOS DE MED GRAL'],
+                    consultings_other=ejmdta['CONSULTORIOS EN OTRAS AREAS'],
+                    beds_hopital=ejmdta['CAMAS EN AREA DE HOS'],
+                    beds_other=ejmdta['CAMAS EN OTRAS AREAS'],
+                    total_unities=get_int(ejmdta['UNIDADES TOTALES'], 
+                    admin_institution=ejmdta['NOMBRE DE LA INS ADM'],
+                    atention_level=ejmdta['NIVEL ATENCION'],
+                    stratum=ejmdta['ESTRATO UNIDAD'],
+                    real_name=
+                    alter_clasif=
+                    clasif_name=
+                    prev_clasif_name=
+                    number_unity=
+                    name_in_issten=ejmdta['NOMBRE DE LA UNIDAD'],
+                    rr_data=
+                    alternative_names=
+                    type_street=ejmdta['TIPO DE VIALIDAD'],
+                    street=ejmdta['VIALIDAD'],
+                    streat_number= ejmdta['NUMERO CALLE'], 
+                    suburb=ejmdta['SUBURBIO']
+                    postal_code=ejmdta['CODIGO POSTAL'],
+                    rfc=ejmdta['RFC DEL ESTABLECIMIENTO'],
+                    last_change=ejmdta['FECHA ULTIMO MOVIMIENTO']
+                    )
+        obj.save()
+
+
+
