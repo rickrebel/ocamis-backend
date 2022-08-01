@@ -149,6 +149,7 @@ class PetitionBreakSerializer(serializers.ModelSerializer):
 class PetitionSmallSerializer(serializers.ModelSerializer):
     petition_months = PetitionMonthSerializer(many=True)
     process_files = ProcessFileSerializer(many=True)
+    last_year_month = serializers.CharField(read_only=True)
 
     class Meta:
         model = Petition

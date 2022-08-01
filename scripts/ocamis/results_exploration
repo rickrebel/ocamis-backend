@@ -1,3 +1,5 @@
+############### archivos de búsqueda de datos abiertos:
+
 {
    "nombreSujetoObligado":"INSTITUTO DE SERVICIOS DE SALUD",
    "nombreOrganoGarante":"BAJA CALIFORNIA SUR",
@@ -77,3 +79,90 @@
  'SUJETO_OBLIGADO': 'Instituto Nacional de Enfermedades Respiratorias Ismael '
                     'Cosío Villegas (INER)',
  'TIPO_MEDIO_IMPUGNACION': 2}
+
+############### archivos del JSON PERSONAL:
+
+ {
+   "statusCode":0,
+   "statusDescription":"",
+   "errorMessage":"",
+   "idSolicitudDependencia":7576829,
+   "folio":"310572322000380",
+   "folioInterno":"",
+   "tipoSolicitud":"Información pública",
+   "idTipoSolicitud":2,
+   "dsSujetoObligado":"Servicios De Salud De Yucatán",
+   "dsOrganoGarante":"Yucatán",
+   "dsModalidadEntrega":"Electrónico a través del sistema de solicitudes de acceso a la información de la PNT",
+   "otraModalidadEntrega":null,
+   "dtFechaOficialRecepcion":"06/07/2022",
+   "dtFechaLimiteRespuesta":"20/07/2022",
+   "dsMedioEntrada":"Electrónica",
+   "dsDescripcionEstatus":"Terminada",
+   "dsSolicitud":"1) Se le solicita atentamente que nos proporcione la base de datos, registros de salida de sistema de información o mecanismo de control que utilice, asociado a todas las recetas emitidas por los Servicios Estatales de Salud en la entidad en el en el mes de marzo de 2022 y que contemple, cuando menos, las siguientes variables:\n\nJurisdiccion sanitaria o distrito de salud\nUnidad Médica (CLUES)\nNivel de atención\nTipo de unidad médica\nTipo de documento\nFolio de documento\nFecha de consulta\nMotivo de consulta\nFecha de emisión\nFecha de entrega en farmacia\nClave de medicamento\nDescripción de medicamento\nCantidad prescrita\nCantidad entregada\nClave del médico\nNombre del médico\nEspecialidad del médico\n\n2) Se le solicita atentamente que nos proporcione la base de datos, registros de salida de sistema de información o mecanismo de control que utilice, asociado a todas las recetas surtidas totalmente por los Servicios Estatales de Salud en la entidad en el en el mes de marzo de 2022.\n\n3) Se le solicita atentamente que nos proporcione la base de datos, registros de salida de sistema de información o mecanismo de control que utilice, asociado a todas las recetas surtidas parcialmente por los Servicios Estatales de Salud en la entidad en el en el mes de marzo de 2022.\n\n4) Se le solicita atentamente que nos proporcione la base de datos, registros de salida de sistema de información o mecanismo de control que utilice, asociado a todas las recetas que no fueron surtidas por los Servicios Estatales de Salud en la entidad en el en el mes de marzo de 2022.\n\n5) Se le solicita atentamente que nos proporcione la base de datos, registros de salida de sistema de información o mecanismo de control que utilice, asociado a las existencias e inexistencias de medicamentos e insumos en los Servicios Estatales de Salud de la entidad en el en el mes de marzo de 202",
+   "idRespuesta":15298817,
+   "dsRespuesta":"SE REMITE RESPUESTA VIA PLATAFORMA, SERVICIOS DE SALUD DE YUCATAN NO CUENTA CON REGISTRO DE RECETAS, ESTAS SE EXPIDEN Y SE DAN AL PACIENTE, NO HAY NORMA ALGUNA QUE DICTE LA OBLIGATORIEDAD DE TENER UN REGISTRO",
+   "acuseRespuestaUT":true,
+   "acuseRespuestaSolicitante":false,
+   "dtFechaLimiteQueja":"04/08/2022",
+   "candidata":1,
+   "derechoDatos":"No aplica",
+   "dsTipoPortabilidad":"No aplica",
+   "lstSoCanalizacion":[
+      
+   ],
+   "dtFechaUltimaRespuesta":"14/07/2022",
+   "idAdjuntoRegistroSolicitud":-1,
+   "listAdjuntosRespuesta":[
+      {
+         "idAdjunto":8563020,
+         "dsNombre":"R 310572322000380.pdf"
+      }
+   ],
+   "idReciboPago":-1,
+   "fechaLimitePago":null,
+   "otrosDatos":"",
+   "acuseRespuestaSolicitanteId":-1,
+   "idOrganoGarante":31,
+   "dtFechaRespuestaSolicitante":null,
+   "dsLugarDeEntrega":"",
+   "dtFechaEntregaInformacion":"",
+   "qtNumeroPreguntas":null,
+   "lstTcLeyes":[
+      
+   ]
+}
+
+No. de folio
+Tipo de Solicitud
+Institución
+Estado o Federación
+Forma para recibir respuesta
+Otro Medio de Entrega
+Fecha de recepción
+Fecha límite de entrega
+Recepción de la solicitud
+Estatus
+Descripción
+Respuesta
+
+
+
+{
+   "idOrganoGarante":31,
+   "dsOrganoGarante":"Yucatán",
+   "dsEstatus":"Terminada",
+   "dsSujetoObligado":"Servicios De Salud De Yucatán",
+   "dtRecepcion":"06/07/2022",
+   "dtLimite":"20/07/2022",
+   "dsUltimaActividad":"Entrega de información vía PNT",
+   "semaforo":"dotGreen",
+   "dsFolio":"310572322000380",
+   "dsSolicitud":"2",
+   "idEstatus":5,
+   "idSolicitudDependencia":7576829,
+   "fgCandidataMi":1,
+   "dtFechaUltimaResp":"14/07/2022",
+   "dtFechaLimiteRegistroMi":"04/08/2022",
+   "sigemiRegistro":1
+},

@@ -6,9 +6,78 @@ https://serviciospnt.inai.org.mx/inai3/rest/organoGarante/administracionControlD
 https://descarga.plataformadetransparencia.org.mx/buscador-ws/descargaArchivo/SISAI/
 """
 
+inai_fiels = [
+    {
+        "inai_open_search": "idSujetoObligado",
+        "model_name": "Entity",
+        "final_field": "idSujetoObligado",
+    },
+    {
+        "inai_open_search": "nombreSujetoObligado",
+        "model_name": "Entity",
+        "final_field": "nombreSujetoObligado",
+        "insert": True,
+    },
+    {
+        "inai_open_search": "descripcionSolicitud",
+        "model_name": "Petition",
+        "final_field": "description_petition",
+        "transform": "unescape",
+    },
+    {
+        "inai_open_search": "dsFolio",
+        "model_name": "Petition",
+        "final_field": "folio_petition",
+    },
+    {
+        "inai_open_search": "fechaEnvio",
+        "model_name": "Petition",
+        "final_field": "date_send",
+        "transform": "date_mex",
+    },
+    {
+        "inai_open_search": "descripcionRespuesta",
+        "model_name": "Petition",
+        "final_field": "description_response",
+        "transform": "unescape",
+    },
+    {
+        "inai_open_search": "dtFechaUltimaRespuesta",
+        "model_name": "Petition",
+        "final_field": "send_response",
+        "transform": "date_mex",
+    },
+    {
+        "inai_open_search": "archivoAdjuntoRespuesta",
+        "model_name": "ProcessFile",
+        "final_field": "url_download",
+        "transform": "join_url",
+    },
+    {
+        "inai_open_search": "id",
+        "model_name": "Petition",
+        "final_field": "id_inai_open_data",
+    },
+    {
+        "inai_open_search": "informacionQueja",
+        "model_name": "Petition",
+        "final_field": "info_queja_inai",
+        "transform": "to_json",
+    },
+    {
+        "inai_open_search": "datosAdicionales",
+        "model_name": "Petition",
+        "final_field": "description_petition",
+        "transform": "join_lines",
+    },
+
+]
+
 examples = {
    "nombreSujetoObligado":"INSTITUTO DE SERVICIOS DE SALUD",
    "nombreOrganoGarante":"BAJA CALIFORNIA SUR",
+   "idOrganoGarante":3,
+   "idSujetoObligado":735,
    ### Siempre es igual #####
    "tipoSolicitud":"Información pública",
    ### Siempre es igual #####
@@ -38,8 +107,6 @@ examples = {
    "archivoAdjuntoSolicitante":[
       "SIN_ARCHIVO"
    ],
-   "idOrganoGarante":3,
-   "idSujetoObligado":735,
    ### FALTA EL CAMPO #####
    "id":6724947,
    "archivoAdjuntoRespuestaNombre":[
@@ -97,6 +164,7 @@ eplore_compain = {'ACTO_RECURRIDO': 'Le solicito de la manera mas atenta complet
  'SUJETO_OBLIGADO': 'Instituto Nacional de Enfermedades Respiratorias Ismael '
                     'Cosío Villegas (INER)',
  'TIPO_MEDIO_IMPUGNACION': 2}
+
 
 
 import io
@@ -160,7 +228,7 @@ def get_values(collection, my_key):
             all_values.append(value)
     return all_values
 
-get_values(data["solicitudes"], "tipoSolicitud")
+get_values(data["solicitudes"], "descripcionRespuesta")
 all_values = 2
 print(all_values)
 pprint(all_values)

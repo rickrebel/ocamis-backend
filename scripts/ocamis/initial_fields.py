@@ -8,7 +8,5 @@ def generate_months():
             for month in range(12):
                 month += 1
                 ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
-                MonthEntity.objects.create(entity=entity, year_month=ye_mo)
+                MonthEntity.objects.get_or_create(entity=entity, year_month=ye_mo)
                 #print("%s-%s" % (entity.id, ye_mo))
-
-
