@@ -5,10 +5,10 @@ from data_param.models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction)
 
 
-class DataGroupSimpleSerializer(serializers.ModelSerializer):
+class FinalFieldSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = DataGroup
+        model = FinalField
         fields = "__all__"
 
 
@@ -19,11 +19,19 @@ class CollectionSimpleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class FinalFieldSimpleSerializer(serializers.ModelSerializer):
+class DataGroupSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = FinalField
+        model = DataGroup
         fields = "__all__"
+
+
+class DataGroupFullSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DataGroup
+        fields = "__all__"
+
 
 
 class DataTypeSimpleSerializer(serializers.ModelSerializer):

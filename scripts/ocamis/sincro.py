@@ -117,8 +117,8 @@ def sincronize_entities(app_name, model_name):
 
 #from scripts.ocamis.sincro import *
 
-#generate_file('data_param', 'DataType')
-#sincronize_entities('data_param', 'DataType')
+#generate_file('data_param', 'FinalField')
+#sincronize_entities('data_param', 'FinalField')
 
 #generate_file('catalog', 'Entity')
 #sincronize_entities('catalog', 'Entity')

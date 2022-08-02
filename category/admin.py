@@ -7,8 +7,9 @@ from .models import (
 
 class StatusControlAdmin(admin.ModelAdmin):
     list_display = [
-        "group", "name", "public_name", "description", "order",
-        "addl_params", "color"]
+        "group", "order", "name", "public_name", "description",
+        "color", "icon", "addl_params"]
+    list_editable = ["order", "color", "icon"]
     list_filter = ["group"]
 
 ocamis_admin_site.register(StatusControl, StatusControlAdmin)

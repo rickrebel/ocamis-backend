@@ -4,7 +4,7 @@ from django.contrib.admin import AdminSite
 # Register your models here.
 from .models import (
     Petition, FileControl, NameColumn, PetitionFileControl, DataFile, 
-    PetitionMonth)
+    PetitionMonth, ProcessFile)
 
 
 class OcamisAdminSite(AdminSite):
@@ -47,11 +47,13 @@ class PetitionMonthInline(admin.TabularInline):
 
 class PetitionAdmin(admin.ModelAdmin):
     list_display = [
+        "folio_petition",
         "entity",
+        "months",
+        "months_in_description",
+        "folio_complain",
         "status_data",
         "status_petition",
-        "folio_petition",
-        "folio_complain",
     ]
     inlines = [ PetitionMonthInline, PetitionFileControlInline ]
     list_filter = ["entity"]
@@ -79,7 +81,7 @@ ocamis_admin_site.register(FileControl, FileControlAdmin)
 class DataFileAdmin(admin.ModelAdmin):
     list_display = [
         "petition_file_control",
-        "ori_file",
+        "file",
         "month_entity",
         "origin_file",
         "status_process",
@@ -90,3 +92,14 @@ class DataFileAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(DataFile, DataFileAdmin)
 
 
+class ProcessFileAdmin(admin.ModelAdmin):
+    list_display = [
+        "petition",
+        "file",
+        "file_type",
+        "url_download",
+    ]
+    #raw_id_fields = ["petition_file_control", "month_entity"]
+    list_filter = ["petition__entity"]
+
+ocamis_admin_site.register(ProcessFile, ProcessFileAdmin)

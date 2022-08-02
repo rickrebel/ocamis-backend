@@ -12,10 +12,19 @@ from data_param.models import DataType, FinalField, CleanFunction, DataGroup
 def set_upload_path(instance, filename):
     #from django.conf import settings
     #files_path = getattr(settings, "FILES_PATH")
+    print("----------------------------------")
+    print(instance)
+    print(instance.file)
+    print(instance.petition_file_control)
+    print("----------------------------------")
     try:
         petition = instance.petition_file_control.petition
     except:
-        petition = instance.petition
+        try:
+            petition = instance.petition
+        except Exception as e:
+            return "/".join(["sin_instance" ,filename])
+
     entity_type = petition.entity.entity_type[:8].lower()
     try:
         acronym = petition.entity.acronym.lower()
@@ -26,7 +35,8 @@ def set_upload_path(instance, filename):
         last_year_month = instance.month_entity.year_month
     except AttributeError:
         try:
-            last_year_month = petition.petition_months[-1].month_entity.year_month
+            #last_year_month = petition.petition_months[-1].month_entity.year_month
+            last_year_month = petition.last_year_month()
         except :
             last_year_month = "others"
     except:
@@ -59,7 +69,7 @@ class Petition(models.Model):
         verbose_name="descripción enviada",
         blank=True, null=True)
     description_response = models.TextField(
-        verbose_name="descripción enviada",
+        verbose_name="Respuesta texto",
         blank=True, null=True)
     status_data = models.ForeignKey(
         StatusControl, null=True, blank=True, 
@@ -70,6 +80,11 @@ class Petition(models.Model):
         StatusControl, null=True, blank=True, 
         related_name="petitions_petition",
         verbose_name="Status de la petición",
+        on_delete=models.CASCADE)
+    status_complain = models.ForeignKey(
+        StatusControl, null=True, blank=True, 
+        related_name="petitions_complain",
+        verbose_name="Status de la queja",
         on_delete=models.CASCADE)
     folio_complain = models.IntegerField(
         verbose_name="Folio de la queja", 
@@ -84,6 +99,33 @@ class Petition(models.Model):
 
     def last_year_month(self):
         return self.petition_months.latest().month_entity.year_month
+
+    def first_year_month(self):
+        return self.petition_months.earliest().month_entity.year_month
+
+    def months(self):
+        html_list = ''
+        start = self.petition_months.earliest().month_entity.human_name
+        end = self.petition_months.latest().month_entity.human_name
+        return " ".join(list(set([start, end])))
+    months.short_description = u"Meses"
+
+    def months_in_description(self):
+        from django.utils.html import format_html
+        months = [
+            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        curr_months = []
+        description = self.description_petition.lower()
+        for month in months:
+            if month in description:
+                curr_months.append(month)
+        html_list = ''
+        for month in list(curr_months):
+            html_list = html_list + ('<span>%s</span><br>' % month)
+        return format_html(html_list)
+    months_in_description.short_description = u"Meses escritos"
+
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.id)
@@ -141,7 +183,7 @@ class FileControl(models.Model):
         return {"need_partition": True, "need_transform": False}
 
     name = models.CharField(
-        max_length=120, default='grupo único')
+        max_length=255, default='grupo único')
     file_type = models.ForeignKey(
         FileType, on_delete=models.CASCADE,
         blank=True, null=True,)
@@ -150,14 +192,14 @@ class FileControl(models.Model):
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,
-        null=True,
-        blank=True)
+        null=True, blank=True)
     other_format = models.CharField(max_length=80, blank=True, null=True)
-    final_data = models.BooleanField(
-        verbose_name="Es información final")
+    final_data = models.NullBooleanField(
+        verbose_name="Es información final", blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     row_start_data = models.IntegerField(
-        default=1, verbose_name='# de fila donde inician los datos')
+        default=1, verbose_name='# de fila donde inician los datos',
+        blank=True, null=True)
     row_headers = models.IntegerField(
         blank=True, null=True,
         verbose_name='# de fila donde se encuentran los encabezados')
@@ -175,6 +217,7 @@ class FileControl(models.Model):
         return self.name
 
     class Meta:
+        unique_together = ["data_group", "name"]
         verbose_name = "Grupo control de archivos"
         verbose_name_plural = "Grupos control de archivos"
 
@@ -241,7 +284,7 @@ class PetitionMonth(models.Model):
 
 class DataFile(models.Model):
 
-    ori_file = models.FileField(max_length=150,
+    file = models.FileField(max_length=150,
         upload_to=set_upload_path) 
     date = models.DateTimeField(auto_now_add=True)
     month_entity = models.ForeignKey(
@@ -268,7 +311,7 @@ class DataFile(models.Model):
     total_rows = models.IntegerField(default=1)
 
     def __str__(self):
-        return "%s %s" % (str(self.ori_file), self.petition_file_control)
+        return "%s %s" % (str(self.file), self.petition_file_control)
         #return "%s %s" % (self.petition_file_control, self.date)
         #return "hola"
 
@@ -294,7 +337,7 @@ class ProcessFile(models.Model):
         Petition,
         related_name="process_files",
         on_delete=models.CASCADE)
-    ori_file = models.FileField(
+    file = models.FileField(
         verbose_name="arhivo",
         max_length=150, upload_to=set_upload_path,
         blank=True, null=True)
@@ -311,7 +354,7 @@ class ProcessFile(models.Model):
         blank=True, null=True, verbose_name="Otras configuraciones")
 
     def __str__(self):
-        first = (self.ori_file or (self.text and self.text[:80]) 
+        first = (self.file or (self.text and self.text[:80]) 
             or self.url_download or 'None')
         return "%s -- %s" % (first, self.petition)
 

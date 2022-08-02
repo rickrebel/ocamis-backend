@@ -27,7 +27,7 @@ class StatusControl(models.Model):
         return self.name
 
     class Meta:
-        ordering = ["order"]
+        ordering = ["group", "order"]
         verbose_name = u"Status de control"
         verbose_name_plural = u"Status de control (TODOS)"
 

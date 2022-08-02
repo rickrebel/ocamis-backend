@@ -5,10 +5,16 @@ from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason)
 #from inai.api.views import FileControlViewSet, PetitionViewSet
 from inai.api.views import (
-    FileControlViewSet, PetitionViewSet, ProcessFileViewSet)
+    FileControlViewSet, PetitionViewSet, ProcessFileViewSet,
+    AscertainableViewSet)
 
 router = routers.DefaultRouter()
 router.register(r'petition', PetitionViewSet)
+router.register(
+    r'^petition_file_control/(?P<petition_file_control_id>[-\d]+)/data_file',
+    AscertainableViewSet)
+router.register(r'file_control', FileControlViewSet)
+#router.register(r'some-url-name', views.SomeViewSet, basename='index')
 #router.register(r'clues', FileControlViewSet)
 router.register(
     r'^petition/(?P<petition_id>[-\d]+)/process_file', ProcessFileViewSet)

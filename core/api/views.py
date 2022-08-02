@@ -21,7 +21,8 @@ from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
 
 from inai.models import FileControl
-from inai.api.serializers import FileControlSimpleSerializer
+from inai.api.serializers import (
+    FileControlSimpleSerializer, FileControlFullSerializer)
 
 
 
@@ -33,7 +34,7 @@ class CatalogView(views.APIView):
     def get(self, request):
         #data = {}
         data = {
-            "file_controls": FileControlSimpleSerializer(
+            "file_controls": FileControlFullSerializer(
                 FileControl.objects.all(), many=True).data,
             "entities": EntitySerializer(
                 Entity.objects.all(), many=True).data,
