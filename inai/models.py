@@ -327,6 +327,7 @@ class DataFile(models.Model):
         self.save()
 
     class Meta:
+        ordering = ["file"]
         verbose_name = u"Archivo con datos"
         verbose_name_plural = u"Archivos con datos"
 
