@@ -208,6 +208,44 @@ class ProcessFileViewSet(CreateRetrievView):
         return Response(status=status.HTTP_200_OK)
 
 
+class PetitionFileControlViewSet(CreateRetrievView):
+    queryset = PetitionFileControl.objects.all()
+    serializer_class = serializers.PetitionFileControlSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "list": serializers.PetitionFileControlSerializer,
+        "retrieve": serializers.PetitionFileControlSerializer,
+        "create": serializers.PetitionFileControlSerializer,
+        "delete": serializers.PetitionFileControlSerializer,
+    }
+
+    def get_queryset(self):
+        #if "petition_id" in self.kwargs:
+        #    return PetitionFileControl.objects.filter(
+        #        petition=self.kwargs["petition_id"])
+        return PetitionFileControl.objects.all()
+
+    def create(self, request, petition_id=False):
+        from rest_framework.exceptions import (
+            #ParseError,  #400
+            NotFound)  # 404
+        
+        petition_file_control = request.data
+        new_pet_file_ctrl = PetitionFileControl()
+
+        serializer_pet_file_ctrl = self.get_serializer_class()(
+            new_pet_file_ctrl, data=petition_file_control)
+
+        if serializer_pet_file_ctrl.is_valid():
+            serializer_pet_file_ctrl.save()
+        else:
+            return Response({"errors": serializer_pet_file_ctrl.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            serializer_pet_file_ctrl.data, status=status.HTTP_201_CREATED)
+
+
 class AscertainableViewSet(CreateRetrievView):
     queryset = DataFile.objects.all()
     serializer_class = serializers.DataFileSerializer

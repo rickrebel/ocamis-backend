@@ -6,13 +6,14 @@ from category.models import (
 #from inai.api.views import FileControlViewSet, PetitionViewSet
 from inai.api.views import (
     FileControlViewSet, PetitionViewSet, ProcessFileViewSet,
-    AscertainableViewSet)
+    AscertainableViewSet, PetitionFileControlViewSet)
 
 router = routers.DefaultRouter()
 router.register(r'petition', PetitionViewSet)
 router.register(
     r'^petition_file_control/(?P<petition_file_control_id>[-\d]+)/data_file',
     AscertainableViewSet)
+router.register(r'petition_file_control', PetitionFileControlViewSet)
 router.register(r'file_control', FileControlViewSet)
 #router.register(r'some-url-name', views.SomeViewSet, basename='index')
 #router.register(r'clues', FileControlViewSet)

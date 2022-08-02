@@ -116,6 +116,9 @@ class DataFileSerializer(serializers.ModelSerializer):
     petition_file_control_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="petition_file_control",
         queryset=PetitionFileControl.objects.all())
+    status_process_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="status_process",
+        queryset=StatusControl.objects.all())
 
 
     class Meta:
@@ -149,13 +152,29 @@ class PetitionMonthSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class PetitionMiniSerializer(serializers.ModelSerializer):
+    petition_months = PetitionMonthSerializer(many=True)
+
+    class Meta:
+        model = Petition
+        fields = "__all__"
+
+
 class PetitionFileControlSerializer(serializers.ModelSerializer):
     #file_control = FileControlSerializer()
-    data_files = DataFileSerializer(many=True)
+    data_files = DataFileSerializer(many=True, read_only=True)
+    petition = PetitionMiniSerializer(read_only=True)
+    petition_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="petition",
+        queryset=Petition.objects.all())
+    file_control_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="file_control",
+        queryset=FileControl.objects.all())
 
     class Meta:
         model = PetitionFileControl
         fields = "__all__"
+        read_only_fields = ["file_control"]
 
 
 class FileControlSimpleSerializer(serializers.ModelSerializer):
