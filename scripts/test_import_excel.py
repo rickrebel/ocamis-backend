@@ -283,44 +283,44 @@ for ret in returns:
     if not return_db:
         obj, created=CLUES.objects.get_or_create(
                     name=ejmdta["NOMBRE DE LA UNIDAD"],
-                    #municipality - se carga field municipality? en el modelo CLUES esta
-                    #municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
-                    #tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
-                    #tipology_obj =
-                    #tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
-                    #id_clues=ejmdta['ID'],
-                    #clues=ejmdta['CLUES'],
-                    #status_operation = ejmdta['ESTATUS DE OPERACION'],
-                    #longitude=ejmdta['LONGITUD'],
-                    #latitude=ejmdta['LATITUD'],
-                    #locality=ejmdta['NOMBRE DE LA LOCALIDAD'],
-                    #locality_inegi_code=ejmdta['CLAVE DE LA LOCALIDAD'],
-                    #jurisdiction=ejmdta['NOMBRE DE LA JURISDICCION'],
-                    #jurisdiction_clave=ejmdta['CLAVE DE LA JURISDICCION'],
-                    #establishment_type=ejmdta['NOMBRE TIPO ESTABLECIMIENTO'],
-                    #consultings_general=ejmdta['CONSULTORIOS DE MED GRAL'],
-                    #consultings_other=ejmdta['CONSULTORIOS EN OTRAS AREAS'],
-                    #beds_hopital=ejmdta['CAMAS EN AREA DE HOS'],
-                    #beds_other=ejmdta['CAMAS EN OTRAS AREAS'],
-                    #total_unities=get_int(ejmdta['UNIDADES TOTALES'], ##
-                    #admin_institution=ejmdta['NOMBRE DE LA INS ADM'],
-                    #atention_level=ejmdta['NIVEL ATENCION'],
-                    #stratum=ejmdta['ESTRATO UNIDAD'],
-                    #real_name=
-                    #alter_clasif=
-                    #clasif_name=
-                    #prev_clasif_name=
-                    #number_unity=
-                    #name_in_issten=ejmdta['NOMBRE DE LA UNIDAD'],
-                    #rr_data=
-                    #alternative_names=
-                    #type_street=ejmdta['TIPO DE VIALIDAD'],
-                    #street=ejmdta['VIALIDAD'],
-                    #streat_number= ejmdta['NUMERO CALLE'], ##
-                    #suburb=ejmdta['SUBURBIO']
-                    #postal_code=ejmdta['CODIGO POSTAL'],
-                    #rfc=ejmdta['RFC DEL ESTABLECIMIENTO'],
-                    #last_change=ejmdta['FECHA ULTIMO MOVIMIENTO']
+                    municipality - se carga field municipality? en el modelo CLUES esta
+                    municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
+                    tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
+                    tipology_obj =
+                    tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
+                    id_clues=ejmdta['ID'],
+                    clues=ejmdta['CLUES'],
+                    status_operation = ejmdta['ESTATUS DE OPERACION'],
+                    longitude=ejmdta['LONGITUD'],
+                    latitude=ejmdta['LATITUD'],
+                    locality=ejmdta['NOMBRE DE LA LOCALIDAD'],
+                    locality_inegi_code=ejmdta['CLAVE DE LA LOCALIDAD'],
+                    jurisdiction=ejmdta['NOMBRE DE LA JURISDICCION'],
+                    jurisdiction_clave=ejmdta['CLAVE DE LA JURISDICCION'],
+                    establishment_type=ejmdta['NOMBRE TIPO ESTABLECIMIENTO'],
+                    consultings_general=ejmdta['CONSULTORIOS DE MED GRAL'],
+                    consultings_other=ejmdta['CONSULTORIOS EN OTRAS AREAS'],
+                    beds_hopital=ejmdta['CAMAS EN AREA DE HOS'],
+                    beds_other=ejmdta['CAMAS EN OTRAS AREAS'],
+                    total_unities=get_int(ejmdta['UNIDADES TOTALES'], 
+                    admin_institution=ejmdta['NOMBRE DE LA INS ADM'],
+                    atention_level=ejmdta['NIVEL ATENCION'],
+                    stratum=ejmdta['ESTRATO UNIDAD'],
+                    real_name=
+                    alter_clasif=
+                    clasif_name=
+                    prev_clasif_name=
+                    number_unity=
+                    name_in_issten=ejmdta['NOMBRE DE LA UNIDAD'],
+                    rr_data=
+                    alternative_names=
+                    type_street=ejmdta['TIPO DE VIALIDAD'],
+                    street=ejmdta['VIALIDAD'],
+                    streat_number= ejmdta['NUMERO CALLE'], 
+                    suburb=ejmdta['SUBURBIO']
+                    postal_code=ejmdta['CODIGO POSTAL'],
+                    rfc=ejmdta['RFC DEL ESTABLECIMIENTO'],
+                    last_change=ejmdta['FECHA ULTIMO MOVIMIENTO']
                     )
         obj.save()
 
@@ -1102,3 +1102,78 @@ def ejemplo()
 #dummy_row = {""}
 #create_clues(dummy_row)
 
+####
+
+#open json 
+import json 
+
+path= 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\SOLICITUDES_1_2022_19297.json'
+f = json.load(path)
+
+
+####Llenar modelo de colecciones
+from data_param.models import Collection
+modelo1 = Collection (name = 'Estados',
+                    model_name ='State',
+                    description = 'Catalogo de estados'
+                    #data_group ='Catalogo')
+modelo1.save()      
+
+modelo2 = Collection (name = 'Recipe',
+                    model_name ='Prescription',
+                    description = 'Total de recetas prescriptas', 
+                    #data_group ='Recetas')
+modelo2.save()   
+
+modelo3 = Collection (name = 'Medicamentos',
+                    model_name ='Droug',
+                    description = 'Contiene total de medicamentos recetados', 
+                    #data_group ='Recetas')
+modelo3.save() 
+
+modelo4 = Collection (name = 'Sujetos Obligados',
+                    model_name ='Entity',
+                    description = 'Contiene nombre completo de sujetos obligados', 
+                    #data_group ='Catalogo')
+modelo4.save() 
+
+modelo5 = Collection(name = 'Doctores',
+                    model_name ='Doctor',
+                    description = 'Contiene nombre de los doctores', 
+                    #data_group ='Catalogo')
+modelo5.save()
+
+#No hay campo final_field en ninguno de los modelos mencionados, 
+#lo creo con el field en cada uno de los modelos:
+final_field = models.ForeignKey(
+        'FinalField', on_delete=models.CASCADE)
+
+
+#Llenar el modelo final_field con la informacion
+#de los modelos mencionados
+from data_param.models import FinalField
+fields1 = FinalField(collection = 'State', 
+                        name = 'inegi_code',
+                        verbose_name = ,
+                        data_type = ,
+                        addl_params = ,
+                        variatrions = ,
+                        requiered = 'True',
+                        is_common = 'True',
+                        verified = )
+fields1.save()
+
+
+
+
+# Quick notation to access all complaints
+complaints = Complaint.objects.all()
+
+# Quick means of accessing both open and closed cases
+open_cases = complaints.filter(is_closed=False)
+closed_cases = complaints.filter(is_closed=True)
+
+# Overall complaints not addressed within a year
+over_one_year = complaints.filter(more_than_one_year=True)
+open_over_one_year = over_one_year.filter(is_closed=False)
+closed_over_one_year = over_one_year.filter(is_closed=True)
