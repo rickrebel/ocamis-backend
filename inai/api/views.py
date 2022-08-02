@@ -166,7 +166,7 @@ class ProcessFileViewSet(CreateRetrievView):
     action_serializers = {
         "list": serializers.ProcessFileSerializer,
         "retrieve": serializers.ProcessFileSerializer,
-        "create": serializers.ProcessFileEditSerializer,
+        "create": serializers.ProcessFileSerializer,
         "delete": serializers.ProcessFileEditSerializer,
     }
 
@@ -180,24 +180,32 @@ class ProcessFileViewSet(CreateRetrievView):
         from rest_framework.exceptions import (
             #ParseError,  #400
             NotFound)  # 404
+        
+        process_file = request.data
+        new_process_file = DataFile()
 
-        serializer = serializers.ProcessFileEditSerializer(data=request.data)
-        if not serializer.is_valid:
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        #serializer = serializers.ProcessFileEditSerializer(data=request.data)
+        serializer_proc_file = self.get_serializer_class()(
+            new_process_file, data=process_file)
 
-        file = request.data.get("file")
+        if serializer_proc_file.is_valid():
+            serializer_proc_file.save()
+        else:
+            return Response({"errors": serializer_proc_file.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer_proc_file.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, **kwargs):
+        print("destroy")
+        petition_id = self.kwargs.get("petition_id")
         try:
             petition = Petition.objects.get(id=petition_id)
-        except:
-            raise NotFound(detail="petición no encontrada")
-
-        obj = ProcessFile.objects.create(
-            file=file, petition=petition)
-
-        serializer = self.serializer_class(obj)
-
-        return Response(serializer.data)
+        except Exception:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        process_file = self.get_object()
+        self.perform_destroy(process_file)
+        return Response(status=status.HTTP_200_OK)
 
 
 class AscertainableViewSet(CreateRetrievView):
@@ -208,13 +216,14 @@ class AscertainableViewSet(CreateRetrievView):
         "list": serializers.DataFileSerializer,
         "retrieve": serializers.DataFileSimpleSerializer,
         "create": serializers.DataFileSerializer,
+        "update": serializers.DataFileEditSerializer,
         "delete": serializers.DataFileSerializer,
     }
 
     def get_queryset(self):
         if "petition_file_control_id" in self.kwargs:
             return DataFile.objects.filter(
-                report=self.kwargs["petition_file_control_id"])
+                petition_file_control_id=self.kwargs["petition_file_control_id"])
         return DataFile.objects.all()
 
     def create(self, request, petition_file_control_id=False):
@@ -236,23 +245,37 @@ class AscertainableViewSet(CreateRetrievView):
         return Response(
             serializer_data_file.data, status=status.HTTP_201_CREATED)
 
+    def update(self, request, **kwargs):
+        from rest_framework.exceptions import (
+            #ParseError,  #400
+            NotFound)  # 404
 
-        serializer = serializers.DataFileSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data_file = self.get_object()
+        data = request.data
+        #new_data_file = DataFile()
 
-        file = request.data.get("file")
+        serializer_data_file = self.get_serializer_class()(
+            data_file, data=data)
+        if serializer_data_file.is_valid():
+            #control = serializer_data_file.save()
+            serializer_data_file.save()
+        else:
+            return Response({"errors": serializer_data_file.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer_data_file.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, **kwargs):
+        petition_file_control_id = self.kwargs.get("petition_file_control_id")
         try:
-            petition_file_control = PetitionFileControl.objects.get(
-                id=petition_file_control_id)
-        except:
-            raise NotFound(detail="relación o elemento no encontrado")
+            petition_file_control = PetitionFileControl.objects\
+                .get(id=petition_file_control_id)
+        except Exception:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        data_file = self.get_object()
+        self.perform_destroy(data_file)
+        return Response(status=status.HTTP_200_OK)
 
-        obj = DataFile.objects.create(
-            file=file, petition_file_control=petition_file_control)
 
-        serializer = self.serializer_class(obj)
 
-        return Response(serializer.data)
 #-----------------------------------------------------------------------------

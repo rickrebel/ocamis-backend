@@ -6,7 +6,7 @@ from inai.models import (
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
     PetitionBreak)
 
-from category.models import StatusControl
+from category.models import StatusControl, FileType
 
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
@@ -18,11 +18,25 @@ from data_param.api.serializers import (
 
 
 class ProcessFileSerializer(serializers.ModelSerializer):
-    file_type = FileTypeSimpleSerializer()
+    #name = serializers.ReadOnlyField(source="file.name", required=False)
+    #url = serializers.ReadOnlyField(source="file.url", required=False)
+    file_type = FileTypeSimpleSerializer(read_only=True)
+    file_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="file_type",
+        queryset=FileType.objects.all())
+    name = serializers.SerializerMethodField(read_only=True)
+    url = serializers.SerializerMethodField(read_only=True)
+
+    def get_name(self, obj):
+        return obj.file.name if obj.file else None
+    def get_url(self, obj):
+        return obj.file.url if obj.file else None
+
 
     class Meta:
         model = ProcessFile
         fields = "__all__"
+        read_only_fields = ["petition"]
 
 
 class ProcessFileEditSerializer(serializers.ModelSerializer):
@@ -77,6 +91,7 @@ class MonthEntitySimpleSerializer(serializers.ModelSerializer):
         model = MonthEntity
         fields = ["year_month", "human_name"]
 
+
 class DataFileSimpleSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
@@ -84,6 +99,7 @@ class DataFileSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = DataFile
         fields = ["id", "name", "url"]
+
 
 class DataFileSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
@@ -97,9 +113,6 @@ class DataFileSerializer(serializers.ModelSerializer):
     origin_file_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="origin_file",
         queryset=DataFile.objects.all(), required=False)
-    status_process_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="status_process",
-        queryset=StatusControl.objects.all(), required=False)
     petition_file_control_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="petition_file_control",
         queryset=PetitionFileControl.objects.all())
@@ -109,6 +122,14 @@ class DataFileSerializer(serializers.ModelSerializer):
         model = DataFile
         fields = "__all__"
         read_only_fields = ["petition_file_control"]
+
+
+class DataFileEditSerializer(DataFileSerializer):
+
+    class Meta:
+        model = DataFile
+        fields = "__all__"
+        read_only_fields = ["petition_file_control", "file"]
 
 
 class DataFileSerializer2(serializers.ModelSerializer):

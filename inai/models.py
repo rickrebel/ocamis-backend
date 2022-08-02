@@ -12,11 +12,6 @@ from data_param.models import DataType, FinalField, CleanFunction, DataGroup
 def set_upload_path(instance, filename):
     #from django.conf import settings
     #files_path = getattr(settings, "FILES_PATH")
-    print("----------------------------------")
-    print(instance)
-    print(instance.file)
-    print(instance.petition_file_control)
-    print("----------------------------------")
     try:
         petition = instance.petition_file_control.petition
     except:
