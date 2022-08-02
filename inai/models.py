@@ -97,11 +97,11 @@ class Petition(models.Model):
         help_text="Información de la queja en INAI Seach", 
         blank=True, null=True)
 
-    def last_year_month(self):
-        return self.petition_months.latest().month_entity.year_month
-
     def first_year_month(self):
         return self.petition_months.earliest().month_entity.year_month
+
+    def last_year_month(self):
+        return self.petition_months.latest().month_entity.year_month
 
     def months(self):
         html_list = ''

@@ -200,8 +200,8 @@ class PetitionBreakSerializer(serializers.ModelSerializer):
 class PetitionSmallSerializer(serializers.ModelSerializer):
     petition_months = PetitionMonthSerializer(many=True)
     process_files = ProcessFileSerializer(many=True)
-    first_year_month = serializers.CharField(read_only=True)
     last_year_month = serializers.CharField(read_only=True)
+    first_year_month = serializers.CharField(read_only=True)
     months_in_description = serializers.CharField(read_only=True)
 
     class Meta:
