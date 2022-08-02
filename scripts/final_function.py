@@ -40,6 +40,28 @@ def import_excel(path_excel):
     return(listfin)
 
 
+#funcion de carga de Excel (solo listas sin nombres)
+path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
+def import_excelnh(path_excel):
+    import pandas as pd
+    prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
+    #Nombres de columnas (pandaarray)
+    headers = prueba_clues.keys().array
+    #Renglones de las variables
+    rows= []
+    for row in prueba_clues.iterrows():
+        rows.append(row)
+    #Extraer datos de tuple (quitar nombre index)
+    rowsf= [a_row[1] for a_row in rows]
+    #print(rowsf)
+    #Extraer datos a lista
+    listval=[]
+    for lis in rowsf:
+        listval.append(lis.tolist())
+    #Guardar con nombres
+    return(listval)
+
+
 #Corregir
 #Identificar los movimientos de clues despues del 2019-12-31
 from datetime import date
@@ -57,7 +79,7 @@ for i in flist[32]:
 
 #Con nombres de variables CLUES
 ejmdta=listval
-from catalog.models import CLUES
+from catalog.models import CLUES, Institution
 alldata = CLUES.objects.all()
 for dat in alldata:
     alldata_db = CLUES.objects.filter(name = "listval[17]").exists()
@@ -104,6 +126,67 @@ for dat in alldata:
                     last_change=ejmdta['FECHA ULTIMO MOVIMIENTO']
                     )
         obj.save()
+
+
+###Consultas CLUES
+
+from catalog.models import CLUES
+from catalog.models import Institution
+from django.db.models import Count, Sum, Max, Min, Avg
+from django.db.models import F, Q, When, FilteredRelation
+
+#Total clues por institución
+totalclu = CLUES.objects.all().values(
+    'institution').annotate(total_clues = Count('institution')).order_by('-total_clues')
+print(totalclu)
+#Comentario: Model Institution no está activo
+
+#Cuantas clues hay activas
+activclue = CLUES.objects.all().values(
+    'status_operation').annotate(status_clues = Count('status_operation')).order_by('-status_clues')
+print(activclue)
+
+#De que tamaño son las umaes del imss
+#a partir de sus camas y consultorios
+path_excel = 'D:\\Documents\\desabasto_ocamis\\umaes_imss.xlsx'
+umaes = import_excelnh(path_excel)
+cluesumae = [umae[0] for umae in umaes]
+tam_umaes= CLUES.objects.filter(
+        clues__in = cluesumae).values('clues', 'beds_hopital',
+        'beds_other','consultings_general','consultings_other')
+print(tam_umaes)
+
+#Maximo de camas de hospital de las umaes del imss
+maxbed_umae = list(tam_umaes.aggregate(Max('beds_hopital')).values())
+maxbed_umae = float(maxbed_umae[0])
+
+#Minimo de camas de hospital de las umaes de imss
+minbed_umae = list(tam_umaes.aggregate(Min('beds_hopital')).values())
+minbed_umae = float(minbed_umae[0])
+
+#Estratificacion por tamaño
+#Clues estratificadas segun numero maximo y minimo de camas de las umaes imss
+estrati_clue = CLUES.objects.aggregate(
+        large = Count('clues', 
+                    filter = Q(beds_hopital__gte = maxbed_umae)), #mayor o igual que
+        medium = Count('clues', 
+                    filter = Q(beds_hopital__gte = minbed_umae, beds_hopital__lte=maxbed_umae)),
+        small = Count('clues', 
+                    filter = Q(beds_hopital__lte=63))
+    )
+print(estrati_clue)
+
+#Clues que contienen en su nombre "de alta especialidad"
+clues_aesp = CLUES.objects.filter(name__icontains='DE ALTA ESPECIALIDAD')
+print(clues_aesp)
+
+#Estatus de operacion del total de instituciones
+status_clues = CLUES.objects.values(
+    'institution','status_operation').annotate(
+        status_clues = Count('status_operation')).order_by('institution')
+print(status_clues)
+
+
 
 
 
