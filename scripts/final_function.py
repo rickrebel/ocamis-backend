@@ -105,7 +105,7 @@ for dat in alldata:
                     consultings_other=ejmdta['CONSULTORIOS EN OTRAS AREAS'],
                     beds_hopital=ejmdta['CAMAS EN AREA DE HOS'],
                     beds_other=ejmdta['CAMAS EN OTRAS AREAS'],
-                    total_unities=get_int(ejmdta['UNIDADES TOTALES'], 
+                    total_unities=ejmdta['UNIDADES TOTALES'], 
                     admin_institution=ejmdta['NOMBRE DE LA INS ADM'],
                     atention_level=ejmdta['NIVEL ATENCION'],
                     stratum=ejmdta['ESTRATO UNIDAD'],
