@@ -38,6 +38,9 @@ def set_upload_path(instance, filename):
 
 
 class Petition(models.Model):
+    folio_petition = models.CharField(
+        max_length=50,
+        verbose_name="Folio de la solicitud")
     entity = models.ForeignKey(
         Entity,
         related_name="petitions",
@@ -46,6 +49,18 @@ class Petition(models.Model):
         blank=True, null=True,
         verbose_name="Se solicitó extensión")
     notes = models.TextField(blank=True, null=True)
+    send_petition = models.DateField(
+        verbose_name="Fecha de envío o recepción",
+        blank=True, null=True)
+    send_response = models.DateField(
+        verbose_name="Fecha de última respuesta",
+        blank=True, null=True)
+    description_petition = models.TextField(
+        verbose_name="descripción enviada",
+        blank=True, null=True)
+    description_response = models.TextField(
+        verbose_name="descripción enviada",
+        blank=True, null=True)
     status_data = models.ForeignKey(
         StatusControl, null=True, blank=True, 
         related_name="petitions_data",
@@ -56,11 +71,19 @@ class Petition(models.Model):
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
-    folio_petition = models.IntegerField(
-        verbose_name="Folio de la solicitud")
     folio_complain = models.IntegerField(
         verbose_name="Folio de la queja", 
         blank=True, null=True)
+    id_inai_open_data = models.IntegerField(
+        verbose_name="Id en el sistema de INAI", 
+        blank=True, null=True)
+    info_queja_inai = JSONField(
+        verbose_name="Datos de queja", 
+        help_text="Información de la queja en INAI Seach", 
+        blank=True, null=True)
+
+    def last_year_month(self):
+        return self.petition_months.latest().month_entity.year_month
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.id)
@@ -193,6 +216,7 @@ class MonthEntity(models.Model):
         return "%s/%s" % (month_name, self.year_month[:-2])
 
     class Meta:
+        get_latest_by = "year_month"
         verbose_name = u"Mes de entidad"
         verbose_name_plural = u"Meses de entidad"
 
@@ -207,9 +231,10 @@ class PetitionMonth(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return "%s, %s" % (self.petition, self.monthentity)
+        return "%s, %s" % (self.petition, self.month_entity)
 
     class Meta:
+        get_latest_by = "month_entity__year_month"
         verbose_name = u"Mes de peticion"
         verbose_name_plural = u"Meses de peticion"
 
@@ -269,18 +294,26 @@ class ProcessFile(models.Model):
         Petition,
         related_name="process_files",
         on_delete=models.CASCADE)
-    ori_file = models.FileField(max_length=150, upload_to=set_upload_path)
+    ori_file = models.FileField(
+        verbose_name="arhivo",
+        max_length=150, upload_to=set_upload_path,
+        blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     file_type = models.ForeignKey(
         FileType, on_delete=models.CASCADE, blank=True, null=True)
     text = models.TextField(blank=True, null=True, 
         verbose_name="Texto (en caso de no haber archivo)")
+    url_download = models.URLField(
+        max_length=400, blank=True, null=True, 
+        verbose_name="Url donde se puede descargar el archivo")
     notes = models.TextField(blank=True, null=True, verbose_name="Notas")
     addl_params = JSONField(
         blank=True, null=True, verbose_name="Otras configuraciones")
 
     def __str__(self):
-        return "%s -- %s" % (self.ori_file, self.petition)
+        first = (self.ori_file or (self.text and self.text[:80]) 
+            or self.url_download or 'None')
+        return "%s -- %s" % (first, self.petition)
 
     class Meta:
         verbose_name = u"Documento"

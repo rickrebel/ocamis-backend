@@ -34,6 +34,8 @@ class StatusControl(models.Model):
 
 class FileType(models.Model):
     name = models.CharField(max_length=255)
+    public_name = models.CharField(
+        max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_default = models.BooleanField(default=False)
     has_data = models.BooleanField(default= False)

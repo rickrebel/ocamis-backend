@@ -71,7 +71,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
         return Response(status=status.HTTP_202_ACCEPTED)
 
 
-
 class InstitutionList(ListMix):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.InstitutionListSerializer
