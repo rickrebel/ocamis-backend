@@ -261,11 +261,17 @@ class PetitionEditSerializer(serializers.ModelSerializer):
     status_data = StatusControlSimpleSerializer(read_only=True)
     status_data_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="status_data",
-        queryset=StatusControl.objects.all())
-    status_petition = StatusControlSimpleSerializer(read_only=True)
+        queryset=StatusControl.objects.all(), required=False)
+    status_petition = StatusControlSimpleSerializer(
+        read_only=True)
+    status_complain = StatusControlSimpleSerializer(
+        read_only=True)
     status_petition_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="status_petition",
-        queryset=StatusControl.objects.all())
+        queryset=StatusControl.objects.all(), required=False)
+    status_complain_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="status_complain",
+        queryset=StatusControl.objects.all(), required=False)
 
     class Meta:
         model = Petition

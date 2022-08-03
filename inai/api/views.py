@@ -76,17 +76,16 @@ class PetitionViewSet(ListRetrieveUpdateMix):
     queryset = Petition.objects.all()
     action_serializers = {
         "create": serializers.PetitionEditSerializer,
-        #"update": serializers.FileControlFullSerializer,
+        "update": serializers.PetitionEditSerializer,
     }
 
     def create(self, request, **kwargs):
         #self.check_permissions(request)
-        data_file_control = request.data
+        data_petition = request.data
         new_petition = Petition()
         petition = None
         range_months = data_petition.pop('range_months', [])
         petition_breaks = data_petition.pop('build_petition_breaks', [])
-        supplies_items = data_petition.pop('supplies', [])
         entity = data_petition.pop('entity', [])
         data_petition["entity"] = entity["id"]
         
@@ -109,8 +108,6 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             PetitionMonth.objects.create(
                 petition=petition, month_entity=month_entity)
 
-        print(petition)
-        print("petition_breaks", petition_breaks)
         for pet_break in petition_breaks:
             petition_break = PetitionBreak()
             petition_break.petition = petition
@@ -126,6 +123,23 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             petition, context={'request': request})
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, **kwargs):
+        from rest_framework.exceptions import (NotFound) 
+
+        petitiom = self.get_object()
+        data = request.data
+
+        serializer_petition = self.get_serializer_class()(
+            petitiom, data=data)
+        if serializer_petition.is_valid():
+            #control = serializer_data_file.save()
+            serializer_petition.save()
+        else:
+            return Response({"errors": serializer_petition.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer_petition.data, status=status.HTTP_201_CREATED)
 
 
     @action(methods=["post"], detail=True, url_path='change_months')
@@ -197,7 +211,6 @@ class ProcessFileViewSet(CreateRetrievView):
             serializer_proc_file.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, **kwargs):
-        print("destroy")
         petition_id = self.kwargs.get("petition_id")
         try:
             petition = Petition.objects.get(id=petition_id)
