@@ -97,9 +97,10 @@ class FinalField(models.Model):
         help_text="Ricardo ya verificó que todos los parámetros están bien")
 
     def __str__(self):
-        return self.name
+        return "%s - %s" % (self.collection, self.name)
 
     class Meta:
+        ordering = ["collection", "name"]
         verbose_name = u"Campo final"
         verbose_name_plural = u"Campos finales (en DB)"
 

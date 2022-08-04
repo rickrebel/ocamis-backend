@@ -154,7 +154,8 @@ class PetitionBreak(models.Model):
 
 class PetitionNegativeReason(models.Model):
     petition = models.ForeignKey(
-        Petition, on_delete=models.CASCADE)
+        Petition, on_delete=models.CASCADE,
+        related_name="negative_reasons",)
     negative_reason = models.ForeignKey(
         NegativeReason, on_delete=models.CASCADE)
     is_main = models.BooleanField(
