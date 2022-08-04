@@ -4,13 +4,13 @@ from rest_framework import serializers
 from inai.models import (
     FileControl, Petition, PetitionFileControl, Transformation,
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
-    PetitionBreak)
+    PetitionBreak, PetitionNegativeReason)
 
 from category.models import StatusControl, FileType
 
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
-    ColumnTypeSimpleSerializer)
+    ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer)
 
 from catalog.api.serializers import EntitySerializer
 
@@ -249,6 +249,14 @@ class PetitionBreakSerializer(serializers.ModelSerializer):
         #write_only_fields = ('date_break_id',)
 
 
+class PetitionNegativeReasonSerializer(FileControlSerializer):
+    negative_reason = NegativeReasonSimpleSerializer()
+
+    class Meta:
+        model = PetitionNegativeReason
+        fields = "__all__"
+
+
 class PetitionSmallSerializer(serializers.ModelSerializer):
     petition_months = PetitionMonthSerializer(many=True)
     process_files = ProcessFileSerializer(many=True)
@@ -267,9 +275,13 @@ class PetitionFullSerializer(PetitionSmallSerializer):
     break_dates = PetitionBreakSerializer(many=True)
     status_data = StatusControlSimpleSerializer()
     status_petition = StatusControlSimpleSerializer()
+    negative_reasons = PetitionNegativeReasonSerializer(
+        many=True, read_only=True)
 
 
 class PetitionEditSerializer(serializers.ModelSerializer):
+    negative_reasons = PetitionNegativeReasonSerializer(
+        many=True, read_only=True)
     status_data = StatusControlSimpleSerializer(read_only=True)
     status_data_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="status_data",

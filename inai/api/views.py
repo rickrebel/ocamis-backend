@@ -92,6 +92,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         new_petition = Petition()
         petition = None
         range_months = data_petition.pop('range_months', [])
+        petition_reasons = data_petition.pop('petition_reasons', [])
         petition_breaks = data_petition.pop('build_petition_breaks', [])
         entity = data_petition.pop('entity', [])
         data_petition["entity"] = entity["id"]
@@ -133,18 +134,36 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
     def update(self, request, **kwargs):
         from rest_framework.exceptions import (NotFound) 
+        from category.models import NegativeReason
+        from inai.models import PetitionNegativeReason
 
-        petitiom = self.get_object()
+        petition = self.get_object()
         data = request.data
 
+        other_reasons = data.pop('other_reasons', [])
+        main_reason = data.pop('main_reason', None)
+        
         serializer_petition = self.get_serializer_class()(
-            petitiom, data=data)
+            petition, data=data)
         if serializer_petition.is_valid():
             #control = serializer_data_file.save()
             serializer_petition.save()
         else:
             return Response({"errors": serializer_petition.errors},
                             status=status.HTTP_400_BAD_REQUEST)
+
+        for negative in other_reasons:
+            negative_obj = NegativeReason.objects.get(name=negative)            
+            petition_negative_reason, created = PetitionNegativeReason.objects\
+                .get_or_create(petition=petition, 
+                    negative_reason = negative_obj, is_main=False)
+
+        if main_reason:
+            negative_obj = NegativeReason.objects.get(name=main_reason)            
+            petition_negative_reason, created = PetitionNegativeReason.objects\
+                .get_or_create(petition=petition,
+                    negative_reason = negative_obj, is_main=True)
+
         return Response(
             serializer_petition.data, status=status.HTTP_201_CREATED)
 
