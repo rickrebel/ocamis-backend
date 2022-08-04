@@ -17,14 +17,14 @@ class FileControlViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.FileControlSerializer
     queryset = FileControl.objects.all().prefetch_related(
-                "columns",
-                "columns__column_type",
-                "columns__data_type",
-                "columns__column_tranformations",
-                "columns__column_tranformations__clean_function",
-                "columns__final_field",
-                "columns__final_field__collection",
-            )
+            "columns",
+            "columns__column_type",
+            "columns__data_type",
+            "columns__column_tranformations",
+            "columns__column_tranformations__clean_function",
+            "columns__final_field",
+            "columns__final_field__collection",
+        )
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -75,6 +75,38 @@ class FileControlViewSet(ListRetrieveUpdateMix):
 
         #return Response(
         #    serializer_ctrl.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=["post"], detail=True, url_path='change_months')
+    def change_months(self, request, **kwargs):
+        import json
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        columns = request.data.get("columns")
+        file_control = self.get_object()
+        #limiters = json.loads(limiters)
+
+        #for col in columns:
+        #    column = 
+        #    NameColumn.objects.get(name_in_data=col["name_in_data"] nc)
+
+        current_pet_months = PetitionMonth.objects.filter(petition=petition)
+        current_pet_months.exclude(
+            month_entity__year_month__gte=limiters[0],
+            month_entity__year_month__lte=limiters[1],
+            ).delete()
+        new_month_entities = MonthEntity.objects.filter(
+            entity=petition.entity,
+            year_month__gte=limiters[0], year_month__lte=limiters[1])
+        for mon_ent in new_month_entities:
+            PetitionMonth.objects.get_or_create(
+                petition=petition, month_entity=mon_ent)
+
+        final_pet_monts = PetitionMonth.objects.filter(
+            petition=petition)
+        new_serializer = serializers.PetitionMonthSerializer(
+            final_pet_monts, many=True)
+        return Response(
+            new_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class PetitionViewSet(ListRetrieveUpdateMix):
@@ -167,7 +199,6 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         return Response(
             serializer_petition.data, status=status.HTTP_201_CREATED)
 
-
     @action(methods=["post"], detail=True, url_path='change_months')
     def change_months(self, request, **kwargs):
         import json
@@ -178,7 +209,6 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         #limiters = json.loads(limiters)
 
         petition = self.get_object()
-        petition
         current_pet_months = PetitionMonth.objects.filter(petition=petition)
         current_pet_months.exclude(
             month_entity__year_month__gte=limiters[0],

@@ -69,7 +69,7 @@ class ExtractorsMix:
         if is_explore:
             return {
                 "headers": headers,
-                "structured_data": validated_rows
+                "structured_data": validated_rows[:200]
             }
         print("despues de terminar")
         matched_rows = []

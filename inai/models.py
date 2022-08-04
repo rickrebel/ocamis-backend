@@ -116,14 +116,17 @@ class Petition(models.Model):
             "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
             "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
         curr_months = []
-        description = self.description_petition.lower()
-        for month in months:
-            if month in description:
-                curr_months.append(month)
-        html_list = ''
-        for month in list(curr_months):
-            html_list = html_list + ('<span>%s</span><br>' % month)
-        return format_html(html_list)
+        if self.description_petition:
+            description = self.description_petition.lower()
+            for month in months:
+                if month in description:
+                    curr_months.append(month)
+            html_list = ''
+            for month in list(curr_months):
+                html_list = html_list + ('<span>%s</span><br>' % month)
+            return format_html(html_list)
+        else:
+            return "Sin descripción"
     months_in_description.short_description = u"Meses escritos"
 
 
