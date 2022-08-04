@@ -1,4 +1,4 @@
-#Para nombres
+#Funcion para nombres de columnas
 def hydrateCol(row, all_headers):
     hydrated = {}
     cols = row
@@ -44,9 +44,9 @@ def import_excel(path_excel):
 path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
 def import_excelnh(path_excel):
     import pandas as pd
-    prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
+    prueba_clues = pd.read_excel(path_excel, dtype = 'string')
     #Nombres de columnas (pandaarray)
-    headers = prueba_clues.keys().array
+    #headers = prueba_clues.keys().array
     #Renglones de las variables
     rows= []
     for row in prueba_clues.iterrows():
@@ -61,73 +61,138 @@ def import_excelnh(path_excel):
     #Guardar con nombres
     return(listval)
 
-
-#Corregir
-#Identificar los movimientos de clues despues del 2019-12-31
-from datetime import date
-dates_idm =[]
-datet = date.fromisoformat('2019-12-31')
-for i in flist[32]:
-    #datesm.append(date.fromisoformat(i)) 
-    if (date.fromisoformat(i)) > datet: 
-        dates_idm.append("True")
-    else:
-        dates_idm.append("False")
+#Para probar funcion import_excelnh
+dataxl = import_excelnh(path_excel)
 
 
+#Funcion para identificar clues nuevos/actualizados
+def date_act(datalist):
+    import pandas as pd
+    from datetime import datetime
+    listfilt = {}
+    dates_idm = ()
+    datet = datetime.strptime('2019-12-31', '%Y-%m-%d').date()
+    for datee in datalist:
+        try:
+            dat = datetime.strptime(datee[32], '%Y-%m-%d').date()
+        except:
+            dat = pd.NaT
+        if pd.isnull(dat):
+            datee.append("NA")
+        if not dat > datet: 
+            datee.append("False")
+        else:
+            datee.append("True")
+        dates_idm = (*dates_idm, datee)
+    return(dates_idm)
+
+#Para probar funcion datalist
+datalist = dataxl
 
 
-#Con nombres de variables CLUES
-ejmdta=listval
-from catalog.models import CLUES, Institution
-alldata = CLUES.objects.all()
-for dat in alldata:
-    alldata_db = CLUES.objects.filter(name = "listval[17]").exists()
-    if not return_db:
-        obj, created=CLUES.objects.get_or_create(
-                    name=ejmdta["NOMBRE DE LA UNIDAD"],
-                    municipality - se carga field municipality? en el modelo CLUES esta
-                    municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
-                    tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
-                    tipology_obj =
-                    tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
-                    id_clues=ejmdta['ID'],
-                    clues=ejmdta['CLUES'],
-                    status_operation = ejmdta['ESTATUS DE OPERACION'],
-                    longitude=ejmdta['LONGITUD'],
-                    latitude=ejmdta['LATITUD'],
-                    locality=ejmdta['NOMBRE DE LA LOCALIDAD'],
-                    locality_inegi_code=ejmdta['CLAVE DE LA LOCALIDAD'],
-                    jurisdiction=ejmdta['NOMBRE DE LA JURISDICCION'],
-                    jurisdiction_clave=ejmdta['CLAVE DE LA JURISDICCION'],
-                    establishment_type=ejmdta['NOMBRE TIPO ESTABLECIMIENTO'],
-                    consultings_general=ejmdta['CONSULTORIOS DE MED GRAL'],
-                    consultings_other=ejmdta['CONSULTORIOS EN OTRAS AREAS'],
-                    beds_hopital=ejmdta['CAMAS EN AREA DE HOS'],
-                    beds_other=ejmdta['CAMAS EN OTRAS AREAS'],
-                    total_unities=ejmdta['UNIDADES TOTALES'], 
-                    admin_institution=ejmdta['NOMBRE DE LA INS ADM'],
-                    atention_level=ejmdta['NIVEL ATENCION'],
-                    stratum=ejmdta['ESTRATO UNIDAD'],
-                    real_name=
-                    alter_clasif=
-                    clasif_name=
-                    prev_clasif_name=
-                    number_unity=
-                    name_in_issten=ejmdta['NOMBRE DE LA UNIDAD'],
-                    rr_data=
-                    alternative_names=
-                    type_street=ejmdta['TIPO DE VIALIDAD'],
-                    street=ejmdta['VIALIDAD'],
-                    streat_number= ejmdta['NUMERO CALLE'], 
-                    suburb=ejmdta['SUBURBIO']
-                    postal_code=ejmdta['CODIGO POSTAL'],
-                    rfc=ejmdta['RFC DEL ESTABLECIMIENTO'],
-                    last_change=ejmdta['FECHA ULTIMO MOVIMIENTO']
-                    )
-        obj.save()
+#Funcion para identificar clues nuevas
+def new_clues(tot_list):
+    import pandas as pd
+    from catalog.models import CLUES
+    new_clue = ()
+    old_clue = list(CLUES.objects.values_list('clues', flat=True))
+    for row in tot_list:
+        if row[1] in old_clue:
+            row.append("False")
+        if row[1] not in old_clue:
+            row.append("True")
+        new_clue = (*new_clue, row)
+    return(new_clue)
+
+#Para probar funcion new_clues
+news_clues = new_clues(tot_list)
 
 
+#Funcion para cargar clues nuevas identificadas con new_clues
+#Esta funcion se está probando...
+def import_newclues(tot_list):
+    from catalog.models import State
+    from catalog.models import Institution
+    from catalog.models import CLUES
+    from catalog.models import Municipality
+    newclues = tot_list
+    #newclues = new_clues(tot_list)
+    for row in newclues:
+        state_inegi_code = row[2]
+        try:
+            state = State.objects.get(inegi_code=state_inegi_code)
+        except Exception as e:
+            state = None
+        print(state)
+        institution_clave = row[9]
+        try:
+            institution = Institution.objects.get(code=institution_clave)
+        except Exception as e:
+            institution = None
+        municipality_inegi_code = row[3]
+        try:
+            municipality = Municipality.objects.get(inegi_code=municipality_inegi_code)
+        except Exception as e:
+            municipality = None    
+        clues_n = CLUES.objects.create(
+            state = state,
+            institution = institution,
+            name = row[17],
+            #municipality - se carga field municipality? en el modelo CLUES esta
+            municipality_inegi_code = municipality,
+            tipology = row[11],
+            #tipology_obj =
+            tipology_cve=row[12],
+            id_clues=row[0],
+            clues=row[1],
+            status_operation = row[25],
+            longitude=row[28],
+            latitude=row[27],
+            locality=row[4],
+            locality_inegi_code=row[5],
+            jurisdiction=row[6],
+            jurisdiction_clave=row[7],
+            establishment_type=row[10],
+            consultings_general=row[13],
+            consultings_other=row[14],
+            beds_hopital=row[15],
+            beds_other=row[16],
+            #total_unities=row['UNIDADES TOTALES'], 
+            admin_institution=row[29],
+            atention_level=row[30],
+            stratum=row[31],
+            #real_name=
+            #alter_clasif=
+            #clasif_name=
+            #prev_clasif_name=
+            #number_unity=
+            name_in_issten=row[17],
+            #rr_data=
+            #alternative_names=
+            type_street=row[18],
+            street=row[19],
+            #streat_number= row['NUMERO CALLE'], 
+            #suburb=row['SUBURBIO']
+            postal_code=row[24],
+            rfc=row[26],
+            #last_change=row[32]
+        )
+        print(clues_n)
+
+
+#Para hacer pruebas de carga a clues
+#Ejemplo para carga clues
+ejemplo = (['01']*43, ['02']*43)
+ejemplo[0][9] = 1
+ejemplo[1][9] = 2
+ejemplo[0][3] = '001'
+ejemplo[1][3] = '002'
+tot_list = ejemplo
+
+
+
+
+###ANALISIS DE DATOS
 ###Consultas CLUES
 
 from catalog.models import CLUES
@@ -141,12 +206,18 @@ totalclu = CLUES.objects.all().values(
 print(totalclu)
 #Comentario: Model Institution no está activo
 
+#Total de clues del IMSS
+totalcluIMSS = CLUES.objects.filter(institution__code='IMSS').values(
+    'institution').annotate(total_clues = Count('institution'))
+print(totalcluIMSS)
+
+
 #Cuantas clues hay activas
 activclue = CLUES.objects.all().values(
     'status_operation').annotate(status_clues = Count('status_operation')).order_by('-status_clues')
 print(activclue)
 
-#De que tamaño son las umaes del imss
+#De que tamaño son las umaes del imss (arcivo umaes)
 #a partir de sus camas y consultorios
 path_excel = 'D:\\Documents\\desabasto_ocamis\\umaes_imss.xlsx'
 umaes = import_excelnh(path_excel)
