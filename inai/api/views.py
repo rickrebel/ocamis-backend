@@ -25,7 +25,14 @@ class FileControlViewSet(ListRetrieveUpdateMix):
                 "columns__final_field",
                 "columns__final_field__collection",
             )
-    
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["show_institution"] = True
+        #context["show_institution"] = self.kwargs['customer_id']
+        #context["query_params"] = self.request.query_params
+        return context
+
     action_serializers = {
         "list": serializers.FileControlSerializer,
         "retrieve": serializers.FileControlFullSerializer,
@@ -327,6 +334,3 @@ class AscertainableViewSet(CreateRetrievView):
         self.perform_destroy(data_file)
         return Response(status=status.HTTP_200_OK)
 
-
-
-#-----------------------------------------------------------------------------

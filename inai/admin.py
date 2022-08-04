@@ -61,7 +61,7 @@ class PetitionAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(Petition, PetitionAdmin)
 
 
-class NameColumnInline(admin.TabularInline):
+class NameColumnInline(admin.StackedInline):
     model = NameColumn
     extra = 0
 

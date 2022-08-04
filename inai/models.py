@@ -9,6 +9,11 @@ from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, DateBreak)
 from data_param.models import DataType, FinalField, CleanFunction, DataGroup
 
+from .data_file_mixins.explore_mix import ExploreMix
+from .data_file_mixins.utils_mix import DataUtilsMix
+from .data_file_mixins.get_data_mix import ExtractorsMix
+
+
 def set_upload_path(instance, filename):
     #from django.conf import settings
     #files_path = getattr(settings, "FILES_PATH")
@@ -277,7 +282,7 @@ class PetitionMonth(models.Model):
         verbose_name_plural = u"Meses de peticion"
 
 
-class DataFile(models.Model):
+class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150,
         upload_to=set_upload_path) 
@@ -289,7 +294,8 @@ class DataFile(models.Model):
     #is_final = models.BooleanField(default= True)
     origin_file = models.ForeignKey(
         "DataFile",
-        blank=True, null=True, related_name="child_files",
+        blank=True, null=True,
+        related_name="child_files",
         on_delete=models.CASCADE)
     petition_file_control = models.ForeignKey(
         PetitionFileControl,
@@ -309,17 +315,6 @@ class DataFile(models.Model):
         return "%s %s" % (str(self.file), self.petition_file_control)
         #return "%s %s" % (self.petition_file_control, self.date)
         #return "hola"
-
-    def save_errors(self, errors, error_name):
-        errors = ['No se pudo descomprimir el archivo gz']
-        curr_errors = self.errors_process or []
-        curr_errors += errors
-        current_status, created = StatusControl.objects.get_or_create(
-            name=error_name)
-        self.error_process = curr_errors
-        self.status_process = current_status 
-        print(curr_errors)
-        self.save()
 
     class Meta:
         ordering = ["file"]
