@@ -121,7 +121,7 @@ class ExtractorsMix:
         suffixes = set([suffix.lower() for suffix in suffixes])
         #format_file = self.file_control.format_file
         if '.gz' in suffixes:
-            print("path", self.file.path)
+            #print("path", self.file.path)
             print("name", self.file.name)
             print("url", self.file.url)
             success_decompress, final_path = self.decompress_file_gz()
@@ -154,11 +154,11 @@ class ExtractorsMix:
         if 'zip' in suffixes:
             #[directory, only_name] = self.path.rsplit("/", 1)
             #[base_name, extension] = only_name.rsplit(".", 1)
-            directory = self.file.path
+            directory = self.file.name
             #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
-            zip_file = zipfile.ZipFile(self.path)
+            zip_file = zipfile.ZipFile(self.file.name)
             all_files = zip_file.namelist()
-            with zipfile.ZipFile(self.path, 'r') as zip_ref:
+            with zipfile.ZipFile(self.name, 'r') as zip_ref:
                 zip_ref.extractall(directory)               
             #ZipFile.extractall(path=None, members=None, pwd=None)   
             #for f in os.listdir(directory):
@@ -204,7 +204,7 @@ class ExtractorsMix:
         import shutil
         try:
             with gzip.open(self.file, 'rb') as f_in:
-                decomp_path = self.file.path.replace(".gz", "")
+                decomp_path = self.file.name.replace(".gz", "")
                 with open(decomp_path, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
                     return True, decomp_path
@@ -220,7 +220,7 @@ class ExtractorsMix:
         print("ESTOY EN EXCEEEEL")
         #prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
         data_excel = pd.read_excel(
-            self.file.path, dtype = 'string', nrows=50)
+            self.file.name, dtype = 'string', nrows=50)
         #Nombres de columnas (pandaarray)
         headers = data_excel.keys().array
         #Renglones de las variables
@@ -257,7 +257,7 @@ class ExtractorsMix:
             special_coma, special_excel, clean_special)
         import io
         try:
-            with io.open(self.file.path, "r", encoding="latin-1") as file_open:
+            with io.open(self.file.name, "r", encoding="latin-1") as file_open:
                 data = file_open.read()
                 file_open.close()
         except Exception as e:
