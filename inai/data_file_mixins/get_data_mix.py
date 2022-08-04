@@ -117,12 +117,12 @@ class ExtractorsMix:
         from inai.models import StatusControl
         count_splited = 0
         #file_name = self.file_name
-        suffixes = pathlib.Path(self.file.name).suffixes
+        suffixes = pathlib.Path(self.file.url).suffixes
         suffixes = set([suffix.lower() for suffix in suffixes])
         #format_file = self.file_control.format_file
         if '.gz' in suffixes:
             #print("path", self.file.path)
-            print("name", self.file.name)
+            print("name", self.file.url)
             print("url", self.file.url)
             success_decompress, final_path = self.decompress_file_gz()
             if not success_decompress:
@@ -130,7 +130,7 @@ class ExtractorsMix:
                 return None, errors, None
             file_without_extension = final_path
             print("final_path:", final_path)
-            real_final_path = self.file.name.replace(".gz", "")
+            real_final_path = self.file.url.replace(".gz", "")
             #file_without_extension = file_path[:-3]
             decompressed_status, created = StatusControl.objects.get_or_create(
                 name='decompressed', group="process")
@@ -143,7 +143,7 @@ class ExtractorsMix:
             #new_file.origin_file = self
             new_file.pk = None
             new_file.status_process = initial_status
-            new_file.file.name = real_final_path
+            new_file.file.url = real_final_path
             new_file.save()
             new_file.origin_file_id = prev_self_pk
             new_file.save()
@@ -154,11 +154,11 @@ class ExtractorsMix:
         if 'zip' in suffixes:
             #[directory, only_name] = self.path.rsplit("/", 1)
             #[base_name, extension] = only_name.rsplit(".", 1)
-            directory = self.file.name
+            directory = self.file.url
             #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
-            zip_file = zipfile.ZipFile(self.file.name)
+            zip_file = zipfile.ZipFile(self.file.url)
             all_files = zip_file.namelist()
-            with zipfile.ZipFile(self.name, 'r') as zip_ref:
+            with zipfile.ZipFile(self.url, 'r') as zip_ref:
                 zip_ref.extractall(directory)               
             #ZipFile.extractall(path=None, members=None, pwd=None)   
             #for f in os.listdir(directory):
@@ -204,7 +204,7 @@ class ExtractorsMix:
         import shutil
         try:
             with gzip.open(self.file, 'rb') as f_in:
-                decomp_path = self.file.name.replace(".gz", "")
+                decomp_path = self.file.url.replace(".gz", "")
                 with open(decomp_path, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
                     return True, decomp_path
@@ -220,7 +220,7 @@ class ExtractorsMix:
         print("ESTOY EN EXCEEEEL")
         #prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
         data_excel = pd.read_excel(
-            self.file.name, dtype = 'string', nrows=50)
+            self.file.url, dtype = 'string', nrows=50)
         #Nombres de columnas (pandaarray)
         headers = data_excel.keys().array
         #Renglones de las variables
@@ -257,7 +257,7 @@ class ExtractorsMix:
             special_coma, special_excel, clean_special)
         import io
         try:
-            with io.open(self.file.name, "r", encoding="latin-1") as file_open:
+            with io.open(self.file.url, "r", encoding="latin-1") as file_open:
                 data = file_open.read()
                 file_open.close()
         except Exception as e:
