@@ -24,7 +24,7 @@ class StatusControl(models.Model):
     addl_params = JSONField(blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return "%s - %s"  % (self.group, self.public_name)
 
     class Meta:
         ordering = ["group", "order"]
@@ -64,7 +64,7 @@ class ColumnType(models.Model):
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return self.public_name
 
     class Meta:
         verbose_name = u"Tipo de Columna"
@@ -92,9 +92,8 @@ class DateBreak(models.Model):
     order = models.IntegerField(default=5)
     break_params = JSONField(blank=True, null=True)
 
-
     def __str__(self):
-        return self.name
+        return "%s - %s"  % (self.group, self.public_name)
 
     class Meta:
         ordering = ["order"]
