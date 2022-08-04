@@ -41,7 +41,7 @@ class CatalogView(views.APIView):
             ## CATÁLOGOS GENERALES:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,
-            "colleccions": CollectionSimpleSerializer(
+            "collections": CollectionSimpleSerializer(
                 Collection.objects.all(), many=True).data,
             "final_fields": FinalFieldSimpleSerializer(
                 FinalField.objects.all(), many=True).data,
