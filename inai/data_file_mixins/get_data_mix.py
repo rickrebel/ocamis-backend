@@ -35,9 +35,9 @@ class ExtractorsMix:
         status_error = 'explore_fail' if is_explore else 'extraction_failed'
         if suffix in ['.txt', '.csv']:
             data_rows, errors = self.get_data_from_file_simple()
-            print(data_rows[0])
             if errors:
                 return self.save_errors(errors, status_error)
+            print(data_rows[0])
             file_control = self.petition_file_control.file_control
             validated_rows = self.divide_rows(data_rows, is_explore)
             row_headers = file_control.row_headers or 0
