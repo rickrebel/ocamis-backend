@@ -76,35 +76,40 @@ class FileControlViewSet(ListRetrieveUpdateMix):
         #return Response(
         #    serializer_ctrl.data, status=status.HTTP_201_CREATED)
 
-    @action(methods=["post"], detail=True, url_path='change_months')
-    def change_months(self, request, **kwargs):
+    @action(methods=["post"], detail=True, url_path='columns')
+    def columns(self, request, **kwargs):
+        from inai.models import NameColumn, FileControl
         import json
         if not request.user.is_staff:
             raise PermissionDenied()
-        columns = request.data.get("columns")
+        columns_items = request.data.get("columns")
         file_control = self.get_object()
         #limiters = json.loads(limiters)
 
-        #for col in columns:
-        #    column = 
-        #    NameColumn.objects.get(name_in_data=col["name_in_data"] nc)
+        actual_id_columns = []
+        for column_item in columns_items:
+            if "id" in column_item:
+                column = NameColumn.objects.filter(
+                    id=column_item["id"], file_control=file_control).first()
+                if not column:
+                    continue
+            else:
+                column = NameColumn()
+                column.file_control = file_control
 
-        current_pet_months = PetitionMonth.objects.filter(petition=petition)
-        current_pet_months.exclude(
-            month_entity__year_month__gte=limiters[0],
-            month_entity__year_month__lte=limiters[1],
-            ).delete()
-        new_month_entities = MonthEntity.objects.filter(
-            entity=petition.entity,
-            year_month__gte=limiters[0], year_month__lte=limiters[1])
-        for mon_ent in new_month_entities:
-            PetitionMonth.objects.get_or_create(
-                petition=petition, month_entity=mon_ent)
+            column_supp = serializers.NameColumnEditSerializer(
+                column, data=column_item)
+            if column_supp.is_valid():
+                column = column_supp.save()
+                actual_id_columns.append(column.id)
+            else:
+                print(column_supp.errors)
+        NameColumn.objects.filter(file_control=file_control)\
+            .exclude(id__in=actual_id_columns).delete()
 
-        final_pet_monts = PetitionMonth.objects.filter(
-            petition=petition)
-        new_serializer = serializers.PetitionMonthSerializer(
-            final_pet_monts, many=True)
+
+        new_serializer = serializers.FileControlFullSerializer(
+            file_control)
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 

@@ -80,6 +80,13 @@ class NameColumnSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class NameColumnEditSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = NameColumn
+        fields = "__all__"
+
+
 class MonthEntitySerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -147,7 +154,7 @@ class DataFileSerializer2(serializers.ModelSerializer):
 
 
 class PetitionMonthSerializer(serializers.ModelSerializer):
-    month_entity = MonthEntitySimpleSerializer()
+    month_entity = MonthEntitySimpleSerializer(read_only=True)
 
     class Meta:
         model = PetitionMonth
