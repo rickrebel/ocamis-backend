@@ -68,7 +68,7 @@ class FileControlViewSet(ListRetrieveUpdateMix):
             new_pet_file_ctrl = PetitionFileControl.objects.create(
                 petition_id=petition_id, file_control=file_control)
 
-        new_serializer = serializers.PetitionFileControlFullSerializer(
+        new_serializer = serializers.PetitionFileControlDeepSerializer(
             new_pet_file_ctrl, context={'request': request})
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
@@ -89,17 +89,21 @@ class FileControlViewSet(ListRetrieveUpdateMix):
         actual_id_columns = []
         for column_item in columns_items:
             if "id" in column_item:
+                print("sí tenngo column", column_item["id"])
                 column = NameColumn.objects.filter(
                     id=column_item["id"], file_control=file_control).first()
                 if not column:
+                    print("no continúo")
                     continue
             else:
+                print("Es nuevooo")
                 column = NameColumn()
                 column.file_control = file_control
 
             column_supp = serializers.NameColumnEditSerializer(
                 column, data=column_item)
             if column_supp.is_valid():
+                print("es válido")
                 column = column_supp.save()
                 actual_id_columns.append(column.id)
             else:
@@ -107,9 +111,9 @@ class FileControlViewSet(ListRetrieveUpdateMix):
         NameColumn.objects.filter(file_control=file_control)\
             .exclude(id__in=actual_id_columns).delete()
 
-
+        new_file_control = FileControl.objects.get(id=file_control.id)
         new_serializer = serializers.FileControlFullSerializer(
-            file_control)
+            new_file_control)
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 

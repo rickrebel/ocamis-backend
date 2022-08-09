@@ -207,6 +207,7 @@ def insert_from_json(
                 idSujetoObligado=row["idSujetoObligado"])
         except Exception as e:
             print(e)
+            continue
         if not related_elem.nombreSujetoObligado:
             related_elem.nombreSujetoObligado = row["nombreSujetoObligado"]
             related_elem.save()

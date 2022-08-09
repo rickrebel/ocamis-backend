@@ -7,7 +7,8 @@ from django.utils.deconstruct import deconstructible
 from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, DateBreak)
-from data_param.models import DataType, FinalField, CleanFunction, DataGroup
+from data_param.models import (
+    DataType, FinalField, CleanFunction, DataGroup, Collection)
 
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
@@ -70,6 +71,9 @@ class Petition(models.Model):
         blank=True, null=True)
     description_response = models.TextField(
         verbose_name="Respuesta texto",
+        blank=True, null=True)
+    description_complain = models.TextField(
+        verbose_name="Texto de la queja",
         blank=True, null=True)
     status_data = models.ForeignKey(
         StatusControl, null=True, blank=True, 
@@ -278,7 +282,7 @@ class PetitionMonth(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return "%s, %s" % (self.petition, self.month_entity)
+        return "%s-> %s, %s" % (self.id, self.petition, self.month_entity)
 
     class Meta:
         get_latest_by = "month_entity__year_month"
@@ -291,8 +295,8 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     file = models.FileField(max_length=150,
         upload_to=set_upload_path) 
     date = models.DateTimeField(auto_now_add=True)
-    month_entity = models.ForeignKey(
-        MonthEntity, blank=True, null=True,
+    petition_month = models.ForeignKey(
+        PetitionMonth, blank=True, null=True,
         on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
     #is_final = models.BooleanField(default= True)
@@ -359,9 +363,11 @@ class ProcessFile(models.Model):
 
 
 class NameColumn (models.Model):
-    name_in_data = models.TextField(blank=True, null=True)
-    position_in_data = models.IntegerField(default=1)
-    column_type=models.ForeignKey(
+    name_in_data = models.TextField(
+        verbose_name="Nombre de la columna real", blank=True, null=True)
+    position_in_data = models.IntegerField(
+        default=1, blank=True, null=True)
+    column_type = models.ForeignKey(
         ColumnType, on_delete=models.CASCADE)
     file_control = models.ForeignKey(
         FileControl,
@@ -370,6 +376,10 @@ class NameColumn (models.Model):
         on_delete=models.CASCADE)
     data_type = models.ForeignKey(
         DataType, 
+        blank=True, null=True,
+        on_delete=models.CASCADE)
+    collection = models.ForeignKey(
+        Collection, 
         blank=True, null=True,
         on_delete=models.CASCADE)
     final_field = models.ForeignKey(

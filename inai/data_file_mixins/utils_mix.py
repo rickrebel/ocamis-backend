@@ -22,6 +22,12 @@ class DataUtilsMix:
         return Response(
             {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
+    def change_status(self, status_name):
+        from category.models import StatusControl
+        new_status, created = StatusControl.objects.get_or_create(
+                name=status_name, group="process")
+        self.status_process = new_status 
+        self.save()
 
     def massive_insert_copy(self, errors, error_name):
         return 2

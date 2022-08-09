@@ -37,7 +37,7 @@ class ExtractorsMix:
             data_rows, errors = self.get_data_from_file_simple()
             if errors:
                 return self.save_errors(errors, status_error)
-            print(data_rows[0])
+            #print(data_rows[0])
             file_control = self.petition_file_control.file_control
             validated_rows = self.divide_rows(data_rows, is_explore)
             row_headers = file_control.row_headers or 0
@@ -47,11 +47,11 @@ class ExtractorsMix:
                 errors = ["No podemos procesar ahora headers en posiciones distintas"]
                 return self.save_errors(errors, status_error)
             pops_count = file_control.row_start_data - row_headers - 1
-            print("pops_count", pops_count)
+            #print("pops_count", pops_count)
             for pop in range(pops_count):
                 validated_rows.pop(0)
-            print(validated_rows[0])
-            print(validated_rows[4])
+            #print(validated_rows[0])
+            #print(validated_rows[4])
         elif suffix in ['.xlsx', '.xls']:
             headers, data_rows, errors = self.get_data_from_excel()
             validated_rows = data_rows
@@ -72,6 +72,7 @@ class ExtractorsMix:
                 "structured_data": validated_rows[:200]
             }
         print("despues de terminar")
+        return validated_rows  
         matched_rows = []
         for row in validated_rows:
             row = execute_matches(row, self)
@@ -109,107 +110,6 @@ class ExtractorsMix:
 
         raws["missing_r"] = missing_data
         return structured_data
-
-    def split_and_decompress(self):
-        import os
-        import zipfile 
-        import pathlib
-        from inai.models import StatusControl
-        count_splited = 0
-        #file_name = self.file_name
-        suffixes = pathlib.Path(self.file.url).suffixes
-        suffixes = set([suffix.lower() for suffix in suffixes])
-        #format_file = self.file_control.format_file
-        if '.gz' in suffixes:
-            #print("path", self.file.path)
-            print("name", self.file.url)
-            print("url", self.file.url)
-            success_decompress, final_path = self.decompress_file_gz()
-            if not success_decompress:
-                errors = ['No se pudo descomprimir el archivo gz %s' % final_path]            
-                return None, errors, None
-            file_without_extension = final_path
-            print("final_path:", final_path)
-            real_final_path = self.file.url.replace(".gz", "")
-            #file_without_extension = file_path[:-3]
-            decompressed_status, created = StatusControl.objects.get_or_create(
-                name='decompressed', group="process")
-            initial_status, created = StatusControl.objects.get_or_create(
-                name='initial', group="process")
-            self.status_process = decompressed_status
-            self.save()
-            prev_self_pk = self.pk
-            new_file = self 
-            #new_file.origin_file = self
-            new_file.pk = None
-            new_file.status_process = initial_status
-            new_file.file.url = real_final_path
-            new_file.save()
-            new_file.origin_file_id = prev_self_pk
-            new_file.save()
-            self = new_file
-
-            #self = new_file
-            suffixes.remove('.gz')
-        if 'zip' in suffixes:
-            #[directory, only_name] = self.path.rsplit("/", 1)
-            #[base_name, extension] = only_name.rsplit(".", 1)
-            directory = self.file.url
-            #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
-            zip_file = zipfile.ZipFile(self.file.url)
-            all_files = zip_file.namelist()
-            with zipfile.ZipFile(self.url, 'r') as zip_ref:
-                zip_ref.extractall(directory)               
-            #ZipFile.extractall(path=None, members=None, pwd=None)   
-            #for f in os.listdir(directory):
-            for f in all_files:
-                new_file = self
-                new_file.pk = None
-
-                new_file = DataFile.objects.create(
-                    file="%s%s" % (directory, f),
-                    origin_file=self,
-                    date=self.date,
-                    status=initial_status,
-                    #Revisar si lo más fácil es poner o no los siguientes:
-                    file_control=file_control,
-                    petition=self.petition,
-                    petition_month=file.petition_month,
-                    )
-            self = new_file
-            suffixes.remove('.zip')
-        #Obtener el tamaño
-        #file_name = self.file_name
-        if (len(suffixes) != 1):
-            errors = [("Tiene más o menos extensiones de las que"
-                " podemos reconocer: %s" % suffixes)]
-            return None, errors, None
-        []
-        #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
-        if not suffixes.issubset(set(['.txt', '.csv', '.xls', '.xlsx'])):
-            errors = ["Formato no válido", u"%s" % suffixes]
-            return None, errors, None
-        #file_size = os.path.getsize(self.file_name)
-        file_size = self.file.size
-        if file_size > 400000000:
-            if 'xlsx' in suffixes or 'xls' in suffixes:
-                errors = ["Archivo excel muy grande, aún no se puede partir"]
-                return None, errors, None
-            count_splited = self.split_file()
-        return count_splited, [], list(suffixes)[0]
-
-
-    def decompress_file_gz(self):
-        import gzip
-        import shutil
-        try:
-            with gzip.open(self.file, 'rb') as f_in:
-                decomp_path = self.file.url.replace(".gz", "")
-                with open(decomp_path, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-                    return True, decomp_path
-        except Exception as e:
-            return False, e
 
 
     #funcion de carga de Excel (solo listas sin nombres)
@@ -250,8 +150,6 @@ class ExtractorsMix:
         return headers, listval, []
 
 
-
-
     def get_data_from_file_simple(self):
         from scripts.recipe_specials import (
             special_coma, special_excel, clean_special)
@@ -281,3 +179,4 @@ class ExtractorsMix:
             data = clean_special(data)"""
         rr_data_rows = data.split("\n")
         return rr_data_rows, []
+

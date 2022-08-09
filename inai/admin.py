@@ -17,7 +17,7 @@ ocamis_admin_site = OcamisAdminSite(name='ocamis_admin')
 
 class DataFileInline(admin.TabularInline):
     model = DataFile
-    raw_id_fields = ["petition_file_control", "month_entity"]
+    raw_id_fields = ["petition_file_control", "petition_month"]
     extra = 0
     show_change_link = True
 
@@ -82,11 +82,11 @@ class DataFileAdmin(admin.ModelAdmin):
     list_display = [
         "petition_file_control",
         "file",
-        "month_entity",
+        "petition_month",
         "origin_file",
         "status_process",
     ]
-    raw_id_fields = ["petition_file_control", "month_entity"]
+    raw_id_fields = ["petition_file_control", "petition_month"]
     list_filter = ["petition_file_control__petition__entity"]
 
 ocamis_admin_site.register(DataFile, DataFileAdmin)

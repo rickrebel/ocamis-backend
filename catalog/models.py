@@ -308,10 +308,10 @@ class Entity(models.Model):
     addl_params = JSONField(blank=True, null=True)
     vigencia = models.NullBooleanField(
         default=True, help_text="Actualmente se le sigue preguntando")
-    compentent = models.BooleanField(
+    competent = models.BooleanField(
         default=True,
-        verbose_name="compentente",
-        help_text="Es compentente porque tiene pacientes y debe tener la información")
+        verbose_name="Competente",
+        help_text="Es Competente porque tiene pacientes y debe tener la información")
 
     def __str__(self):
         return self.name or u"%s -%s -%s" % (

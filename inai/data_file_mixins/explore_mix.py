@@ -1,111 +1,4 @@
-from category.models import StatusControl
 import unidecode
-from data_param.models import FinalField
-from category.models import StatusControl
-
-
-def build_catalog_delegation():
-    from catalog.models import Delegation
-    global catalog_delegation
-    #RICK Evaluar si es necesario declarar global acá:
-    global state
-    global institution
-    curr_delegations = Delegation.objects.filter(institution=institution)
-    if state:
-        curr_delegations = curr_delegations.filter(state=state)
-    delegs_query = list(curr_delegations.values_list(
-        'name', 'other_names', 'state__short_name'))
-    for deleg in delegs_query:
-        try:
-            deleg_name = unidecode.unidecode(deleg[0]).upper()
-        except Exception:
-            deleg_name = deleg[0].upper()
-        if deleg_name not in catalog_delegation:
-            catalog_delegation[deleg_name] = [deleg]
-        alt_names = deleg[1] or []
-        for alt_name in alt_names:
-            if alt_name not in catalog_delegation:
-                catalog_delegation[alt_name] = [deleg]
-            else:
-                catalog_delegation[alt_name].append(deleg)
-
-
-def build_catalog_state():
-    from catalog.models import State
-    global catalog_state
-    curr_states = State.objects.all()
-    states_query = list(curr_states.values_list('name', 'short_name'))
-    for estado in states_query:
-        try:
-            state_name = unidecode.unidecode(estado[0]).upper()
-        except Exception:
-            state_name = estado[0].upper()
-        if state_name not in catalog_state:
-            catalog_state[state_name] = [estado]
-        try:
-            state_short_name = unidecode.unidecode(estado[1]).upper()
-        except Exception:
-            state_short_name = estado[1].upper()
-        if state_short_name not in catalog_state:
-            catalog_state[state_short_name] = [estado]
-
-
-#Función que se modificará con el trabajo de Itza:
-def build_catalog_clues():
-    from catalog.models import CLUES
-    global catalog_clues
-    #RICK Evaluar si es necesario declarar global acá:
-    global institution
-    global state
-    clues_data_query = CLUES.objects.filter(institution=institution)
-    if state:
-        clues_data_query.filter(state=state)
-    clues_data_query = list(
-        clues_data_query.values_list(
-            "state__name", "name", "tipology_cve",
-            "id", "alternative_names", "state__short_name"
-        )
-    )
-    for clues_data in clues_data_query:
-        cves = clues_data[2].split("/")
-        state_short_name = clues_data[5]
-        for cve in cves:
-            try:
-                clues_name = unidecode.unidecode(clues_data[1])
-            except Exception:
-                clues_name = clues_data[1]
-            prov_name = u"%s %s" % (cve, clues_name)
-            real_name = unidecode.unidecode(prov_name).upper()
-            if not state:
-                real_name = "%s$%s" % (real_name, state_short_name)
-            if real_name not in catalog_clues:
-                catalog_clues[real_name] = [clues_data]
-            else:
-                catalog_clues[real_name].append(clues_data)
-        if clues_data[4]:
-            for alt_name in clues_data[4]:
-                if not state:
-                    alt_name = "%s$%s" % (alt_name, state_short_name)
-                if alt_name not in catalog_clues:
-                    catalog_clues[alt_name] = [clues_data]
-                else:
-                    catalog_clues[alt_name].append(clues_data)
-
-
-def state_match(row, columns, collection):
-    #ITZA: Hay que investigar cómo importar genérico con variable 'collection'
-    from catalog.models import State
-    query_filter = build_query_filter(row, columns)
-    #ITZA: Investigar nombramiento genérico
-    state = State.objects.filter(**query_filter).first()
-    return state
-
-
-def delegation_match(row, columns, collection):
-    from catalog.models import Delegation
-    query_filter = build_query_filter(row, columns)
-    delegation = Delegation.objects.filter(**query_filter).first()
-    return delegation
 
 
 def build_query_filter(row, columns):
@@ -123,27 +16,28 @@ class ExploreMix:
         print(self)
         return 2
 
+    #Comienzo del proceso de transformación.
+    #Si es esploración (is_explore) solo va a obtener los headers y las 
+    #primeras filas
     def start_file_process(self, is_explore=False):
-        print("IS EXPLOREEEE ", is_explore)
         from rest_framework.response import Response
         from rest_framework import (permissions, views, status)        
         from category.models import StatusControl
+        from data_param.models import FinalField
         #FieldFile.open(mode='rb')
-        recipe_fields = FinalField.objects.filter(
-            collection__model_name='Prescription').values()
-        droug_fields = FinalField.objects.filter(
-            collection__model_name='Droug').values()
-        catalog_clues = {}
-        catalog_state = {}
-        catalog_delegation = {}
-        claves_medico_dicc = {}
-        columns = {}
-        institution = None
-        state = None
         import json
         self.error_process = []
         self.save()
-        count_splited, errors, suffix = self.split_and_decompress()
+        #se llama a la función para descomprimir el archivo o archivos:
+        errors, suffix = self.decompress()
+        count_splited = 0
+        file_size = self.file.size
+        if file_size > 400000000:
+            if 'xlsx' in suffixes or 'xls' in suffixes:
+                errors = ["Archivo excel muy grande, aún no se puede partir"]
+                return None, errors, None
+            count_splited = self.split_file()
+        #return count_splited, [], list(suffixes)[0]
 
         if errors:
             status_error = 'explore_fail' if is_explore else 'extraction_failed'
@@ -160,45 +54,113 @@ class ExploreMix:
             for ch_file in self.child_files:
                 data = ch_file.transform_file_in_data(is_explore, suffix)
         else:
-            print("HOLA TERMINO")
+            #print("HOLA TERMINO")
             data = self.transform_file_in_data(is_explore, suffix)
-            print("HOLA TERMINO2")
+            #print("HOLA TERMINO2")
         if is_explore:
-            print(data["headers"])
-            print(data["structured_data"][:6])
+            #print(data["headers"])
+            #print(data["structured_data"][:6])
             return data
-
         return data
 
-    def build_catalogs(self):
-        from inai.models import NameColumn
-        global columns
-        global institution
-        global state
-        petition = self.petition_file_control.petition
-        institution = petition.entity.institution
-        state = petition.entity.state
-        all_columns = NameColumn.objects.filter(
-            file_control=self.petition_file_control.file_control)
-        columns["all"] = all_columns.values()
-        columns["clues"] = all_columns.filter(
-            final_field__collection='CLUES').values()
-        columns["state"] = all_columns.filter(
-            final_field__collection='CLUES').values()
-        build_catalog_delegation()
-        #RICK, evaluar la segunda condición:
-        if not state and columns["state"]:
-            build_catalog_state()
-        build_catalog_clues()
-        for collection, collection_name in collections.items():
-            columns[collection] = all_columns.filter(
-                final_field__collection=collection_name).values_list('name')
+    #se descomprimen los comprimidos
+    def decompress(self):
+        import os
+        import zipfile 
+        import pathlib
+        from inai.models import StatusControl
+        #Se obienen todos los tipos del archivo inicial:
+        suffixes = pathlib.Path(self.file.url).suffixes
+        suffixes = set([suffix.lower() for suffix in suffixes])
+        #format_file = self.file_control.format_file
+        if '.gz' in suffixes:
+            #print("path", self.file.path)
+            #print("name", self.file.url)
+            #print("url", self.file.url)
+            #Se llama a la función que descomprime el arhivo
+            success_decompress, final_path = self.decompress_file_gz()
+            if not success_decompress:
+                errors = ['No se pudo descomprimir el archivo gz %s' % final_path]            
+                return errors, None
+            #print("final_path:", final_path)
+            #Se vuelve a obtener la ubicación final del nuevo archivo
+            real_final_path = self.file.url.replace(".gz", "")
+            #Como el archivo ya está descomprimido, se guarda sus status
+            self.change_status('decompressed')
 
+            #Se realiza todo el proceso para guardar el nuevo objeto DataFinal,
+            # manteniendo todas las características del archivo original
+            prev_self_pk = self.pk
+            new_file = self 
+            new_file.pk = None
+            new_file.file.url = real_final_path
+            #se guarda el nuevo objeto DataFinal
+            new_file.save()
+            #Se asigna su status y la referencia con el archivo original
+            new_file.change_status("initial")
+            new_file.origin_file_id = prev_self_pk
+            new_file.save()
+            #ahora es con el nuevo archivo con el que estamos tratando
+            self = new_file
+            suffixes.remove('.gz')
+        if 'zip' in suffixes:
+            #[directory, only_name] = self.path.rsplit("/", 1)
+            #[base_name, extension] = only_name.rsplit(".", 1)
+            directory = self.file.url
+            #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
+            zip_file = zipfile.ZipFile(self.file.url)
+            all_files = zip_file.namelist()
+            with zipfile.ZipFile(self.url, 'r') as zip_ref:
+                zip_ref.extractall(directory)               
+            #ZipFile.extractall(path=None, members=None, pwd=None)   
+            #for f in os.listdir(directory):
+            for f in all_files:
+                new_file = self
+                new_file.pk = None
+                new_file = DataFile.objects.create(
+                    file="%s%s" % (directory, f),
+                    origin_file=self,
+                    date=self.date,
+                    status=initial_status,
+                    #Revisar si lo más fácil es poner o no los siguientes:
+                    file_control=file_control,
+                    petition=self.petition,
+                    petition_month=file.petition_month,
+                    )
+            self = new_file
+            suffixes.remove('.zip')
+        #Obtener el tamaño
+        #file_name = self.file_name
+        if (len(suffixes) != 1):
+            errors = [("Tiene más o menos extensiones de las que"
+                " podemos reconocer: %s" % suffixes)]
+            return errors, None
+        []
+        #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
+        if not suffixes.issubset(set(['.txt', '.csv', '.xls', '.xlsx'])):
+            errors = ["Formato no válido", u"%s" % suffixes]
+            return errors, None
+        return [], list(suffixes)[0]
+
+    def decompress_file_gz(self):
+        import gzip
+        import shutil
+        try:
+            with gzip.open(self.file, 'rb') as f_in:
+                #Se contruye el path del nuevo archivo:
+                decomp_path = self.file.url.replace(".gz", "")
+                with open(decomp_path, 'wb') as f_out:
+                    #Se crea el nuevo archivo
+                    shutil.copyfileobj(f_in, f_out)
+                    return True, decomp_path
+        except Exception as e:
+            return False, e
 
     #def split_file(path="G:/My Drive/YEEKO/Clientes/OCAMIS/imss"):
     def split_file(self):
         from filesplit.split import Split
         from inai.models import File
+        from category.models import StatusControl
         [directory, only_name] = self.file_name.rsplit("/", 1)
         [base_name, extension] = only_name.rsplit(".", 1)
         curr_split = Split(self.file_name, directory)
@@ -235,3 +197,54 @@ class ExploreMix:
         else:
             return self, 0
 
+
+
+    #[directory, only_name] = self.path.rsplit("/", 1)
+    #[base_name, extension] = only_name.rsplit(".", 1)
+    def test_zip_file(self):
+        import zipfile
+        import datetime
+        url = "C:\\Users\\Ricardo\\dev\\desabasto\\desabasto-api\\fixture\\zipfolder.zip"
+
+        #directory = self.file.url
+        directory = url
+        #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
+        #zip_file = zipfile.ZipFile(self.file.url)
+        zip_file = zipfile.ZipFile(url)
+        all_files = zip_file.namelist()
+        print(all_files)
+        for curr_file in all_files:
+            print(curr_file)
+
+        with zipfile.ZipFile(url, mode="r") as archive:
+            for info in archive.infolist():
+                print(f"Es directorio: {info.is_dir()}")
+                print(f"Filename: {info.filename}")
+                print(f"Internal attr: {info.internal_attr}")
+                print(f"External attr: {info.external_attr}")
+                print(f"Modified: {datetime.datetime(*info.date_time)}")
+                print(f"Normal size: {info.file_size} bytes")
+                print(f"Compressed size: {info.compress_size} bytes")
+                print("-" * 20)
+            archive.close()
+
+        #with zipfile.ZipFile(self.url, 'r') as zip_ref:
+        with zipfile.ZipFile(url, 'r') as zip_ref:
+            zip_ref.extractall(directory)               
+        #ZipFile.extractall(path=None, members=None, pwd=None)   
+        #for f in os.listdir(directory):
+        for f in all_files:
+            new_file = self
+            new_file.pk = None
+            new_file = DataFile.objects.create(
+                file="%s%s" % (directory, f),
+                origin_file=self,
+                date=self.date,
+                status=initial_status,
+                #Revisar si lo más fácil es poner o no los siguientes:
+                file_control=file_control,
+                petition=self.petition,
+                petition_month=file.petition_month,
+                )
+        self = new_file
+        suffixes.remove('.zip')

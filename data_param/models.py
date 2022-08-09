@@ -43,9 +43,9 @@ class Collection(models.Model):
 class DataType(models.Model):
     def default_params_data_type():
         return {"name_pandas": ''}
-    name = models.CharField(
-        max_length=225)
-    description =  models.TextField(blank=True, null=True)
+    name = models.CharField(max_length=50)
+    public_name = models.CharField(max_length=225, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     addl_params = JSONField(
         default=default_params_data_type,
         verbose_name="Otras configuraciones")

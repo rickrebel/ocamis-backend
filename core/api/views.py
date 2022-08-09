@@ -22,7 +22,7 @@ from catalog.api.serializers import EntitySerializer
 
 from inai.models import FileControl
 from inai.api.serializers import (
-    FileControlSimpleSerializer, FileControlFullSerializer)
+    FileControlFullSerializer)
 
 
 
@@ -33,11 +33,25 @@ class CatalogView(views.APIView):
 
     def get(self, request):
         #data = {}
+        entities_query = Entity.objects.filter().prefetch_related(
+            "institution", "state", "clues")
+        file_control_query = FileControl.objects.all().prefetch_related(
+            "data_group",
+            "file_type",
+            "columns",
+            "petition_file_control",
+            "petition_file_control__petition",
+            "petition_file_control__petition",
+            "petition_file_control__petition__petition_months",
+            "petition_file_control__petition__petition_months__month_entity",
+            "petition_file_control__data_files",
+            "petition_file_control__data_files__origin_file",
+        )
+
         data = {
             "file_controls": FileControlFullSerializer(
-                FileControl.objects.all(), many=True).data,
-            "entities": EntitySerializer(
-                Entity.objects.all(), many=True).data,
+                file_control_query, many=True).data,
+            "entities": EntitySerializer(entities_query, many=True).data,
             ## CATÁLOGOS GENERALES:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,

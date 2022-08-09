@@ -9,8 +9,7 @@ from inai.models import (
 from category.models import StatusControl, FileType
 
 from category.api.serializers import (
-    FileTypeSimpleSerializer, StatusControlSimpleSerializer,
-    ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer)
+    NegativeReasonSimpleSerializer)
 
 from catalog.api.serializers import EntitySerializer
 
@@ -22,10 +21,10 @@ from data_param.api.serializers import (
 class ProcessFileSerializer(serializers.ModelSerializer):
     #name = serializers.ReadOnlyField(source="file.name", required=False)
     #url = serializers.ReadOnlyField(source="file.url", required=False)
-    file_type = FileTypeSimpleSerializer(read_only=True)
+    """file_type = FileTypeSimpleSerializer(read_only=True)
     file_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="file_type",
-        queryset=FileType.objects.all())
+        queryset=FileType.objects.all())"""
     name = serializers.SerializerMethodField(read_only=True)
     url = serializers.SerializerMethodField(read_only=True)
 
@@ -69,11 +68,11 @@ class TransformationSerializer(serializers.ModelSerializer):
 
 
 class NameColumnSerializer(serializers.ModelSerializer):
-    data_type = DataTypeSimpleSerializer()
-    column_type = ColumnTypeSimpleSerializer()
+    #data_type = DataTypeSimpleSerializer()
+    #column_type = ColumnTypeSimpleSerializer()
     tranformations = TransformationSerializer(
         many=True, source="column_tranformations")
-    final_field = FinalFieldSimpleSerializer()
+    #final_field = FinalFieldSimpleSerializer()
 
     class Meta:
         model = NameColumn
@@ -113,21 +112,21 @@ class DataFileSimpleSerializer(serializers.ModelSerializer):
 class DataFileSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
-    month_entity = MonthEntitySimpleSerializer(read_only=True)
     origin_file = DataFileSimpleSerializer(read_only=True)
+    """month_entity = MonthEntitySimpleSerializer(read_only=True)
     status_process = StatusControlSimpleSerializer(read_only=True)
     month_entity_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="month_entity",
         queryset=MonthEntity.objects.all(), required=False)
+    status_process_id = serializers.PrimaryKeyRelatedField(
+        write_only=True, source="status_process",
+        queryset=StatusControl.objects.all()) """
     origin_file_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="origin_file",
         queryset=DataFile.objects.all(), required=False)
     petition_file_control_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="petition_file_control",
         queryset=PetitionFileControl.objects.all())
-    status_process_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="status_process",
-        queryset=StatusControl.objects.all())
 
 
     class Meta:
@@ -146,7 +145,7 @@ class DataFileEditSerializer(DataFileSerializer):
 
 class DataFileSerializer2(serializers.ModelSerializer):
     month_entity = MonthEntitySimpleSerializer()
-    status_process = StatusControlSimpleSerializer()
+    #status_process = StatusControlSimpleSerializer()
 
     class Meta:
         model = DataFile
@@ -198,8 +197,8 @@ class PetitionFileControlSerializer(serializers.ModelSerializer):
 
 class FileControlSimpleSerializer(serializers.ModelSerializer):
     data_group = DataGroupSimpleSerializer(read_only=True)
-    file_type = FileTypeSimpleSerializer(read_only=True)
-    status_register = StatusControlSimpleSerializer(read_only=True)
+    #file_type = FileTypeSimpleSerializer(read_only=True)
+    #status_register = StatusControlSimpleSerializer(read_only=True)
 
     class Meta:
         model = FileControl
@@ -216,12 +215,12 @@ class FileControlSerializer(FileControlSimpleSerializer):
     data_group_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="data_group",
         queryset=DataGroup.objects.all())
-    file_type_id = serializers.PrimaryKeyRelatedField(
+    """file_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="file_type",
         queryset=FileType.objects.all())
     status_register_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="status_register",
-        queryset=StatusControl.objects.all())
+        queryset=StatusControl.objects.all())"""
 
 
 class FileControlFullSerializer(FileControlSerializer):
@@ -234,6 +233,15 @@ class FileControlFullSerializer(FileControlSerializer):
 
 class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
     file_control = FileControlSimpleSerializer()
+    data_files = DataFileSerializer(many=True)
+
+    class Meta:
+        model = PetitionFileControl
+        fields = "__all__"
+
+
+class PetitionFileControlDeepSerializer(PetitionFileControlSerializer):
+    file_control = FileControlFullSerializer()
     data_files = DataFileSerializer(many=True)
 
     class Meta:
@@ -280,8 +288,8 @@ class PetitionFullSerializer(PetitionSmallSerializer):
     petition_file_controls = PetitionFileControlFullSerializer(
         many=True, source="file_controls")
     break_dates = PetitionBreakSerializer(many=True)
-    status_data = StatusControlSimpleSerializer()
-    status_petition = StatusControlSimpleSerializer()
+    #status_data = StatusControlSimpleSerializer()
+    #status_petition = StatusControlSimpleSerializer()
     negative_reasons = PetitionNegativeReasonSerializer(
         many=True, read_only=True)
 
@@ -289,7 +297,7 @@ class PetitionFullSerializer(PetitionSmallSerializer):
 class PetitionEditSerializer(serializers.ModelSerializer):
     negative_reasons = PetitionNegativeReasonSerializer(
         many=True, read_only=True)
-    status_data = StatusControlSimpleSerializer(read_only=True)
+    """status_data = StatusControlSimpleSerializer(read_only=True)
     status_data_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="status_data",
         queryset=StatusControl.objects.all(), required=False)
@@ -302,7 +310,7 @@ class PetitionEditSerializer(serializers.ModelSerializer):
         queryset=StatusControl.objects.all(), required=False)
     status_complain_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="status_complain",
-        queryset=StatusControl.objects.all(), required=False)
+        queryset=StatusControl.objects.all(), required=False)"""
 
     class Meta:
         model = Petition
