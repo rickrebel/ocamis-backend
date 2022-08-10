@@ -12,6 +12,7 @@ from data_param.models import (
 
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
+from .data_file_mixins.matches_mix import MatchesMix
 from .data_file_mixins.get_data_mix import ExtractorsMix
 
 

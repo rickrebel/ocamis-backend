@@ -41,11 +41,11 @@ class ExtractorsMix:
             file_control = self.petition_file_control.file_control
             validated_rows = self.divide_rows(data_rows, is_explore)
             row_headers = file_control.row_headers or 0
-            if row_headers == 1:
-                headers = validated_rows.pop(0)
-            elif row_headers:
-                errors = ["No podemos procesar ahora headers en posiciones distintas"]
-                return self.save_errors(errors, status_error)
+            #if row_headers == 1:
+            headers = validated_rows.pop(row_headers-1)
+            #elif row_headers:
+            #    errors = ["No podemos procesar ahora headers en posiciones distintas"]
+            #    return self.save_errors(errors, status_error)
             pops_count = file_control.row_start_data - row_headers - 1
             #print("pops_count", pops_count)
             for pop in range(pops_count):

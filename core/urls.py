@@ -34,8 +34,7 @@ urlpatterns = [
     path('api/', include("api.urls")),
     path('sendgrid/', include('email_sendgrid.urls')),
     #path(r'^ckeditor/', include('ckeditor_uploader.urls')),
-]
-#+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += static(
     settings.STATIC_URL, document_root=settings.STATIC_ROOT)

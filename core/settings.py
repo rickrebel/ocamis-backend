@@ -30,9 +30,9 @@ else:
 ALLOWED_HOSTS = hosts
 
 
-AWS_STORAGE_BUCKET_NAME = 'cdn-yeeko'
+AWS_STORAGE_BUCKET_NAME = 'cdn-desabasto'
 
-MEDIA_URL = 'https://%s.s3.amazonaws.com/media/' % AWS_STORAGE_BUCKET_NAME
+MEDIA_URL = 'https://%s.s3.us-west-2.amazonaws.com/media/' % AWS_STORAGE_BUCKET_NAME
 
 #MEDIA_ROOT = "/"
 
