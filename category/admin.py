@@ -2,7 +2,7 @@ from django.contrib import admin
 from inai.admin import ocamis_admin_site
 
 from .models import (
-    FileType, StatusControl, ColumnType, NegativeReason, DateBreak)
+    FileType, StatusControl, ColumnType, NegativeReason, DateBreak, Anomaly)
 
 
 class StatusControlAdmin(admin.ModelAdmin):
@@ -16,7 +16,7 @@ ocamis_admin_site.register(StatusControl, StatusControlAdmin)
 
 
 class FileTypeAdmin(admin.ModelAdmin):
-    list_display = ["name", "group", "is_default", "has_data", "order",
+    list_display = ["public_name", "name", "group", "is_default", "has_data", "order",
         "addl_params"]
     list_filter = ["has_data", "group"]
 
@@ -40,3 +40,9 @@ class NegativeReasonAdmin(admin.ModelAdmin):
     list_display = ["name", "description"]
 
 ocamis_admin_site.register(NegativeReason, NegativeReasonAdmin)
+
+
+class AnomalyAdmin(admin.ModelAdmin):
+    list_display = ["public_name", "name", "is_public", "description"]
+
+ocamis_admin_site.register(Anomaly, AnomalyAdmin)

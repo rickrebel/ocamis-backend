@@ -262,6 +262,7 @@ class ProcessFileViewSet(CreateRetrievView):
         
         process_file = request.data
         new_process_file = DataFile()
+        new_process_file.petition_id = petition_id
 
         #serializer = serializers.ProcessFileEditSerializer(data=request.data)
         serializer_proc_file = self.get_serializer_class()(

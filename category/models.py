@@ -54,8 +54,8 @@ class FileType(models.Model):
 
     class Meta:
         ordering = ["order"]
-        verbose_name = u"Tipo de documento"
-        verbose_name_plural = u"Tipos de documentos"
+        verbose_name = u"Tipo de archivo"
+        verbose_name_plural = u"Tipos de archivos"
 
 
 class ColumnType(models.Model):
@@ -99,6 +99,28 @@ class DateBreak(models.Model):
         ordering = ["order"]
         verbose_name = u"Fecha de corte"
         verbose_name_plural = u"Fechas de corte"
+
+
+class Anomaly(models.Model):
+    public_name = models.CharField(max_length=255, verbose_name=u"Nombre")
+    name = models.CharField(
+        max_length=25, verbose_name=u"Nombre Corto")
+    is_public = models.BooleanField(default=True)
+    description = models.TextField(
+        blank=True, null=True, verbose_name=u"Descripción")
+    icon = models.CharField(max_length=20, blank=True, null=True)
+    order = models.IntegerField(default=5)
+    color = models.CharField(
+        max_length=30, blank=True, null=True,
+        verbose_name=u"Color")
+
+
+    def __unicode__(self):
+        return self.public_name
+
+    class Meta:
+        verbose_name = u"Anomalía en los datos"
+        verbose_name_plural = u"Anomalías en los datos"
 
 
 """class FormatFile(models.Model):
