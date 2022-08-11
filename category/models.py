@@ -102,9 +102,10 @@ class DateBreak(models.Model):
 
 
 class Anomaly(models.Model):
-    public_name = models.CharField(max_length=255, verbose_name=u"Nombre")
+    public_name = models.CharField(max_length=255, 
+        verbose_name=u"Nombre público")
     name = models.CharField(
-        max_length=25, verbose_name=u"Nombre Corto")
+        max_length=25, verbose_name=u"Nombre (devs)")
     is_public = models.BooleanField(default=True)
     description = models.TextField(
         blank=True, null=True, verbose_name=u"Descripción")

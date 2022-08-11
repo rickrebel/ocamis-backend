@@ -261,7 +261,7 @@ class ProcessFileViewSet(CreateRetrievView):
             NotFound)  # 404
         
         process_file = request.data
-        new_process_file = DataFile()
+        new_process_file = ProcessFile()
         new_process_file.petition_id = petition_id
 
         #serializer = serializers.ProcessFileEditSerializer(data=request.data)

@@ -33,7 +33,6 @@ class ProcessFileSerializer(serializers.ModelSerializer):
     def get_url(self, obj):
         return obj.file.url if obj.file else None
 
-
     class Meta:
         model = ProcessFile
         fields = "__all__"
