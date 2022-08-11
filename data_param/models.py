@@ -112,7 +112,7 @@ class CleanFunction(models.Model):
     priority = models.SmallIntegerField(
         default=5, verbose_name="Nivel de prioridad (5 niveles)")
     for_all_data = models.BooleanField(
-        default=False, verbose_name="Es una tranformación para toda la info")
+        default=False, verbose_name="Es una transformación para toda la info")
     restricted_field = models.ForeignKey(
         FinalField, blank=True, null=True,
         verbose_name="Campo final al cual solo puede aplicarse",
@@ -125,8 +125,8 @@ class CleanFunction(models.Model):
         return "%s (%s)" % (self.name, self.public_name)
 
     class Meta:
-        verbose_name = u"Función de limpieza y tranformación"
-        verbose_name_plural = u"Funciones de limpieza y tranformación"
+        verbose_name = u"Función de limpieza y transformación"
+        verbose_name_plural = u"Funciones de limpieza y transformación"
 
 """ class GroupParameter(models.Model):
     name = models.CharField(max_length=120)

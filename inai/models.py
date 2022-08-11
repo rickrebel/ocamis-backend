@@ -6,7 +6,7 @@ from django.utils.deconstruct import deconstructible
 
 from catalog.models import Entity
 from category.models import (
-    StatusControl, FileType, ColumnType, NegativeReason, DateBreak)
+    StatusControl, FileType, ColumnType, NegativeReason, DateBreak, Anomaly)
 from data_param.models import (
     DataType, FinalField, CleanFunction, DataGroup, Collection)
 
@@ -221,6 +221,9 @@ class FileControl(models.Model):
         StatusControl, null=True, blank=True, 
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
+    anomalies = models.ManyToManyField(
+        Anomaly, verbose_name="Anomalías de los datos", blank=True)
+
 
     def __str__(self):
         return self.name
@@ -412,7 +415,7 @@ class Transformation(models.Model):
     clean_function = models.ForeignKey(
         CleanFunction, 
         on_delete=models.CASCADE,
-        verbose_name="Función de limpieza o tranformación")
+        verbose_name="Función de limpieza o transformación")
     file_control = models.ForeignKey(
         FileControl, 
         related_name="file_tranformations",

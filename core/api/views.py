@@ -11,11 +11,11 @@ from data_param.api.serializers import (
     CleanFunctionSimpleSerializer)
 
 from category.models import (
-    FileType, StatusControl, ColumnType, NegativeReason, DateBreak)
+    FileType, StatusControl, ColumnType, NegativeReason, DateBreak, Anomaly)
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
-    DateBreakSimpleSerializer)
+    DateBreakSimpleSerializer, AnomalySimpleSerializer)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
@@ -23,9 +23,6 @@ from catalog.api.serializers import EntitySerializer
 from inai.models import FileControl
 from inai.api.serializers import (
     FileControlFullSerializer)
-
-
-
 
 
 class CatalogView(views.APIView):
@@ -71,6 +68,8 @@ class CatalogView(views.APIView):
                 ColumnType.objects.all(), many=True).data,
             "negative_reasons": NegativeReasonSimpleSerializer(
                 NegativeReason.objects.all(), many=True).data,
+            "anomalies": AnomalySimpleSerializer(
+                Anomaly.objects.all(), many=True).data,
             "date_breaks": DateBreakSimpleSerializer(
                 DateBreak.objects.all(), many=True).data,
         }
