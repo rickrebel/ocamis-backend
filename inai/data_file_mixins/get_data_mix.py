@@ -105,13 +105,13 @@ class ExtractorsMix:
     def get_data_from_excel(self):
         import pandas as pd
         #print("ESTOY EN EXCEEEEL")
-        #prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
         #print(self.file.path)
         #print(self.file.url)
         #print(self.file.name)
         #print("---------")
         data_excel = pd.read_excel(
-            self.file.url, dtype = 'string', nrows=50,
+            self.final_path, dtype = 'string', nrows=50,
+            #converters=str.strip,
             keep_default_na=False, header=None)
         #Nombres de columnas (pandaarray)
         #Renglones de las variables
@@ -139,7 +139,7 @@ class ExtractorsMix:
             special_coma, special_excel, clean_special)
         import io
         try:
-            with io.open(self.file.url, "r", encoding="latin-1") as file_open:
+            with io.open(self.final_path, "r", encoding="UTF-8") as file_open:
                 data = file_open.read()
                 file_open.close()
         except Exception as e:

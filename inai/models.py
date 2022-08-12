@@ -323,6 +323,14 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     completed_rows = models.IntegerField(default=1)
     total_rows = models.IntegerField(default=1)
 
+    @property
+    def final_path(self):
+        from django.conf import settings
+        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        return self.file.url if is_prod else self.file.path
+
+        return self.petition_months.earliest().month_entity.year_month
+
     def __str__(self):
         return "%s %s" % (str(self.file), self.petition_file_control)
         #return "%s %s" % (self.petition_file_control, self.date)

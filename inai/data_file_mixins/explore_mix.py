@@ -70,12 +70,13 @@ class ExploreMix:
         import pathlib
         from inai.models import StatusControl
         #Se obienen todos los tipos del archivo inicial:
-        suffixes = pathlib.Path(self.file.url).suffixes
+        print(self.final_path)
+        suffixes = pathlib.Path(self.final_path).suffixes
         suffixes = set([suffix.lower() for suffix in suffixes])
         #format_file = self.file_control.format_file
         if '.gz' in suffixes:
             #print("path", self.file.path)
-            #print("name", self.file.url)
+            #print("name", self.file.name)
             #print("url", self.file.url)
             #Se llama a la función que descomprime el arhivo
             success_decompress, final_path = self.decompress_file_gz()
@@ -84,7 +85,7 @@ class ExploreMix:
                 return errors, None
             #print("final_path:", final_path)
             #Se vuelve a obtener la ubicación final del nuevo archivo
-            real_final_path = self.file.url.replace(".gz", "")
+            real_final_path = self.final_path.replace(".gz", "")
             #Como el archivo ya está descomprimido, se guarda sus status
             self.change_status('decompressed')
 
@@ -93,7 +94,7 @@ class ExploreMix:
             prev_self_pk = self.pk
             new_file = self 
             new_file.pk = None
-            new_file.file.url = real_final_path
+            new_file.final_path = real_final_path
             #se guarda el nuevo objeto DataFinal
             new_file.save()
             #Se asigna su status y la referencia con el archivo original
@@ -106,9 +107,9 @@ class ExploreMix:
         if 'zip' in suffixes:
             #[directory, only_name] = self.path.rsplit("/", 1)
             #[base_name, extension] = only_name.rsplit(".", 1)
-            directory = self.file.url
+            directory = self.final_path
             #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
-            zip_file = zipfile.ZipFile(self.file.url)
+            zip_file = zipfile.ZipFile(self.final_path)
             all_files = zip_file.namelist()
             with zipfile.ZipFile(self.url, 'r') as zip_ref:
                 zip_ref.extractall(directory)               
@@ -148,7 +149,7 @@ class ExploreMix:
         try:
             with gzip.open(self.file, 'rb') as f_in:
                 #Se contruye el path del nuevo archivo:
-                decomp_path = self.file.url.replace(".gz", "")
+                decomp_path = self.final_path.replace(".gz", "")
                 with open(decomp_path, 'wb') as f_out:
                     #Se crea el nuevo archivo
                     shutil.copyfileobj(f_in, f_out)
@@ -206,10 +207,10 @@ class ExploreMix:
         import datetime
         url = "C:\\Users\\Ricardo\\dev\\desabasto\\desabasto-api\\fixture\\zipfolder.zip"
 
-        #directory = self.file.url
+        #directory = self.final_path
         directory = url
         #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
-        #zip_file = zipfile.ZipFile(self.file.url)
+        #zip_file = zipfile.ZipFile(self.final_path)
         zip_file = zipfile.ZipFile(url)
         all_files = zip_file.namelist()
         print(all_files)
