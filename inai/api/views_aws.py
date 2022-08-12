@@ -33,6 +33,9 @@ class DataFileViewSet(CreateRetrievView):
             raise PermissionDenied()
         data_file = self.get_object()
         data = data_file.start_file_process(is_explore=True)
+        if data.get("errors", False):
+            return Response(
+                data, status=status.HTTP_400_BAD_REQUEST)
         #print(data["headers"])
         #print(data["structured_data"][:6])
         #new_serializer = serializers.DataFileSerializer(

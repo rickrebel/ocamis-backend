@@ -19,8 +19,9 @@ class DataUtilsMix:
         self.status_process = current_status 
         print(curr_errors)
         self.save()
-        return Response(
-            {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+        return {"errors": errors}
+        #return Response(
+        #    {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def change_status(self, status_name):
         from category.models import StatusControl
