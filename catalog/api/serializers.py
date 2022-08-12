@@ -105,15 +105,16 @@ class DiseaseSerializer(serializers.ModelSerializer):
 
 
 class EntitySerializer(serializers.ModelSerializer):
-    institution = InstitutionSerializer()
-    state = StateSimpleSerializer()
-    clues = CLUESSerializer()
+    institution = InstitutionSerializer(read_only=True)
+    state = StateSimpleSerializer(read_only=True)
+    clues = CLUESSerializer(read_only=True)
 
     class Meta:
         model = Entity
         fields = [
             "id", "institution", "state", "clues", "name", 
-            "addl_params", "vigencia", "entity_type", "acronym"]
+            "addl_params", "vigencia", "entity_type", "acronym",
+            "notes"]
 
 
 class EntityFullSerializer(EntitySerializer):

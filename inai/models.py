@@ -223,6 +223,7 @@ class FileControl(models.Model):
         on_delete=models.CASCADE)
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
+    notes = models.TextField(blank=True, null=True)
 
 
     def __str__(self):
@@ -397,8 +398,8 @@ class NameColumn (models.Model):
         FinalField, 
         blank=True, null=True,
         on_delete=models.CASCADE)
-    clean_params = JSONField(
-        blank=True, null=True) 
+    clean_params = JSONField(blank=True, null=True,
+        verbose_name="Parámetros de limpieza")
     requiered_row = models.BooleanField(default=False)
     parent_row = models.ForeignKey(
         "NameColumn", related_name="parents",

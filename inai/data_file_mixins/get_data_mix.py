@@ -138,10 +138,10 @@ class ExtractorsMix:
         from scripts.recipe_specials import (
             special_coma, special_excel, clean_special)
         from django.conf import settings
-        import boto3
         import io
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         if is_prod:
+            import boto3
             print("PATH -- URL -- NAME")
             #print(self.file.path)
             print(self.file.name)

@@ -312,6 +312,7 @@ class Entity(models.Model):
         default=True,
         verbose_name="Competente",
         help_text="Es Competente porque tiene pacientes y debe tener la información")
+    notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.name or u"%s -%s -%s" % (
