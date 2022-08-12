@@ -296,8 +296,7 @@ class PetitionMonth(models.Model):
 
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
-    file = models.FileField(max_length=150,
-        upload_to=set_upload_path) 
+    file = models.FileField(max_length=150, upload_to=set_upload_path) 
     date = models.DateTimeField(auto_now_add=True)
     petition_month = models.ForeignKey(
         PetitionMonth, blank=True, null=True,

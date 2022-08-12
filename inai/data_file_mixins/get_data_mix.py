@@ -137,14 +137,30 @@ class ExtractorsMix:
     def get_data_from_file_simple(self):
         from scripts.recipe_specials import (
             special_coma, special_excel, clean_special)
+        from django.conf import settings
         import io
-        try:
-            with io.open(self.final_path, "r", encoding="UTF-8") as file_open:
-                data = file_open.read()
-                file_open.close()
-        except Exception as e:
-            print(e)
-            return False, [u"Error leyendo los datos %s" % e]
+        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        if is_prod:
+            try:
+                bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+                aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
+                aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
+                s3 = boto3.resource(
+                    's3', aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key)
+                content_object = s3.Object(bucket_name, self.file.name)
+                data = content_object.get()['Body'].read().decode('utf-8')
+            except Exception as e:
+                print(e)
+                return False, [u"Error leyendo los datos %s" % e]
+        else:
+            try:
+                with io.open(self.final_path, "r", encoding="UTF-8") as file_open:
+                    data = file_open.read()
+                    file_open.close()
+            except Exception as e:
+                print(e)
+                return False, [u"Error leyendo los datos %s" % e]
         """is_issste = self.petition_file_control.petition.entity.institution.code == 'ISSSTE'
         file_control = self.petition_file_control.file_control
         if "|" in data[:5000]:
