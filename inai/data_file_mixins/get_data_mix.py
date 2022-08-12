@@ -143,9 +143,9 @@ class ExtractorsMix:
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         if is_prod:
             print("PATH -- URL -- NAME")
-            print(self.file.path)
-            print(self.file.url)
+            #print(self.file.path)
             print(self.file.name)
+            print(self.file.url)
             print("---------")
 
             try:
@@ -155,7 +155,7 @@ class ExtractorsMix:
                 s3 = boto3.resource(
                     's3', aws_access_key_id=aws_access_key_id,
                     aws_secret_access_key=aws_secret_access_key)
-                content_object = s3.Object(bucket_name, self.file.path)
+                content_object = s3.Object(bucket_name, self.file.name)
                 data = content_object.get()['Body'].read().decode('utf-8')
             except Exception as e:
                 print(e)
