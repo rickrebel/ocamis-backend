@@ -38,31 +38,21 @@ class ExtractorsMix:
             if errors:
                 return self.save_errors(errors, status_error)
             #print(data_rows[0])
-            file_control = self.petition_file_control.file_control
             validated_rows = self.divide_rows(data_rows, is_explore)
-            row_headers = file_control.row_headers or 0
-            #if row_headers == 1:
-            headers = validated_rows.pop(row_headers-1)
-            #elif row_headers:
-            #    errors = ["No podemos procesar ahora headers en posiciones distintas"]
-            #    return self.save_errors(errors, status_error)
-            pops_count = file_control.row_start_data - row_headers - 1
-            #print("pops_count", pops_count)
-            for pop in range(pops_count):
-                validated_rows.pop(0)
-            #print(validated_rows[0])
-            #print(validated_rows[4])
         elif suffix in ['.xlsx', '.xls']:
-            headers, data_rows, errors = self.get_data_from_excel()
-            validated_rows = data_rows
+            validated_rows, errors = self.get_data_from_excel()
+            if errors:
+                return self.save_errors(errors, status_error)
         if errors:
             return Response(
                 {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
-        #RICK: Pendiente este tema
-        #meta_columns = 
-        #if is_explore:
-        #    data_rows = data_rows[:50]
-        total_rows = len(data_rows)
+        file_control = self.petition_file_control.file_control
+        row_headers = file_control.row_headers or 0
+        headers = validated_rows[row_headers-1] if row_headers else []
+        validated_rows = validated_rows[file_control.row_start_data-1:]
+        #print(validated_rows[0])
+        #print(validated_rows[4])
+        total_rows = len(validated_rows)
         inserted_rows = 0
         completed_rows = 0
         #validated_rows = self.divide_rows(data_rows, is_explore)
@@ -112,17 +102,18 @@ class ExtractorsMix:
         return structured_data
 
 
-    #funcion de carga de Excel (solo listas sin nombres)
-    #path_excel = 'D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx'
-    #def import_excelnh(path_excel):
     def get_data_from_excel(self):
         import pandas as pd
-        print("ESTOY EN EXCEEEEL")
+        #print("ESTOY EN EXCEEEEL")
         #prueba_clues = pd.read_excel(path_excel, dtype = 'string', nrows=50)
+        #print(self.file.path)
+        #print(self.file.url)
+        #print(self.file.name)
+        #print("---------")
         data_excel = pd.read_excel(
-            self.file.url, dtype = 'string', nrows=50)
+            self.file.url, dtype = 'string', nrows=50,
+            keep_default_na=False, header=None)
         #Nombres de columnas (pandaarray)
-        headers = data_excel.keys().array
         #Renglones de las variables
         #rows= []
         #for row in prueba_clues.iterrows():
@@ -131,23 +122,16 @@ class ExtractorsMix:
         #rowsf = [row[1] for row in data_excel.iterrows()]
         listval = [row[1].tolist() for row in data_excel.iterrows()]
         #rows = [row[0]+(row[1].tolist()) for row in data_excel.iterrows()]
-        #print(rows)
         #Extraer datos de tuple (quitar nombre index)
         #rowsf = [a_row[1] for a_row in rows]
-        #print("---------------------")
-        #print("---------------------")
-        #print(rowsf)
-        #return [], []
-        #print(rowsf)
-        #print("---------------------")
-        #print("---------------------")
         #Extraer datos a lista
         #listval=[]
         #for lis in rowsf:
         #    listval.append(lis.tolist())
         #Guardar con nombres
         #print(listval)
-        return headers, listval, []
+        #return headers, listval, []
+        return listval, []
 
 
     def get_data_from_file_simple(self):
