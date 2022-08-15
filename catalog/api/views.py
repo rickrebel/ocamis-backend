@@ -41,6 +41,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
     action_serializers = {
         "list": serializers.EntitySerializer,
         "retrieve": serializers.EntityFullSerializer,
+        "update": serializers.EntitySerializer,
     }
 
     def get(self, request):

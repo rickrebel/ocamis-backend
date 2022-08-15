@@ -378,7 +378,7 @@ class NameColumn (models.Model):
     name_in_data = models.TextField(
         verbose_name="Nombre de la columna real", blank=True, null=True)
     position_in_data = models.IntegerField(
-        default=1, blank=True, null=True)
+        default=1, blank=True, null=True, verbose_name="idx")
     column_type = models.ForeignKey(
         ColumnType, on_delete=models.CASCADE)
     file_control = models.ForeignKey(
@@ -415,8 +415,9 @@ class NameColumn (models.Model):
         return "%s -- %s" % (self.name_in_data, self.position_in_data)
 
     class Meta:
-        verbose_name = u"Nombre de Columna"
-        verbose_name_plural = u"Nombres de Columnas"   
+        ordering = ["collection", "final_field", "name_in_data"]
+        verbose_name = "Nombre de Columna"
+        verbose_name_plural = "Nombres de Columnas"   
 
 
 class Transformation(models.Model):

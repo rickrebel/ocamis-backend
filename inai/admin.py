@@ -66,6 +66,21 @@ class NameColumnInline(admin.StackedInline):
     extra = 0
 
 
+class NameColumnAdmin(admin.ModelAdmin):
+    list_display = [
+        "position_in_data",
+        "name_in_data",
+        "collection",
+        "final_field",
+        "column_type",
+        "parent_row",
+        "file_control"
+    ]
+    list_filter = ["collection", "column_type"]
+
+ocamis_admin_site.register(NameColumn, NameColumnAdmin)
+
+
 class FileControlAdmin(admin.ModelAdmin):
     list_display = [
         "name",
@@ -103,3 +118,5 @@ class ProcessFileAdmin(admin.ModelAdmin):
     list_filter = ["petition__entity"]
 
 ocamis_admin_site.register(ProcessFile, ProcessFileAdmin)
+
+
