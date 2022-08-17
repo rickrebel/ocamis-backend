@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 
 from inai.models import (
     FileControl, Petition, MonthEntity, PetitionMonth, PetitionBreak,
-    ProcessFile, PetitionFileControl, DataFile)
+    ProcessFile, PetitionFileControl, DataFile, Transformation)
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
     MultiSerializerCreateRetrieveMix as CreateRetrievView,)
@@ -207,8 +207,8 @@ class FileControlViewSet(ListRetrieveUpdateMix):
             "columns",
             "columns__column_type",
             "columns__data_type",
-            "columns__column_tranformations",
-            "columns__column_tranformations__clean_function",
+            "columns__column_transformations",
+            "columns__column_transformations__clean_function",
             "columns__final_field",
             "columns__final_field__collection",
         )
@@ -274,27 +274,41 @@ class FileControlViewSet(ListRetrieveUpdateMix):
         #limiters = json.loads(limiters)
 
         actual_id_columns = []
-        for column_item in columns_items:
-            if "id" in column_item:
-                print("sí tenngo column", column_item["id"])
+        for (order, column_item) in enumerate(columns_items, start=1):
+            column_id = column_item.get("id", False)
+            transformations = column_item.pop('transformations', [])
+            column_item["seq"] = order
+            if column_id:
+                #print("sí tenngo column", column_item["id"])
                 column = NameColumn.objects.filter(
-                    id=column_item["id"], file_control=file_control).first()
+                    id=column_id, file_control=file_control).first()
                 if not column:
                     print("no continúo")
                     continue
             else:
-                print("Es nuevooo")
+                #print("Es nuevooo")
                 column = NameColumn()
                 column.file_control = file_control
 
-            column_supp = serializers.NameColumnEditSerializer(
+            column_serializer = serializers.NameColumnEditSerializer(
                 column, data=column_item)
-            if column_supp.is_valid():
-                print("es válido")
-                column = column_supp.save()
+            if column_serializer.is_valid():
+                #print("es válido")
+                column = column_serializer.save()
                 actual_id_columns.append(column.id)
+                actual_id_tranformations = []
+                for transf_item in transformations:
+                    transformation = Transformation()
+                    transform_ser = serializers.TransformationEditSerializer(
+                        transformation, data=transf_item)
+                    if transform_ser.is_valid():
+                        tranform = transform_ser.save()
+                        actual_id_tranformations.append(tranform.id)
+                Transformation.objects.filter(name_column=column)\
+                    .exclude(id__in=actual_id_tranformations).delete()
             else:
-                print(column_supp.errors)
+                print("no es válido")
+                print(column_serializer.errors)
         NameColumn.objects.filter(file_control=file_control)\
             .exclude(id__in=actual_id_columns).delete()
 

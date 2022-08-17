@@ -59,7 +59,14 @@ class AscertainableSerializer(serializers.ModelSerializer):
 
 
 class TransformationSerializer(serializers.ModelSerializer):
-    clean_function = CleanFunctionSimpleSerializer()
+    #clean_function = CleanFunctionSimpleSerializer()
+
+    class Meta:
+        model = Transformation
+        fields = "__all__"
+
+
+class TransformationEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transformation
@@ -69,8 +76,8 @@ class TransformationSerializer(serializers.ModelSerializer):
 class NameColumnSerializer(serializers.ModelSerializer):
     #data_type = DataTypeSimpleSerializer()
     #column_type = ColumnTypeSimpleSerializer()
-    tranformations = TransformationSerializer(
-        many=True, source="column_tranformations")
+    transformations = TransformationSerializer(
+        many=True, source="column_transformations")
     #final_field = FinalFieldSimpleSerializer()
 
     class Meta:
@@ -209,8 +216,8 @@ class FileControlSerializer(FileControlSimpleSerializer):
     from data_param.models import DataGroup
     petition_file_control = PetitionFileControlSerializer(
         many=True, read_only=True)
-    tranformations = TransformationSerializer(
-        many=True, source="file_tranformations", read_only=True)
+    transformations = TransformationSerializer(
+        many=True, source="file_transformations", read_only=True)
     data_group_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="data_group",
         queryset=DataGroup.objects.all())

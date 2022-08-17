@@ -60,9 +60,25 @@ class DataType(models.Model):
         verbose_name_plural = u"Tipos de datos"
 
 
+class ParameterGroup(models.Model):
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True, null=True)
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE) 
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = u"Grupo de Parametros"
+        verbose_name_plural = u"Grupos de Parametros"
+
+
 class FinalField(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE)
+    parameter_group = models.ForeignKey(
+        ParameterGroup, on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(
         max_length=120, verbose_name="Nombre del campo en BD")
     verbose_name = models.CharField(
@@ -84,23 +100,25 @@ class FinalField(models.Model):
     requiered = models.BooleanField(
         default=False, verbose_name="Es indispensable para registrar fila")
     is_common = models.BooleanField(
-        default=False, verbose_name="Es una variable muy común")
+        default=False, verbose_name="Es común")
     dashboard_hide = models.BooleanField(
         default=False,
         verbose_name="Oculta en dashboard",
         help_text="Ocultar en el dashboard (es complementaria o equivalente)")
     in_data_base = models.BooleanField(
-        default=False, verbose_name="Verificado (solo devs)", 
+        default=False, verbose_name="En DB", 
         help_text="Ya está en la base de datos comprobado")
     verified = models.BooleanField(
-        default=False, verbose_name="Verificado (solo rick)", 
+        default=False, verbose_name="Verificado", 
         help_text="Ricardo ya verificó que todos los parámetros están bien")
 
     def __str__(self):
-        return "%s - %s" % (self.collection, self.name)
+        return "%s - %s (%s)" % (
+            self.collection, self.name, self.parameter_group or "NA")
 
     class Meta:
-        ordering = ["collection", "name"]
+        ordering = [
+            "parameter_group", "collection", "-is_common", "verbose_name"]
         verbose_name = u"Campo final"
         verbose_name_plural = u"Campos finales (en DB)"
 
@@ -128,23 +146,10 @@ class CleanFunction(models.Model):
         verbose_name = u"Función de limpieza y transformación"
         verbose_name_plural = u"Funciones de limpieza y transformación"
 
-""" class GroupParameter(models.Model):
-    name = models.CharField(max_length=120)
-    description = models.TextField(blank=True, null=True)
-    data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE) 
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = u"Grupo de Parametros"
-        verbose_name_plural = u"Grupos de Parametros" """
-
 
 """ class Parameter(models.Model):
     group_parameter = models.ForeignKey(
-        GroupParameter, on_delete=models.CASCADE)
+        ParameterGroup, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     default_name = models.CharField(max_length=255)
     variations = JSONField(

@@ -2,7 +2,8 @@
 from rest_framework import serializers
 
 from data_param.models import (
-    DataGroup, Collection, FinalField, DataType, CleanFunction)
+    DataGroup, Collection, FinalField, DataType, CleanFunction,
+    ParameterGroup)
 
 
 class FinalFieldSimpleSerializer(serializers.ModelSerializer):
@@ -46,3 +47,11 @@ class CleanFunctionSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = CleanFunction
         fields = "__all__"
+
+
+class ParameterGroupSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ParameterGroup
+        fields = "__all__"
+

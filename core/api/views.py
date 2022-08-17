@@ -4,11 +4,12 @@ from rest_framework import (permissions, status, views)
 from rest_framework.response import Response
 
 from data_param.models import (
-    DataGroup, Collection, FinalField, DataType, CleanFunction)
+    DataGroup, Collection, FinalField, DataType, CleanFunction, 
+    ParameterGroup)
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
-    CleanFunctionSimpleSerializer)
+    CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer)
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason, DateBreak, Anomaly)
@@ -44,18 +45,22 @@ class CatalogView(views.APIView):
             "petition_file_control__data_files",
             "petition_file_control__data_files__origin_file",
         )
+        final_fields_query = FinalField.objects.filter(dashboard_hide=False)
 
         data = {
             "file_controls": FileControlFullSerializer(
                 file_control_query, many=True).data,
             "entities": EntitySerializer(entities_query, many=True).data,
-            ## CATÁLOGOS GENERALES:
+            ## CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,
             "collections": CollectionSimpleSerializer(
                 Collection.objects.all(), many=True).data,
+            "parameter_groups": ParameterGroupSimpleSerializer(
+                ParameterGroup.objects.all(), many=True).data,
             "final_fields": FinalFieldSimpleSerializer(
-                FinalField.objects.all(), many=True).data,
+                final_fields_query, many=True).data,
+            ## CATÁLOGOS GENERALES:
             "data_types": DataTypeSimpleSerializer(
                 DataType.objects.all(), many=True).data,
             "clean_functions": CleanFunctionSimpleSerializer(

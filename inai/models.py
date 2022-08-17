@@ -8,7 +8,7 @@ from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, DateBreak, Anomaly)
 from data_param.models import (
-    DataType, FinalField, CleanFunction, DataGroup, Collection)
+    DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup)
 
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
@@ -378,7 +378,7 @@ class NameColumn (models.Model):
     name_in_data = models.TextField(
         verbose_name="Nombre de la columna real", blank=True, null=True)
     position_in_data = models.IntegerField(
-        default=1, blank=True, null=True, verbose_name="idx")
+        blank=True, null=True, verbose_name="idx")
     column_type = models.ForeignKey(
         ColumnType, on_delete=models.CASCADE)
     file_control = models.ForeignKey(
@@ -398,6 +398,10 @@ class NameColumn (models.Model):
         FinalField, 
         blank=True, null=True,
         on_delete=models.CASCADE)
+    parameter_group = models.ForeignKey(
+        ParameterGroup, 
+        blank=True, null=True,
+        on_delete=models.CASCADE)
     clean_params = JSONField(blank=True, null=True,
         verbose_name="Parámetros de limpieza")
     requiered_row = models.BooleanField(default=False)
@@ -409,13 +413,17 @@ class NameColumn (models.Model):
         "NameColumn", related_name="childrens",
         verbose_name="Hijo resultado (junto a otras columnas)",
         blank=True, null=True, on_delete=models.CASCADE)
+    seq = models.IntegerField(
+        blank=True, null=True, verbose_name="order",
+        help_text="Número consecutivo para ordenación en dashboard")
 
 
     def __str__(self):
-        return "%s -- %s" % (self.name_in_data, self.position_in_data)
+        return "%s-%s | %s" % (
+            self.name_in_data, self.position_in_data, self.final_field or '?')
 
     class Meta:
-        ordering = ["collection", "final_field", "name_in_data"]
+        ordering = ["seq"]
         verbose_name = "Nombre de Columna"
         verbose_name_plural = "Nombres de Columnas"   
 
@@ -427,12 +435,12 @@ class Transformation(models.Model):
         verbose_name="Función de limpieza o transformación")
     file_control = models.ForeignKey(
         FileControl, 
-        related_name="file_tranformations",
+        related_name="file_transformations",
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Grupo de archivos")
     name_column = models.ForeignKey(
         NameColumn, 
-        related_name="column_tranformations",
+        related_name="column_transformations",
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Columna")
     addl_params = JSONField(blank=True, null=True)

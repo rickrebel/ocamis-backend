@@ -70,13 +70,16 @@ class NameColumnAdmin(admin.ModelAdmin):
     list_display = [
         "position_in_data",
         "name_in_data",
-        "collection",
+        "parameter_group",
+        #"final_field__collection",
         "final_field",
         "column_type",
         "parent_row",
         "file_control"
     ]
-    list_filter = ["collection", "column_type"]
+    list_filter = ["final_field__collection", "parameter_group", "column_type"]
+    ordering = ["collection", "final_field", "name_in_data"]
+
 
 ocamis_admin_site.register(NameColumn, NameColumnAdmin)
 
