@@ -370,8 +370,8 @@ class ProcessFile(models.Model):
         return "%s -- %s" % (first, self.petition)
 
     class Meta:
-        verbose_name = u"Documento"
-        verbose_name_plural = u"Documentos"
+        verbose_name = u"Archivo sin datos finales"
+        verbose_name_plural = u"Archivos sin datos finales"
 
 
 class NameColumn (models.Model):
@@ -405,11 +405,11 @@ class NameColumn (models.Model):
     clean_params = JSONField(blank=True, null=True,
         verbose_name="Parámetros de limpieza")
     requiered_row = models.BooleanField(default=False)
-    parent_row = models.ForeignKey(
+    parent_column = models.ForeignKey(
         "NameColumn", related_name="parents",
         verbose_name="Columna padre de la que derivó", 
         blank=True, null=True, on_delete=models.CASCADE)
-    children_row = models.ForeignKey(
+    children_column = models.ForeignKey(
         "NameColumn", related_name="childrens",
         verbose_name="Hijo resultado (junto a otras columnas)",
         blank=True, null=True, on_delete=models.CASCADE)
@@ -429,6 +429,10 @@ class NameColumn (models.Model):
 
 
 class Transformation(models.Model):
+
+    def default_addl_params():
+        return {}
+
     clean_function = models.ForeignKey(
         CleanFunction, 
         on_delete=models.CASCADE,
@@ -443,4 +447,5 @@ class Transformation(models.Model):
         related_name="column_transformations",
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Columna")
-    addl_params = JSONField(blank=True, null=True)
+    addl_params = JSONField(
+        blank=True, null=True, default=default_addl_params)

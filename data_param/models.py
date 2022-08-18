@@ -8,6 +8,7 @@ from django.contrib.postgres.fields import JSONField
 class DataGroup(models.Model):
     name = models.CharField(max_length=80)
     is_default = models.BooleanField(default=False)
+    color = models.CharField(max_length=20, default="lime")
     can_has_percent = models.BooleanField(
         default=False, verbose_name="Puede tener porcentajes")
 
@@ -82,7 +83,7 @@ class FinalField(models.Model):
     name = models.CharField(
         max_length=120, verbose_name="Nombre del campo en BD")
     verbose_name = models.CharField(
-        max_length=255, blank=True, null=True)
+        max_length=255, blank=True, null=True, verbose_name="Nombre público")
     data_type = models.ForeignKey(
         DataType, 
         null=True, blank= True,
@@ -117,8 +118,7 @@ class FinalField(models.Model):
             self.collection, self.name, self.parameter_group or "NA")
 
     class Meta:
-        ordering = [
-            "parameter_group", "collection", "-is_common", "verbose_name"]
+        ordering = ["-is_common", "verbose_name"]
         verbose_name = u"Campo final"
         verbose_name_plural = u"Campos finales (en DB)"
 
@@ -128,12 +128,16 @@ class CleanFunction(models.Model):
     public_name = models.CharField(max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     priority = models.SmallIntegerField(
-        default=5, verbose_name="Nivel de prioridad (5 niveles)")
+        default=5, 
+        verbose_name="Prioridad",
+        help_text="Nivel de prioridad (5 niveles)")
     for_all_data = models.BooleanField(
-        default=False, verbose_name="Es una transformación para toda la info")
+        default=False, verbose_name="Es general",
+        help_text="Es una transformación para toda la info")
     restricted_field = models.ForeignKey(
         FinalField, blank=True, null=True,
-        verbose_name="Campo final al cual solo puede aplicarse",
+        verbose_name="Campo exclusivo",
+        help_text="Campo o variable al cual solo puede aplicarse",
         on_delete=models.CASCADE)
     addl_params = JSONField(
         blank=True, null=True,
@@ -143,6 +147,7 @@ class CleanFunction(models.Model):
         return "%s (%s)" % (self.name, self.public_name)
 
     class Meta:
+        ordering = ["public_name"]
         verbose_name = u"Función de limpieza y transformación"
         verbose_name_plural = u"Funciones de limpieza y transformación"
 

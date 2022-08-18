@@ -34,15 +34,17 @@ class DataFileViewSet(CreateRetrievView):
         if data.get("errors", False):
             return Response(
                 data, status=status.HTTP_400_BAD_REQUEST)
+        
         def textNormalizer(text):
             import re
             import unidecode
             final_text = text.upper().strip()
             final_text = unidecode.unidecode(final_text)
-            final_text = re.sub(r'[^A-Z]DE[^A-Z]', ' ', final_text)
+            final_text = re.sub(r'[^A-Z][DE|DEL][^A-Z]', ' ', final_text)
             final_text = re.sub(r' +', ' ', final_text)
             final_text = re.sub(r'[^A-Z]', '', final_text)
             return final_text
+        
         valid_fields = [
             "name_in_data", "column_type", "final_field", "parameter_group",
             "data_type"]

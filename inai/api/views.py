@@ -15,7 +15,7 @@ from rest_framework.exceptions import (PermissionDenied, ValidationError)
 
 class PetitionViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.AllowAny,)
-    serializer_class = serializers.FileControlSerializer
+    serializer_class = serializers.PetitionEditSerializer
     queryset = Petition.objects.all()
     action_serializers = {
         "create": serializers.PetitionEditSerializer,
@@ -221,11 +221,11 @@ class FileControlViewSet(ListRetrieveUpdateMix):
         return context
 
     action_serializers = {
-        "list": serializers.FileControlSerializer,
+        "list": serializers.FileControlFullSerializer,
         "retrieve": serializers.FileControlFullSerializer,
         "create": serializers.FileControlSerializer,
         "post": serializers.FileControlSerializer,
-        #"update": serializers.FileControlEditSerializer,
+        "update": serializers.FileControlSerializer,
     }
 
     def get(self, request):
@@ -262,6 +262,42 @@ class FileControlViewSet(ListRetrieveUpdateMix):
 
         #return Response(
         #    serializer_ctrl.data, status=status.HTTP_201_CREATED)
+
+
+    def update(self, request, **kwargs):
+        file_control = self.get_object()
+        data = request.data
+
+        transformations = data.pop('transformations', [])
+        serializer_file_control = self.get_serializer_class()(
+            file_control, data=data)
+        if serializer_file_control.is_valid():
+            serializer_file_control.save()
+        else:
+            return Response({"errors": serializer_file_control.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        actual_id_tranformations = []
+        for transf_item in transformations:
+            transformation = Transformation()
+            transform_ser = serializers.TransformationEditSerializer(
+                transformation, data=transf_item)
+            if transform_ser.is_valid():
+                tranform = transform_ser.save()
+                actual_id_tranformations.append(tranform.id)
+        Transformation.objects.filter(file_control=file_control)\
+            .exclude(id__in=actual_id_tranformations).delete()
+
+        new_file_control = FileControl.objects.get(id=file_control.id)
+        new_serializer = serializers.FileControlFullSerializer(
+            new_file_control)
+        return Response(
+            new_serializer.data, status=status.HTTP_206_PARTIAL_CONTENT)
+
+        #return Response(
+        #    serializer_file_control.data, status=status.HTTP_206_PARTIAL_CONTENT)
+
+
 
     @action(methods=["post"], detail=True, url_path='columns')
     def columns(self, request, **kwargs):
@@ -412,7 +448,7 @@ class AscertainableViewSet(CreateRetrievView):
             return Response({"errors": serializer_data_file.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
-            serializer_data_file.data, status=status.HTTP_201_CREATED)
+            serializer_data_file.data, status=status.HTTP_206_PARTIAL_CONTENT)
 
     def destroy(self, request, **kwargs):
         petition_file_control_id = self.kwargs.get("petition_file_control_id")

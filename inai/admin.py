@@ -4,7 +4,7 @@ from django.contrib.admin import AdminSite
 # Register your models here.
 from .models import (
     Petition, FileControl, NameColumn, PetitionFileControl, DataFile, 
-    PetitionMonth, ProcessFile)
+    PetitionMonth, ProcessFile, Transformation)
 
 
 class OcamisAdminSite(AdminSite):
@@ -74,7 +74,7 @@ class NameColumnAdmin(admin.ModelAdmin):
         #"final_field__collection",
         "final_field",
         "column_type",
-        "parent_row",
+        "parent_column",
         "file_control"
     ]
     list_filter = ["final_field__collection", "parameter_group", "column_type"]
@@ -121,5 +121,16 @@ class ProcessFileAdmin(admin.ModelAdmin):
     list_filter = ["petition__entity"]
 
 ocamis_admin_site.register(ProcessFile, ProcessFileAdmin)
+
+
+class TransformationAdmin(admin.ModelAdmin):
+    list_display = [
+        "clean_function",
+        "file_control",
+        "name_column",
+        "addl_params",
+    ]
+
+ocamis_admin_site.register(Transformation, TransformationAdmin)
 
 

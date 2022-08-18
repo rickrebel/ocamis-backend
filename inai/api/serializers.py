@@ -220,7 +220,7 @@ class FileControlSerializer(FileControlSimpleSerializer):
         many=True, source="file_transformations", read_only=True)
     data_group_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="data_group",
-        queryset=DataGroup.objects.all())
+        queryset=DataGroup.objects.all(), required=False)
     """file_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="file_type",
         queryset=FileType.objects.all())

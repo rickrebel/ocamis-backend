@@ -6,6 +6,12 @@ from .models import (
     ParameterGroup)
 
 
+class CleanFunctionInLine(admin.StackedInline):
+    model = CleanFunction
+    extra = 0
+    show_change_link = True
+
+
 class FinalFieldAdmin(admin.ModelAdmin):
     list_display = [
         "name",
@@ -19,9 +25,12 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "verified",
     ]
     list_filter = ["collection", "parameter_group", "data_type"]
+    inlines = [CleanFunctionInLine]
     list_editable = [
         "parameter_group", "verified", "verbose_name", "dashboard_hide",
         "in_data_base", "is_common"]
+    ordering = [
+        "parameter_group", "collection", "-is_common", "verbose_name"]        
     search_fields = [
         "name", "collection__name", "collection__model_name",
         "verbose_name", "parameter_group__name"]
@@ -80,7 +89,9 @@ class DataGroupAdmin(admin.ModelAdmin):
     list_display = [
         "name",
         "is_default",
+        "color",
     ]
+    list_editable = ["color"]
     inlines = [ CollectionInline ]
 
 ocamis_admin_site.register(DataGroup, DataGroupAdmin)
@@ -102,6 +113,8 @@ ocamis_admin_site.register(DataType, DataTypeAdmin)
 class CleanFunctionAdmin(admin.ModelAdmin):
     list_display = [
         "name", "public_name", "for_all_data", "restricted_field",
-        "priority"]
+        "description", "priority", "addl_params"]
+    list_editable = ["public_name", "priority"]
+    ordering = ["for_all_data", "priority", "public_name"]
 
 ocamis_admin_site.register(CleanFunction, CleanFunctionAdmin)

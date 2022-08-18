@@ -10,8 +10,8 @@ class MedicalSpeciality(models.Model):
     name = models.CharField(max_length=255)
 
     class Meta:
-        verbose_name = "MedicalSpeciality"
-        verbose_name_plural = "MedicalSpecialitys"
+        verbose_name = "Especialidad de Médico"
+        verbose_name_plural = "Especialidades de Médicos"
 
     def __str__(self):
         return self.name
@@ -21,8 +21,8 @@ class DocumentType(models.Model):
     name = models.CharField(max_length=50)
 
     class Meta:
-        verbose_name = "DocumentType"
-        verbose_name_plural = "DocumentTypes"
+        verbose_name = "Tipo de Documento"
+        verbose_name_plural = "Tipos de Documento"
 
     def __str__(self):
         return self.name
