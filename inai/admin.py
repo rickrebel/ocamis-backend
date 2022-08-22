@@ -91,7 +91,10 @@ class FileControlAdmin(admin.ModelAdmin):
         "status_register",
     ]
     list_filter = ["petition_file_control__petition__entity"]
-    inlines = [ NameColumnInline, PetitionFileControlInline ]
+    inlines = [
+        NameColumnInline,
+        PetitionFileControlInline,
+    ]
 
 ocamis_admin_site.register(FileControl, FileControlAdmin)
 

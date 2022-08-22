@@ -110,9 +110,22 @@ class ExtractorsMix:
         #print(self.file.name)
         #print("---------")
         data_excel = pd.read_excel(
-            self.final_path, dtype = 'string', nrows=50,
+            self.final_path, dtype='string', nrows=50,
             #converters=str.strip,
+            na_filter=False,
             keep_default_na=False, header=None)
+        """nada = False
+        if nada:
+            xl = pd.ExcelFile(self.final_path)
+            xl.sheet_names
+            final_path = "C:\\Users\\Ricardo\\Downloads\\221472322000209 SESEQ.xlsx"
+            xl = pd.ExcelFile(final_path)
+            sheet_names = xl.sheet_names
+            file_control = self.petition_file_control.file_control
+            tabs_functions = ["_tabs_" in transf.clean_function.name 
+                for transf in file_control.file_transformations]
+            tabs_functions
+            #if file_control.file_transformations.clean_function"""
         #Nombres de columnas (pandaarray)
         #Renglones de las variables
         #rows= []

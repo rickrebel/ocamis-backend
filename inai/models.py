@@ -136,7 +136,7 @@ class Petition(models.Model):
 
 
     def __str__(self):
-        return "%s -- %s" % (self.entity, self.id)
+        return "%s -- %s" % (self.entity, self.folio_petition or self.id)
 
     class Meta:
         verbose_name = u"Solicitud - Petición"
