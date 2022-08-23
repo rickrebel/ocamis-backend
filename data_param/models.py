@@ -131,7 +131,7 @@ class CleanFunction(models.Model):
     priority = models.SmallIntegerField(
         default=5, 
         verbose_name="Prioridad",
-        help_text="Nivel de prioridad (5 niveles)")
+        help_text="Nivel de prioridad (ordenación)")
     for_all_data = models.BooleanField(
         default=False, verbose_name="Es general",
         help_text="Es una transformación para toda la info")
@@ -153,7 +153,7 @@ class CleanFunction(models.Model):
         return "%s (%s)" % (self.name, self.public_name)
 
     class Meta:
-        ordering = ["public_name"]
+        ordering = ["priority", "public_name"]
         verbose_name = u"Función de limpieza y transformación"
         verbose_name_plural = u"Funciones de limpieza y transformación"
 

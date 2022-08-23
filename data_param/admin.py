@@ -112,8 +112,8 @@ ocamis_admin_site.register(DataType, DataTypeAdmin)
 
 class CleanFunctionAdmin(admin.ModelAdmin):
     list_display = [
-        "name", "public_name", "for_all_data", "restricted_field",
-        "description", "priority", "addl_params"]
+        "name", "public_name", "for_all_data", 
+        "description", "priority", "addl_params", "restricted_field"]
     list_editable = ["public_name", "priority"]
     ordering = ["for_all_data", "priority", "public_name"]
 

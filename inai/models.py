@@ -191,8 +191,7 @@ class FileControl(models.Model):
     def default_addl_params():
         return {"need_partition": True, "need_transform": False}
 
-    name = models.CharField(
-        max_length=255, default='grupo único')
+    name = models.CharField(max_length=255)
     file_type = models.ForeignKey(
         FileType, on_delete=models.CASCADE,
         blank=True, null=True,)
@@ -230,7 +229,7 @@ class FileControl(models.Model):
         return self.name
 
     class Meta:
-        unique_together = ["data_group", "name"]
+        #unique_together = ["data_group", "name"]
         verbose_name = "Grupo control de archivos"
         verbose_name_plural = "Grupos control de archivos"
 

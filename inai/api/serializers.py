@@ -214,6 +214,7 @@ class FileControlSimpleSerializer(serializers.ModelSerializer):
 class FileControlSerializer(FileControlSimpleSerializer):
     from category.models import FileType
     from data_param.models import DataGroup
+    name = serializers.CharField(required=False)
     petition_file_control = PetitionFileControlSerializer(
         many=True, read_only=True)
     transformations = TransformationSerializer(
