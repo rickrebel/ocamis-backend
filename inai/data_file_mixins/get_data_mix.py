@@ -40,7 +40,7 @@ class ExtractorsMix:
             #print(data_rows[0])
             validated_rows = self.divide_rows(data_rows, is_explore)
         elif suffix in ['.xlsx', '.xls']:
-            validated_rows, errors = self.get_data_from_excel()
+            validated_rows, errors = self.get_data_from_excel(is_explore)
             if errors:
                 return self.save_errors(errors, status_error)
         if errors:
@@ -102,30 +102,57 @@ class ExtractorsMix:
         return structured_data
 
 
-    def get_data_from_excel(self):
+    def get_data_from_excel(self, is_explore):
         import pandas as pd
+        from inai.models import Transformation
         #print("ESTOY EN EXCEEEEL")
         #print(self.file.path)
         #print(self.file.url)
         #print(self.file.name)
         #print("---------")
-        data_excel = pd.read_excel(
+        """data_excel = pd.read_excel(
             self.final_path, dtype='string', nrows=50,
             #converters=str.strip,
             na_filter=False,
-            keep_default_na=False, header=None)
-        """nada = False
-        if nada:
-            xl = pd.ExcelFile(self.final_path)
-            xl.sheet_names
-            final_path = "C:\\Users\\Ricardo\\Downloads\\221472322000209 SESEQ.xlsx"
-            xl = pd.ExcelFile(final_path)
-            sheet_names = xl.sheet_names
-            file_control = self.petition_file_control.file_control
-            tabs_functions = ["_tabs_" in transf.clean_function.name 
-                for transf in file_control.file_transformations]
-            tabs_functions
-            #if file_control.file_transformations.clean_function"""
+            keep_default_na=False, header=None)"""
+        xls = pd.ExcelFile(self.final_path)
+        sheet_names = xls.sheet_names
+        file_control = self.petition_file_control.file_control
+        file_transformations = Transformation.objects.filter(
+            file_control=file_control,
+            clean_function__name__icontains="_tabs_")
+        include_names = exclude_names = include_idx = exclude_idx = None
+        nrows = 50 if is_explore else None
+        for transf in file_transformations:
+            current_vals = transf.addl_params["value"].split(",")
+            func_name = transf.clean_function.name
+            all_names = [name.upper().strip() for name in current_vals]
+            if func_name == 'include_tabs_by_name':
+                include_names = all_names
+            elif func_name == 'exclude_tabs_by_name':
+                exclude_names = all_names
+            elif func_name == 'include_tabs_by_index':
+                include_idx = [int(val.strip()) for val in current_vals]
+            elif func_name == 'exclude_tabs_by_index':
+                exclude_idx = [int(val.strip()) for val in current_vals]
+        for position, sheet_name in enumerate(sheet_names, start=1):
+            if include_names and sheet_name not in include_names:
+                continue
+            if exclude_names and sheet_name in exclude_names:
+                continue
+            if include_idx and position not in include_idx:
+                continue
+            if exclude_idx and position in exclude_idx:
+                continue
+            xls.parse(sheet_name)
+            data_excel = xls.parse(
+                sheet_name,
+                dtype='string', nrows=nrows, na_filter=False,
+                keep_default_na=False, header=None)
+            if is_explore:
+                break
+            #return False, ["todo bien, checa prints"]
+            #if file_control.file_transformations.clean_function
         #Nombres de columnas (pandaarray)
         #Renglones de las variables
         #rows= []

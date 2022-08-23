@@ -297,7 +297,8 @@ class PetitionMonth(models.Model):
 
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
-    file = models.FileField(max_length=150, upload_to=set_upload_path) 
+    file = models.FileField(max_length=150, upload_to=set_upload_path)
+    zip_path = models.TextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     petition_month = models.ForeignKey(
         PetitionMonth, blank=True, null=True,
@@ -318,7 +319,10 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         StatusControl,
         blank=True, null=True,
         on_delete=models.CASCADE)
-    error_process = JSONField(blank=True, null=True)
+    error_process = JSONField(
+        blank=True, null=True, verbose_name="Errores de procesamiento")
+    all_results = JSONField(
+        blank=True, null=True, verbose_name="Todos los resultados")
     inserted_rows = models.IntegerField(default=1)
     completed_rows = models.IntegerField(default=1)
     total_rows = models.IntegerField(default=1)

@@ -62,11 +62,13 @@ class ColumnType(models.Model):
     name = models.CharField(max_length=80)
     public_name = models.CharField(max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    order = models.IntegerField(default=5)
 
     def __str__(self):
         return self.public_name
 
     class Meta:
+        ordering = ['order']
         verbose_name = u"Tipo de Columna"
         verbose_name_plural = u"Tipos de columnas"
 

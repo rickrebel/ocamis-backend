@@ -168,16 +168,16 @@ class PetitionMonthSerializer(serializers.ModelSerializer):
 
 class PetitionMiniSerializer(serializers.ModelSerializer):
     petition_months = PetitionMonthSerializer(many=True)
-    entity = serializers.SerializerMethodField(read_only=True)
+    #entity = serializers.SerializerMethodField(read_only=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)    
 
-    def get_entity(self, obj):
+    """def get_entity(self, obj):
         show_inst = self.context.get("show_institution", False)
         request = self.context.get("request", False)
         if request and request.method == "GET" and show_inst:
             return EntitySerializer(obj.entity).data
-        return obj.entity.id
+        return obj.entity.id"""
 
     class Meta:
         model = Petition

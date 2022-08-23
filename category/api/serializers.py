@@ -20,10 +20,17 @@ class StatusControlSimpleSerializer(serializers.ModelSerializer):
 
 
 class ColumnTypeSimpleSerializer(serializers.ModelSerializer):
-
+    
     class Meta:
         model = ColumnType
-        fields = "__all__"
+        fields = [
+            "id",
+            "description",
+            "col_type_functions",
+            "name",
+            "order",
+            "public_name",
+        ]
 
 
 class NegativeReasonSimpleSerializer(serializers.ModelSerializer):

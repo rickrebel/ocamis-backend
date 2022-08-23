@@ -3,6 +3,7 @@ from unicodedata import name
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 
+from category.models import ColumnType
 ##Otros catalogos
 
 class DataGroup(models.Model):
@@ -142,6 +143,11 @@ class CleanFunction(models.Model):
     addl_params = JSONField(
         blank=True, null=True,
         verbose_name="Otras configuraciones")
+    column_type = models.ForeignKey(
+        ColumnType, related_name="col_type_functions",
+        on_delete=models.CASCADE,
+        verbose_name="Tipo de columna",
+        blank=True, null=True)
 
     def __str__(self):
         return "%s (%s)" % (self.name, self.public_name)
