@@ -112,6 +112,7 @@ class Anomaly(models.Model):
     description = models.TextField(
         blank=True, null=True, verbose_name=u"Descripción")
     icon = models.CharField(max_length=20, blank=True, null=True)
+    is_calculated = models.BooleanField(default=False)
     order = models.IntegerField(default=5)
     color = models.CharField(
         max_length=30, blank=True, null=True,

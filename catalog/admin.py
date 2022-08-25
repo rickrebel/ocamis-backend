@@ -34,30 +34,6 @@ admin.site.register(State, StateAdmin)
 ocamis_admin_site.register(State, StateAdmin)
 
 
-class EntityAdmin(admin.ModelAdmin):
-    list_display = [
-        "acronym",
-        "name",
-        "entity_type",
-        "vigencia",
-        "competent",
-        "idSujetoObligado",
-        "state",
-        "institution",
-        "clues"]
-    raw_id_fields = ["clues"]
-    list_editable = ["idSujetoObligado", "vigencia", "competent"]  
-    search_fields = [
-        "acronym",
-        "name",
-        "institution__code",
-        "state__short_name"
-        ]
-
-#admin.site.register(Entity, EntityAdmin)
-ocamis_admin_site.register(Entity, EntityAdmin)
-
-
 class MunicipalityAdmin(admin.ModelAdmin):
     list_display = [
         "inegi_code",
@@ -142,3 +118,28 @@ class DiseaseAdmin(admin.ModelAdmin):
     search_fields = ["name"]
 
 admin.site.register(Disease, DiseaseAdmin)
+
+
+class EntityAdmin(admin.ModelAdmin):
+    list_display = [
+        "acronym",
+        "name",
+        "entity_type",
+        "vigencia",
+        "competent",
+        "idSujetoObligado",
+        "state",
+        "institution",
+        "clues",
+        "is_pilot"]
+    raw_id_fields = ["clues"]
+    list_editable = ["idSujetoObligado", "vigencia", "competent", "is_pilot"]  
+    search_fields = [
+        "acronym",
+        "name",
+        "institution__code",
+        "state__short_name"
+        ]
+
+#admin.site.register(Entity, EntityAdmin)
+ocamis_admin_site.register(Entity, EntityAdmin)

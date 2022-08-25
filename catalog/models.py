@@ -276,8 +276,6 @@ class Alliances(models.Model):
         return self.name
 
 
-#Pruebas para crear catalogo Entity 
-
 class Entity(models.Model):
     name = models.CharField(
         max_length=120, blank=True, null=True,
@@ -313,6 +311,7 @@ class Entity(models.Model):
         verbose_name="Competente",
         help_text="Es Competente porque tiene pacientes y debe tener la información")
     notes = models.TextField(blank=True, null=True)
+    is_pilot = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name or u"%s -%s -%s" % (

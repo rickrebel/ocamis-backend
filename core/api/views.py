@@ -80,39 +80,172 @@ class CatalogView(views.APIView):
         }
         return Response(data)
 
-"""class CatalogViewStig(views.APIView):
-    permission_classes = [permissions.AllowAny]
+
+
+
+class OpenDataVizView(views.APIView):
+    permission_classes = (permissions.AllowAny, )
 
     def get(self, request):
-        campus_serializer = CampusSerializer(Campus.objects.all(), many=True)
-        member_type_serializer = MemberTypeSerializer(
-            MemberType.objects.all(), many=True)
+        from category.models import Anomaly, StatusControl
+        from data_param.models import CleanFunction
+        from inai.models import (
+            Petition, FileControl, MonthEntity, PetitionMonth)
+        from catalog.models import Entity
 
-        taining_serializer = TainingSerializer(
-            Taining.objects.all(), many=True)
-        officetype_serializer = OfficeTypeSerializer(
-            OfficeType.objects.all(), many=True)
-        sitetype_serializer = SiteTypeSerializer(
-            SiteType.objects.all(), many=True)
-        category_serializer = CategorySerializer(
-            Category.objects.all(), many=True)
-        status_serializer = StatusRegisterSerializer(
-            StatusRegister.objects.all(), many=True)
-        type_dep_serializer = TypeDependenceSimpleSerializer(
-            TypeDependence.objects.all(), many=True)
-        reasons_move_serializer = ReasonMoveSimpleSerializer(
-            ReasonMove.objects.all(), many=True)
 
-        data = {
-            "campus": campus_serializer.data,
-            "member_type": member_type_serializer.data,
-            "taining": taining_serializer.data,
-            "officetype": officetype_serializer.data,
-            "sitetype": sitetype_serializer.data,
-            "categories": category_serializer.data,
-            "status_register": status_serializer.data,
-            "type_dependence": type_dep_serializer.data,
-            "reasons_move": reasons_move_serializer.data,
+
+        operability = {
+            "ideal": {
+                "formats": ["csv", "json", "txt"],
+                "anomalies": [],
+                "others": [],
+            },
+            "aceptable": {
+                "formats": ["xls"],
+                "anomalies": [
+                    "code_headers",
+                    "no_headers",
+                    "hide_colums_tabs"
+                ],
+                "others": [],
+            },
+            "enhaced": {
+                "formats": [],
+                "anomalies": [
+                    "different_tipe_tabs",
+                    "internal_catalogue",
+                    "hide_colums_tabs",
+                    "no_valid_row_data",
+                    "concatenated"
+                    "same_group_data",
+                    #solo para local:
+                    "abasdf",
+                ],
+                "others": ["many_file_controls"],
+            },
+            "impeachable": {
+                "formats": ["pdf", "word", "email", "other"],
+                "anomalies": ["row_spaces"],
+                "others": [],
+            },
         }
 
-        return Response(data, status=status.HTTP_200_OK)"""
+        pilot = request.query_params.get("is_pilot", "false")
+        is_pilot = pilot.lower() in ["si", "yes", "true"]
+
+        all_entities = Entity.objects.filter(
+            competent=True, vigencia=True)
+        if is_pilot:
+            all_entities = all_entities.filter(is_pilot=True)
+
+        final_entities = []
+        try:
+            status_invalid = StatusControl.objects.get(
+                name="mistake")
+            petitions = petitions.exclude(
+                status_petition=status_invalid)
+        except Exception as e:
+            status_invalid = None
+
+        for entity in all_entities:
+            final_entity = {
+                "id": entity.id,
+                "acronym": entity.acronym,
+                "name": entity.name,
+                "state": entity.state and entity.state.name,
+                "clues": entity.clues and entity.clues.name,
+                "entity_type": entity.entity_type,
+            }
+            #all_petitions = Petition.objects.filter(entity__in=all_entities)
+            petitions = Petition.objects.filter(entity=entity)
+            if status_invalid:
+                petitions = petitions.exclude(status_petition=status_invalid)
+            all_pets = []
+            for petition in petitions:
+                many_file_controls = False
+                file_ctrls = FileControl.objects.filter(
+                    petition_file_control__petition=petition).distinct()
+                if file_ctrls.count() > 1:
+                    many_file_controls = True
+                try:
+                    anomalies = Anomaly.objects.filter(
+                        filecontrol__petition_file_control__petition=petition)
+                    name_anomalies = anomalies\
+                        .values_list("name", flat=True).distinct()
+                    name_anomalies = list(anomalies)
+                except Exception as e:
+                    print(e)
+                    name_anomalies = []
+                file_formats = file_ctrls.filter(format_file__isnull=False)\
+                    .values_list("format_file", flat=True)
+                #if file_formats:
+                #    print(file_formats)
+                #glob_var = "many_file_controls"
+                #print("FINAL", locals()[glob_var])
+                status_data = petition.status_data and petition.status_data.name
+                months = MonthEntity.objects.filter(
+                    petitionmonth__petition=petition)
+                final_status = None
+                for (status, params) in operability.items():
+                    if not set(params["formats"]).isdisjoint(set(file_formats)):
+                        final_status = status
+                    if not set(params["anomalies"]).isdisjoint(set(name_anomalies)):
+                        final_status = status
+                    for other in params["others"]:
+                        if locals()[other]:
+                            final_status = status
+                if not status_data or (
+                        status_data in ["no_data", "waiting", "pick_up"]):
+                    final_status = "no_data"
+                final_petition = {
+                    "petition": petition.id,
+                    "file_formats": file_formats,
+                    "many_file_controls": many_file_controls,
+                    #"anomalies": name_anomalies,
+                    "final_status": final_status,
+                    "file_ctrls_count": file_ctrls.count(),
+                    "status_data": status_data,
+                }
+                all_months = []
+                for month in months:
+                    all_months.append(month.year_month)
+                final_petition["year_months"] = all_months
+                all_pets.append(final_petition)
+            final_entities.append(final_entity)
+            others_months = MonthEntity.objects.filter(
+                petitionmonth__isnull=True, entity=entity)
+            none_petition = {
+                "petition": None,
+                "file_formats": [],
+                "many_file_controls": False,
+                "file_ctrls_count": 0,
+                "status_data": None,
+                "final_status": "pending",
+                "year_months": [month.year_month for month in others_months]
+            }
+            all_pets.append(none_petition)
+            final_entity["petitions"] = all_pets
+
+        #data = {"all_months": all_months}
+        data = {"all_entities": final_entities}
+        print("total months", MonthEntity.objects.all().count())
+        print(data)
+        return Response(data)
+
+
+
+
+        quality = {
+            "enough": {
+
+            },
+            "almost_enough":{
+
+            },
+            "not_enough":{
+
+            },
+        }
+
+        
