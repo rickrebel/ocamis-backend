@@ -5,5 +5,6 @@ from django.urls import path
 
 urlpatterns = [
     path('dashboard_catalog/', CatalogView.as_view()),
-    path('open_data_viz/', OpenDataVizView.as_view()),
+    #path('open_data_viz/', OpenDataVizView.as_view()),
+    #path('open_data_viz2/', OpenDataVizView2.as_view()),
 ]

@@ -19,16 +19,21 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "parameter_group",
         "verbose_name",
         "data_type",
-        "dashboard_hide",
         "in_data_base",
         "is_common",
         "verified",
+        "need_for_viz",
     ]
     list_filter = ["collection", "parameter_group", "data_type"]
     inlines = [CleanFunctionInLine]
     list_editable = [
-        "parameter_group", "verified", "verbose_name", "dashboard_hide",
-        "in_data_base", "is_common"]
+        "parameter_group",
+        "verified",
+        "verbose_name",
+        "in_data_base",
+        "is_common",
+        "need_for_viz",
+    ]
     ordering = [
         "parameter_group", "collection", "-is_common", "verbose_name"]        
     search_fields = [
@@ -87,6 +92,7 @@ class CollectionInline(admin.TabularInline):
 
 class DataGroupAdmin(admin.ModelAdmin):
     list_display = [
+        "public_name",
         "name",
         "is_default",
         "color",

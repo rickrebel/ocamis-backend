@@ -6,6 +6,13 @@ from data_param.models import (
     ParameterGroup)
 
 
+class CollectionSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Collection
+        fields = "__all__"
+
+
 class FinalFieldSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -13,10 +20,11 @@ class FinalFieldSimpleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class CollectionSimpleSerializer(serializers.ModelSerializer):
+class FinalFieldVizSerializer(serializers.ModelSerializer):
+    collection = CollectionSimpleSerializer()
 
     class Meta:
-        model = Collection
+        model = FinalField
         fields = "__all__"
 
 

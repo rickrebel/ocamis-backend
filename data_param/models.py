@@ -7,14 +7,17 @@ from category.models import ColumnType
 ##Otros catalogos
 
 class DataGroup(models.Model):
-    name = models.CharField(max_length=80)
+    name = models.CharField(
+        max_length=40, verbose_name="Nombre (devs)", blank=True, null=True)
+    public_name = models.CharField(
+        max_length=80, verbose_name="Nombre público")
     is_default = models.BooleanField(default=False)
     color = models.CharField(max_length=20, default="lime")
     can_has_percent = models.BooleanField(
         default=False, verbose_name="Puede tener porcentajes")
 
     def __str__(self):
-        return self.name
+        return self.public_name
 
     class Meta:
         verbose_name = u"Grupo de datos"
@@ -113,6 +116,10 @@ class FinalField(models.Model):
     verified = models.BooleanField(
         default=False, verbose_name="Verificado", 
         help_text="Ricardo ya verificó que todos los parámetros están bien")
+    need_for_viz = models.BooleanField(
+        default=False,
+        verbose_name="para data viz",
+        help_text="Se utiliza en indicadores de transparencia")
 
     def __str__(self):
         return "%s - %s (%s)" % (

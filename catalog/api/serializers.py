@@ -6,6 +6,7 @@ from catalog.models import (
     State, Institution, CLUES, Alliances, Municipality, Disease, Entity
 )
 #from report.api.serializers import ResponsableListSerializer
+from inai.models import MonthEntity
 
 
 class ResponsableListSerializer(serializers.ModelSerializer):
@@ -128,3 +129,34 @@ class EntityFullSerializer(EntitySerializer):
     class Meta:
         model = Entity
         fields = "__all__"
+
+
+class EntityVizSerializer(EntitySerializer):
+    #from inai.api.serializers import MonthEntitySimpleSerializer
+    from inai.api.serializers_viz import (
+        PetitionVizSerializer, MonthEntityVizSerializer)
+
+    entity_type = serializers.ReadOnlyField()
+    petitions = PetitionVizSerializer(many=True)
+    months = MonthEntityVizSerializer(many=True, read_only=True)
+    #months = serializers.SerializerMethodField(read_only=True)
+
+    #def get_months(self, obj):
+    #    return MonthEntity.objects.filter(entity=obj)\
+    #        .values_list("year_month", flat=True).distinct()
+
+
+    class Meta:
+        model = Entity
+        fields = [
+            "id",
+            "name",
+            "acronym",
+            "is_pilot",
+            "institution",
+            "state",
+            "clues",
+            "entity_type",
+            "petitions",
+            "months",
+        ]
