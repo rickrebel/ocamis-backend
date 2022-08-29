@@ -48,7 +48,7 @@ class NameColumnVi3zSerializer(serializers.ModelSerializer):
 class NameColumnVizSerializer(serializers.RelatedField):
     def to_representation(self, value):
         return ((None, None) if not value.final_field else
-            (value.final_field.name, value.final_field.collection.model_name))
+            (value.final_field.collection.model_name, value.final_field.name))
 
 
 class AnomaliesVizSerializer(serializers.RelatedField):
