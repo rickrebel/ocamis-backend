@@ -30,6 +30,7 @@ class State(models.Model):
         return self.short_name or self.code_name or self.name
 
     class Meta:
+        ordering = ["inegi_code"]
         verbose_name = u"Estado"
         verbose_name_plural = u"Estados"
         db_table = u'desabasto_state'

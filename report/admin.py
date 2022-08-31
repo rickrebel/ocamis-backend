@@ -52,7 +52,7 @@ class ResponsableAdmin(admin.ModelAdmin):
         "clues",
     ]
     list_filter = ["is_covid", "institution", "state"]
-    raw_id_fields = ["institution", "state", "clues", ]
+    raw_id_fields = ["clues", ]
     search_fields = [
         "name",
         "emails",

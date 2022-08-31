@@ -30,6 +30,8 @@ class Responsable(models.Model):
         on_delete=models.CASCADE, verbose_name="Clínica u Hospital")
     update_date = models.DateField(
         null=True, blank=True, verbose_name="Fecha de actualización")
+    petition_date = models.DateField(
+        null=True, blank=True, verbose_name="Fecha respuesta oficio")
     notes = models.TextField(
         verbose_name="Notas", null=True, blank=True)
     #clues = models.IntegerField(blank=True, null=True)

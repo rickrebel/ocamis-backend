@@ -20,8 +20,8 @@ class DataGroup(models.Model):
         return self.public_name
 
     class Meta:
-        verbose_name = u"Grupo de datos"
-        verbose_name_plural = u"Grupos de datos"
+        verbose_name = u"Grupo de datos solicitados"
+        verbose_name_plural = u"Grupos de datos solicitados"
 
 
 class Collection(models.Model):
@@ -75,8 +75,8 @@ class ParameterGroup(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = u"Grupo de Parametros"
-        verbose_name_plural = u"Grupos de Parametros"
+        verbose_name = u"Agrupación de campos finales"
+        verbose_name_plural = u"Agrupaciones de campos finales"
 
 
 class FinalField(models.Model):

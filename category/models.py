@@ -17,7 +17,9 @@ class StatusControl(models.Model):
         verbose_name="grupo de status", default="petition")
     name = models.CharField(max_length=120)
     public_name = models.CharField(max_length=255)
-    color = models.CharField(max_length=20, blank=True, null=True)
+    color = models.CharField(
+        max_length=20, blank=True, null=True,
+        help_text="https://vuetifyjs.com/en/styles/colors/")
     icon = models.CharField(max_length=20, blank=True, null=True)
     order = models.IntegerField(default=4)
     description = models.TextField(blank=True, null=True)

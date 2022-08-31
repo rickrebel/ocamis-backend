@@ -452,3 +452,8 @@ class Transformation(models.Model):
         verbose_name="Columna")
     addl_params = JSONField(
         blank=True, null=True, default=default_addl_params)
+
+
+    class Meta:
+        verbose_name = "Transformación a aplicar"
+        verbose_name_plural = "Transformaciones a aplicar"   
