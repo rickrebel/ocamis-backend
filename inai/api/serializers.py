@@ -166,28 +166,28 @@ class PetitionMonthSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class PetitionMiniSerializer(serializers.ModelSerializer):
+"""class PetitionMiniSerializer(serializers.ModelSerializer):
     petition_months = PetitionMonthSerializer(many=True)
     #entity = serializers.SerializerMethodField(read_only=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)    
 
-    """def get_entity(self, obj):
+    def get_entity(self, obj):
         show_inst = self.context.get("show_institution", False)
         request = self.context.get("request", False)
         if request and request.method == "GET" and show_inst:
             return EntitySerializer(obj.entity).data
-        return obj.entity.id"""
+        return obj.entity.id
 
     class Meta:
         model = Petition
-        fields = "__all__"
+        fields = "__all__" """
 
 
 class PetitionFileControlSerializer(serializers.ModelSerializer):
     #file_control = FileControlSerializer()
     data_files = DataFileSerializer(many=True, read_only=True)
-    petition = PetitionMiniSerializer(read_only=True)
+    #petition = PetitionMiniSerializer(read_only=True)
     petition_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="petition",
         queryset=Petition.objects.all())

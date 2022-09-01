@@ -6,7 +6,8 @@ from django.utils.deconstruct import deconstructible
 
 from catalog.models import Entity
 from category.models import (
-    StatusControl, FileType, ColumnType, NegativeReason, DateBreak, Anomaly)
+    StatusControl, FileType, ColumnType, NegativeReason, 
+    DateBreak, Anomaly, InvalidReason)
 from data_param.models import (
     DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup)
 
@@ -90,6 +91,10 @@ class Petition(models.Model):
         StatusControl, null=True, blank=True, 
         related_name="petitions_complain",
         verbose_name="Status de la queja",
+        on_delete=models.CASCADE)
+    invalid_reason = models.ForeignKey(
+        InvalidReason, null=True, blank=True, 
+        verbose_name="Razón de invalidez",
         on_delete=models.CASCADE)
     folio_complain = models.IntegerField(
         verbose_name="Folio de la queja", 

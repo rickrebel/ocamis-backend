@@ -19,6 +19,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
     queryset = Petition.objects.all()
     action_serializers = {
         "create": serializers.PetitionEditSerializer,
+        "retrieve": serializers.PetitionFullSerializer,
         "update": serializers.PetitionEditSerializer,
     }
 
@@ -204,13 +205,13 @@ class FileControlViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.FileControlSerializer
     queryset = FileControl.objects.all().prefetch_related(
+            "data_group",
+            "file_type",
             "columns",
-            "columns__column_type",
-            "columns__data_type",
             "columns__column_transformations",
-            "columns__column_transformations__clean_function",
-            "columns__final_field",
-            "columns__final_field__collection",
+            "petition_file_control",
+            "petition_file_control__data_files",
+            "petition_file_control__data_files__origin_file",
         )
 
     def get_serializer_context(self):

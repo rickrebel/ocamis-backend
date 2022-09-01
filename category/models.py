@@ -87,6 +87,18 @@ class NegativeReason(models.Model):
         verbose_name_plural = u"Razones de negación de datos"
 
 
+class InvalidReason(models.Model):
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = u"Razón de invalidez de datos"
+        verbose_name_plural = u"Razones de invalidez de datos"
+
+
 class DateBreak(models.Model):
     name = models.CharField(max_length=50)
     group = models.CharField(

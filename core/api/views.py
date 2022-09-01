@@ -12,11 +12,13 @@ from data_param.api.serializers import (
     CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer)
 
 from category.models import (
-    FileType, StatusControl, ColumnType, NegativeReason, DateBreak, Anomaly)
+    FileType, StatusControl, ColumnType, NegativeReason,
+    DateBreak, Anomaly, InvalidReason)
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
-    DateBreakSimpleSerializer, AnomalySimpleSerializer)
+    DateBreakSimpleSerializer, AnomalySimpleSerializer,
+    InvalidReasonSimpleSerializer)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
@@ -37,11 +39,8 @@ class CatalogView(views.APIView):
             "data_group",
             "file_type",
             "columns",
+            "columns__column_transformations",
             "petition_file_control",
-            "petition_file_control__petition",
-            "petition_file_control__petition",
-            "petition_file_control__petition__petition_months",
-            "petition_file_control__petition__petition_months__month_entity",
             "petition_file_control__data_files",
             "petition_file_control__data_files__origin_file",
         )
@@ -73,6 +72,8 @@ class CatalogView(views.APIView):
                 ColumnType.objects.all(), many=True).data,
             "negative_reasons": NegativeReasonSimpleSerializer(
                 NegativeReason.objects.all(), many=True).data,
+            "invalid_reasons": InvalidReasonSimpleSerializer(
+                InvalidReason.objects.all(), many=True).data,
             "anomalies": AnomalySimpleSerializer(
                 Anomaly.objects.all(), many=True).data,
             "date_breaks": DateBreakSimpleSerializer(
