@@ -1,77 +1,3 @@
-inai_fields = [
-    {
-        "inai_open_search": "idSujetoObligado",
-        "model_name": "Entity",
-        "app_name": "catalog",
-        "final_field": "idSujetoObligado",
-        "related": 'entity',
-    },
-    {
-        "inai_open_search": "nombreSujetoObligado",
-        "model_name": "Entity",
-        "app_name": "catalog",
-        "final_field": "nombreSujetoObligado",
-        "insert": True,
-        "related": 'entity',
-    },
-    {
-        "inai_open_search": "dsFolio",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "folio_petition",
-        "unique": True,
-    },
-    {
-        "inai_open_search": False,
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "entity",
-        "unique": True,
-    },
-    {
-        "inai_open_search": "descripcionSolicitud",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "description_petition",
-        "transform": "unescape",
-    },
-    {
-        "inai_open_search": "fechaEnvio",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "send_petition",
-        "transform": "date_mex",
-    },
-    {
-        "inai_open_search": "descripcionRespuesta",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "description_response",
-        "transform": "unescape",
-    },
-    {
-        "inai_open_search": "dtFechaUltimaRespuesta",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "send_response",
-        "transform": "date_mex",
-    },
-    {
-        "inai_open_search": "id",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "id_inai_open_data",
-    },
-    {
-        "inai_open_search": "informacionQueja",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "info_queja_inai",
-        "transform": "to_json",
-    },
-
-]
-
 others: [
     {
         "inai_open_search": "archivoAdjuntoRespuesta",
@@ -87,36 +13,8 @@ others: [
         "final_field": "description_petition",
         "transform": "join_lines",
         "join_lines": True
-    }]
-
-
-
-import io
-import json
-
-from datetime import datetime
-
-data = None
-path_json = "C:\\Users\\Ricardo\\Desktop\\experimentos\\todas.json"
-
-with io.open(path_json, "r", encoding="UTF-8") as file:
-    data = json.load(file)
-    file.close()
-
-petitions = data["solicitudes"]
-#petitions = [pet for pet in data["solicitudes"] if pet["idSujetoObligado"] ==  15233]
-
-for pet in petitions:
-    val = pet["fechaEnvio"]
-    pet["fecha_orden"] = datetime.strptime(val, '%d/%m/%Y')
-
-petitions = sorted(petitions, key=lambda i: i['fecha_orden'])
-#for pet in petitions:
-#    print(pet["fechaEnvio"])
-
-
-
-
+    }
+]
 
 def unescape(val):
     import html
@@ -138,7 +36,7 @@ def join_url(row, main):
     compl_hash = row.get("archivoAdjuntoRespuesta", False)
     if compl_hash:
         try:
-            default_type = FileType.objects.get(name="Información no final")
+            default_type = FileType.objects.get(name="no_final_info")
         except Exception as e:
             print("No se encontró el tipo de archivo")
             print(e)
@@ -244,23 +142,3 @@ def insert_from_json(
             if (created or function[1]):
                 globals()[function[0]](row, main)
 
-
-def execute():
-    #spec_functions = ["join_url", "join_lines", "insert_between_months"]
-    spec_functions = [
-        ("join_url", True),
-        ("join_lines", True),
-        ("insert_between_months", False)
-    ]
-    insert_from_json(
-        petitions, inai_fields, 'inai', 'Petition', 'inai_open_search', 
-        special_functions=spec_functions)
-
-
-
-def delete_pets():
-    from inai.models import Petition
-    Petition.objects.all().delete()
-
-
-    #Petition.objects.last()

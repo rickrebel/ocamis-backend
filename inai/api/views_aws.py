@@ -94,3 +94,125 @@ class DataFileViewSet(CreateRetrievView):
         return Response(
             data, status=status.HTTP_201_CREATED)
 
+
+class OpenDataInaiViewSet(CreateRetrievView):
+    queryset = DataFile.objects.all()
+    serializer_class = serializers.DataFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "list": serializers.DataFileSerializer,
+        "create": serializers.DataFileSerializer,
+    }
+
+    def get_queryset(self):
+        return DataFile.objects.all()
+
+    @action(methods=["post"], detail=False, url_path='insert_json')
+    def insert_json(self, request, **kwargs):
+        import json
+        from datetime import datetime
+        from scripts.import_inai import insert_from_json
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        data_json = request.data
+        data = json.load(data_json["file"])
+
+        petitions = data["solicitudes"]
+
+        for pet in petitions:
+            val = pet["fechaEnvio"]
+            pet["fecha_orden"] = datetime.strptime(val, '%d/%m/%Y')
+
+        petitions = sorted(petitions, key=lambda i: i['fecha_orden'])
+
+        inai_fields = [
+            {
+                "inai_open_search": "idSujetoObligado",
+                "model_name": "Entity",
+                "app_name": "catalog",
+                "final_field": "idSujetoObligado",
+                "related": 'entity',
+            },
+            {
+                "inai_open_search": "nombreSujetoObligado",
+                "model_name": "Entity",
+                "app_name": "catalog",
+                "final_field": "nombreSujetoObligado",
+                "insert": True,
+                "related": 'entity',
+            },
+            {
+                "inai_open_search": "dsFolio",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "folio_petition",
+                "unique": True,
+            },
+            {
+                "inai_open_search": False,
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "entity",
+                "unique": True,
+            },
+            {
+                "inai_open_search": "descripcionSolicitud",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "description_petition",
+                "transform": "unescape",
+            },
+            {
+                "inai_open_search": "fechaEnvio",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "send_petition",
+                "transform": "date_mex",
+            },
+            {
+                "inai_open_search": "descripcionRespuesta",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "description_response",
+                "transform": "unescape",
+            },
+            {
+                "inai_open_search": "dtFechaUltimaRespuesta",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "send_response",
+                "transform": "date_mex",
+            },
+            {
+                "inai_open_search": "id",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "id_inai_open_data",
+            },
+            {
+                "inai_open_search": "informacionQueja",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "info_queja_inai",
+                "transform": "to_json",
+            },
+
+        ]
+        spec_functions = [
+            ("join_url", True),
+            ("join_lines", True),
+            ("insert_between_months", False)
+        ]
+        insert_from_json(
+            petitions, inai_fields, 'inai', 'Petition', 'inai_open_search', 
+            special_functions=spec_functions)
+
+
+
+        if data.get("errors", False):
+            return Response(
+                data, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(
+            data, status=status.HTTP_201_CREATED)
+
