@@ -188,17 +188,17 @@ class PetitionFileControlSerializer(serializers.ModelSerializer):
     #file_control = FileControlSerializer()
     data_files = DataFileSerializer(many=True, read_only=True)
     #petition = PetitionMiniSerializer(read_only=True)
-    petition_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="petition",
-        queryset=Petition.objects.all())
-    file_control_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="file_control",
-        queryset=FileControl.objects.all())
+    #petition_id = serializers.PrimaryKeyRelatedField(
+    #    write_only=True, source="petition",
+    #    queryset=Petition.objects.all())
+    #file_control_id = serializers.PrimaryKeyRelatedField(
+    #    write_only=True, source="file_control",
+    #    queryset=FileControl.objects.all())
 
     class Meta:
         model = PetitionFileControl
         fields = "__all__"
-        read_only_fields = ["file_control"]
+        #read_only_fields = ["file_control", "petition"]
 
 
 class FileControlSimpleSerializer(serializers.ModelSerializer):
