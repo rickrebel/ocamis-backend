@@ -122,11 +122,12 @@ class FinalField(models.Model):
         help_text="Se utiliza en indicadores de transparencia")
 
     def __str__(self):
-        return "%s - %s (%s)" % (
-            self.collection, self.name, self.parameter_group or "NA")
+        return "%s: %s (%s - %s)" % (
+            self.verbose_name, self.parameter_group or "NA", 
+            self.collection, self.name)
 
     class Meta:
-        ordering = ["-is_common", "verbose_name"]
+        ordering = ["parameter_group", "-is_common", "verbose_name"]
         verbose_name = u"Campo final"
         verbose_name_plural = u"Campos finales (en DB)"
 

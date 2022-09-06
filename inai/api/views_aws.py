@@ -51,9 +51,17 @@ class DataFileViewSet(CreateRetrievView):
         try:
             headers = data["headers"]
             complex_headers = []
-            all_name_columns = NameColumn.objects.filter(
-                    final_field__isnull=False, name_in_data__isnull=False)\
+            file_control = data_file.petition_file_control.file_control
+            data_groups = [file_control.data_group.name, 'catalogs']
+            all_name_columns = NameColumn.objects\
+                .filter(
+                    final_field__isnull=False,
+                    name_in_data__isnull=False,
+                    final_field__parameter_group__data_group__in=data_groups,
+                )\
                 .values(*valid_fields)
+            
+            #.exclude(name_in_data__startswith="_")
 
             final_names = {}
             for name_col in all_name_columns:

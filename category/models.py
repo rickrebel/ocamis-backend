@@ -133,7 +133,7 @@ class Anomaly(models.Model):
         verbose_name=u"Color")
 
 
-    def __unicode__(self):
+    def __str__(self):
         return self.public_name
 
     class Meta:

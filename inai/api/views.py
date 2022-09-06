@@ -230,7 +230,7 @@ class FileControlViewSet(ListRetrieveUpdateMix):
     }
 
     def get(self, request):
-        print("ESTOY EN GET")
+        #print("ESTOY EN GET")
         file_control = self.get_object()
         serializer = serializers.FileControlFullSerializer(
             file_control, context={'request': request})
@@ -238,7 +238,7 @@ class FileControlViewSet(ListRetrieveUpdateMix):
         return Response()
 
     def create(self, request, **kwargs):
-        print("ESTOY EN CREATE")
+        #print("ESTOY EN CREATE")
         data_file_control = request.data
         new_file_control = FileControl()
 

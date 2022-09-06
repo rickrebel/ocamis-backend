@@ -252,8 +252,8 @@ class PetitionFileControl(models.Model):
         return "%s - %s" % (self.petition, self.file_control)
 
     class Meta:
-        verbose_name = u"Relacional: petición -- file_control"
-        verbose_name_plural = u"Relacional: petición -- file_control"
+        verbose_name = u"Relacional: petición -- Grupo de Control"
+        verbose_name_plural = u"Relacional: Petición -- Grupos de Control"
 
 
 class MonthEntity(models.Model):

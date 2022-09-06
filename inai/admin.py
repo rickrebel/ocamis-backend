@@ -55,6 +55,9 @@ class PetitionAdmin(admin.ModelAdmin):
         "status_data",
         "status_petition",
     ]
+    search_fields = [
+        "folio_petition", "entity__acronym", "entity__name",
+        "entity__state__short_name"]
     inlines = [ PetitionMonthInline, PetitionFileControlInline ]
     list_filter = ["entity"]
 
@@ -63,6 +66,7 @@ ocamis_admin_site.register(Petition, PetitionAdmin)
 
 class NameColumnInline(admin.StackedInline):
     model = NameColumn
+    raw_id_fields = ["parent_column", "children_column"]
     extra = 0
 
 
@@ -77,6 +81,7 @@ class NameColumnAdmin(admin.ModelAdmin):
         "parent_column",
         "file_control"
     ]
+    raw_id_fields = ["parent_column", "children_column"]
     list_filter = ["final_field__collection", "parameter_group", "column_type"]
     ordering = ["collection", "final_field", "name_in_data"]
 

@@ -37,5 +37,5 @@ class PurchaseRaw(models.Model):
         verbose_name = u"Orden de Suministro"
         verbose_name_plural = u"Ordenes de Suministro"
 
-    def __unicode__(self):
+    def __str__(self):
         return self.orden or 'none'
