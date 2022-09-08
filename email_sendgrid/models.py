@@ -59,7 +59,7 @@ class SendGridProfile(models.Model):
         else:
             return False
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -78,7 +78,7 @@ class TemplateBase(models.Model):
     sendgrid_profile = models.ForeignKey(
         SendGridProfile, blank=True, null=True, on_delete=models.CASCADE)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.from_name + ": " + self.subject
 
     class Meta:
@@ -95,7 +95,7 @@ class MassMailing(models.Model):
     exclude_kwargs = models.TextField(blank=True, null=True)
     order_by_args = models.TextField(blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return u"%s - %s" % (self.created, self.template_base)
 
     class Meta:
@@ -177,7 +177,7 @@ class EmailRecord(models.Model):
             # actualizacion de datos tras envio de correo
             super(EmailRecord, self).save()
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s - %s -- %s" % (self.email, self.status, self.created)
 
     class Meta:

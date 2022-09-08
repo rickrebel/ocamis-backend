@@ -111,8 +111,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 "anomalies": ["row_spaces"],
                 "others": [],
             },
-        }        
-        qualities = ["not_enough", "enough", "almost_enough", "not_enough"]
+        }
+        enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
 
         pilot = request.query_params.get("is_pilot", "false")
         is_pilot = pilot.lower() in ["si", "yes", "true"]
@@ -171,21 +171,21 @@ class EntityViewSet(ListRetrieveUpdateMix):
                         anomalies += file_ctrl["anomalies"]
                     file_ctrls_count = len(file_ctrls)
                     many_file_controls = file_ctrls_count > 1
-                    final_quality = None
-                    for (curr_quality, params) in operability.items():
+                    final_operativ = None
+                    for (curr_operativ, params) in operability.items():
                         if not set(params["formats"]).isdisjoint(set(file_formats)):
-                            final_quality = curr_quality
+                            final_operativ = curr_operativ
                         if not set(params["anomalies"]).isdisjoint(set(anomalies)):
-                            final_quality = curr_quality
+                            final_operativ = curr_operativ
                         for other in params["others"]:
                             if locals()[other]:
-                                final_quality = curr_quality
+                                final_operativ = curr_operativ
                     if not status_data or status_data["name"] in status_no_data:
-                        final_quality = "no_data"
+                        final_operativ = "no_data"
                     petition[data_group] = {
                         "file_formats": file_formats,
                         "many_file_controls": many_file_controls,
-                        "quality": final_quality,
+                        "operativ": final_operativ,
                         "file_ctrls_count": file_ctrls_count,
                     }
 
@@ -196,7 +196,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     droug = 0
                     for file_ctrl in file_ctrls:
                         final_fields = file_ctrl["columns"]
-                        has_clues = ("CLUES", "clues") in final_fields
+                        has_clues = (("CLUES", "clues") in final_fields or 
+                            entity["clues"])
                         has_name = ("CLUES", "name") in final_fields
                         if has_clues and clues < 2:
                             clues = 1
@@ -232,10 +233,13 @@ class EntityViewSet(ListRetrieveUpdateMix):
                         petition[data_group]["clues"] = "no_data"
                         petition[data_group]["formula"] = "no_data"
                         petition[data_group]["droug"] = "no_data"
+                        petition[data_group]["qual_detailed"] = "no_data"
                     else:
-                        petition[data_group]["clues"] = qualities[clues]
-                        petition[data_group]["formula"] = qualities[formula]
-                        petition[data_group]["droug"] = qualities[droug]
+                        petition[data_group]["clues"] = enoughs[clues]
+                        petition[data_group]["formula"] = enoughs[formula]
+                        petition[data_group]["droug"] = enoughs[droug]
+                        max_value = max([clues, formula, droug])
+                        petition[data_group]["qual_detailed"] = enoughs[max_value]
 
             final_data.append(entity)
 

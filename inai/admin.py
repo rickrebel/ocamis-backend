@@ -74,7 +74,7 @@ class NameColumnAdmin(admin.ModelAdmin):
     list_display = [
         "position_in_data",
         "name_in_data",
-        "parameter_group",
+        #"parameter_group",
         #"final_field__collection",
         "final_field",
         "column_type",
@@ -82,7 +82,9 @@ class NameColumnAdmin(admin.ModelAdmin):
         "file_control"
     ]
     raw_id_fields = ["parent_column", "children_column"]
-    list_filter = ["final_field__collection", "parameter_group", "column_type"]
+    list_filter = [
+        "final_field__collection", 
+        "final_field__parameter_group", "column_type"]
     ordering = ["collection", "final_field", "name_in_data"]
 
 

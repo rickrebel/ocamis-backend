@@ -406,10 +406,10 @@ class NameColumn (models.Model):
         FinalField, 
         blank=True, null=True,
         on_delete=models.CASCADE)
-    parameter_group = models.ForeignKey(
-        ParameterGroup, 
-        blank=True, null=True,
-        on_delete=models.CASCADE)
+    #parameter_group = models.ForeignKey(
+    #    ParameterGroup, 
+    #    blank=True, null=True,
+    #    on_delete=models.CASCADE)
     clean_params = JSONField(blank=True, null=True,
         verbose_name="Parámetros de limpieza")
     requiered_row = models.BooleanField(default=False)

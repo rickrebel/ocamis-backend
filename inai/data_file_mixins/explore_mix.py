@@ -104,13 +104,18 @@ class ExploreMix:
             #ahora es con el nuevo archivo con el que estamos tratando
             self = new_file
             suffixes.remove('.gz')
-        if 'zip' in suffixes:
+        elif 'zip' in suffixes:
             #[directory, only_name] = self.path.rsplit("/", 1)
             #[base_name, extension] = only_name.rsplit(".", 1)
             directory = self.final_path
             #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
             zip_file = zipfile.ZipFile(self.final_path)
             all_files = zip_file.namelist()
+            infolist = zip_file.infolist()
+            print(all_files)
+            print("--info list:--")
+            print(infolist)
+            return ["En pruebas"], None
             with zipfile.ZipFile(self.url, 'r') as zip_ref:
                 zip_ref.extractall(directory)               
             #ZipFile.extractall(path=None, members=None, pwd=None)   

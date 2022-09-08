@@ -447,7 +447,7 @@ class ComplementReport(models.Model):
             self.key = ''
         super(ComplementReport, self).save(*args, **kwargs)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.report or self.covid_report
 
     class Meta:

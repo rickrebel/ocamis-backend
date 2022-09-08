@@ -46,8 +46,8 @@ class DataFileViewSet(CreateRetrievView):
             return final_text
         
         valid_fields = [
-            "name_in_data", "column_type", "final_field", "parameter_group",
-            "data_type"]
+            "name_in_data", "column_type", "final_field", 
+            "final_field__parameter_group", "data_type"]
         try:
             headers = data["headers"]
             complex_headers = []
@@ -68,7 +68,7 @@ class DataFileViewSet(CreateRetrievView):
                 standar_name = textNormalizer(name_col["name_in_data"])
                 unique_name = (
                     f'{standar_name}-{name_col["final_field"]}-'
-                    f'{name_col["parameter_group"]}')
+                    f'{name_col["final_field__parameter_group"]}')
                 if final_names.get(standar_name, False):
                     if not final_names[standar_name]["valid"]:
                         continue

@@ -21,6 +21,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         "create": serializers.PetitionEditSerializer,
         "retrieve": serializers.PetitionFullSerializer,
         "update": serializers.PetitionEditSerializer,
+        #"change_months": serializers.PetitionEditSerializer,
     }
 
     def create(self, request, **kwargs):
@@ -122,7 +123,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         #return Response(
         #    serializer_petition.data, status=status.HTTP_201_CREATED)
 
-    @action(methods=["post"], detail=True, url_path='change_months')
+    @action(methods=["post"], detail=True)
     def change_months(self, request, **kwargs):
         import json
         if not request.user.is_staff:
