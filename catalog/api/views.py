@@ -76,7 +76,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
     def data_viz(self, request, **kwargs):
         #import json
         from django.db.models import Prefetch
-        from inai.models import NameColumn, Petition, FileControl
+        from inai.models import (
+            NameColumn, Petition, FileControl, PetitionMonth, MonthEntity)
         operability = {
             "ideal": {
                 "formats": ["csv", "json", "txt"],
@@ -125,6 +126,14 @@ class EntityViewSet(ListRetrieveUpdateMix):
             .exclude(status_petition__name="mistake", )
         prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
         include_groups = ["detailed", "stock"]
+        filter_petition_month = PetitionMonth.objects\
+            .filter(month_entity__year_month__lt="202207")
+        prefetch_petition_month = Prefetch(
+            "petitions__petition_months",
+            queryset=filter_petition_month)
+        filter_month = MonthEntity.objects\
+            .filter(year_month__lt="202207")
+        prefetch_month = Prefetch("months", queryset=filter_month)
         filter_file_control = FileControl.objects\
             .filter(data_group__name__in=include_groups)
         prefetch_file_control = Prefetch(
@@ -136,11 +145,15 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 "institution",
                 "clues",
                 "state",
+                #"months"
+                prefetch_month,
                 #"petitions",
                 prefetch_petitions,
                 "petitions__status_data",
                 "petitions__status_petition",
-                "petitions__petition_months",
+                prefetch_petition_month,
+                #"petitions__petition_months",
+                "petitions__negative_reasons",
                 "petitions__petition_months__month_entity",
                 #prefetch_file_control,
                 "petitions__file_controls__file_control",
@@ -163,7 +176,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 for data_group in include_groups:
                     file_ctrls = [
                         file_ctrl for file_ctrl in petition["file_controls"]
-                        if file_ctrl["data_group"]["name"] == data_group]
+                        if file_ctrl["data_group"]["name"] == data_group ]
                     file_formats = [
                         file_ctrl["format_file"] for file_ctrl in file_ctrls]
                     anomalies = []
@@ -246,8 +259,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
         #return Response(
         #    serializer.data, status=status.HTTP_200_OK)
         return Response(final_data, status=status.HTTP_200_OK)
-
-
 
 
 class InstitutionList(ListMix):

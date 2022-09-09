@@ -12,7 +12,8 @@ from category.api.serializers import (
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, FinalFieldVizSerializer)
 
-from inai.api.serializers import PetitionMonthSerializer
+from inai.api.serializers import (
+    PetitionMonthSerializer, PetitionNegativeReasonSimpleSerializer)
 
 
 class PetitionMonthVizSerializer(serializers.RelatedField):
@@ -85,6 +86,8 @@ class PetitionVizSerializer(serializers.ModelSerializer):
     file_controls = PetitionFileControlVizSerializer(many=True)
     status_data = StatusControlSimpleSerializer()
     status_petition = StatusControlSimpleSerializer()
+    #invalid_reason = InvalidReasonSimpleSerializer()
+    negative_reasons = PetitionNegativeReasonSimpleSerializer(many=True)
     #petition_months = PetitionMonthSerializer(many=True)
     months = PetitionMonthVizSerializer(
         many=True, read_only=True, source="petition_months")
@@ -98,5 +101,7 @@ class PetitionVizSerializer(serializers.ModelSerializer):
             "status_data",
             "status_petition",
             "months",
+            "negative_reasons",
+            "invalid_reason",
             #"months",
         ]

@@ -271,12 +271,15 @@ class PetitionBreakSerializer(serializers.ModelSerializer):
         #write_only_fields = ('date_break_id',)
 
 
-class PetitionNegativeReasonSerializer(FileControlSerializer):
-    negative_reason = NegativeReasonSimpleSerializer()
+class PetitionNegativeReasonSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PetitionNegativeReason
         fields = "__all__"
+
+
+class PetitionNegativeReasonSerializer(PetitionNegativeReasonSimpleSerializer):
+    negative_reason = NegativeReasonSimpleSerializer()
 
 
 class PetitionSmallSerializer(serializers.ModelSerializer):
