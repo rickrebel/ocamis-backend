@@ -438,7 +438,6 @@ class ComplementReport(models.Model):
     def save(self, *args, **kwargs):
         import random
         import string
-        print(self)
         if not self.pk:
             self.key = ''.join([
                 random.choice(string.ascii_letters + string.digits)
