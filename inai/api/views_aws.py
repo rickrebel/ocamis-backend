@@ -26,10 +26,11 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
     def retrieve(self, request, pk=None):
         #self.check_permissions(request)
-        import io
+        from io import BytesIO
         import zipfile
         import rarfile
         import pathlib
+        import boto3
         from inai.models import set_upload_path
         from django.conf import settings
         from django.core.files import File
@@ -40,11 +41,13 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         if is_prod:
-            import boto3
             bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
             aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
             aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
             s3 = boto3.resource(
+                's3', aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key)
+            dev_resource = boto3.resource(
                 's3', aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key)
 
@@ -84,12 +87,28 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             suffixes = pathlib.Path(process_file.final_path).suffixes
             suffixes = set([suffix.lower() for suffix in suffixes])
 
+            if is_prod:
+                zip_obj = dev_resource.Object(
+                    bucket_name=bucket_name, 
+                    key=f"data_files/{process_file.file.name}"
+                    )
+                buffer = BytesIO(zip_obj.get()["Body"].read()) 
+            else:
+                buffer = process_file.final_path
+
             if '.zip' in suffixes:
-                zip_file = zipfile.ZipFile(process_file.final_path)
+                zip_file = zipfile.ZipFile(buffer) 
             elif '.rar' in suffixes:
-                zip_file = rarfile.RarFile(process_file.final_path)
+                zip_file = rarfile.RarFile(buffer)
             else:
                 continue
+
+            #s3 = boto3.resource(
+            #    's3', aws_access_key_id=aws_access_key_id,
+            #    aws_secret_access_key=aws_secret_access_key)
+            #content_object = s3.Object(
+            #    bucket_name, "data_files/%s" % self.file.name)
+
             for zip_elem in zip_file.infolist():
                 if zip_elem.is_dir():
                     continue
@@ -97,27 +116,61 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 only_name = zip_elem.filename[pos_slash + 1:]
                 directory = (zip_elem.filename[:pos_slash]
                     if pos_slash > 0 else None)
-                with zip_file.open(zip_elem) as myfile:
-                    file_bytes = myfile.read()
-                    try:
-                        if is_prod:
-                            final_path = set_upload_path(process_file, only_name)
-                            curr_file = s3.put_object(
-                                Key=final_path, Body=file_bytes, Bucket=bucket_name,
-                                ACL='public-read', ContentType='application/pdf')
-                        else:
-                            curr_file = File(io.BytesIO(file_bytes), name=only_name)
-                    except Exception as e:
-                        print(e)
-                        return False, [u"Error leyendo los datos %s" % e]                    
-                    new_file = DataFile.objects.create(
-                        file=curr_file,
-                        process_file=process_file,
-                        directory=directory,
-                        status_process=initial_status,
-                        petition_file_control=pet_file_ctrl,
-                        )
-                    myfile.close()
+                #z_file.open(filename).read()
+                file_bytes = zip_file.open(zip_elem).read()
+
+                try:
+                    if is_prod:
+                        final_path = set_upload_path(process_file, only_name)
+                        curr_file = s3.put_object(
+                            Key=final_path, Body=file_bytes, Bucket=bucket_name,
+                            ACL='public-read', ContentType='application/pdf')
+                    else:
+                        curr_file = File(BytesIO(file_bytes), name=only_name)
+                except Exception as e:
+                    print(e)
+                    return False, [u"Error leyendo los datos %s" % e]
+                new_file = DataFile.objects.create(
+                    file=curr_file,
+                    process_file=process_file,
+                    directory=directory,
+                    status_process=initial_status,
+                    petition_file_control=pet_file_ctrl,
+                    )
+
+                #zip_file.close()
+
+            """
+            session = boto3.Session(profile_name=’your_aws_profile_name’) 
+            dev_client = session.client('s3') 
+            dev_resource = boto3.resource('s3')        
+            S3_ZIP_FOLDER = 'zipped/' 
+            S3_UNZIPPED_FOLDER = 'unzipped/' 
+            S3_BUCKET = 'test-data' 
+            ZIP_FILE='my_zip_file.zip'     
+            bucket_dev = dev_resource.Bucket(S3_BUCKET) 
+            zip_obj = dev_resource.Object(bucket_name=S3_BUCKET, key=f"{S3_ZIP_FOLDER}{ZIP_FILE}") 
+            print("zip_obj=",zip_obj) 
+            buffer = BytesIO(zip_obj.get()["Body"].read()) 
+            z_file = zipfile.ZipFile(buffer) 
+            #
+            # for each file within the zip 
+            for filename in z_file.namelist(): 
+                file_info = z_file.getinfo(filename)   
+                # Now copy the files to the 'unzipped' S3 folder 
+                print(f"Copying file {filename} to {S3_BUCKET}/{S3_UNZIPPED_FOLDER}{filename}") 
+                response = dev_client.put_object( 
+                    Body=z_file.open(filename).read() ,
+                    # might need to replace above line with the one
+                    # below for windows files 
+                    # 
+                    # Body=z_file.open(filename).read().decode("iso-8859-1").encode(encoding='UTF-8'), 
+                    Bucket=S3_BUCKET, 
+                    Key=f'{S3_UNZIPPED_FOLDER}{filename}' 
+                ) 
+            print(f"Done Unzipping {ZIP_FILE}") 
+            """
+
 
         all_data_files = DataFile.objects.filter(
             petition_file_control=pet_file_ctrl).order_by("date")
