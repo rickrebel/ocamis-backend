@@ -40,6 +40,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         from data_param.models import DataGroup
 
         is_prod = getattr(settings, "IS_PRODUCTION", False)
+        all_errors = []
+
         if is_prod:
             bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
             aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
@@ -129,7 +131,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                         curr_file = File(BytesIO(file_bytes), name=only_name)
                 except Exception as e:
                     print(e)
-                    return False, [u"Error leyendo los datos %s" % e]
+                    continue
+                    all_errors += [u"Error leyendo los datos %s" % e]
                 new_file = DataFile.objects.create(
                     file=curr_file,
                     process_file=process_file,
@@ -245,6 +248,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
         petition_data = serializers.PetitionFullSerializer(petition).data
         data = {
+            "errors": all_errors,
             "petition": petition_data,
             "file_controls": serializers.FileControlFullSerializer(
                 queryset, many=True).data,
