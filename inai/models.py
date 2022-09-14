@@ -313,7 +313,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         "DataFile",
         blank=True, null=True,
         related_name="child_files",
+        verbose_name="archivo origen",
         on_delete=models.CASCADE)
+    process_file = models.ForeignKey(
+        "ProcessFile", blank=True, null=True, 
+        on_delete=models.CASCADE, verbose_name="archivo base",
+        related_name="data_file_childs")
     petition_file_control = models.ForeignKey(
         PetitionFileControl,
         related_name="data_files",
@@ -323,6 +328,9 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         StatusControl,
         blank=True, null=True,
         on_delete=models.CASCADE)
+    directory = models.CharField(
+        max_length=255, verbose_name="Ruta en archivo comprimido",
+        blank=True, null=True)
     error_process = JSONField(
         blank=True, null=True, verbose_name="Errores de procesamiento")
     all_results = JSONField(
@@ -336,8 +344,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         from django.conf import settings
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         return self.file.url if is_prod else self.file.path
-
-        return self.petition_months.earliest().month_entity.year_month
 
     def __str__(self):
         return "%s %s" % (str(self.file), self.petition_file_control)
@@ -371,6 +377,14 @@ class ProcessFile(models.Model):
     notes = models.TextField(blank=True, null=True, verbose_name="Notas")
     addl_params = JSONField(
         blank=True, null=True, verbose_name="Otras configuraciones")
+    has_data = models.BooleanField(
+        default=False, verbose_name="Contiene los datos")
+
+    @property
+    def final_path(self):
+        from django.conf import settings
+        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        return self.file.url if is_prod else self.file.path
 
     def __str__(self):
         first = (self.file or (self.text and self.text[:80]) 

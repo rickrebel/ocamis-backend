@@ -9,7 +9,8 @@ from inai.models import (
     ProcessFile, PetitionFileControl, DataFile, Transformation)
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
-    MultiSerializerCreateRetrieveMix as CreateRetrievView,)
+    MultiSerializerCreateRetrieveMix as CreateRetrievView, 
+    MultiSerializerModelViewSet)
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
 
 
@@ -153,7 +154,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             new_serializer.data, status=status.HTTP_201_CREATED)
 
 
-class ProcessFileViewSet(CreateRetrievView):
+class ProcessFileViewSet(MultiSerializerModelViewSet):
     queryset = ProcessFile.objects.all()
     serializer_class = serializers.ProcessFileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -202,7 +203,7 @@ class ProcessFileViewSet(CreateRetrievView):
         return Response(status=status.HTTP_200_OK)
 
 
-class FileControlViewSet(ListRetrieveUpdateMix):
+class FileControlViewSet(MultiSerializerModelViewSet):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.FileControlSerializer
     queryset = FileControl.objects.all().prefetch_related(

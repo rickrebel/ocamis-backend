@@ -29,32 +29,45 @@ def execute_matches(row, file):
 
 class ExtractorsMix:
 
-    def transform_file_in_data(self, is_explore, suffix):
+    def transform_file_in_data(self, is_explore, suffix, file_control=None):
         data_rows = []
         headers = []
         status_error = 'explore_fail' if is_explore else 'extraction_failed'
+        if not file_control:
+            file_control = self.petition_file_control.file_control
+        if (".%s" % file_control.format_file) != suffix and (
+            (".%sx" % file_control.format_file) != suffix):
+            errors = ["Formato no coincide con el archivo"]
+            #return self.save_errors(errors, status_error)
+            return {"errors": errors}
         if suffix in ['.txt', '.csv']:
             data_rows, errors = self.get_data_from_file_simple()
             if errors:
                 return self.save_errors(errors, status_error)
             #print(data_rows[0])
-            validated_rows = self.divide_rows(data_rows, is_explore)
+            #print("LEN - data_rows: ", len(data_rows))
+            validated_rows = self.divide_rows(
+                data_rows, file_control, is_explore)
         elif suffix in ['.xlsx', '.xls']:
-            validated_rows, errors = self.get_data_from_excel(is_explore)
+            validated_rows, errors = self.get_data_from_excel(
+                is_explore, file_control)
             if errors:
                 return self.save_errors(errors, status_error)
-        if errors:
-            return Response(
-                {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
-        file_control = self.petition_file_control.file_control
+        else:
+            errors = ["No es un formato válido"]
+            return self.save_errors(errors, status_error)
+        #Ya no se hacen las extracciones porque se va a descubir el file_control
+        #is_orphan = file_control.data_group.name == 'orphan'
+        #if is_orphan:
+        #    return validated_rows
         row_headers = file_control.row_headers or 0
         headers = validated_rows[row_headers-1] if row_headers else []
         validated_rows = validated_rows[file_control.row_start_data-1:]
         #print(validated_rows[0])
         #print(validated_rows[4])
         total_rows = len(validated_rows)
-        inserted_rows = 0
-        completed_rows = 0
+        #inserted_rows = 0
+        #completed_rows = 0
         #validated_rows = self.divide_rows(data_rows, is_explore)
         if is_explore:
             return {
@@ -70,11 +83,10 @@ class ExtractorsMix:
         return matched_rows
 
 
-    def divide_rows(self, data_rows, is_explore=False):
+    def divide_rows(self, data_rows, file_control, is_explore=False):
         global raws
         from inai.models import NameColumn
         from formula.models import MissingRow, MissingField
-        file_control = self.petition_file_control.file_control
         current_columns = NameColumn.objects.filter(
             file_control=file_control)
         columns_count = current_columns.filter(
@@ -82,10 +94,10 @@ class ExtractorsMix:
         delimiter = file_control.delimiter
         structured_data = []
         missing_data = []
-        print("delimiter", delimiter)
+        #print("delimiter", delimiter)
         for row_seq, row in enumerate(data_rows, file_control.row_start_data):
-            if row_seq < 5:
-                print(row_seq, row)
+            #if row_seq < 5:
+            #    print(row_seq, row)
             if delimiter:
                 row_data = row.split(delimiter)
                 if is_explore or len(row_data) == columns_count:
@@ -95,14 +107,14 @@ class ExtractorsMix:
                     errors = ["Conteo distinto de Columnas: %s de %s" % (
                         len(row_data), columns_count)]
                     missing_data.append([self.id, row_data, row_seq, errors])
-            if row_seq < 5:
-                print(row_data)
+            #if row_seq < 5:
+            #    print(row_data)
 
         raws["missing_r"] = missing_data
         return structured_data
 
 
-    def get_data_from_excel(self, is_explore):
+    def get_data_from_excel(self, is_explore, file_control):
         import pandas as pd
         from inai.models import Transformation
         #print("ESTOY EN EXCEEEEL")
@@ -117,7 +129,6 @@ class ExtractorsMix:
             keep_default_na=False, header=None)"""
         xls = pd.ExcelFile(self.final_path)
         sheet_names = xls.sheet_names
-        file_control = self.petition_file_control.file_control
         file_transformations = Transformation.objects.filter(
             file_control=file_control,
             clean_function__name__icontains="_tabs_")
@@ -182,11 +193,11 @@ class ExtractorsMix:
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         if is_prod:
             import boto3
-            print("PATH -- URL -- NAME")
+            #print("PATH -- URL -- NAME")
             #print(self.file.path)
-            print(self.file.name)
-            print(self.file.url)
-            print("---------")
+            #print(self.file.name)
+            #print(self.file.url)
+            #print("---------")
 
             try:
                 bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")

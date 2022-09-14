@@ -8,7 +8,8 @@ from inai.api.views import (
     FileControlViewSet, PetitionViewSet, ProcessFileViewSet,
     AscertainableViewSet, PetitionFileControlViewSet)
 
-from inai.api.views_aws import (DataFileViewSet, OpenDataInaiViewSet)
+from inai.api.views_aws import (
+    DataFileViewSet, OpenDataInaiViewSet, AutoExplorePetitionViewSet)
 
 router = routers.DefaultRouter()
 router.register(r'petition', PetitionViewSet)
@@ -19,6 +20,8 @@ router.register(r'petition_file_control', PetitionFileControlViewSet)
 router.register(r'file_control', FileControlViewSet)
 router.register(r'data_file', DataFileViewSet)
 router.register(r'open_data_inai', OpenDataInaiViewSet)
+#router.register(r'petition', PetitionViewSet)
+router.register(r'auto_explore', AutoExplorePetitionViewSet)
 #router.register(r'some-url-name', views.SomeViewSet, basename='index')
 #router.register(r'clues', FileControlViewSet)
 router.register(

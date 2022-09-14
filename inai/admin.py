@@ -66,6 +66,7 @@ ocamis_admin_site.register(Petition, PetitionAdmin)
 
 class NameColumnInline(admin.StackedInline):
     model = NameColumn
+    classes = ["collapse"]
     raw_id_fields = ["parent_column", "children_column"]
     extra = 0
 

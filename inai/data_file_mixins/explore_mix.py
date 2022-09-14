@@ -29,7 +29,7 @@ class ExploreMix:
         self.error_process = []
         self.save()
         #se llama a la función para descomprimir el archivo o archivos:
-        errors, suffix = self.decompress()
+        errors, suffix = self.decompress_file()
         count_splited = 0
         file_size = self.file.size
         if file_size > 400000000:
@@ -54,17 +54,14 @@ class ExploreMix:
             for ch_file in self.child_files:
                 data = ch_file.transform_file_in_data(is_explore, suffix)
         else:
-            #print("HOLA TERMINO")
             data = self.transform_file_in_data(is_explore, suffix)
-            #print("HOLA TERMINO2")
         if is_explore:
             #print(data["headers"])
             #print(data["structured_data"][:6])
             return data
         return data
 
-    #se descomprimen los comprimidos
-    def decompress(self):
+    def decompress_file(self):
         import os
         import zipfile 
         import pathlib
