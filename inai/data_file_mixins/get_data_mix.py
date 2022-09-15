@@ -155,7 +155,7 @@ class ExtractorsMix:
                 continue
             if exclude_idx and position in exclude_idx:
                 continue
-            xls.parse(sheet_name)
+            #xls.parse(sheet_name)
             data_excel = xls.parse(
                 sheet_name,
                 dtype='string', nrows=nrows, na_filter=False,
