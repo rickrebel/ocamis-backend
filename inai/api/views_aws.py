@@ -130,7 +130,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                             Body=file_bytes,
                             Bucket=bucket_name,
                             ACL='public-read',
-                            ContentType='application/pdf')
+                            #ContentType='application/pdf'
+                        )
                         if success_file:
                             curr_file= f"{settings.STATIC_URL}{final_path}"
                         else:
