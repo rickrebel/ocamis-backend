@@ -133,7 +133,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                             #ContentType='application/pdf'
                         )
                         if success_file:
-                            curr_file= f"{settings.AWS_LOCATION}{final_path}"
+                            curr_file= final_path
                         else:
                             all_errors += [f"No se pudo insertar el archivo {final_path}"]
                             continue
