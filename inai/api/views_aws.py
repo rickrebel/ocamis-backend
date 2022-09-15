@@ -93,7 +93,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             if is_prod:
                 zip_obj = dev_resource.Object(
                     bucket_name=bucket_name, 
-                    key=f"{AWS_LOCATION}/{process_file.file.name}"
+                    key=f"{settings.AWS_LOCATION}/{process_file.file.name}"
                     )
                 buffer = BytesIO(zip_obj.get()["Body"].read()) 
             else:
@@ -126,7 +126,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     if is_prod:
                         final_path = set_upload_path(process_file, only_name)
                         success_file = s3.put_object(
-                            Key=f"{AWS_LOCATION}/{final_path}",
+                            Key=f"{settings.AWS_LOCATION}/{final_path}",
                             Body=file_bytes,
                             Bucket=bucket_name,
                             ACL='public-read',
