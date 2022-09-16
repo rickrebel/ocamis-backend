@@ -195,7 +195,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 name_columns = NameColumn.objects.filter(
                         file_control=file_ctrl, name_in_data__isnull=False)\
                     .values_list("name_in_data", flat=True)
-                if list(name_columns) == headers:
+                if list(name_columns) == headers and headers:
                     succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects\
                         .get_or_create(
                             file_control=file_ctrl, petition=petition)
@@ -248,6 +248,7 @@ class DataFileViewSet(CreateRetrievView):
         data_file = self.get_object()
         destination = request.data.get("destination")
         is_dupl = request.data.get("duplicate")
+        
         petition = data_file.petition_file_control.petition
         #initial_status = StatusControl.objects.get(
         #    name="initial", group="process")
