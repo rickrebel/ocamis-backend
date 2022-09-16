@@ -235,8 +235,8 @@ class FileControl(models.Model):
 
     class Meta:
         #unique_together = ["data_group", "name"]
-        verbose_name = "Grupo control de archivos"
-        verbose_name_plural = "Grupos control de archivos"
+        verbose_name = "Grupo de control de archivos"
+        verbose_name_plural = "Grupos de control de archivos"
 
 
 class PetitionFileControl(models.Model):

@@ -30,6 +30,13 @@ class DataUtilsMix:
         self.status_process = new_status 
         self.save()
 
+    def add_result(self, new_result):
+        curr_result = self.all_results or {}
+        if new_result[0] in curr_result.keys():
+            curr_result[new_result[0]] += f", {new_result[1]}"
+        self.all_results = curr_result
+        self.save()
+
     def massive_insert_copy(self, errors, error_name):
         return 2
         #guardo esto para considerarlo en "missing_rows":

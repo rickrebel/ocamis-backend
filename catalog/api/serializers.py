@@ -118,13 +118,7 @@ class EntitySerializer(serializers.ModelSerializer):
             "notes"]
 
 
-class EntityFullSerializer(EntitySerializer):
-    from inai.api.serializers import (
-        PetitionFullSerializer, MonthEntitySimpleSerializer)
-
-    petitions = PetitionFullSerializer(many=True)
-    months = MonthEntitySimpleSerializer(many=True)
-    #entity_type = read_only_fields(many=True)
+class EntityFileControlsSerializer(serializers.ModelSerializer):
     file_controls = serializers.SerializerMethodField(read_only=True)
     
     def get_file_controls(self, obj):
@@ -143,6 +137,19 @@ class EntityFullSerializer(EntitySerializer):
                 "petition_file_control__data_files__origin_file",
             )
         return FileControlFullSerializer(queryset, many=True).data
+
+    class Meta:
+        model = Entity
+        fields = ["file_controls"]
+
+
+class EntityFullSerializer(EntitySerializer, EntityFileControlsSerializer):
+    from inai.api.serializers import (
+        PetitionFullSerializer, MonthEntitySimpleSerializer)
+
+    petitions = PetitionFullSerializer(many=True)
+    months = MonthEntitySimpleSerializer(many=True)
+    #entity_type = read_only_fields(many=True)
 
     class Meta:
         model = Entity

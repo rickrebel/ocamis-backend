@@ -13,7 +13,7 @@ from api.mixins import (
     MultiSerializerListRetrieveMix as ListRetrieveView)
 
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
-
+from catalog.api.serializers import EntityFileControlsSerializer
 
 
 class AutoExplorePetitionViewSet(ListRetrieveView):
@@ -36,7 +36,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         from django.core.files import File
         from inai.models import (
             ProcessFile, FileControl, PetitionFileControl)
-        from category.models import FileType, StatusControl
+        from category.models import FileType
         from data_param.models import DataGroup
 
         is_prod = getattr(settings, "IS_PRODUCTION", False)
@@ -63,8 +63,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         file_type = FileType.objects.get(name="with_data")
         name_control = "Archivos por agrupar. Petición %s" % (
             petition.folio_petition)
-        initial_status = StatusControl.objects.get(
-            name='initial', group="process")
+        #initial_status = StatusControl.objects.get(
+        #    name='initial', group="process")
         prev_file_controls = FileControl.objects.filter(data_group=data_group, 
             petition_file_control__petition=petition)
         if prev_file_controls.exists():
@@ -147,9 +147,10 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     file=curr_file,
                     process_file=process_file,
                     directory=directory,
-                    status_process=initial_status,
+                    #status_process=initial_status,
                     petition_file_control=pet_file_ctrl,
                     )
+                new_file.change_status('initial')
 
 
         all_data_files = DataFile.objects.filter(
@@ -170,10 +171,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             petition_file_control__petition=petition)
         others_file_controls = entity_file_controls.exclude(
             petition_file_control__petition=petition)
-        success_explore = StatusControl.objects.get(
-            name='success_exploration', group="process")
-        explore_fail = StatusControl.objects.get(
-            name='explore_fail', group="process")
 
         all_file_controls = near_file_controls | others_file_controls
         for data_file in all_data_files:
@@ -202,35 +199,29 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects\
                         .get_or_create(
                             file_control=file_ctrl, petition=petition)
-                    data_file.petition_file_control = succ_pet_file_ctrl
-                    data_file.status_process = success_explore
-                    data_file.save()
-                    saved = True
-                    break
+                    if saved:
+                        info_text = "El archivo está en varios grupos de control"
+                        data_file.add_result(("info", info_text))
+                        new_data_file = data_file
+                        new_data_file.pk = None
+                        new_data_file.petition_file_control = succ_pet_file_ctrl
+                        new_data_file.save()
+                        new_data_file.add_result(("info", info_text))
+                    else:
+                        data_file.petition_file_control = succ_pet_file_ctrl
+                        data_file.save()
+                        data_file.change_status("success_exploration")
+                        saved = True
             if not saved:
-                data_file.status_process = explore_fail
-                data_file.save()
-        queryset = FileControl.objects\
-            .filter(petition_file_control__petition__entity=petition.entity)\
-            .distinct()\
-            .prefetch_related(
-                "data_group",
-                "file_type",
-                "columns",
-                "columns__column_transformations",
-                "petition_file_control",
-                "petition_file_control__data_files",
-                "petition_file_control__data_files__origin_file",
-            )
-
+                data_file.change_status("explore_fail")
+        
         petition_data = serializers.PetitionFullSerializer(petition).data
         data = {
             "errors": all_errors,
             "petition": petition_data,
-            "file_controls": serializers.FileControlFullSerializer(
-                queryset, many=True).data,
+            "file_controls": EntityFileControlsSerializer(
+                petition.entity).data["file_controls"],
         }
-
         return Response(data, status=status.HTTP_200_OK)
 
 
@@ -244,6 +235,74 @@ class DataFileViewSet(CreateRetrievView):
 
     def get_queryset(self):
         return DataFile.objects.all()
+
+
+    @action(methods=["put"], detail=True, url_path='move')
+    def move(self, request, **kwargs):
+        from inai.models import (
+            ProcessFile, FileControl, PetitionFileControl)
+        from category.models import FileType #, StatusControl
+
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        data_file = self.get_object()
+        destination = request.data.get("destination")
+        is_dupl = request.data.get("duplicate")
+        petition = data_file.petition_file_control.petition
+        #initial_status = StatusControl.objects.get(
+        #    name="initial", group="process")
+        if destination == "process_file":
+            file_type_no_final = FileType.objects.get(name="no_final_info")
+            #if is_dupl:
+            new_process_file = ProcessFile.objects.create(
+                petition=data_file.petition_file_control.petition,
+                file=data_file.file,
+                file_type=file_type_no_final)
+            if not is_dupl:
+                data_file.delete()
+        elif destination:
+            file_ctrl_id = int(destination)
+            pet_file_ctrls = PetitionFileControl.objects.filter(
+                petition=petition, file_control_id=file_ctrl_id)
+            if pet_file_ctrls.exists():
+                pet_file_ctrl = pet_file_ctrls.first()
+            else:
+                try:
+                    file_control = FileControl.objects.get(id=file_ctrl_id)
+                    pet_file_ctrl = PetitionFileControl.objects.create(
+                        petition=petition,
+                        file_control=file_control)
+                except FileControl.DoesNotExist:
+                    return Response(
+                        {errors: ["No se envió un id de file_control válido"]},
+                        status=status.HTTP_400_BAD_REQUEST)
+                except Exception as e:
+                    return Response(
+                        {errors: [e]}, status=status.HTTP_400_BAD_REQUEST)
+            data_file_id = data_file.id
+            new_file = data_file
+            new_file.pk = None
+            new_file.petition_file_control = pet_file_ctrl
+            #new_file.status_process = initial_status
+            new_file.save()
+            new_file.change_status('initial')
+            if not is_dupl:
+                #data_file.delete()
+                DataFile.objects.filter(id=data_file_id).delete()
+        else:
+            return Response(
+                {errors: ["No se especificó correctamente el destino"]},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        petition_data = serializers.PetitionFullSerializer(petition).data
+        data = {
+            #"errors": all_errors,
+            "petition": petition_data,
+            "file_controls": EntityFileControlsSerializer(
+                petition.entity).data["file_controls"],
+        }
+        
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(methods=["get"], detail=True, url_path='explore')
     def explore(self, request, **kwargs):
