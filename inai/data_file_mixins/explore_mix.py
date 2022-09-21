@@ -52,9 +52,9 @@ class ExploreMix:
         elif count_splited:
             #FALTA AFINAR FUNCIÓN PARA ESTO
             for ch_file in self.child_files:
-                data = ch_file.transform_file_in_data(is_explore, suffix)
+                data = ch_file.transform_file_in_data('is_explore', suffix)
         else:
-            data = self.transform_file_in_data(is_explore, suffix)
+            data = self.transform_file_in_data('is_explore', suffix)
         if is_explore:
             #print(data["headers"])
             #print(data["structured_data"][:6])
@@ -69,7 +69,7 @@ class ExploreMix:
         #Se obienen todos los tipos del archivo inicial:
         print(self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
-        suffixes = set([suffix.lower() for suffix in suffixes])
+        suffixes = [suffix.lower() for suffix in suffixes]
         #format_file = self.file_control.format_file
         if '.gz' in suffixes:
             #print("path", self.file.path)
@@ -101,17 +101,15 @@ class ExploreMix:
             #ahora es con el nuevo archivo con el que estamos tratando
             self = new_file
             suffixes.remove('.gz')
-        elif 'zip' in suffixes:
+        elif '.zip' in suffixes:
             #[directory, only_name] = self.path.rsplit("/", 1)
             #[base_name, extension] = only_name.rsplit(".", 1)
             directory = self.final_path
-            #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
+            #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS
+            #\\Septiembre-20220712T233123Z-001.zip"
             zip_file = zipfile.ZipFile(self.final_path)
             all_files = zip_file.namelist()
             infolist = zip_file.infolist()
-            print(all_files)
-            print("--info list:--")
-            print(infolist)
             return ["En pruebas"], None
             with zipfile.ZipFile(self.url, 'r') as zip_ref:
                 zip_ref.extractall(directory)               
@@ -134,16 +132,19 @@ class ExploreMix:
             suffixes.remove('.zip')
         #Obtener el tamaño
         #file_name = self.file_name
-        if (len(suffixes) != 1):
+        real_suffixes = [suff for suff in suffixes 
+            if len(suff) <= 5 and len(suff) > 2]
+        if len(real_suffixes) != 1:
             errors = [("Tiene más o menos extensiones de las que"
-                " podemos reconocer: %s" % suffixes)]
+                " podemos reconocer: %s" % real_suffixes)]
             return errors, None
         []
         #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
-        if not suffixes.issubset(set(['.txt', '.csv', '.xls', '.xlsx'])):
+        real_suffixes = set(real_suffixes)
+        if not real_suffixes.issubset(set(['.txt', '.csv', '.xls', '.xlsx'])):
             errors = ["Formato no válido", u"%s" % suffixes]
             return errors, None
-        return [], list(suffixes)[0]
+        return [], list(real_suffixes)[0]
 
     def decompress_file_gz(self):
         import gzip

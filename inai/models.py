@@ -229,9 +229,12 @@ class FileControl(models.Model):
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
     notes = models.TextField(blank=True, null=True)
 
-
     def __str__(self):
-        return self.name
+        #all_entities = Entity.objects.filter(
+        #    petitions__file_controls__petition__entity=self).distinct()\
+        #        .value_list("acronym", flat=True)
+        return f"{self.id}. {self.name}"
+        #return self.name
 
     class Meta:
         #unique_together = ["data_group", "name"]
@@ -300,6 +303,9 @@ class PetitionMonth(models.Model):
 
 
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
+    
+    def default_explore_data():
+        return {}
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
     zip_path = models.TextField(blank=True, null=True)
@@ -328,6 +334,11 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         StatusControl,
         blank=True, null=True,
         on_delete=models.CASCADE)
+    #jump_columns = models.IntegerField(
+    #    default=0, verbose_name="Columnas vacías al comienzo")
+    explore_data = JSONField(
+        default=default_explore_data, blank=True, null=True,
+        verbose_name="Primeros datos, de exploración")
     directory = models.CharField(
         max_length=255, verbose_name="Ruta en archivo comprimido",
         blank=True, null=True)
@@ -439,7 +450,6 @@ class NameColumn (models.Model):
         blank=True, null=True, verbose_name="order",
         help_text="Número consecutivo para ordenación en dashboard")
 
-
     def __str__(self):
         return "%s-%s | %s" % (
             self.name_in_data, self.position_in_data, self.final_field or '?')
@@ -471,7 +481,6 @@ class Transformation(models.Model):
         verbose_name="Columna")
     addl_params = JSONField(
         blank=True, null=True, default=default_addl_params)
-
 
     class Meta:
         verbose_name = "Transformación a aplicar"

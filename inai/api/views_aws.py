@@ -5,7 +5,7 @@ from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
 import unidecode
 
-from inai.models import DataFile, NameColumn, Petition
+from inai.models import DataFile, NameColumn, Petition, PetitionFileControl
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -34,8 +34,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         from inai.models import set_upload_path
         from django.conf import settings
         from django.core.files import File
-        from inai.models import (
-            ProcessFile, FileControl, PetitionFileControl)
+        from inai.models import ProcessFile, FileControl
         from category.models import FileType
         from data_param.models import DataGroup
 
@@ -63,8 +62,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         file_type = FileType.objects.get(name="with_data")
         name_control = "Archivos por agrupar. Petición %s" % (
             petition.folio_petition)
-        #initial_status = StatusControl.objects.get(
-        #    name='initial', group="process")
         prev_file_controls = FileControl.objects.filter(data_group=data_group, 
             petition_file_control__petition=petition)
         if prev_file_controls.exists():
@@ -179,8 +176,9 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             data_file.save()
             errors, suffix = data_file.decompress_file()
             for file_ctrl in all_file_controls:
+                #print(f"Vamos por file control {file_ctrl.name}")
                 data = data_file.transform_file_in_data(
-                    True, suffix, file_ctrl)
+                    'auto_explore', suffix, file_ctrl)
                 if not data:
                     continue
                 if isinstance(data, dict):
@@ -188,30 +186,48 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                         #print(data)
                         continue
                 #row_headers = file_ctrl.row_headers or 0
-                headers = data["headers"]
-                headers = [head.strip() for head in headers]
-                #headers = validated_rows[row_headers-1] if row_headers else []
-                #validated_rows = validated_rows[file_ctrl.row_start_data-1:]
-                name_columns = NameColumn.objects.filter(
-                        file_control=file_ctrl, name_in_data__isnull=False)\
-                    .values_list("name_in_data", flat=True)
-                if list(name_columns) == headers and headers:
-                    succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects\
-                        .get_or_create(
-                            file_control=file_ctrl, petition=petition)
-                    if saved:
-                        info_text = "El archivo está en varios grupos de control"
-                        data_file.add_result(("info", info_text))
-                        new_data_file = data_file
-                        new_data_file.pk = None
-                        new_data_file.petition_file_control = succ_pet_file_ctrl
-                        new_data_file.save()
-                        new_data_file.add_result(("info", info_text))
-                    else:
-                        data_file.petition_file_control = succ_pet_file_ctrl
-                        data_file.save()
-                        data_file.change_status("success_exploration")
-                        saved = True
+                #headers = data["headers"]
+                current_sheets = data["current_sheets"]
+                structured_data = data["structured_data"]
+                all_pet_file_ctrl = []
+                validated_data = data_file.explore_data or {}
+                
+                #print("-------\n-----------")
+                #print(structured_data)
+                #print("-------\n-----------")
+                for sheet_name in current_sheets:
+                    if not "headers" in structured_data[sheet_name]:
+                        continue
+                    headers = structured_data[sheet_name]["headers"]
+                    headers = [head.strip() for head in headers]
+                    #headers = validated_rows[row_headers-1] if row_headers else []
+                    #validated_rows = validated_rows[file_ctrl.row_start_data-1:]
+                    name_columns = NameColumn.objects.filter(
+                            file_control=file_ctrl, name_in_data__isnull=False)\
+                        .values_list("name_in_data", flat=True)
+                    if headers and list(name_columns) == headers:
+                        succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects\
+                            .get_or_create(
+                                file_control=file_ctrl, petition=petition)
+                        validated_data[sheet_name] = structured_data[sheet_name]
+                        if succ_pet_file_ctrl.id in all_pet_file_ctrl:
+                            continue
+                        if saved:
+                            info_text = "El archivo está en varios grupos de control"
+                            data_file.add_result(("info", info_text))
+                            new_data_file = data_file
+                            new_data_file.pk = None
+                            new_data_file.petition_file_control = succ_pet_file_ctrl
+                            new_data_file.save()
+                            new_data_file.add_result(("info", info_text))
+                        else:
+                            data_file.petition_file_control = succ_pet_file_ctrl
+                            data_file.save()
+                            data_file.change_status("success_exploration")
+                            saved = True
+                        all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
+                #data_file.explore_data = validated_data
+                #data_file.save()
             if not saved:
                 data_file.change_status("explore_fail")
         
@@ -225,6 +241,65 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         return Response(data, status=status.HTTP_200_OK)
 
 
+
+def move_and_duplicate(data_files, petition, request):
+    from rest_framework.exceptions import ParseError
+    from inai.models import ProcessFile, FileControl
+    from category.models import FileType #, StatusControl
+
+    destination = request.data.get("destination")
+    is_dupl = request.data.get("duplicate")
+    #initial_status = StatusControl.objects.get(
+    #    name="initial", group="process")
+    errors = []
+    if destination == "process_file":
+        file_type_no_final = FileType.objects.get(name="no_final_info")
+        for data_file in data_files:
+            ProcessFile.objects.create(
+                petition=petition,
+                file=data_file.file,
+                file_type=file_type_no_final)
+            if not is_dupl:
+                data_file.delete()
+    elif destination:
+        file_ctrl_id = int(destination)
+        pet_file_ctrls = PetitionFileControl.objects.filter(
+            petition=petition, file_control_id=file_ctrl_id)
+        if pet_file_ctrls.exists():
+            pet_file_ctrl = pet_file_ctrls.first()
+        else:
+            try:
+                file_control = FileControl.objects.get(id=file_ctrl_id)
+                pet_file_ctrl = PetitionFileControl.objects.create(
+                    petition=petition,
+                    file_control=file_control)
+            except FileControl.DoesNotExist:
+                raise ParseError(
+                    detail="No se envió un id de file_control válido")
+            except Exception as e:
+                raise ParseError(detail=e)
+        for data_file in data_files:
+            data_file_id = data_file.id
+            new_file = data_file
+            new_file.pk = None
+            new_file.petition_file_control = pet_file_ctrl
+            new_file.save()
+            new_file.change_status('initial')
+            if not is_dupl:
+                #data_file.delete()
+                DataFile.objects.filter(id=data_file_id).delete()
+    else:
+        raise ParseError(detail="No se especificó correctamente el destino")
+
+    petition_data = serializers.PetitionFullSerializer(petition).data
+    data = {
+        "petition": petition_data,
+        "file_controls": EntityFileControlsSerializer(
+            petition.entity).data["file_controls"],
+    }
+    return Response(data, status=status.HTTP_200_OK)
+
+
 class DataFileViewSet(CreateRetrievView):
     queryset = DataFile.objects.all()
     serializer_class = serializers.DataFileSerializer
@@ -236,74 +311,14 @@ class DataFileViewSet(CreateRetrievView):
     def get_queryset(self):
         return DataFile.objects.all()
 
-
     @action(methods=["put"], detail=True, url_path='move')
     def move(self, request, **kwargs):
-        from inai.models import (
-            ProcessFile, FileControl, PetitionFileControl)
-        from category.models import FileType #, StatusControl
-
         if not request.user.is_staff:
             raise PermissionDenied()
+        
         data_file = self.get_object()
-        destination = request.data.get("destination")
-        is_dupl = request.data.get("duplicate")
-        
         petition = data_file.petition_file_control.petition
-        #initial_status = StatusControl.objects.get(
-        #    name="initial", group="process")
-        if destination == "process_file":
-            file_type_no_final = FileType.objects.get(name="no_final_info")
-            #if is_dupl:
-            new_process_file = ProcessFile.objects.create(
-                petition=data_file.petition_file_control.petition,
-                file=data_file.file,
-                file_type=file_type_no_final)
-            if not is_dupl:
-                data_file.delete()
-        elif destination:
-            file_ctrl_id = int(destination)
-            pet_file_ctrls = PetitionFileControl.objects.filter(
-                petition=petition, file_control_id=file_ctrl_id)
-            if pet_file_ctrls.exists():
-                pet_file_ctrl = pet_file_ctrls.first()
-            else:
-                try:
-                    file_control = FileControl.objects.get(id=file_ctrl_id)
-                    pet_file_ctrl = PetitionFileControl.objects.create(
-                        petition=petition,
-                        file_control=file_control)
-                except FileControl.DoesNotExist:
-                    return Response(
-                        {errors: ["No se envió un id de file_control válido"]},
-                        status=status.HTTP_400_BAD_REQUEST)
-                except Exception as e:
-                    return Response(
-                        {errors: [e]}, status=status.HTTP_400_BAD_REQUEST)
-            data_file_id = data_file.id
-            new_file = data_file
-            new_file.pk = None
-            new_file.petition_file_control = pet_file_ctrl
-            #new_file.status_process = initial_status
-            new_file.save()
-            new_file.change_status('initial')
-            if not is_dupl:
-                #data_file.delete()
-                DataFile.objects.filter(id=data_file_id).delete()
-        else:
-            return Response(
-                {errors: ["No se especificó correctamente el destino"]},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        petition_data = serializers.PetitionFullSerializer(petition).data
-        data = {
-            #"errors": all_errors,
-            "petition": petition_data,
-            "file_controls": EntityFileControlsSerializer(
-                petition.entity).data["file_controls"],
-        }
-        
-        return Response(data, status=status.HTTP_200_OK)
+        return move_and_duplicate([data_file], petition, request)
 
     @action(methods=["get"], detail=True, url_path='explore')
     def explore(self, request, **kwargs):
@@ -328,8 +343,21 @@ class DataFileViewSet(CreateRetrievView):
         valid_fields = [
             "name_in_data", "column_type", "final_field", 
             "final_field__parameter_group", "data_type"]
+        validated_data = data["structured_data"]
+        current_sheets = data["current_sheets"]
+        first_valid_sheet = None
+        for sheet_name in current_sheets:
+            sheet_data = validated_data[sheet_name]
+            if "headers" in sheet_data and sheet_data["headers"]:
+                first_valid_sheet = sheet_data
+                break
+        if not first_valid_sheet:
+            return Response(
+                {"errors": warnings["No se encontró algo que coincidiera"]},
+                status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            headers = data["headers"]
+            headers = first_valid_sheet["headers"]
             complex_headers = []
             file_control = data_file.petition_file_control.file_control
             data_groups = [file_control.data_group.name, 'catalogs']
@@ -375,13 +403,13 @@ class DataFileViewSet(CreateRetrievView):
                     base_dict.update({field: vals[field] for field in valid_fields})
                 base_dict["name_in_data"] = header
                 complex_headers.append(base_dict)
-            data["complex_headers"] = complex_headers
+            first_valid_sheet["complex_headers"] = complex_headers
         except Exception as e:
             print("HUBO UN ERRORZASO")
             print(e)
         #print(data["structured_data"][:6])
         return Response(
-            data, status=status.HTTP_201_CREATED)
+            first_valid_sheet, status=status.HTTP_201_CREATED)
 
 
 class OpenDataInaiViewSet(ListRetrieveView):

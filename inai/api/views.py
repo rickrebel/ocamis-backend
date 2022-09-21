@@ -395,6 +395,22 @@ class PetitionFileControlViewSet(CreateRetrievView):
         return Response(
             serializer_pet_file_ctrl.data, status=status.HTTP_201_CREATED)
 
+    @action(methods=["put"], detail=True, url_path='move_massive')
+    def move_massive(self, request, **kwargs):
+        from inai.api.views_aws import move_and_duplicate
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        
+        petitition_file_control = self.get_object()
+        petition = petitition_file_control.petition
+        files_id = request.data.get("files")
+        data_files = [d_files for d_file in 
+            DataFile.objects.filter(
+                petitition_file_control=petitition_file_control,
+                id__in=files_id)]
+        
+        return move_and_duplicate(data_files, petition, request)
+
 
 class AscertainableViewSet(CreateRetrievView):
     queryset = DataFile.objects.all()

@@ -239,7 +239,7 @@ class FileControlFullSerializer(FileControlSerializer):
 
 
 class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
-    file_control = FileControlSimpleSerializer()
+    #file_control = FileControlSimpleSerializer()
     data_files = DataFileSerializer(many=True)
 
     class Meta:

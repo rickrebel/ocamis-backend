@@ -29,9 +29,9 @@ def execute_matches(row, file):
 
 class ExtractorsMix:
 
-    def transform_file_in_data(self, is_explore, suffix, file_control=None):
-        data_rows = []
-        headers = []
+    def transform_file_in_data(self, type_xplor, suffix, file_control=None):
+        is_explore = bool(type_xplor)
+        is_auto = type_xplor == 'auto_explore'
         status_error = 'explore_fail' if is_explore else 'extraction_failed'
         if not file_control:
             file_control = self.petition_file_control.file_control
@@ -46,10 +46,12 @@ class ExtractorsMix:
                 return self.save_errors(errors, status_error)
             #print(data_rows[0])
             #print("LEN - data_rows: ", len(data_rows))
-            validated_rows = self.divide_rows(
+            validated_data_default = self.divide_rows(
                 data_rows, file_control, is_explore)
+            validated_data = {"default": validated_data_default}
+            current_sheets = ["default"]
         elif suffix in ['.xlsx', '.xls']:
-            validated_rows, errors = self.get_data_from_excel(
+            validated_data, current_sheets, errors = self.get_data_from_excel(
                 is_explore, file_control)
             if errors:
                 return self.save_errors(errors, status_error)
@@ -60,21 +62,59 @@ class ExtractorsMix:
         #is_orphan = file_control.data_group.name == 'orphan'
         #if is_orphan:
         #    return validated_rows
+        if is_explore:
+            self.explore_data = validated_data
+            self.save()
         row_headers = file_control.row_headers or 0
-        headers = validated_rows[row_headers-1] if row_headers else []
-        validated_rows = validated_rows[file_control.row_start_data-1:]
+        #for sheet_name, all_data in validated_data.items():
+        new_validated_data = {}
+        for sheet_name in current_sheets:
+            curr_sheet = validated_data.get(sheet_name).copy()            
+            plus_rows = 0
+            all_data = curr_sheet.get("all_data")
+            if not "headers" in curr_sheet:
+                few_nulls = False
+                headers = []
+                if row_headers and len(all_data) > row_headers - 1:
+                    headers = all_data[row_headers - 1]
+                    nulls = [header for header in headers[1:] if not header]
+                    few_nulls = len(nulls) < 2
+                    if not few_nulls and len(all_data) > row_headers:
+                        plus_rows = 1
+                        headers = all_data[row_headers]
+                        nulls = [header for header in headers[1:] if not header]
+                        #if nulls:
+                        #    continue
+                    few_nulls = len(nulls) < 2
+                if (few_nulls and headers) or not row_headers:
+                    #plus_cols = 0 if headers[0] else 1
+                    #validated_data[sheet_name]["plus_columns"] = plus_cols
+                    start_data = file_control.row_start_data - 1 + plus_rows
+                    curr_sheet["plus_rows"] = plus_rows
+                    data_rows = all_data[start_data:][:200]
+                    curr_sheet["data_rows"] = data_rows
+                    #curr_sheet["headers"] = headers[plus_cols:]
+                    curr_sheet["headers"] = headers
+                else:
+                    print("No pasó las pruebas básicas")
+                    pendiente_hasta_aca = 0
+            new_validated_data[sheet_name] = curr_sheet
         #print(validated_rows[0])
         #print(validated_rows[4])
-        total_rows = len(validated_rows)
+        #total_rows = len(validated_rows)
+        
         #inserted_rows = 0
         #completed_rows = 0
         #validated_rows = self.divide_rows(data_rows, is_explore)
         if is_explore:
             return {
-                "headers": headers,
-                "structured_data": validated_rows[:200]
+                #"headers": headers,
+                #"structured_data": validated_rows[:200]
+                #"structured_data": validated_data,
+                "structured_data": new_validated_data,
+                "current_sheets": current_sheets,
             }
-        print("despues de terminar")
+        print("después de terminar")
         return validated_rows  
         matched_rows = []
         for row in validated_rows:
@@ -91,22 +131,20 @@ class ExtractorsMix:
             file_control=file_control)
         columns_count = current_columns.filter(
             position_in_data__isnull=False).count()
-        delimiter = file_control.delimiter
         structured_data = []
         missing_data = []
         #print("delimiter", delimiter)
-        for row_seq, row in enumerate(data_rows, file_control.row_start_data):
+        for row_seq, row in enumerate(data_rows, 1):
             #if row_seq < 5:
             #    print(row_seq, row)
-            if delimiter:
-                row_data = row.split(delimiter)
-                if is_explore or len(row_data) == columns_count:
-                    #row_data.insert(0, row_seq)
-                    structured_data.append(row_data)
-                else:
-                    errors = ["Conteo distinto de Columnas: %s de %s" % (
-                        len(row_data), columns_count)]
-                    missing_data.append([self.id, row_data, row_seq, errors])
+            row_data = row.split(file_control.delimiter)
+            if is_explore or len(row_data) == columns_count:
+                #row_data.insert(0, row_seq)
+                structured_data.append(row_data)
+            else:
+                errors = ["Conteo distinto de Columnas: %s de %s" % (
+                    len(row_data), columns_count)]
+                missing_data.append([self.id, row_data, row_seq, errors])
             #if row_seq < 5:
             #    print(row_data)
 
@@ -133,7 +171,13 @@ class ExtractorsMix:
             file_control=file_control,
             clean_function__name__icontains="_tabs_")
         include_names = exclude_names = include_idx = exclude_idx = None
-        nrows = 50 if is_explore else None
+        nrows = 220 if is_explore else None
+        if is_explore:
+            all_sheets = self.explore_data or {}
+        else:
+            all_sheets = {}
+        current_sheets = []
+
         for transf in file_transformations:
             current_vals = transf.addl_params["value"].split(",")
             func_name = transf.clean_function.name
@@ -155,13 +199,18 @@ class ExtractorsMix:
                 continue
             if exclude_idx and position in exclude_idx:
                 continue
+            current_sheets.append(sheet_name)
             #xls.parse(sheet_name)
+            if is_explore and sheet_name in all_sheets:
+                if "all_data" in all_sheets[sheet_name]:
+                    continue
             data_excel = xls.parse(
                 sheet_name,
                 dtype='string', nrows=nrows, na_filter=False,
                 keep_default_na=False, header=None)
-            if is_explore:
-                break
+            listval = [row[1].tolist() for row in data_excel.iterrows()]
+            all_sheets[sheet_name] = {"all_data": listval}
+            #all_sheets[sheet_name]["all_data"] = listval
             #return False, ["todo bien, checa prints"]
             #if file_control.file_transformations.clean_function
         #Nombres de columnas (pandaarray)
@@ -171,7 +220,7 @@ class ExtractorsMix:
         #    rows.append(row)
         #rows = [row for row in data_excel.iterrows()]
         #rowsf = [row[1] for row in data_excel.iterrows()]
-        listval = [row[1].tolist() for row in data_excel.iterrows()]
+        
         #rows = [row[0]+(row[1].tolist()) for row in data_excel.iterrows()]
         #Extraer datos de tuple (quitar nombre index)
         #rowsf = [a_row[1] for a_row in rows]
@@ -182,7 +231,7 @@ class ExtractorsMix:
         #Guardar con nombres
         #print(listval)
         #return headers, listval, []
-        return listval, []
+        return all_sheets, current_sheets, []
 
 
     def get_data_from_file_simple(self):
@@ -198,7 +247,6 @@ class ExtractorsMix:
             #print(self.file.name)
             #print(self.file.url)
             #print("---------")
-
             try:
                 bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
                 aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
