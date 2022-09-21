@@ -84,7 +84,7 @@ class SupplyAdmin(admin.ModelAdmin):
         "medicine_real_name"
     ]
     list_filter = ["medicine_type"]
-    #raw_id_fields = ["report", "component", "presentation"]
+    raw_id_fields = ["report", "component", "presentation"]
     search_fields = [
         "medicine_type",
         "medicine_name_raw",

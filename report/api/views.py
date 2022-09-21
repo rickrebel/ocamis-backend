@@ -686,16 +686,16 @@ class TotalList(views.APIView):
         from django.db.models import Count, F
         from django.db.models.functions import TruncMonth
         import math
-        from django.utils import timezone
-        from datetime import datetime
-        today = timezone.now()
-        date_time_str = "01/%s/%s" % (today.month, today.year)
-        date_time_obj = datetime.strptime(date_time_str, '%d/%m/%Y')
+        #from django.utils import timezone
+        #from datetime import datetime
+        #today = timezone.now()
+        #date_time_str = "01/%s/%s" % (today.month, today.year)
+        #date_time_obj = datetime.strptime(date_time_str, '%d/%m/%Y')
         print(date_time_obj)
         query_kwargs = {
             "report__complement__validated": True,
             "report__state__isnull": False,
-            "report__created__lt": date_time_obj,
+            #"report__created__lt": date_time_obj,
             "report__institution__isnull": False,
         }
         values_group = ["report__state__short_name", "month",
@@ -732,12 +732,12 @@ class DinamicList(views.APIView):
     def get(self, request, *args, **kwargs):
         from django.db.models import Count, F
         from django.db.models.functions import TruncMonth
-        from django.utils import timezone
-        from datetime import datetime
         import math
-        today = timezone.now()
-        date_time_str = "01/%s/%s" % (today.month, today.year)
-        date_time_obj = datetime.strptime(date_time_str, '%d/%m/%Y')
+        #from django.utils import timezone
+        #from datetime import datetime
+        #today = timezone.now()
+        #date_time_str = "01/%s/%s" % (today.month, today.year)
+        #date_time_obj = datetime.strptime(date_time_str, '%d/%m/%Y')
         group_name = kwargs.get("group_name")
         groups = {
             "total": {},
@@ -764,7 +764,7 @@ class DinamicList(views.APIView):
         query_kwargs = {
             "report__complement__validated": True,
             "report__state__isnull": False,
-            "report__created__lt": date_time_obj,
+            #"report__created__lt": date_time_obj,
             "report__institution__isnull": False,
         }
         values_group = [

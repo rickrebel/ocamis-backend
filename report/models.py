@@ -332,7 +332,9 @@ class Report(models.Model):
                 email_record.save(user_data=dict_template)
 
     def __str__(self):
-        return u"%s - %s -- %s" % (self.state, self.institution, self.created)
+        #return "HOLA mundo"
+        my_date = f"{self.created.day}/{self.created.month}/{self.created.year}"
+        return "%s - %s -- %s" % (self.state, self.institution, my_date)
 
     class Meta:
         verbose_name = u"Reporte"
@@ -447,7 +449,7 @@ class ComplementReport(models.Model):
         super(ComplementReport, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.report or self.covid_report
+        return "Report: %s" % self.report or self.covid_report
 
     class Meta:
         verbose_name = u"Complemento de un reporte"
