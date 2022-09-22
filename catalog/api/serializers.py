@@ -115,7 +115,7 @@ class EntitySerializer(serializers.ModelSerializer):
         fields = [
             "id", "institution", "state", "clues", "name", 
             "addl_params", "vigencia", "entity_type", "acronym",
-            "notes"]
+            "notes", "is_pilot"]
 
 
 class EntityFileControlsSerializer(serializers.ModelSerializer):
