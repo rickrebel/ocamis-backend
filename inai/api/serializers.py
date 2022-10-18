@@ -137,9 +137,9 @@ class DataFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DataFile
-        fields = "__all__"
+        #fields = "__all__"
         read_only_fields = ["petition_file_control"]
-        write_only_fields = ["explore_data"]
+        exclude = ('explore_data', )
 
 
 class DataFileEditSerializer(DataFileSerializer):

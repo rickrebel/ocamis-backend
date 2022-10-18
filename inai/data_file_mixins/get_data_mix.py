@@ -197,6 +197,11 @@ class ExtractorsMix:
                 include_idx = [int(val.strip()) for val in current_vals]
             elif func_name == 'exclude_tabs_by_index':
                 exclude_idx = [int(val.strip()) for val in current_vals]
+
+        def clean_na(row):
+            cols = row[1].tolist()
+            return [col if isinstance(col, str) else "" for col in cols]
+
         for position, sheet_name in enumerate(sheet_names, start=1):
             if include_names and sheet_name not in include_names:
                 continue
@@ -215,7 +220,8 @@ class ExtractorsMix:
                 sheet_name,
                 dtype='string', nrows=nrows, na_filter=False,
                 keep_default_na=False, header=None)
-            listval = [row[1].tolist() for row in data_excel.iterrows()]
+            #listval = [row[1].tolist() for row in data_excel.iterrows()]
+            listval = [clean_na(row) for row in data_excel.iterrows()]
             all_sheets[sheet_name] = {"all_data": listval[:200]}
             #all_sheets[sheet_name]["all_data"] = listval
             #return False, ["todo bien, checa prints"]
