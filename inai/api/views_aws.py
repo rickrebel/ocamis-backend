@@ -79,6 +79,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
             
             if is_prod:
+                bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
                 zip_obj = dev_resource.Object(
                     bucket_name=bucket_name, 
                     key=f"{settings.AWS_LOCATION}/{process_file.file.name}"
