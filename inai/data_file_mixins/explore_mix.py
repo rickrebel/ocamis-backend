@@ -21,9 +21,8 @@ class ExploreMix:
     #primeras filas
     def start_file_process(self, is_explore=False):
         from rest_framework.response import Response
-        from rest_framework import (permissions, views, status)        
-        from category.models import StatusControl
-        from data_param.models import FinalField
+        from rest_framework import (permissions, views, status)
+        from inai.models import DataFile
         #FieldFile.open(mode='rb')
         import json
         self.error_process = []
@@ -33,7 +32,7 @@ class ExploreMix:
         count_splited = 0
         file_size = self.file.size
         if file_size > 400000000:
-            if 'xlsx' in suffixes or 'xls' in suffixes:
+            if 'xlsx' in suffix or 'xls' in suffix:
                 errors = ["Archivo excel muy grande, aún no se puede partir"]
                 return None, errors, None
             count_splited = self.split_file()
@@ -51,7 +50,8 @@ class ExploreMix:
             self.build_catalogs()
         elif count_splited:
             #FALTA AFINAR FUNCIÓN PARA ESTO
-            for ch_file in self.child_files:
+            all_childs = DataFile.objects.filter(origin_file=self)
+            for ch_file in all_childs:
                 data = ch_file.transform_file_in_data('is_explore', suffix)
         else:
             data = self.transform_file_in_data('is_explore', suffix)
@@ -65,11 +65,11 @@ class ExploreMix:
         import os
         import zipfile 
         import pathlib
-        from inai.models import StatusControl
         #Se obienen todos los tipos del archivo inicial:
         print(self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
         suffixes = [suffix.lower() for suffix in suffixes]
+        print("suffixes", suffixes)
         #format_file = self.file_control.format_file
         if '.gz' in suffixes:
             #print("path", self.file.path)
@@ -91,7 +91,7 @@ class ExploreMix:
             prev_self_pk = self.pk
             new_file = self 
             new_file.pk = None
-            new_file.final_path = real_final_path
+            new_file.file = real_final_path
             #se guarda el nuevo objeto DataFinal
             new_file.save()
             #Se asigna su status y la referencia con el archivo original
@@ -115,6 +115,8 @@ class ExploreMix:
                 zip_ref.extractall(directory)               
             #ZipFile.extractall(path=None, members=None, pwd=None)   
             #for f in os.listdir(directory):
+            initial_status = StatusControl.objects.get(
+                name='initial', group="process")
             for f in all_files:
                 new_file = self
                 new_file.pk = None
@@ -138,7 +140,6 @@ class ExploreMix:
             errors = [("Tiene más o menos extensiones de las que"
                 " podemos reconocer: %s" % real_suffixes)]
             return errors, None
-        []
         #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
         real_suffixes = set(real_suffixes)
         if not real_suffixes.issubset(set(['.txt', '.csv', '.xls', '.xlsx'])):
@@ -147,6 +148,7 @@ class ExploreMix:
         return [], list(real_suffixes)[0]
 
     def decompress_file_gz(self):
+        print("decompress_file_gz")
         import gzip
         import shutil
         try:
@@ -158,46 +160,115 @@ class ExploreMix:
                     shutil.copyfileobj(f_in, f_out)
                     return True, decomp_path
         except Exception as e:
+            print("error", e)
             return False, e
 
-    #def split_file(path="G:/My Drive/YEEKO/Clientes/OCAMIS/imss"):
     def split_file(self):
         from filesplit.split import Split
-        from inai.models import File
+        from inai.models import DataFile
         from category.models import StatusControl
-        [directory, only_name] = self.file_name.rsplit("/", 1)
+        import os
+        from scripts.common import (
+            get_file, start_session, create_file)
+        from django.conf import settings
+        #s3_client, dev_resource = start_session()
+        #buffer = get_file(self, dev_resource)
+        #[directory, only_name] = buffer.rsplit("/", 1)
+        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        #print("final_path: ", self.final_path)
+        [directory, only_name] = self.final_path.rsplit("\\", 1)
         [base_name, extension] = only_name.rsplit(".", 1)
-        curr_split = Split(self.file_name, directory)
-        curr_split.bylinecount(linecount=1000000)
-        initial_status = StatusControl.objects.get_or_create(
-            name='initial')
-        count_splited = 0
+
+        SIZE_HINT = 330 * 1000000
+
+        initial_status = StatusControl.objects.get(
+            name='initial', group="process")
         original_file = self.origin_file or self
-        for file_num in range(99):
-            rr_file_name = "%s_%s.%s" % (base_name, file_num + 1, extension)
-            if not os.path.exists(rr_file_name):
-                print("Invalid path", rr_file_name)
-                break
-            if not os.path.isfile(reporte_recetas_path):
-                print("Invalid path")
-                break
-            new_file = File.objects.create(
-                self=rr_file_name,
-                origin_file=original_file,
-                date=original_file.date,
-                status=initial_status,
-                #Revisar si lo más fácil es poner o no los siguientes:
-                #file_control=original_file.file_control,
-                file_control=original_file.petition_file_control.file_control,
-                petition=original_file.petition,
-                petition_month=original_file.petition_month)
-            count_splited += 1
-        if count_splited > 0:
-            if self.origin_file:
-                self.delete()
-            first_file_name = "%s_%s.%s" % (base_name, 1, extension)
-            first_file = File.objects.get(file=first_file_name)
-            return first_file, count_splited
+
+        def write_splited_files(complete_file):
+            file_num = 0
+            while True:
+                buf = complete_file.readlines(SIZE_HINT)
+                if not buf:
+                    # we've read the entire file in, so we're done.
+                    break
+                curr_only_name = f"{base_name}_{file_num + 1}.{extension}"
+                print("buf_size", len(buf))
+                if is_prod:
+                    buf = "\n".join(buf)
+                    rr_file_name, errors = create_file(
+                        self, buf, curr_only_name, s3_client)
+                else:
+                    rr_file_name = f"{directory}\\{curr_only_name}"
+                    outFile = open(rr_file_name, "wt", encoding="UTF-8")
+                    outFile.writelines(buf)
+                    outFile.close()
+                file_num += 1
+                DataFile.objects.create(
+                    file=rr_file_name,
+                    #origin_file=original_file,
+                    origin_file=self,
+                    date=original_file.date,
+                    status_process=initial_status,
+                    #Revisar si lo más fácil es poner o no los siguientes:
+                    #file_control=original_file.file_control,
+                    petition_file_control=original_file.petition_file_control,
+                    #petition=original_file.petition,
+                    petition_month=original_file.petition_month)
+            return file_num
+        # RICK AWS corroborar esto:
+        if is_prod:
+            s3_client, dev_resource = start_session()
+            complete_file = get_file(self, dev_resource)
+            complete_file = complete_file.read()
+            file_num = write_splited_files(complete_file)
+        else:
+            with open(self.final_path, "rt") as fl:
+                file_num = write_splited_files(fl)
+                fl.close()
+
+        """
+        with open(data, "rt") as fl:
+            #buf = fl.readlines(SIZE_HINT)
+            #print("+++++++++++++++++++++")
+            #print(len(buf))
+            #fl.close()
+            while True:
+                buf = fl.readlines(SIZE_HINT)
+                if not buf:
+                    # we've read the entire file in, so we're done.
+                    break
+                rr_file_name = f"{directory}\\{base_name}_{file_num + 1}.{extension}"
+                print("buf_size", len(buf))
+                outFile = open(rr_file_name, "wt", encoding="UTF-8")
+                outFile.writelines(buf)
+                outFile.close()
+                file_num += 1
+                new_file = DataFile.objects.create(
+                    file=rr_file_name,
+                    origin_file=original_file,
+                    date=original_file.date,
+                    status_process=initial_status,
+                    #Revisar si lo más fácil es poner o no los siguientes:
+                    #file_control=original_file.file_control,
+                    petition_file_control=original_file.petition_file_control,
+                    #petition=original_file.petition,
+                    petition_month=original_file.petition_month)
+            fl.close()
+        """
+        print("SE LOGRARON:", file_num)
+        #print("directory", directory)
+        #print("only_name", only_name)
+        #print("base_name", base_name)
+        #print("extension", extension)
+        return file_num
+        if file_num > 0:
+            #if self.origin_file:
+            #    self.delete()
+            #first_file_name = f"{directory}/{base_name}_1.{extension}"
+            #first_file = DataFile.objects.get(file=first_file_name)
+            new_file = DataFile.objects.filter(origin_file=self).first
+            return new_file, file_num
         else:
             return self, 0
 
@@ -219,6 +290,9 @@ class ExploreMix:
         print(all_files)
         for curr_file in all_files:
             print(curr_file)
+
+        initial_status = StatusControl.objects.get(
+            name='initial', group="process")
 
         with zipfile.ZipFile(url, mode="r") as archive:
             for info in archive.infolist():

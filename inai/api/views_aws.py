@@ -26,32 +26,23 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
     def retrieve(self, request, pk=None):
         #self.check_permissions(request)
-        from io import BytesIO
         import zipfile
         import rarfile
         import pathlib
-        import boto3
-        from inai.models import set_upload_path
         from django.conf import settings
-        from django.core.files import File
         from inai.models import ProcessFile, FileControl
         from category.models import FileType
         from data_param.models import DataGroup
+        from io import BytesIO
+        from scripts.common import get_file, start_session, create_file
 
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         all_errors = []
 
+        s3_client = None
+        dev_resource = None
         if is_prod:
-            bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-            aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
-            aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
-            #s3 = boto3.resource(
-            s3 = boto3.client(
-                's3', aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key)
-            dev_resource = boto3.resource(
-                's3', aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key)
+            s3_client, dev_resource = start_session()
 
         petition = self.get_object()
         current_file_ctrl = request.query_params.get("file_ctrl", False)
@@ -83,31 +74,20 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             process_file_ids.append(process_file.id)
             if DataFile.objects.filter(process_file=process_file).exists():
                 continue
-            path = process_file.file.name
             suffixes = pathlib.Path(process_file.final_path).suffixes
             suffixes = set([suffix.lower() for suffix in suffixes])
 
-            if is_prod:
-                zip_obj = dev_resource.Object(
-                    bucket_name=bucket_name, 
-                    key=f"{settings.AWS_LOCATION}/{process_file.file.name}"
-                    )
-                buffer = BytesIO(zip_obj.get()["Body"].read()) 
-            else:
-                buffer = process_file.final_path
-
+            buffer = get_file(process_file, dev_resource)
+            # RICK AWS corroborar si en cesario
+            #if is_prod:
+            #    buffer = BytesIO(buffer.read())
+            
             if '.zip' in suffixes:
                 zip_file = zipfile.ZipFile(buffer) 
             elif '.rar' in suffixes:
                 zip_file = rarfile.RarFile(buffer)
             else:
                 continue
-
-            #s3 = boto3.resource(
-            #    's3', aws_access_key_id=aws_access_key_id,
-            #    aws_secret_access_key=aws_secret_access_key)
-            #content_object = s3.Object(
-            #    bucket_name, "data_files/%s" % self.file.name)
 
             for zip_elem in zip_file.infolist():
                 if zip_elem.is_dir():
@@ -119,27 +99,12 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 #z_file.open(filename).read()
                 file_bytes = zip_file.open(zip_elem).read()
 
-                try:
-                    if is_prod:
-                        final_path = set_upload_path(process_file, only_name)
-                        success_file = s3.put_object(
-                            Key=f"{settings.AWS_LOCATION}/{final_path}",
-                            Body=file_bytes,
-                            Bucket=bucket_name,
-                            ACL='public-read',
-                            #ContentType='application/pdf'
-                        )
-                        if success_file:
-                            curr_file= final_path
-                        else:
-                            all_errors += [f"No se pudo insertar el archivo {final_path}"]
-                            continue
-                    else:
-                        curr_file = File(BytesIO(file_bytes), name=only_name)
-                except Exception as e:
-                    print(e)
-                    all_errors += [u"Error leyendo los datos %s" % e]
+                curr_file, file_errors = create_file(
+                    process_file, file_bytes, only_name, s3_client=s3_client)
+                if file_errors:
+                    all_errors += file_errors
                     continue
+
                 new_file = DataFile.objects.create(
                     file=curr_file,
                     process_file=process_file,
@@ -148,7 +113,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     petition_file_control=pet_file_ctrl,
                     )
                 new_file.change_status('initial')
-
 
         all_data_files = DataFile.objects.filter(
             petition_file_control=pet_file_ctrl).order_by("date")
@@ -279,15 +243,19 @@ def move_and_duplicate(data_files, petition, request):
             except Exception as e:
                 raise ParseError(detail=e)
         for data_file in data_files:
-            data_file_id = data_file.id
-            new_file = data_file
-            new_file.pk = None
-            new_file.petition_file_control = pet_file_ctrl
-            new_file.save()
-            new_file.change_status('initial')
-            if not is_dupl:
+            if is_dupl:
+                data_file_id = data_file.id
+                new_file = data_file
+                new_file.pk = None
+                new_file.petition_file_control = pet_file_ctrl
+                new_file.save()
+                new_file.change_status('initial')
+            #if not is_dupl:
+            else:
+                data_file.petition_file_control = pet_file_ctrl
+                data_file.save()
                 #data_file.delete()
-                DataFile.objects.filter(id=data_file_id).delete()
+                #DataFile.objects.filter(id=data_file_id).delete()
     else:
         raise ParseError(detail="No se especificó correctamente el destino")
 
@@ -352,10 +320,19 @@ class DataFileViewSet(CreateRetrievView):
                 first_valid_sheet = sheet_data
                 break
         if not first_valid_sheet:
-            return Response(
-                {"errors": warnings["No se encontró algo que coincidiera"]},
-                status=status.HTTP_400_BAD_REQUEST)
-
+            first_valid_sheet = validated_data[current_sheets[0]]
+            if not first_valid_sheet:
+                return Response(
+                    {"errors": ["WARNING: No se encontró algo que coincidiera"]},
+                    status=status.HTTP_400_BAD_REQUEST)
+            else:
+                prov_headers = first_valid_sheet["all_data"][0]
+                first_valid_sheet["complex_headers"] = [
+                    {"position_in_data": posit}
+                        for posit, head in enumerate(prov_headers, start=1)]
+                return Response(
+                    first_valid_sheet, status=status.HTTP_201_CREATED)
+        print("DESPUES DE HEADER")
         try:
             headers = first_valid_sheet["headers"]
             complex_headers = []

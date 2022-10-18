@@ -37,18 +37,20 @@ class ExtractorsMix:
             file_control = self.petition_file_control.file_control
         if (".%s" % file_control.format_file) != suffix and (
             (".%sx" % file_control.format_file) != suffix):
-            errors = ["Formato no coincide con el archivo"]
+            errors = ["Formato especificado no coincide con el archivo"]
             #return self.save_errors(errors, status_error)
             return {"errors": errors}
         if suffix in ['.txt', '.csv']:
-            data_rows, errors = self.get_data_from_file_simple()
+            data_rows, errors = self.get_data_from_file_simple(is_explore)
             if errors:
                 return self.save_errors(errors, status_error)
             #print(data_rows[0])
             #print("LEN - data_rows: ", len(data_rows))
             validated_data_default = self.divide_rows(
                 data_rows, file_control, is_explore)
-            validated_data = {"default": validated_data_default}
+            validated_data = {"default": 
+                {"all_data": validated_data_default[:200]}
+            }
             current_sheets = ["default"]
         elif suffix in ['.xlsx', '.xls']:
             validated_data, current_sheets, errors = self.get_data_from_excel(
@@ -71,7 +73,12 @@ class ExtractorsMix:
         for sheet_name in current_sheets:
             curr_sheet = validated_data.get(sheet_name).copy()            
             plus_rows = 0
-            all_data = curr_sheet.get("all_data")
+            try:
+                all_data = curr_sheet.get("all_data")
+            except Exception as e:
+                print("----------")
+                print(curr_sheet)
+                raise e
             if not "headers" in curr_sheet:
                 few_nulls = False
                 headers = []
@@ -97,6 +104,8 @@ class ExtractorsMix:
                     curr_sheet["headers"] = headers
                 else:
                     print("No pasó las pruebas básicas")
+                    curr_sheet["headers"] = headers
+                    curr_sheet["data_rows"] = all_data
                     pendiente_hasta_aca = 0
             new_validated_data[sheet_name] = curr_sheet
         #print(validated_rows[0])
@@ -105,7 +114,6 @@ class ExtractorsMix:
         
         #inserted_rows = 0
         #completed_rows = 0
-        #validated_rows = self.divide_rows(data_rows, is_explore)
         if is_explore:
             return {
                 #"headers": headers,
@@ -114,7 +122,6 @@ class ExtractorsMix:
                 "structured_data": new_validated_data,
                 "current_sheets": current_sheets,
             }
-        print("después de terminar")
         return validated_rows  
         matched_rows = []
         for row in validated_rows:
@@ -209,7 +216,7 @@ class ExtractorsMix:
                 dtype='string', nrows=nrows, na_filter=False,
                 keep_default_na=False, header=None)
             listval = [row[1].tolist() for row in data_excel.iterrows()]
-            all_sheets[sheet_name] = {"all_data": listval}
+            all_sheets[sheet_name] = {"all_data": listval[:200]}
             #all_sheets[sheet_name]["all_data"] = listval
             #return False, ["todo bien, checa prints"]
             #if file_control.file_transformations.clean_function
@@ -234,41 +241,36 @@ class ExtractorsMix:
         return all_sheets, current_sheets, []
 
 
-    def get_data_from_file_simple(self):
+    def get_data_from_file_simple(self, is_explore):
         from scripts.recipe_specials import (
             special_coma, special_excel, clean_special)
         from django.conf import settings
         import io
+        from scripts.common import get_file, start_session, create_file
+
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         if is_prod:
-            import boto3
-            #print("PATH -- URL -- NAME")
-            #print(self.file.path)
-            #print(self.file.name)
-            #print(self.file.url)
-            #print("---------")
-            try:
-                bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-                aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
-                aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
-                s3 = boto3.resource(
-                    's3', aws_access_key_id=aws_access_key_id,
-                    aws_secret_access_key=aws_secret_access_key)
-                content_object = s3.Object(
-                    bucket_name, "data_files/%s" % self.file.name)
-                data = content_object.get()['Body'].read().decode('utf-8')
-            except Exception as e:
-                print(e)
-                return False, [u"Error leyendo los datos %s" % e]
+            s3_client, dev_resource = start_session()
+            data = get_file(self, dev_resource)
+            if isinstance(data, dict):
+                if data.get("errors", False):
+                    return False, data["errors"]
+            #CORROBORAR SI ES NECEARIO ESTO ESTO:
+            #data = data.read().decode('utf-8')
+            data = data.readlines(68000 if is_explore else 0).decode('utf-8')
         else:
             try:
-                with io.open(self.final_path, "r", encoding="UTF-8") as file_open:
-                    data = file_open.read()
+                with open(self.final_path, "r", encoding="UTF-8") as file_open:
+                    #data = file_open.read()
+                    data = file_open.readlines(68000 if is_explore else 0)
+                    #data = file_open.readlines(68000 if is_explore else 0).decode('utf-8')
                     file_open.close()
             except Exception as e:
                 print(e)
                 return False, [u"Error leyendo los datos %s" % e]
-        """is_issste = self.petition_file_control.petition.entity.institution.code == 'ISSSTE'
+        
+        """
+        is_issste = self.petition_file_control.petition.entity.institution.code == 'ISSSTE'
         file_control = self.petition_file_control.file_control
         if "|" in data[:5000]:
             file_control.delimiter = '|'
@@ -283,7 +285,7 @@ class ExtractorsMix:
             return False, ['El documento está vacío']
         file_control.save()
         if is_issste:
-            data = clean_special(data)"""
-        rr_data_rows = data.split("\n")
-        return rr_data_rows, []
+            data = clean_special(data)
+        """
+        return data, []
 

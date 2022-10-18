@@ -39,3 +39,6 @@ wcwidth==0.2.5
 wheel==0.37.1
 XlsxWriter==3.0.2
 xlrd==2.0.1
+lxml
+html5lib
+bs4
