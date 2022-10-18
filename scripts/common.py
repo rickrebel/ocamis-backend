@@ -52,7 +52,7 @@ def start_session():
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
     #s3 = boto3.resource(
-    s3 = boto3.client(
+    s3_client = boto3.client(
         's3', aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key)
     dev_resource = boto3.resource(
