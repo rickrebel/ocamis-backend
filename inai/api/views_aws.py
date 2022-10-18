@@ -77,10 +77,18 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             suffixes = pathlib.Path(process_file.final_path).suffixes
             suffixes = set([suffix.lower() for suffix in suffixes])
 
-            buffer = get_file(process_file, dev_resource)
-            # RICK AWS corroborar si en cesario
+            
             if is_prod:
-                buffer = BytesIO(buffer.read())
+                zip_obj = dev_resource.Object(
+                    bucket_name=bucket_name, 
+                    key=f"{settings.AWS_LOCATION}/{process_file.file.name}"
+                    )
+                buffer = BytesIO(zip_obj.get()["Body"].read()) 
+            else:
+                buffer = get_file(process_file, dev_resource)
+            # RICK AWS corroborar si en cesario
+            #if is_prod:
+            #    buffer = BytesIO(buffer.read())
             
             if '.zip' in suffixes:
                 zip_file = zipfile.ZipFile(buffer) 
