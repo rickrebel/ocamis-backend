@@ -79,8 +79,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
             buffer = get_file(process_file, dev_resource)
             # RICK AWS corroborar si en cesario
-            #if is_prod:
-            #    buffer = BytesIO(buffer.read())
+            if is_prod:
+                buffer = BytesIO(buffer.read())
             
             if '.zip' in suffixes:
                 zip_file = zipfile.ZipFile(buffer) 
