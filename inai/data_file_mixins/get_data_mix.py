@@ -144,6 +144,7 @@ class ExtractorsMix:
         for row_seq, row in enumerate(data_rows, 1):
             #if row_seq < 5:
             #    print(row_seq, row)
+            row = str(row)
             row_data = row.split(file_control.delimiter)
             if is_explore or len(row_data) == columns_count:
                 #row_data.insert(0, row_seq)
@@ -263,7 +264,12 @@ class ExtractorsMix:
                     return False, data["errors"]
             #CORROBORAR SI ES NECEARIO ESTO ESTO:
             #data = data.read().decode('utf-8')
-            data = data.readlines(68000 if is_explore else 0).decode('utf-8')
+            #data = data.readlines(68000 if is_explore else 0).decode('utf-8')
+            data = data.readlines()
+            #if is_explore:
+            #    data = data.readlines(68000)
+            #else:
+            #    data = data.readlines()
         else:
             try:
                 with open(self.final_path, "r", encoding="UTF-8") as file_open:

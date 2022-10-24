@@ -76,15 +76,13 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 continue
             suffixes = pathlib.Path(process_file.final_path).suffixes
             suffixes = set([suffix.lower() for suffix in suffixes])
-
-            
             if is_prod:
                 bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
                 zip_obj = dev_resource.Object(
                     bucket_name=bucket_name, 
                     key=f"{settings.AWS_LOCATION}/{process_file.file.name}"
                     )
-                buffer = BytesIO(zip_obj.get()["Body"].read()) 
+                buffer = BytesIO(zip_obj.get()["Body"].read())
             else:
                 buffer = get_file(process_file, dev_resource)
             # RICK AWS corroborar si en cesario
@@ -147,7 +145,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             saved = False
             data_file.error_process = []
             data_file.save()
-            errors, suffix = data_file.decompress_file()
+            data_file, errors, suffix = data_file.decompress_file()
             for file_ctrl in all_file_controls:
                 #print(f"Vamos por file control {file_ctrl.name}")
                 data = data_file.transform_file_in_data(
