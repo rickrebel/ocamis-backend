@@ -22,7 +22,7 @@ def obtain_names_from_s3(path, folio_petition, is_process_file=False):
                 DataFile.objects.create(
                     petition_file_control=pet_file_ctrl,
                     file=final_name)
-                print(f"Exitosamente creado{pet_file_ctrl}")
+                print(f"Exitosamente creado {pet_file_ctrl}")
             except Exception as e:
                 print("No fue posible obtener el pet_file_ctrl")
                 print(e)
@@ -44,7 +44,7 @@ def obtain_names_from_s3(path, folio_petition, is_process_file=False):
 
 
 
-#obtain_names_from_s3("data_files/nacional/imss/202205/", "330018022015261", True)
+obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
 #obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
 
 

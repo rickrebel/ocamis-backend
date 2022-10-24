@@ -186,7 +186,7 @@ class ExploreMix:
             .values_list("suffixes", flat=True)
         final_readeable = []
         for suff in list(readable_suffixes):
-            final_readeable += suff
+            final_readeable += [f".{su}" for su in suff]
         #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
         if not real_suffixes.issubset(final_readeable):
             errors = ["Formato no legible", u"%s" % suffixes]
