@@ -144,7 +144,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         for data_file in all_data_files:
             saved = False
             data_file.error_process = []
-            print("data_file_original: ", data_file)
+            #print("data_file_original: ", data_file)
             data_file.save()
             data_file, errors, suffix = data_file.decompress_file()
             if not data_file:

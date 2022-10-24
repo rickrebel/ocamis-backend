@@ -110,6 +110,7 @@ def delegation_match(row, columns, collection):
 class MatchesMix:
 
     def build_catalogs(self):
+        return False
         from inai.models import NameColumn
         global columns
         global institution

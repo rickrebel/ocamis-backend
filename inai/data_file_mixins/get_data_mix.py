@@ -44,6 +44,8 @@ class ExtractorsMix:
             return {"errors": errors}
         if suffix in ['.txt', '.csv']:
             data_rows, errors = self.get_data_from_file_simple(is_explore)
+            if is_explore:
+                data_rows = data_rows[:200]
             if errors:
                 return self.save_errors(errors, status_error)
             #print(data_rows[0])
