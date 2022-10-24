@@ -48,11 +48,14 @@ class ExtractorsMix:
                 return self.save_errors(errors, status_error)
             #print(data_rows[0])
             #print("LEN - data_rows: ", len(data_rows))
-            validated_data_default = self.divide_rows(
-                data_rows, file_control, is_explore)
-            validated_data = {"default": 
-                {"all_data": validated_data_default[:200]}
-            }
+            if isinstance(data_rows, dict):
+                validated_data = data_rows
+            else:
+                validated_data_default = self.divide_rows(
+                    data_rows, file_control, is_explore)
+                validated_data = {"default": 
+                    {"all_data": validated_data_default[:200]}
+                }
             current_sheets = ["default"]
         elif suffix in FileFormat.objects.get(short_name='xls').suffixes:
             validated_data, current_sheets, errors = self.get_data_from_excel(
@@ -144,12 +147,27 @@ class ExtractorsMix:
         missing_data = []
         #print("delimiter", delimiter)
         encoding = "utf-8"
+        is_byte = isinstance(data_rows[3], bytes)
+        is_latin = False
         for row_seq, row in enumerate(data_rows, 1):
             #if row_seq < 5:
             #    print(row_seq, row)
-            is_str = isinstance(row, str)
-            if isinstance(row, bytes):
-                row = str(row, encoding)
+            posible_latin = False
+            if is_byte:
+                if is_latin:
+                    row = row.decode("latin-1")
+                else:
+                    try:
+                        row = row.decode("utf-8")
+                    except:
+                        posible_latin = True
+                    if posible_latin:
+                        try:
+                            row = row.decode("latin-1")
+                            is_latin = True
+                        except Exception as e:
+                            print(e)
+                            row = str(row)
             else:
                 row = str(row)
             row_data = row.split(file_control.delimiter)
@@ -263,6 +281,10 @@ class ExtractorsMix:
         from scripts.common import get_file, start_session, create_file
 
         is_prod = getattr(settings, "IS_PRODUCTION", False)
+        if is_explore and isinstance(self.explore_data, dict):
+            if "all_data" in self.explore_data.get("default", {}):
+                return self.explore_data, []
+
         if is_prod:
             s3_client, dev_resource = start_session()
             data = get_file(self, dev_resource)
