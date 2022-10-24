@@ -61,8 +61,14 @@ class AnomalyAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(Anomaly, AnomalyAdmin)
 
 
+class TransparencyLevelInline(admin.StackedInline):
+    model = TransparencyLevel
+    extra = 0
+
+
 class TransparencyIndexAdmin(admin.ModelAdmin):
     list_display = ["short_name", "public_name", "description"]
+    inlines = [ TransparencyLevelInline ]
 
 ocamis_admin_site.register(TransparencyIndex, TransparencyIndexAdmin)
 
@@ -73,3 +79,5 @@ class TransparencyLevelAdmin(admin.ModelAdmin):
     "final_level"]
 
 ocamis_admin_site.register(TransparencyLevel, TransparencyLevelAdmin)
+
+

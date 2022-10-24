@@ -76,7 +76,7 @@ class FileFormat(models.Model):
         verbose_name="extensiones")
     readable = models.BooleanField(verbose_name="es legible por máquinas")
     addl_params = JSONField(default=default_dict, blank=True)
-    #order = models.IntegerField(default=10, blank=True)
+    order = models.IntegerField(default=10, blank=True)
 
     def __str__(self):
         return self.public_name
