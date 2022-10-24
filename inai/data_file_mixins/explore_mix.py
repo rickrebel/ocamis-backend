@@ -11,6 +11,7 @@ def build_query_filter(row, columns):
 
 
 class ExploreMix:
+    from category.models import FileFormat
 
     def get_table_ref(self):
         print(self)
@@ -35,7 +36,7 @@ class ExploreMix:
         count_splited = 0
         file_size = new_self.file.size
         if file_size > 400000000:
-            if 'xlsx' in suffix or 'xls' in suffix:
+            if suffix in FileFormat.objects.get(short_name='xls').suffixes:
                 errors = ["Archivo excel muy grande, aún no se puede partir"]
                 return None, errors, None
             count_splited = new_self.split_file()
@@ -71,6 +72,7 @@ class ExploreMix:
         from django.conf import settings
         from scripts.common import get_file, start_session, create_file
         from io import BytesIO
+        from category.models import FileFormat
         #Se obienen todos los tipos del archivo inicial:
         print(self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
@@ -179,10 +181,13 @@ class ExploreMix:
             errors = [("Tiene más o menos extensiones de las que"
                 " podemos reconocer: %s" % real_suffixes)]
             return None, errors, None
-        #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
         real_suffixes = set(real_suffixes)
-        if not real_suffixes.issubset(set(['.txt', '.csv', '.xls', '.xlsx'])):
-            errors = ["Formato no válido", u"%s" % suffixes]
+        readable_suffixes = FileFormat.objects.filter(readable=True)\
+            .values_list("suffixes", flat=True)
+        readable_suffixes = set([suff for suff in list(readable_suffixes)])
+        #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
+        if not real_suffixes.issubset(readable_suffixes):
+            errors = ["Formato no legible", u"%s" % suffixes]
             return None, errors, None
         return self, [], list(real_suffixes)[0]
 

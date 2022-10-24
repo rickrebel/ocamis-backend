@@ -30,13 +30,15 @@ def execute_matches(row, file):
 class ExtractorsMix:
 
     def transform_file_in_data(self, type_xplor, suffix, file_control=None):
+        from category.models import FileFormat
         is_explore = bool(type_xplor)
         is_auto = type_xplor == 'auto_explore'
         status_error = 'explore_fail' if is_explore else 'extraction_failed'
         if not file_control:
             file_control = self.petition_file_control.file_control
-        if (".%s" % file_control.format_file) != suffix and (
-            (".%sx" % file_control.format_file) != suffix):
+        #if (".%s" % file_control.format_file) != suffix and (
+        #    (".%sx" % file_control.format_file) != suffix):
+        if not suffix in file_control.file_format.suffixes:
             errors = ["Formato especificado no coincide con el archivo"]
             #return self.save_errors(errors, status_error)
             return {"errors": errors}
@@ -52,7 +54,7 @@ class ExtractorsMix:
                 {"all_data": validated_data_default[:200]}
             }
             current_sheets = ["default"]
-        elif suffix in ['.xlsx', '.xls']:
+        elif suffix in FileFormat.objects.get(short_name='xls').suffixes:
             validated_data, current_sheets, errors = self.get_data_from_excel(
                 is_explore, file_control)
             if errors:
@@ -173,8 +175,8 @@ class ExtractorsMix:
             #converters=str.strip,
             na_filter=False,
             keep_default_na=False, header=None)"""
-        xls = pd.ExcelFile(self.final_path)
-        sheet_names = xls.sheet_names
+        excel_file = pd.ExcelFile(self.final_path)
+        sheet_names = excel_file.sheet_names
         file_transformations = Transformation.objects.filter(
             file_control=file_control,
             clean_function__name__icontains="_tabs_")
@@ -217,7 +219,7 @@ class ExtractorsMix:
             if is_explore and sheet_name in all_sheets:
                 if "all_data" in all_sheets[sheet_name]:
                     continue
-            data_excel = xls.parse(
+            data_excel = excel_file.parse(
                 sheet_name,
                 dtype='string', nrows=nrows, na_filter=False,
                 keep_default_na=False, header=None)
