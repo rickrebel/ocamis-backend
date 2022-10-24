@@ -68,7 +68,7 @@ def get_file(file_obj, dev_resource=None):
             content_object = dev_resource.Object(
                 bucket_name=bucket_name,
                 #key=f"{aws_location}/{file_obj.file.name}"
-                key=f"{aws_location}\\{file_obj.file.name}"
+                key=f"{aws_location}/{file_obj.file.name}"
                 )
             # RICK AWS corroborar el cambio:
             """
