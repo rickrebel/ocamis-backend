@@ -144,8 +144,13 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         for data_file in all_data_files:
             saved = False
             data_file.error_process = []
+            print("data_file_original: ", data_file)
             data_file.save()
             data_file, errors, suffix = data_file.decompress_file()
+            if not data_file:
+                print("______data_file:\n", data_file)
+                print("\n")
+                continue
             for file_ctrl in all_file_controls:
                 #print(f"Vamos por file control {file_ctrl.name}")
                 data = data_file.transform_file_in_data(
