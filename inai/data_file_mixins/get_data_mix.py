@@ -143,10 +143,15 @@ class ExtractorsMix:
         structured_data = []
         missing_data = []
         #print("delimiter", delimiter)
+        encoding = "utf-8"
         for row_seq, row in enumerate(data_rows, 1):
             #if row_seq < 5:
             #    print(row_seq, row)
-            row = str(row)
+            is_str = isinstance(row, str)
+            if isinstance(row, bytes):
+                row = str(row, encoding)
+            else:
+                row = str(row)
             row_data = row.split(file_control.delimiter)
             if is_explore or len(row_data) == columns_count:
                 #row_data.insert(0, row_seq)
@@ -267,7 +272,7 @@ class ExtractorsMix:
             #CORROBORAR SI ES NECEARIO ESTO ESTO:
             #data = data.read().decode('utf-8')
             #data = data.readlines(68000 if is_explore else 0).decode('utf-8')
-            data = data.readlines().decode('utf-8')
+            data = data.readlines()
             #if is_explore:
             #    data = data.readlines(68000)
             #else:
