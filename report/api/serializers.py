@@ -141,7 +141,7 @@ class ReportSerializer(serializers.ModelSerializer):
             "institution_raw", "hospital_name_raw", "clues", "has_corruption",
             "informer_type",
             "disease_raw", "created",
-            "want_litigation", "supplies", "age"
+            "want_litigation", "supplies", "age", "gender"
         ]
         read_only_fields = [
             "created", "validated",  # "origin_app",

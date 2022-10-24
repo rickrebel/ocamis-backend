@@ -912,6 +912,7 @@ class ReportExportView2(GenericModelExport):
         [u"Apoyo Litig", "report.persona.want_litigation", 40],
         [u"Apoyo Acomp", "report.persona.want_management", 40],
         [u"Edad", "report.age", 30],
+        [u"Género", "report.gender", 30],
         [u"Entidad", "report.state.short_name", 120],
         [u"Institución (raw)", "report.institution_raw", 80],
         [u"Institución (s/CLUES)", "report.institution.public_name", 60],

@@ -105,6 +105,8 @@ class Report(models.Model):
         verbose_name="Edad",
         blank=True, null=True
     )
+    gender = models.CharField(
+        max_length=40, verbose_name="Género", blank=True, null=True)
 
     informer_type = models.CharField(
         max_length=20, choices=TYPE,

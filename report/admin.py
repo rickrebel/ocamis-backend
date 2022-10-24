@@ -149,7 +149,7 @@ class ReportAdmin(admin.ModelAdmin):
         [None, {
             "fields": [
                 "created", "informer_type", "persona",
-                "disease_raw", "age"]}],
+                "disease_raw", "age", "gender"]}],
         [u"Ubicación", {
             "fields": [
                 "institution", "institution_raw", "state",
