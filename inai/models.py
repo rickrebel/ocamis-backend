@@ -7,7 +7,7 @@ from django.utils.deconstruct import deconstructible
 from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, 
-    DateBreak, Anomaly, InvalidReason)
+    DateBreak, Anomaly, InvalidReason, FileFormat)
 from data_param.models import (
     DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup)
 
@@ -206,6 +206,9 @@ class FileControl(models.Model):
         max_length=5,
         choices=FORMAT_CHOICES,
         null=True, blank=True)
+    file_format = models.ForeignKey(
+        FileFormat, verbose_name="formato del archivo",
+        blank=True, null=True, on_delete=models.CASCADE)
     other_format = models.CharField(max_length=80, blank=True, null=True)
     final_data = models.NullBooleanField(
         verbose_name="Es información final", blank=True, null=True)

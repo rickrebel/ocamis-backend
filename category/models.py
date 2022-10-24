@@ -11,6 +11,13 @@ GROUP_CHOICES = (
     ("register", "Registro de variables (solo devs)"),
 )
 
+def default_list():
+    return []
+
+def default_dict():
+    return {}
+
+
 class StatusControl(models.Model):
     group = models.CharField(
         max_length=10, choices=GROUP_CHOICES, 
@@ -58,6 +65,25 @@ class FileType(models.Model):
         ordering = ["order"]
         verbose_name = u"Tipo de archivo"
         verbose_name_plural = u"Tipos de archivos"
+
+
+class FileFormat(models.Model):
+
+    short_name = models.CharField(max_length=20)
+    public_name = models.CharField(max_length=80)
+    suffixes = JSONField(
+        default=default_list, blank=True, null=True,
+        verbose_name="extensiones")
+    readable = models.BooleanField(verbose_name="es legible por máquinas")
+    addl_params = JSONField(default=default_dict, blank=True)
+    #order = models.IntegerField(default=10, blank=True)
+
+    def __str__(self):
+        return self.public_name
+
+    class Meta:
+        verbose_name = u"Formato de archivos"
+        verbose_name_plural = u"Formatos de archivos"
 
 
 class ColumnType(models.Model):
@@ -141,17 +167,49 @@ class Anomaly(models.Model):
         verbose_name_plural = u"Anomalías en los datos"
 
 
-"""class FormatFile(models.Model):
-    name = models.CharField(max_length=255)
-    extension = models.CharField(max_length=80)
-    is_default = models.BooleanField(default=False)
-    has_data = models.NullBooleanField(
-        verbose_name="Tiene datos procesables")
-    icon = models.CharField(max_length=80)
+class TransparencyIndex(models.Model):
+    short_name = models.CharField(max_length=20)
+    public_name = models.CharField(max_length=80)
+    description = models.TextField(blank=True, null=True)
+    scheme_color = models.CharField(
+        max_length=90, blank=True, null=True, verbose_name="Esquema de color")
+    viz_params = JSONField(default=default_dict, blank=True)
+
 
     def __str__(self):
-        return self.name
+        return self.public_name
 
     class Meta:
-        verbose_name = u"Formato de documento"
-        verbose_name_plural = u"Formato de documentos" """
+        verbose_name = u"Transparencia: Indicador"
+        verbose_name_plural = u"Transparencia: Indicadores"
+
+
+class TransparencyLevel(models.Model):
+
+    transparency_index = models.ForeignKey(
+        TransparencyIndex, 
+        verbose_name="Indicador de Transparencia",
+        on_delete=models.CASCADE)
+    short_name = models.CharField(max_length=20)
+    public_name = models.CharField(max_length=80)
+    value = models.IntegerField(default=0,
+        help_text="Para ordenar y decidier según menor")
+    description = models.TextField(blank=True, null=True)
+    anomalies = models.ManyToManyField(
+        Anomaly, blank=True, verbose_name="Anomalías relacionadas")
+    file_formats = models.ManyToManyField(
+        FileFormat, blank=True, verbose_name="Formatos de archivo")
+    other_conditions = JSONField(default=default_list, blank=True)
+    final_level = models.ForeignKey("TransparencyLevel", 
+        verbose_name="nivel principal", 
+        help_text="Si existe, se va a ese nivel de indicador principal",
+        blank=True, null=True, on_delete=models.CASCADE)
+    color = models.CharField(max_length=20, blank=True, null=True)
+
+
+    def __str__(self):
+        return f"{self.transparency_index} - {self.public_name}"
+
+    class Meta:
+        verbose_name = u"Transparencia: Nivel"
+        verbose_name_plural = u"Transparencia: Niveles"

@@ -87,7 +87,7 @@ class FinalField(models.Model):
     name = models.CharField(
         max_length=120, verbose_name="Nombre del campo en BD")
     verbose_name = models.CharField(
-        max_length=255, verbose_name="Nombre público")
+        max_length=255, verbose_name="Nombre público", blank=True, null=True)
     data_type = models.ForeignKey(
         DataType, 
         null=True, blank= True,
