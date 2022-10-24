@@ -272,7 +272,7 @@ class ExtractorsMix:
             #    data = data.readlines()
         else:
             try:
-                with open(self.final_path, "r", encoding="UTF-8") as file_open:
+                with open(self.data.file, "r", encoding="UTF-8") as file_open:
                     #data = file_open.read()
                     data = file_open.readlines(68000 if is_explore else 0)
                     #data = file_open.readlines(68000 if is_explore else 0).decode('utf-8')
