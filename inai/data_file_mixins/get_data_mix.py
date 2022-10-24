@@ -267,7 +267,7 @@ class ExtractorsMix:
             #CORROBORAR SI ES NECEARIO ESTO ESTO:
             #data = data.read().decode('utf-8')
             #data = data.readlines(68000 if is_explore else 0).decode('utf-8')
-            data = data.readlines()
+            data = data.readlines().decode('utf-8')
             #if is_explore:
             #    data = data.readlines(68000)
             #else:
