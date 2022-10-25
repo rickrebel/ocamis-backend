@@ -126,7 +126,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
         last_file_control = None
         entity_file_controls = FileControl.objects.filter(
-            petition_file_control__petition__entity=petition.entity)\
+            petition_file_control__petition__entity=petition.entity,
+            file_format__isnull=False)\
             .exclude(data_group__name="orphan")\
             .prefetch_related("columns")\
             .distinct()
