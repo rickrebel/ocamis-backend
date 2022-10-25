@@ -44,15 +44,15 @@ class ExtractorsMix:
             return {"errors": errors}
         if suffix in ['.txt', '.csv']:
             data_rows, errors = self.get_data_from_file_simple(is_explore)
-            if is_explore:
-                data_rows = data_rows[:200]
-            if errors:
-                return self.save_errors(errors, status_error)
-            #print(data_rows[0])
-            #print("LEN - data_rows: ", len(data_rows))
             if isinstance(data_rows, dict):
                 validated_data = data_rows
+            #print(data_rows[0])
+            #print("LEN - data_rows: ", len(data_rows))
             else:
+                if is_explore:
+                    data_rows = data_rows[:200]
+                if errors:
+                    return self.save_errors(errors, status_error)
                 validated_data_default = self.divide_rows(
                     data_rows, file_control, is_explore)
                 validated_data = {"default": 
