@@ -155,6 +155,7 @@ class ExtractorsMix:
             sample = ""
         is_byte = isinstance(sample, bytes)
         is_latin = False
+        delimiter = file_control.delimiter or "|"
         for row_seq, row in enumerate(data_rows, 1):
             #if row_seq < 5:
             #    print(row_seq, row)
@@ -176,7 +177,7 @@ class ExtractorsMix:
                             row = str(row)
             else:
                 row = str(row)
-            row_data = row.split(file_control.delimiter)
+            row_data = row.split(delimiter)
             if is_explore or len(row_data) == columns_count:
                 #row_data.insert(0, row_seq)
                 structured_data.append(row_data)
