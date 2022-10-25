@@ -77,7 +77,7 @@ class ExploreMix:
         #Se obienen todos los tipos del archivo inicial:
         print(self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
-        re_is_suffix = re.compile(r'^\.(\w{3,4})$')
+        re_is_suffix = re.compile(r'^\.([a-z]{3,4})$')
         suffixes = [suffix.lower() for suffix in suffixes
             if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
         print("suffixes", suffixes)
