@@ -73,10 +73,13 @@ class ExploreMix:
         from scripts.common import get_file, start_session, create_file
         from io import BytesIO
         from category.models import FileFormat
+        import re
         #Se obienen todos los tipos del archivo inicial:
         print(self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
-        suffixes = [suffix.lower() for suffix in suffixes]
+        re_is_suffix = re.compile(r'^\.(\w{3,4})$')
+        suffixes = [suffix.lower() for suffix in suffixes
+            if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
         print("suffixes", suffixes)
         if '.gz' in suffixes:
             #print("path", self.file.path)
@@ -175,8 +178,7 @@ class ExploreMix:
             suffixes.remove('.zip')
         #Obtener el tamaño
         #file_name = self.file_name
-        real_suffixes = [suff for suff in suffixes 
-            if len(suff) <= 5 and len(suff) > 2]
+        real_suffixes = suffixes
         if len(real_suffixes) != 1:
             errors = [("Tiene más o menos extensiones de las que"
                 " podemos reconocer: %s" % real_suffixes)]
