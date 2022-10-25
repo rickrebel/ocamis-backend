@@ -149,7 +149,11 @@ class ExtractorsMix:
         missing_data = []
         #print("delimiter", delimiter)
         encoding = "utf-8"
-        is_byte = isinstance(data_rows[3], bytes)
+        try:
+            sample = data_rows[3]
+        except Exception as e:
+            sample = ""
+        is_byte = isinstance(sample, bytes)
         is_latin = False
         for row_seq, row in enumerate(data_rows, 1):
             #if row_seq < 5:
