@@ -184,4 +184,5 @@ class EntityVizSerializer(EntitySerializer):
             "entity_type",
             "petitions",
             "months",
+            "population",
         ]

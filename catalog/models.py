@@ -197,9 +197,6 @@ class CLUES(models.Model):
         blank=True, null=True,
          verbose_name=u"FECHA ULTIMO MOVIMIENTO")
 
-
-
-
     def __str__(self):
         return self.clues
 
@@ -313,6 +310,8 @@ class Entity(models.Model):
         help_text="Es Competente porque tiene pacientes y debe tener la información")
     notes = models.TextField(blank=True, null=True)
     is_pilot = models.BooleanField(default=False)
+    population = models.IntegerField(
+        verbose_name="Derechohabientes", blank=True, null=True)
 
     def __str__(self):
         return self.name or u"%s -%s -%s" % (

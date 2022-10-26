@@ -177,7 +177,7 @@ class TransparencyIndex(models.Model):
 
 
     def __str__(self):
-        return self.public_name
+        return f"{self.public_name} ({self.short_name})"
 
     class Meta:
         verbose_name = u"Transparencia: Indicador"
@@ -189,6 +189,7 @@ class TransparencyLevel(models.Model):
     transparency_index = models.ForeignKey(
         TransparencyIndex, 
         verbose_name="Indicador de Transparencia",
+        related_name="levels",
         on_delete=models.CASCADE)
     short_name = models.CharField(max_length=20)
     public_name = models.CharField(max_length=80)
@@ -205,7 +206,12 @@ class TransparencyLevel(models.Model):
         help_text="Si existe, se va a ese nivel de indicador principal",
         blank=True, null=True, on_delete=models.CASCADE)
     color = models.CharField(max_length=20, blank=True, null=True)
-
+    order_viz = models.IntegerField(
+        default=-3, verbose_name="Orden en visualización")
+    value_ctrls = models.IntegerField(
+        default=-3, verbose_name="Priorización entre controles")
+    value_pets = models.IntegerField(
+        default=-3, verbose_name="Priorización entre solicitudes")
 
     def __str__(self):
         return f"{self.transparency_index} - {self.public_name}"

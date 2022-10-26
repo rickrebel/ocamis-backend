@@ -9,16 +9,19 @@ from data_param.models import (
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
-    CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer)
+    CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer,)
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
-    DateBreak, Anomaly, InvalidReason, FileFormat)
+    DateBreak, Anomaly, InvalidReason, FileFormat,
+    TransparencyIndex, TransparencyLevel)
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
     DateBreakSimpleSerializer, AnomalySimpleSerializer,
-    InvalidReasonSimpleSerializer, FileFormatSimpleSerializer)
+    InvalidReasonSimpleSerializer, FileFormatSimpleSerializer,
+    TransparencyIndexSimpleSerializer, TransparencyLevelSimpleSerializer,
+    TransparencyIndexSerializer)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
@@ -90,6 +93,9 @@ class CatalogViz(views.APIView):
     def get(self, request):
         #data = {}
         final_fields_query = FinalField.objects.filter(need_for_viz=True)
+        indeces_query = TransparencyIndex.objects.all()\
+            .prefetch_related(
+                "levels", "levels__anomalies", "levels__file_formats")
 
         data = {
             ## CATÁLOGOS DE PARÁMETROS:
@@ -97,6 +103,11 @@ class CatalogViz(views.APIView):
                 ParameterGroup.objects.all(), many=True).data,
             "final_fields": FinalFieldSimpleSerializer(
                 final_fields_query, many=True).data,
+            ## CATÁLOGOS DE TRANSPARENCIA:
+            "indeces": TransparencyIndexSerializer(
+                indeces_query, many=True).data,
+            #"levels": TransparencyLevelSimpleSerializer(
+            #    TransparencyLevel.objects.all(), many=True).data,
             ## CATÁLOGOS GENERALES:
             "negative_reasons": NegativeReasonSimpleSerializer(
                 NegativeReason.objects.all(), many=True).data,

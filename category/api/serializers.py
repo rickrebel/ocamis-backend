@@ -84,3 +84,11 @@ class TransparencyIndexSimpleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class TransparencyIndexSerializer(serializers.ModelSerializer):
+    levels = TransparencyLevelSimpleSerializer(many=True)
+
+    class Meta:
+        model = TransparencyIndex
+        fields = "__all__"
+
+

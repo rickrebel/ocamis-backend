@@ -75,8 +75,12 @@ ocamis_admin_site.register(TransparencyIndex, TransparencyIndexAdmin)
 
 class TransparencyLevelAdmin(admin.ModelAdmin):
     list_display = [
-    "short_name", "public_name", "value",
-    "final_level"]
+        "transparency_index", "short_name", "public_name", "value",
+        "order_viz", "value_ctrls", "value_pets",
+        "color", "final_level"]
+    list_editable = [
+        "color", "value", "order_viz", "value_ctrls", "value_pets"]
+    list_filter = ["transparency_index"]
 
 ocamis_admin_site.register(TransparencyLevel, TransparencyLevelAdmin)
 

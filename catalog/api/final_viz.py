@@ -15,12 +15,12 @@ def fetch_entities(include_groups):
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
     
     filter_petition_month = PetitionMonth.objects\
-        .filter(month_entity__year_month__lt="202207")
+        .filter(month_entity__year_month__lt="202209")
     prefetch_petition_month = Prefetch(
         "petitions__petition_months",
         queryset=filter_petition_month)
     filter_month = MonthEntity.objects\
-        .filter(year_month__lt="202207")
+        .filter(year_month__lt="202209")
     prefetch_month = Prefetch("months", queryset=filter_month)
     filter_file_control = FileControl.objects\
         .filter(data_group__name__in=include_groups)
@@ -52,3 +52,88 @@ def fetch_entities(include_groups):
                 "__columns__final_field__collection",
         )
     return all_entities
+
+
+
+def build_quality_simple(file_ctrl):          
+    clues = None
+    formula = None
+    droug = None
+    final_fields = file_ctrl["columns"]
+    
+    has_clues = ("CLUES", "clues") in final_fields or file_ctrl["has_ent_clues"]
+    has_name = ("CLUES", "name") in final_fields
+    if has_clues:
+        clues = "enough"
+    elif has_name:
+        clues = "almost_enough"
+    else:
+        clues = "not_enough"
+    emision = (("Prescription", "fecha_emision") in final_fields or
+        ("Prescription", "fecha_consulta") in final_fields)
+    entrega = ("Prescription", "fecha_entrega") in final_fields
+    folio = ("Prescription", "folio_documento") in final_fields
+    if folio and emision and entrega:
+        formula = "enough"
+    elif folio and (emision or entrega):
+        formula = "almost_enough"
+    else:
+        formula = "not_enough"
+    official_key = ("Container", "key2") in final_fields
+    prescrita = ("Droug", "cantidad_prescrita") in final_fields
+    entregada = ("Droug", "cantidad_entregada") in final_fields
+    own_key = ("Container", "_own_key") in final_fields
+    other_names = (("Droug", "droug_name") in final_fields or
+        ("Presentation", "description") in final_fields or
+        ("Container", "name") in final_fields)
+    if prescrita and entregada:
+        if official_key:
+            droug = "enough"
+        elif official_key or other_names or own_key:
+            droug = "almost_enough"
+    if not droug:
+        droug = "not_enough"
+    return clues, formula, droug
+
+
+
+def build_quality(entity, file_ctrls):
+    clues = 0
+    formula = 0
+    droug = 0
+    for file_ctrl in file_ctrls:
+        final_fields = file_ctrl["columns"]
+        has_clues = (("CLUES", "clues") in final_fields or 
+            entity["clues"])
+        has_name = ("CLUES", "name") in final_fields
+        if has_clues and clues < 2:
+            clues = 1
+        elif (has_clues or has_name) and clues < 3:
+            clues = 2
+        else:
+            clues = 3
+        emision = (("Prescription", "fecha_emision") in final_fields or
+            ("Prescription", "fecha_consulta") in final_fields)
+        entrega = ("Prescription", "fecha_entrega") in final_fields
+        folio = ("Prescription", "folio_documento") in final_fields
+        if folio and emision and entrega and formula < 2:
+            formula = 1
+        elif folio and (emision or entrega) and formula < 3:
+            formula = 2
+        else:
+            formula = 3
+        official_key = ("Container", "key2") in final_fields
+        prescrita = ("Droug", "cantidad_prescrita") in final_fields
+        entregada = ("Droug", "cantidad_entregada") in final_fields
+        own_key = ("Container", "_own_key") in final_fields
+        other_names = (("Droug", "droug_name") in final_fields or
+            ("Presentation", "description") in final_fields or
+            ("Container", "name") in final_fields)
+        if prescrita and entregada:
+            if official_key and droug < 2:
+                droug = 1
+            elif (official_key or other_names or own_key) and droug < 3:
+                droug = 2
+        if not droug:
+            droug = 3
+    return clues, formula, droug

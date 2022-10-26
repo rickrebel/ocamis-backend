@@ -42,8 +42,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
         "list": serializers.EntitySerializer,
         "retrieve": serializers.EntityFullSerializer,
         "update": serializers.EntitySerializer,
-        "data_viz_prev": serializers.EntityVizSerializer,
         "data_viz": serializers.EntityVizSerializer,
+        #"data_viz": serializers.EntityVizSerializer,
     }
 
     def get(self, request):
@@ -73,235 +73,30 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_202_ACCEPTED)
     
-    @action(methods=["get"], detail=False, url_path='data_viz_prev')
-    def data_viz_prev(self, request, **kwargs):
-        #import json
-        from django.db.models import Prefetch
-        from inai.models import (
-            NameColumn, Petition, FileControl, PetitionMonth, MonthEntity)
-        operability = {
-            "ideal": {
-                "formats": ["csv", "json", "txt"],
-                "anomalies": [],
-                "others": [],
-            },
-            "aceptable": {
-                "formats": ["xls"],
-                "anomalies": [
-                    "code_headers",
-                    "no_headers",
-                    "hide_colums_tabs"
-                ],
-                "others": [],
-            },
-            "enhaced": {
-                "formats": [],
-                "anomalies": [
-                    "different_tipe_tabs",
-                    "internal_catalogue",
-                    "hide_colums_tabs",
-                    "no_valid_row_data",
-                    "concatenated"
-                    "same_group_data",
-                    #solo para local:
-                    "abasdf",
-                ],
-                "others": ["many_file_controls"],
-            },
-            "impeachable": {
-                "formats": ["pdf", "word", "email", "other"],
-                "anomalies": ["row_spaces"],
-                "others": [],
-            },
-        }
-        enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
-
-        pilot = request.query_params.get("is_pilot", "false")
-        is_pilot = pilot.lower() in ["si", "yes", "true"]
-        filter_columns = NameColumn.objects.filter(
-            final_field__isnull=False, final_field__need_for_viz=True)
-        prefetch_columns = Prefetch(
-            "petitions__file_controls__file_control__columns", 
-            queryset=filter_columns)
-        filter_petitions = Petition.objects\
-            .exclude(status_petition__name="mistake", )
-        prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
-        include_groups = ["detailed", "stock"]
-        filter_petition_month = PetitionMonth.objects\
-            .filter(month_entity__year_month__lt="202207")
-        prefetch_petition_month = Prefetch(
-            "petitions__petition_months",
-            queryset=filter_petition_month)
-        filter_month = MonthEntity.objects\
-            .filter(year_month__lt="202207")
-        prefetch_month = Prefetch("months", queryset=filter_month)
-        filter_file_control = FileControl.objects\
-            .filter(data_group__name__in=include_groups)
-        prefetch_file_control = Prefetch(
-            "petitions__file_controls__file_control",
-            queryset=filter_file_control)
-        all_entities = Entity.objects\
-            .filter(competent=True, vigencia=True)\
-            .prefetch_related(
-                "institution",
-                "clues",
-                "state",
-                #"months"
-                prefetch_month,
-                #"petitions",
-                prefetch_petitions,
-                "petitions__status_data",
-                "petitions__status_petition",
-                prefetch_petition_month,
-                #"petitions__petition_months",
-                "petitions__negative_reasons",
-                "petitions__petition_months__month_entity",
-                #prefetch_file_control,
-                "petitions__file_controls__file_control",
-                "petitions__file_controls__file_control__data_group",
-                prefetch_columns,
-                "petitions__file_controls__file_control__columns__final_field",
-                "petitions__file_controls__file_control__columns__final_field__collection",
-            )
-        if is_pilot:
-            all_entities = all_entities.filter(is_pilot=True)
-
-        serializer = self.get_serializer_class()(
-            all_entities, many=True, context={'request': request})
-
-        final_data = []
-        status_no_data = ["no_data", "waiting", "pick_up"]
-        for entity in serializer.data:
-            for petition in entity["petitions"]:
-                status_data = petition["status_data"]
-                for data_group in include_groups:
-                    file_ctrls = [
-                        file_ctrl for file_ctrl in petition["file_controls"]
-                        if file_ctrl["data_group"]["name"] == data_group ]
-                    file_formats = [
-                        file_ctrl["format_file"] for file_ctrl in file_ctrls]
-                    anomalies = []
-                    for file_ctrl in file_ctrls:
-                        anomalies += file_ctrl["anomalies"]
-                    file_ctrls_count = len(file_ctrls)
-                    many_file_controls = file_ctrls_count > 1
-                    final_operativ = None
-                    for (curr_operativ, params) in operability.items():
-                        if not set(params["formats"]).isdisjoint(set(file_formats)):
-                            final_operativ = curr_operativ
-                        if not set(params["anomalies"]).isdisjoint(set(anomalies)):
-                            final_operativ = curr_operativ
-                        for other in params["others"]:
-                            if locals()[other]:
-                                final_operativ = curr_operativ
-                    if not status_data or status_data["name"] in status_no_data:
-                        final_operativ = "no_data"
-                    petition[data_group] = {
-                        "file_formats": file_formats,
-                        "many_file_controls": many_file_controls,
-                        "operativ": final_operativ,
-                        "file_ctrls_count": file_ctrls_count,
-                    }
-
-                    if data_group != "detailed":
-                        continue
-                    clues = 0
-                    formula = 0
-                    droug = 0
-                    for file_ctrl in file_ctrls:
-                        final_fields = file_ctrl["columns"]
-                        has_clues = (("CLUES", "clues") in final_fields or 
-                            entity["clues"])
-                        has_name = ("CLUES", "name") in final_fields
-                        if has_clues and clues < 2:
-                            clues = 1
-                        elif (has_clues or has_name) and clues < 3:
-                            clues = 2
-                        else:
-                            clues = 3
-                        emision = (("Prescription", "fecha_emision") in final_fields or
-                            ("Prescription", "fecha_consulta") in final_fields)
-                        entrega = ("Prescription", "fecha_entrega") in final_fields
-                        folio = ("Prescription", "folio_documento") in final_fields
-                        if folio and emision and entrega and formula < 2:
-                            formula = 1
-                        elif folio and (emision or entrega) and formula < 3:
-                            formula = 2
-                        else:
-                            formula = 3
-                        official_key = ("Container", "key2") in final_fields
-                        prescrita = ("Droug", "cantidad_prescrita") in final_fields
-                        entregada = ("Droug", "cantidad_entregada") in final_fields
-                        own_key = ("Container", "_own_key") in final_fields
-                        other_names = (("Droug", "droug_name") in final_fields or
-                            ("Presentation", "description") in final_fields or
-                            ("Container", "name") in final_fields)
-                        if prescrita and entregada:
-                            if official_key and droug < 2:
-                                droug = 1
-                            elif (official_key or other_names or own_key) and droug < 3:
-                                droug = 2
-                        if not droug:
-                            droug = 3
-                    if not status_data or status_data["name"] in status_no_data:
-                        petition[data_group]["clues"] = "no_data"
-                        petition[data_group]["formula"] = "no_data"
-                        petition[data_group]["droug"] = "no_data"
-                        petition[data_group]["qual_detailed"] = "no_data"
-                    else:
-                        petition[data_group]["clues"] = enoughs[clues]
-                        petition[data_group]["formula"] = enoughs[formula]
-                        petition[data_group]["droug"] = enoughs[droug]
-                        max_value = max([clues, formula, droug])
-                        petition[data_group]["qual_detailed"] = enoughs[max_value]
-
-            final_data.append(entity)
-
-        #return Response(
-        #    serializer.data, status=status.HTTP_200_OK)
-        return Response(final_data, status=status.HTTP_200_OK)
-
     @action(methods=["get"], detail=False, url_path='data_viz')
     def data_viz(self, request, **kwargs):
-        from catalog.api.final_viz import fetch_entities
         #import json
-
-        operability = {
-            "ideal": {
-                "formats": ["csv", "json", "txt"],
-                "anomalies": [],
-                "others": [],
-            },
-            "aceptable": {
-                "formats": ["xls"],
-                "anomalies": [
-                    "code_headers",
-                    "no_headers",
-                    "hide_colums_tabs"
-                ],
-                "others": [],
-            },
-            "enhaced": {
-                "formats": [],
-                "anomalies": [
-                    "different_tipe_tabs",
-                    "internal_catalogue",
-                    "hide_colums_tabs",
-                    "no_valid_row_data",
-                    "concatenated"
-                    "same_group_data",
-                    #solo para local:
-                    "abasdf",
-                ],
-                "others": ["many_file_controls"],
-            },
-            "impeachable": {
-                "formats": ["pdf", "word", "email", "other"],
-                "anomalies": ["row_spaces"],
-                "others": [],
-            },
-        }
-        enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
+        from catalog.api.final_viz import (
+            fetch_entities, build_quality, build_quality_simple)
+        from category.models import TransparencyIndex, TransparencyLevel
+        from category.api.serializers import (
+            TransparencyIndexSerializer, TransparencyLevelSimpleSerializer)
+        from inai.models import FileControl
+        from inai.api.serializers import FileControlSimpleSerializer
+        from inai.api.serializers_viz import (
+            FileControlViz2Serializer)
+        indeces_query = TransparencyIndex.objects.all()\
+            .prefetch_related(
+                "levels", "levels__anomalies", "levels__file_formats")
+        indeces = TransparencyIndexSerializer(indeces_query, many=True).data
+        #operability = indeces_query.filter(short_name="operability").first()
+        #operability_levels = operability.levels.all()
+        operb_levels_query = TransparencyLevel.objects\
+            .filter(transparency_index__short_name="operability")\
+            .prefetch_related("anomalies", "file_formats")\
+            .order_by("value")
+        operability_levels = TransparencyLevelSimpleSerializer(
+            operb_levels_query, many=True).data
 
         pilot = request.query_params.get("is_pilot", "false")
         is_pilot = pilot.lower() in ["si", "yes", "true"]
@@ -310,109 +105,88 @@ class EntityViewSet(ListRetrieveUpdateMix):
         if is_pilot:
             all_entities = all_entities.filter(is_pilot=True)
 
-        #serializer = self.get_serializer_class()(
-        #    all_entities, many=True, context={'request': request})
+        serializer = self.get_serializer_class()(
+            all_entities, many=True, context={'request': request})
+        detailed_controls_query = FileControl.objects\
+            .filter(
+                data_group__name="detailed",
+                petition_file_control__data_files__isnull=False,
+            )\
+            .prefetch_related(
+                "anomalies",
+                "columns__final_field",
+                "columns__final_field__collection",
+                "petition_file_control__petition__entity"
+            )\
+            .distinct()
+        #detailed_controls_query
+        #detailed_controls = {}
+        #detailed_controls = FileControlSimpleSerializer(
+        detailed_controls = FileControlViz2Serializer(
+            detailed_controls_query, many=True).data
+        
+        for file_ctrl in detailed_controls:
+            anomalies = set(file_ctrl["anomalies"])
+            file_formats = set([file_ctrl["format_file"]])
+            final_operatib = "other_oper"
+            for level in operability_levels:
+                if not set(level["file_formats"]).isdisjoint(file_formats):
+                    final_operatib = level["short_name"]
+                if not set(level["anomalies"]).isdisjoint(anomalies):
+                    final_operatib = level["short_name"]
+                #for other_cond in level["other_conditions"]:
+                #    if locals()[other_cond]:
+                #        final_operatib = level["short_name"]
+            file_ctrl["operability_name"] = final_operatib
+            try:
+                file_ctrl["has_ent_clues"] = bool(
+                    file_ctrl["petition_file_control"][0])
+            except:
+                file_ctrl["has_ent_clues"] = False
+            clues, formula, droug = build_quality_simple(file_ctrl)
+            file_ctrl["entity"] = file_ctrl["entities"][0]
+            file_ctrl["quality_names"] = {}
+            file_ctrl["quality_names"]["clues"] = clues
+            file_ctrl["quality_names"]["formula"] = formula
+            file_ctrl["quality_names"]["droug"] = droug
+            all_comps = [clues, formula, droug]
+            final_qual = "not_enough"
+            quality_levels = ["enough", "almost_enough", "not_enough"]
+            for qual_level in quality_levels:
+                if qual_level in all_comps:
+                    final_qual = qual_level
+            file_ctrl["quality_names"]["final"] = final_qual
+        #detailed_controls
 
-        final_data = []
-        status_no_data = ["no_data", "waiting", "pick_up"]
-        #for entity in serializer.data:
-        for entity in all_entities:
-            for petition in entity.petitions.all():
-                status_data = petition.status_data
-                for data_group in include_groups:
-                    file_ctrls = [
-                        file_ctrl for file_ctrl in petition.file_controls.all()
-                        if file_ctrl.data_group.name == data_group ]
-                    file_formats = [
-                        file_ctrl.format_file for file_ctrl in file_ctrls]
-                    anomalies = []
-                    for file_ctrl in file_ctrls:
-                        anomalies += file_ctrl.anomalies.all()\
-                            .values_list("name", flat=True)
-                    file_ctrls_count = len(file_ctrls)
-                    many_file_controls = file_ctrls_count > 1
-                    final_operativ = None
-                    for (curr_operativ, params) in operability.items():
-                        if not set(params["formats"]).isdisjoint(set(file_formats)):
-                            final_operativ = curr_operativ
-                        if not set(params["anomalies"]).isdisjoint(set(anomalies)):
-                            final_operativ = curr_operativ
-                        for other in params["others"]:
-                            if locals()[other]:
-                                final_operativ = curr_operativ
-                    if not status_data or status_data.name in status_no_data:
-                        final_operativ = "no_data"
-                    setattr(petition, "data_group", {
-                        "file_formats": file_formats,
-                        "many_file_controls": many_file_controls,
-                        "operativ": final_operativ,
-                        "file_ctrls_count": file_ctrls_count,
-                    })
+        #.filter(petition_file_control="detailed")\
 
-                    if data_group != "detailed":
-                        continue
-                    clues = 0
-                    formula = 0
-                    droug = 0
-                    for file_ctrl in file_ctrls:
-                        final_fields = file_ctrl.columns\
-                            .filter(final_field__need_for_viz=True)\
-                            .values_list(
-                                "final_field__collection__model_name",
-                                "final_field__name")
-                        final_fields = tuple(final_fields)
-                        has_clues = (("CLUES", "clues") in final_fields or
-                            entity.clues)
-                        has_name = ("CLUES", "name") in final_fields
-                        if has_clues and clues < 2:
-                            clues = 1
-                        elif (has_clues or has_name) and clues < 3:
-                            clues = 2
-                        else:
-                            clues = 3
-                        emision = (("Prescription", "fecha_emision") in final_fields or
-                            ("Prescription", "fecha_consulta") in final_fields)
-                        entrega = ("Prescription", "fecha_entrega") in final_fields
-                        folio = ("Prescription", "folio_documento") in final_fields
-                        if folio and emision and entrega and formula < 2:
-                            formula = 1
-                        elif folio and (emision or entrega) and formula < 3:
-                            formula = 2
-                        else:
-                            formula = 3
-                        official_key = ("Container", "key2") in final_fields
-                        prescrita = ("Droug", "cantidad_prescrita") in final_fields
-                        entregada = ("Droug", "cantidad_entregada") in final_fields
-                        own_key = ("Container", "_own_key") in final_fields
-                        other_names = (("Droug", "droug_name") in final_fields or
-                            ("Presentation", "description") in final_fields or
-                            ("Container", "name") in final_fields)
-                        if prescrita and entregada:
-                            if official_key and droug < 2:
-                                droug = 1
-                            elif (official_key or other_names or own_key) and droug < 3:
-                                droug = 2
-                        if not droug:
-                            droug = 3
-                    pet_dg = setattr(petition, data_group, {})
-                    if not status_data or status_data.name in status_no_data:
-                        pet_dg.clues = "no_data"
-                        pet_dg.formula = "no_data"
-                        pet_dg.droug = "no_data"
-                        pet_dg.qual_detailed = "no_data"
-                    else:
-                        pet_dg.clues = enoughs[clues]
-                        pet_dg.formula = enoughs[formula]
-                        pet_dg.droug = enoughs[droug]
-                        max_value = max([clues, formula, droug])
-                        pet_dg.qual_detailed = enoughs[max_value]
+        status_negative = [
+            "waiting", "pick_up", "no_response", "negative_response"]
+        status_delivered = ["with_data", "partial_data"]
+        #enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
+        final_data = {"file_controls": detailed_controls}
+        final_data["entities"] = []
+        for entity in serializer.data:
+            #entity["file_ctrls"] = [ctrl for ctrl in detailed_controls 
+            #    if ctrl["entity"] and entity["id"]]
+            for petition in entity["petitions"]:
+                status_data = petition["status_data"]
+                if not status_data or status_data in status_negative:
+                    petition["access_name"] = "negative"
+                elif status_data == "no_response":
+                    petition["access_name"] = "no_response"
+                elif status_data in status_delivered:
+                    petition["access_name"] = "delivered"
+                else:
+                    petition["access_name"] = "other"
+                    many_ctrls = len(petition["file_controls"]) > 1
+                    petition["many_file_controls"] = many_ctrls
 
-            final_data.append(entity)
+            final_data["entities"].append(entity)
 
         #return Response(
         #    serializer.data, status=status.HTTP_200_OK)
         return Response(final_data, status=status.HTTP_200_OK)
-
 
 class InstitutionList(ListMix):
     permission_classes = (permissions.AllowAny,)
