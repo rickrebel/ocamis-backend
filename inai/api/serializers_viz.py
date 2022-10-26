@@ -84,6 +84,7 @@ class FileControlViz2Serializer(serializers.ModelSerializer):
         fields = [
             "id",
             "format_file",
+            "file_format",
             "anomalies",
             #"data_group",
             "columns",

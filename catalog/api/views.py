@@ -110,7 +110,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
         detailed_controls_query = FileControl.objects\
             .filter(
                 data_group__name="detailed",
-                petition_file_control__data_files__isnull=False,
             )\
             .prefetch_related(
                 "anomalies",
@@ -122,13 +121,15 @@ class EntityViewSet(ListRetrieveUpdateMix):
         #detailed_controls_query
         #detailed_controls = {}
         #detailed_controls = FileControlSimpleSerializer(
+        print(detailed_controls_query.count())
         detailed_controls = FileControlViz2Serializer(
             detailed_controls_query, many=True).data
-        
+        print(len(detailed_controls))
         for file_ctrl in detailed_controls:
             anomalies = set(file_ctrl["anomalies"])
-            file_formats = set([file_ctrl["format_file"]])
+            file_formats = set([file_ctrl["file_format"]])
             final_operatib = "other_oper"
+            #print(file_formats)
             for level in operability_levels:
                 if not set(level["file_formats"]).isdisjoint(file_formats):
                     final_operatib = level["short_name"]
@@ -160,9 +161,9 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
         #.filter(petition_file_control="detailed")\
 
-        status_negative = [
-            "waiting", "pick_up", "no_response", "negative_response"]
+        status_negative = [ "negative_response"]
         status_delivered = ["with_data", "partial_data"]
+        status_other = ["waiting", "pick_up",]
         #enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
         final_data = {"file_controls": detailed_controls}
         final_data["entities"] = []
@@ -171,16 +172,21 @@ class EntityViewSet(ListRetrieveUpdateMix):
             #    if ctrl["entity"] and entity["id"]]
             for petition in entity["petitions"]:
                 status_data = petition["status_data"]
+                print(status_data)
                 if not status_data or status_data in status_negative:
                     petition["access_name"] = "negative"
                 elif status_data == "no_response":
                     petition["access_name"] = "no_response"
                 elif status_data in status_delivered:
                     petition["access_name"] = "delivered"
+                elif status_data in status_other:
+                    petition["access_name"] = "other_access"
                 else:
-                    petition["access_name"] = "other"
-                    many_ctrls = len(petition["file_controls"]) > 1
-                    petition["many_file_controls"] = many_ctrls
+                    petition["access_name"] = "other_access"
+                print(petition["access_name"])
+                print("-------------")
+                many_ctrls = len(petition["file_controls"]) > 1
+                petition["many_file_controls"] = many_ctrls
 
             final_data["entities"].append(entity)
 
