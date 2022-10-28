@@ -217,5 +217,6 @@ class TransparencyLevel(models.Model):
         return f"{self.transparency_index} - {self.public_name}"
 
     class Meta:
+        ordering = ["order_viz"]
         verbose_name = u"Transparencia: Nivel"
         verbose_name_plural = u"Transparencia: Niveles"

@@ -121,10 +121,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
         #detailed_controls_query
         #detailed_controls = {}
         #detailed_controls = FileControlSimpleSerializer(
-        print(detailed_controls_query.count())
         detailed_controls = FileControlViz2Serializer(
             detailed_controls_query, many=True).data
-        print(len(detailed_controls))
         for file_ctrl in detailed_controls:
             anomalies = set(file_ctrl["anomalies"])
             file_formats = set([file_ctrl["file_format"]])
@@ -172,7 +170,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
             #    if ctrl["entity"] and entity["id"]]
             for petition in entity["petitions"]:
                 status_data = petition["status_data"]
-                print(status_data)
                 if not status_data or status_data in status_negative:
                     petition["access_name"] = "negative"
                 elif status_data == "no_response":
@@ -183,8 +180,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     petition["access_name"] = "other_access"
                 else:
                     petition["access_name"] = "other_access"
-                print(petition["access_name"])
-                print("-------------")
                 many_ctrls = len(petition["file_controls"]) > 1
                 petition["many_file_controls"] = many_ctrls
 
