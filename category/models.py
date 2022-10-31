@@ -158,7 +158,6 @@ class Anomaly(models.Model):
         max_length=30, blank=True, null=True,
         verbose_name=u"Color")
 
-
     def __str__(self):
         return self.public_name
 
@@ -174,12 +173,14 @@ class TransparencyIndex(models.Model):
     scheme_color = models.CharField(
         max_length=90, blank=True, null=True, verbose_name="Esquema de color")
     viz_params = JSONField(default=default_dict, blank=True)
-
+    order_viz = models.IntegerField(
+        default=-3, verbose_name="Orden en visualización")
 
     def __str__(self):
-        return f"{self.public_name} ({self.short_name})"
+        return f"{self.public_name}\n ({self.short_name})"
 
     class Meta:
+        ordering = ["order_viz"]
         verbose_name = u"Transparencia: Indicador"
         verbose_name_plural = u"Transparencia: Indicadores"
 
@@ -202,7 +203,7 @@ class TransparencyLevel(models.Model):
         FileFormat, blank=True, verbose_name="Formatos de archivo")
     other_conditions = JSONField(default=default_list, blank=True)
     final_level = models.ForeignKey("TransparencyLevel", 
-        verbose_name="nivel principal", 
+        verbose_name="Concentrado destino", 
         help_text="Si existe, se va a ese nivel de indicador principal",
         blank=True, null=True, on_delete=models.CASCADE)
     color = models.CharField(max_length=20, blank=True, null=True)
@@ -213,10 +214,14 @@ class TransparencyLevel(models.Model):
     value_pets = models.IntegerField(
         default=-3, verbose_name="Priorización entre solicitudes")
 
+    @property
+    def index_short_name(self):
+        return self.transparency_index.short_name
+
     def __str__(self):
         return f"{self.transparency_index} - {self.public_name}"
 
     class Meta:
-        ordering = ["order_viz"]
+        ordering = ["transparency_index__order_viz", "-order_viz"]
         verbose_name = u"Transparencia: Nivel"
         verbose_name_plural = u"Transparencia: Niveles"

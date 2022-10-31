@@ -1,5 +1,6 @@
 from django.contrib import admin
 from inai.admin import ocamis_admin_site
+from django.utils.html import format_html
 
 from .models import (
     FileType, StatusControl, ColumnType, NegativeReason, DateBreak, Anomaly,
@@ -75,12 +76,23 @@ ocamis_admin_site.register(TransparencyIndex, TransparencyIndexAdmin)
 
 class TransparencyLevelAdmin(admin.ModelAdmin):
     list_display = [
-        "transparency_index", "short_name", "public_name", "value",
+        "short_name", "public_name", "display_index", "value",
         "order_viz", "value_ctrls", "value_pets",
-        "color", "final_level"]
+        "color", "display_final"]
     list_editable = [
         "color", "value", "order_viz", "value_ctrls", "value_pets"]
     list_filter = ["transparency_index"]
+
+    def display_index(self, obj):
+        names = [
+            obj.transparency_index.public_name, 
+            f"({obj.transparency_index.short_name})"]
+        return format_html("<br>".join(names))
+    display_index.short_description = "Indicador"
+
+    def display_final(self, obj):
+        return format_html(obj.final_level.public_name) if obj.final_level else ""
+    display_index.short_description = "Concentrado destino"
 
 ocamis_admin_site.register(TransparencyLevel, TransparencyLevelAdmin)
 

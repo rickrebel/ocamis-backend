@@ -18,3 +18,15 @@ def join_fields():
 
 
 
+
+def re_suffixes():
+    import re
+    lines = [".xls", ".doc", ".zip", ".HG", ".11", ".docso"]
+    re_is_suffix = re.compile(r'^\.(\w{3,4})$')
+
+    for line in lines:
+        print(line)
+        is_suffix = bool(re.search(re_is_suffix, line))
+        print(is_suffix)
+        print("-----------")
+

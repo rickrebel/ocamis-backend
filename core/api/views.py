@@ -50,8 +50,8 @@ class CatalogView(views.APIView):
         final_fields_query = FinalField.objects.filter(dashboard_hide=False)
 
         data = {
-            "file_controls": FileControlFullSerializer(
-                file_control_query, many=True).data,
+            #"file_controls": FileControlFullSerializer(
+            #    file_control_query, many=True).data,
             "entities": EntitySerializer(entities_query, many=True).data,
             ## CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
