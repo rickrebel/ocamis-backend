@@ -115,9 +115,6 @@ petitions = sorted(petitions, key=lambda i: i['fecha_orden'])
 #    print(pet["fechaEnvio"])
 
 
-
-
-
 def unescape(val):
     import html
     return html.unescape(val)
@@ -219,7 +216,7 @@ def insert_from_json(
         unique_query = {
             #Item["final_field"]:row.get(Item[main_key], related_elem)
             #    for Item in unique_columns }
-            Item["final_field"]:row.get(Item[main_key], related_elem)
+            Item["final_field"]: row.get(Item[main_key], related_elem)
                 for Item in main_columns if Item.get('unique', False)}
         #list(filter(lambda d: d['unique'] in keyValList, exampleSet))
         try:
