@@ -202,6 +202,7 @@ class TransparencyLevel(models.Model):
     file_formats = models.ManyToManyField(
         FileFormat, blank=True, verbose_name="Formatos de archivo")
     other_conditions = JSONField(default=default_list, blank=True)
+    viz_params = JSONField(default=default_dict, blank=True)
     final_level = models.ForeignKey("TransparencyLevel", 
         verbose_name="Concentrado destino", 
         help_text="Si existe, se va a ese nivel de indicador principal",
