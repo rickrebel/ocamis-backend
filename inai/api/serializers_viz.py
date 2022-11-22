@@ -153,6 +153,7 @@ class PetitionVizSerializer(serializers.ModelSerializer):
             "file_controls",
             "status_data",
             "status_petition",
+            "send_petition",
             "months",
             "negative_reasons",
             "invalid_reason",
