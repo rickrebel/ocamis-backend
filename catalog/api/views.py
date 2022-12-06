@@ -80,7 +80,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
     def data_viz(self, request, **kwargs):
         #import json
         from catalog.api.final_viz import (
-            fetch_entities, build_quality, build_quality_simple)
+            fetch_entities, build_quality_simple)
         from category.models import TransparencyIndex, TransparencyLevel
         from category.api.serializers import (
             TransparencyIndexSerializer, TransparencyLevelSimpleSerializer)

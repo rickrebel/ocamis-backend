@@ -82,12 +82,13 @@ def build_quality_simple(file_ctrl):
     official_key = ("Container", "key2") in final_fields
     prescrita = ("Droug", "cantidad_prescrita") in final_fields
     entregada = ("Droug", "cantidad_entregada") in final_fields
+    assortment = ("Droug", "clasif_assortment") in final_fields
     own_key = ("Container", "_own_key") in final_fields
     other_names = (("Droug", "droug_name") in final_fields or
         ("Presentation", "description") in final_fields or
         ("Container", "name") in final_fields)
-    if prescrita and entregada:
-        if official_key:
+    if prescrita and (entregada or assortment):
+        if official_key and entregada:
             droug = "enough"
         elif official_key or other_names or own_key:
             droug = "almost_enough"

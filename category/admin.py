@@ -76,11 +76,10 @@ ocamis_admin_site.register(TransparencyIndex, TransparencyIndexAdmin)
 
 class TransparencyLevelAdmin(admin.ModelAdmin):
     list_display = [
-        "short_name", "public_name", "display_index", "value",
-        "order_viz", "value_ctrls", "value_pets",
-        "color", "display_final"]
+        "short_name", "public_name", "display_index", "display_final", "value",
+        "order_viz", "value_ctrls", "value_pets", "is_default"]
     list_editable = [
-        "color", "value", "order_viz", "value_ctrls", "value_pets"]
+        "value", "order_viz", "value_ctrls", "value_pets", "is_default"]
     list_filter = ["transparency_index"]
 
     def display_index(self, obj):
@@ -92,7 +91,7 @@ class TransparencyLevelAdmin(admin.ModelAdmin):
 
     def display_final(self, obj):
         return format_html(obj.final_level.public_name) if obj.final_level else ""
-    display_index.short_description = "Concentrado destino"
+    display_final.short_description = "Concentrado destino"
 
 ocamis_admin_site.register(TransparencyLevel, TransparencyLevelAdmin)
 
