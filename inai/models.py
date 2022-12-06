@@ -145,7 +145,7 @@ class Petition(models.Model):
 
     class Meta:
         verbose_name = u"Solicitud - Petición"
-        verbose_name_plural = u"Solicitudes (Petiticiones)"
+        verbose_name_plural = u"Solicitudes (Peticiones)"
 
 
 class PetitionBreak(models.Model):

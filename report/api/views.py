@@ -782,15 +782,20 @@ class DinamicList(views.APIView):
         
         vals = group_params.get("vals", None)
         final_groups = values_group + [vals[1]] if vals else values_group
-        has_vals = vals and vals[0] != vals[1]
-        compl_annotates = {vals[0]: F(vals[1])} if has_vals else {}        
+        #has_vals = vals and vals[0] != vals[1]
+        if vals and vals[0] != vals[1]:
+            annotates[vals[0]] = F(vals[1])
+        #compl_annotates = {vals[0]: F(vals[1])} if has_vals else {}
         #compl_annotates = {vals[0]: F(vals[1])} if vals else {}
-        final_display = display_vals + [vals[0]] if vals else display_vals
+        if vals:
+            display_vals.append(vals[0])
+        #final_display = (display_vals + [vals[0]]) if vals else display_vals
+        #.annotate(**{**annotates, **compl_annotates})\
         data = Supply.objects\
             .filter(**{**query_kwargs, **group_params.get("filter", {})})\
             .annotate(month=TruncMonth('report__created'))\
             .values(*final_groups)\
-            .annotate(**{**annotates, **compl_annotates})\
+            .annotate(**annotates)\
             .values(*final_display)
         #.values(*values_group+group_params.get("values", []))\
         #.annotate(**{**annotates, **group_params.get("annotates", {})})\

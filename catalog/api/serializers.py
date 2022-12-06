@@ -123,7 +123,7 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
     
     def get_file_controls(self, obj):
         from inai.models import FileControl
-        from inai.api.serializers import FileControlFullSerializer
+        from inai.api.serializers import FileControlSemiFullSerializer
         queryset = FileControl.objects\
             .filter(petition_file_control__petition__entity=obj)\
             .distinct()\
@@ -132,11 +132,11 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
                 "file_type",
                 "columns",
                 "columns__column_transformations",
-                "petition_file_control",
-                "petition_file_control__data_files",
-                "petition_file_control__data_files__origin_file",
+                #"petition_file_control",
+                #"petition_file_control__data_files",
+                #"petition_file_control__data_files__origin_file",
             )
-        return FileControlFullSerializer(queryset, many=True).data
+        return FileControlSemiFullSerializer(queryset, many=True).data
 
     class Meta:
         model = Entity
@@ -144,10 +144,11 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
 
 
 class EntityFullSerializer(EntitySerializer, EntityFileControlsSerializer):
+#class EntityFullSerializer(EntitySerializer):
     from inai.api.serializers import (
-        PetitionFullSerializer, MonthEntitySimpleSerializer)
+        PetitionSemiFullSerializer, MonthEntitySimpleSerializer)
 
-    petitions = PetitionFullSerializer(many=True)
+    petitions = PetitionSemiFullSerializer(many=True)
     months = MonthEntitySimpleSerializer(many=True)
     #entity_type = read_only_fields(many=True)
 

@@ -7,11 +7,19 @@ from rest_framework.decorators import action
 from inai.models import (
     FileControl, Petition, MonthEntity, PetitionMonth, PetitionBreak,
     ProcessFile, PetitionFileControl, DataFile, Transformation)
+from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
     MultiSerializerCreateRetrieveMix as CreateRetrievView, 
     MultiSerializerModelViewSet)
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
+
+
+class NormalResultsSetPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 500
+# -----------------------------------------------------------------------------
 
 
 class PetitionViewSet(ListRetrieveUpdateMix):
@@ -22,6 +30,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         "create": serializers.PetitionEditSerializer,
         "retrieve": serializers.PetitionFullSerializer,
         "update": serializers.PetitionEditSerializer,
+        #"list": serializers.PetitionFilterSerializer,
         #"change_months": serializers.PetitionEditSerializer,
     }
 
@@ -154,6 +163,17 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             new_serializer.data, status=status.HTTP_201_CREATED)
 
 
+class PetitionList(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+    pagination_class = NormalResultsSetPagination
+    
+    def get(self, request):
+        status_petition = request.query_params.get("status_petition")
+        #state_inegi_code = request.query_params.get("estado")
+
+        serial = serializers.PetitionFilterSerializer()
+
+
 class ProcessFileViewSet(MultiSerializerModelViewSet):
     queryset = ProcessFile.objects.all()
     serializer_class = serializers.ProcessFileSerializer
@@ -210,6 +230,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             "data_group",
             "file_type",
             "columns",
+            "file_transformations",
             "columns__column_transformations",
             "petition_file_control",
             "petition_file_control__data_files",
@@ -300,8 +321,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         #return Response(
         #    serializer_file_control.data, status=status.HTTP_206_PARTIAL_CONTENT)
 
-
-
     @action(methods=["post"], detail=True, url_path='columns')
     def columns(self, request, **kwargs):
         from inai.models import NameColumn, FileControl
@@ -360,13 +379,13 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
 class PetitionFileControlViewSet(CreateRetrievView):
     queryset = PetitionFileControl.objects.all()
-    serializer_class = serializers.PetitionFileControlSerializer
+    serializer_class = serializers.PetitionFileControlFullSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "list": serializers.PetitionFileControlSerializer,
-        "retrieve": serializers.PetitionFileControlSerializer,
-        "create": serializers.PetitionFileControlSerializer,
-        "delete": serializers.PetitionFileControlSerializer,
+        "list": serializers.PetitionFileControlFullSerializer,
+        "retrieve": serializers.PetitionFileControlFullSerializer,
+        "create": serializers.PetitionFileControlFullSerializer,
+        "delete": serializers.PetitionFileControlFullSerializer,
     }
 
     def get_queryset(self):

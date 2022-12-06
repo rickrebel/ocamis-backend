@@ -28,6 +28,10 @@ class EntityViewSet(ListRetrieveUpdateMix):
             "petitions",
             "petitions__petition_months",
             "petitions__file_controls",
+            "petitions__break_dates",
+            "petitions__negative_reasons",
+            "petitions__negative_reasons__negative_reason",
+            "petitions__file_controls",
             #"petitions__file_controls__file_control",
             #"petitions__file_controls__file_control__data_group",
             #"petitions__file_controls__file_control__file_type",
@@ -43,7 +47,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
         "retrieve": serializers.EntityFullSerializer,
         "update": serializers.EntitySerializer,
         "data_viz": serializers.EntityVizSerializer,
-        #"data_viz": serializers.EntityVizSerializer,
     }
 
     def get(self, request):
