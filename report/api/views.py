@@ -796,7 +796,7 @@ class DinamicList(views.APIView):
             .annotate(month=TruncMonth('report__created'))\
             .values(*final_groups)\
             .annotate(**annotates)\
-            .values(*final_display)
+            .values(*display_vals)
         #.values(*values_group+group_params.get("values", []))\
         #.annotate(**{**annotates, **group_params.get("annotates", {})})\
         #.values(*display_vals+group_params.get("display_vals", []))
