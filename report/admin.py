@@ -140,7 +140,8 @@ class ReportAdmin(admin.ModelAdmin):
     list_display = [
         "created", "informer_type", "disease_raw", "state_short_name",
         "clues_clues", "supplies_display"]
-    list_filter = ["institution", "state", TestimonyNullFilterSpec]
+    list_filter = [
+        "institution", "state", TestimonyNullFilterSpec, "origin_app"]
     readonly_fields = ["created"]
     inlines = [ComplementInLine, SupplyInLine, TestimonyMediaInLine]
     raw_id_fields = ["clues"]

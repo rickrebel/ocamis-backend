@@ -94,7 +94,7 @@ def build_quality_simple(file_ctrl):
             droug = "almost_enough"
     if not droug:
         droug = "not_enough"
-    return clues, formula, droug
+    return {"clues": clues, "formula": formula, "droug": droug}
 
 
 

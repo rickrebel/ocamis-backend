@@ -145,17 +145,19 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     file_ctrl["petition_file_control"][0])
             except:
                 file_ctrl["has_ent_clues"] = False
-            clues, formula, droug = build_quality_simple(file_ctrl)
+            #clues, formula, droug = build_quality_simple(file_ctrl)
+            file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
             file_ctrl["entity"] = file_ctrl["entities"][0]
-            file_ctrl["quality_names"] = {}
-            file_ctrl["quality_names"]["clues"] = clues
-            file_ctrl["quality_names"]["formula"] = formula
-            file_ctrl["quality_names"]["droug"] = droug
-            all_comps = [clues, formula, droug]
+            #file_ctrl["quality_names"] = {}
+            #file_ctrl["quality_names"]["clues"] = clues
+            #file_ctrl["quality_names"]["formula"] = formula
+            #file_ctrl["quality_names"]["droug"] = droug
+            #all_comps = [clues, formula, droug]
             final_qual = "not_enough"
             quality_levels = ["enough", "almost_enough", "not_enough"]
             for qual_level in quality_levels:
-                if qual_level in all_comps:
+                #if qual_level in all_comps:
+                if qual_level in file_ctrl["quality_names"].values():
                     final_qual = qual_level
             file_ctrl["quality_names"]["final"] = final_qual
         #detailed_controls
