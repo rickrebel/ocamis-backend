@@ -131,3 +131,18 @@ def adivinar_nombre():
                 continue
         else:
             print("No text between parentheses found.")
+
+def delete_duplicates():
+    from inai.models import Petition, PetitionBreak
+    from category.models import DateBreak
+
+    all_date_breaks = DateBreak.objects.all()
+    all_petitions = Petition.objects.all()
+    for petition in all_petitions:
+        current_pet_breaks = PetitionBreak.objects.filter(petition=petition)
+        for date_break in all_date_breaks:
+            current_date_breaks = current_pet_breaks.filter(date_break=date_break)
+            if current_date_breaks.count() > 1:
+                last_pet_break = current_date_breaks.last()
+                current_date_breaks.exclude(id=last_pet_break.id).delete()
+

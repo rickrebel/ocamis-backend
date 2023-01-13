@@ -26,6 +26,8 @@ def generate_months_entity(acronym):
                 #print("%s-%s" % (entity.id, ye_mo))
 
 #generate_months_entity("SSEDOMEX")
+#generate_months_entity("CRAE")
+#generate_months_entity("SSPCDMX")
 
     
 def insert_populations():

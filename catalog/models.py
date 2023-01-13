@@ -317,6 +317,18 @@ class Entity(models.Model):
     population = models.IntegerField(
         verbose_name="Derechohabientes", blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        from inai.models import MonthEntity
+        self_created = True if self.pk is None else False
+        super(Entity, self).save(*args, **kwargs)
+        if self_created:
+            for sum_year in range(7):
+                year = sum_year + 2017
+                for month in range(12):
+                    month += 1
+                    ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
+                    MonthEntity.objects.get_or_create(entity=self, year_month=ye_mo)
+
     def __str__(self):
         return self.name or u"%s -%s -%s" % (
             self.institution, self.state, self.clues)

@@ -114,8 +114,11 @@ class PetitionViewSet(ListRetrieveUpdateMix):
                     negative_reason = negative_obj, is_main=True)
 
         for pet_break in petition_breaks:
-            petition_break = PetitionBreak()
-            petition_break.petition = petition
+            if "id" in pet_break:
+                petition_break = PetitionBreak.objects.get(id=pet_break["id"])
+            else:
+                petition_break = PetitionBreak()
+                petition_break.petition = petition
 
             serializer_pb = serializers.PetitionBreakSerializer(
                 petition_break, data=pet_break)

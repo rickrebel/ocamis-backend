@@ -1,36 +1,50 @@
-others: [
-    {
-        "inai_open_search": "archivoAdjuntoRespuesta",
-        "app_name": "inai",
-        "model_name": "ProcessFile",
-        "final_field": "url_download",
-        "transform": "join_url",
-    },
-    {
-        "inai_open_search": "datosAdicionales",
-        "app_name": "inai",
-        "model_name": "Petition",
-        "final_field": "description_petition",
-        "transform": "join_lines",
-        "join_lines": True
-    }
-]
 
-def unescape(val):
+def unescape(val, petition):
     import html
     return html.unescape(val)
 
-def date_mex(val):
-    from datetime import datetime
-    return datetime.strptime(val, '%d/%m/%Y')
 
-def to_json(val):
+def add_br(val, petition):
+    return val.replace("\n", "<br>")
+
+
+def date_mex(val, petition):
+    from datetime import datetime
+    try:
+        return datetime.strptime(val, "%d/%m/%Y")
+    except Exception as e:
+        print("Error en la fecha: ", val)
+        print(e)
+        return None
+
+
+def to_json(val, petition):
     import json
     return json.loads(val)
 
-def get_status_obj(val):
-    from category.models import StatusControl
-    return StatusControl.objects.get(public_name=val, group="petition")
+
+def get_status_obj(val, petition):
+    from category.models import StatusControl, InvalidReason
+    status_found = None
+    try:
+        status_found = StatusControl.objects.get(public_name=val, group="petition")
+    except StatusControl.DoesNotExist:
+        pass
+    if not status_found:
+        try:
+            status_found = StatusControl.objects.get(addl_params__icontains=val, group="petition")
+        except StatusControl.DoesNotExist:
+            print("No encontramos el status: ", val)
+    if val == "Desechada por falta de respuesta del ciudadano":
+        invalid_reason = InvalidReason.objects.get(name="Desechada")
+        petition.invalid_reason = invalid_reason
+        petition.save()
+    if not status_found:
+        return petition.status_petition
+    elif not petition.status_petition:
+        return status_found
+    else:
+        return petition.status_petition if petition.status_petition.order > status_found.order else status_found
 
 
 def join_url(row, main):
@@ -62,18 +76,20 @@ def add_limit_complain(row, main):
     try:
         default_break = DateBreak.objects.get(name="response_limit")
     except Exception as e:
-        print("No se encontró el tipo de archivo")
+        print("No se encontró el tipo de DateBreak response_limit")
         print(e)
         return
-    final_date = date_mex(row["Fecha límite de entrega"])
+    final_date = date_mex(row["Fecha límite de entrega"], None)
     try:
         petition_break, created_pb = PetitionBreak.objects.get_or_create(
             petition=main, date_break=default_break)
         petition_break.date = final_date
         petition_break.save()
     except Exception as e:
-        print("No se pudo crear la fecha")
+        print("No se pudo crear la fecha", main)
         print(e)
+        pass
+
     #main.update()
 
 
@@ -90,8 +106,12 @@ def join_lines(row, main):
 def insert_between_months(row, petition):
     from inai.models import MonthEntity, PetitionMonth
     #print(petition.send_petition)
-    month = petition.send_petition.month
-    year = petition.send_petition.year
+    if petition.send_petition:
+        month = petition.send_petition.month
+        year = petition.send_petition.year
+    else:
+        month = 1
+        year = 2018
     curr_month = "%s%s%s" % (year, '0' if month < 10 else '', month)
     pet_months = PetitionMonth.objects.filter(petition__entity=petition.entity)
     print("-------------")
@@ -107,7 +127,7 @@ def insert_between_months(row, petition):
     between_months = month_entities.filter(
         year_month__gt=last_month, year_month__lt=curr_month)
     if not between_months:
-        print("NO HAY NADA ENMEDIO")
+        print("NO HAY NADA ENMEDIO", petition)
         prev_month = month_entities.filter(year_month__lt=curr_month).latest()
         PetitionMonth.objects.get_or_create(
             petition=petition, month_entity=prev_month)
@@ -129,22 +149,36 @@ def insert_from_json(
         from catalog.models import Entity
         MainModel = apps.get_model(main_app, main_model)
         related_elem = None
-        try:
-            related_elem = Entity.objects.get(
-                idSujetoObligado=row["idSujetoObligado"])
-        except Exception as e:
-            print(e)
-        try:
-            related_elem = Entity.objects.get(
-                nombreSujetoObligado=row["Institución"].upper())
-        except Exception as e:
-            print(e)
+        if "idSujetoObligado" in row:
+            try:
+                related_elem = Entity.objects.get(
+                    idSujetoObligado=row["idSujetoObligado"])
+            except Exception as e:
+                print(e)
+        if "Institución" in row:
+            upper_inst = row["Institución"].replace("\r\n", "").strip().upper()
+            try:
+                related_elem = Entity.objects.get(
+                    nombreSujetoObligado=upper_inst)
+            except Entity.MultipleObjectsReturned:
+                try:
+                    related_elem = Entity.objects.get(
+                        nombreSujetoObligado=upper_inst,
+                        state__short_name=row["Estado o Federación"]
+                    )
+                except Exception as exc:
+                    print("error también agregando estado", upper_inst)
+                    print(exc)
+            except Exception as e:
+                print("Ningún elemento encontrado")
+                print(e)
+                print(upper_inst)
         if not related_elem:
             continue
         if not related_elem.nombreSujetoObligado:
             related_elem.nombreSujetoObligado = row["nombreSujetoObligado"]
             related_elem.save()
-        main_columns = [d for d in columns 
+        main_columns = [d for d in columns
             if d.get('model_name', False) == main_model]
         #unique_columns = [d for d in main_columns if d.get('unique', False)]
         unique_query = {
@@ -157,6 +191,7 @@ def insert_from_json(
             main, created = MainModel.objects.get_or_create(**unique_query)
         except Exception as e:
             print(e)
+            print(unique_query)
             raise e
         other_cols = [
             item for item in main_columns if not item.get('unique', False)]
@@ -166,7 +201,7 @@ def insert_from_json(
             if curr_value:
                 transform = col.get("transform", False)
                 if transform:
-                    curr_value = globals()[transform](curr_value)
+                    curr_value = globals()[transform](curr_value, main)
                 final_query[col["final_field"]] = curr_value
         main_obj = MainModel.objects.filter(id=main.id)
         main_obj.update(**final_query)

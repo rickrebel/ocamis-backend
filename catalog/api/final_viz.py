@@ -11,7 +11,7 @@ def fetch_entities(include_groups):
         "petitions__file_controls__file_control__columns", 
         queryset=filter_columns)
     filter_petitions = Petition.objects\
-        .exclude(status_petition__name="mistake", )
+        .exclude(status_petition__name__icontains="mistake", )
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
     
     filter_petition_month = PetitionMonth.objects\

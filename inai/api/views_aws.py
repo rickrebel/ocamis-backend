@@ -404,10 +404,29 @@ class OpenDataInaiViewSet(ListRetrieveView):
             petitions += records
 
         for pet in petitions:
-            val = pet["Fecha de recepción"]
-            pet["fecha_orden"] = datetime.strptime(val, '%d/%m/%Y')
+            try:
+                val = pet.get("Fecha de recepción", "01/01/2018") or "01/01/2018"
+                pet["fecha_orden"] = datetime.strptime(val, '%d/%m/%Y')
+            except Exception as e:
+                print(pet)
+                print(e)
 
         petitions = sorted(petitions, key=lambda i: i['fecha_orden'])
+
+
+        """
+        all_status = {}
+        for petition in petitions:
+            if petition["Estatus"] not in all_status:
+                all_status[petition["Estatus"]] = [petition["Institución"]]
+            else:
+                all_status[petition["Estatus"]].append(petition["Institución"])
+            #all_status[petition["Estatus"]] = True
+        print("petitions", petitions)
+        
+        return Response(
+            {"petitions": petitions}, status=status.HTTP_201_CREATED)
+        """
 
         inai_fields = [
             {
@@ -437,7 +456,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
                 "app_name": "inai",
                 "model_name": "Petition",
                 "final_field": "description_petition",
-                # "transform": "unescape",
+                "transform": "add_br",
             },
             {
                 "inai_open_search": "Fecha de recepción",
@@ -459,7 +478,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
                 "app_name": "inai",
                 "model_name": "Petition",
                 "final_field": "description_response",
-                # "transform": "unescape",
+                "transform": "add_br",
             },
         ]
 
