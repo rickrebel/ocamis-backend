@@ -26,7 +26,7 @@ def set_upload_path(instance, filename):
         try:
             petition = instance.petition
         except Exception as e:
-            return "/".join(["sin_instance" ,filename])
+            return "/".join(["sin_instance", filename])
 
     entity_type = petition.entity.entity_type[:8].lower()
     try:

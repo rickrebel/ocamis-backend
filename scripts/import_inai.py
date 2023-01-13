@@ -28,6 +28,10 @@ def to_json(val):
     import json
     return json.loads(val)
 
+def get_status_obj(val):
+    from category.models import StatusControl
+    return StatusControl.objects.get(public_name=val, group="petition")
+
 
 def join_url(row, main):
     from inai.models import ProcessFile
@@ -49,6 +53,28 @@ def join_url(row, main):
             print("No se pudo crear el archivo")
             print(e)
         #main.update()
+
+
+def add_limit_complain(row, main):
+    from inai.models import ProcessFile, PetitionBreak
+    from category.models import DateBreak
+
+    try:
+        default_break = DateBreak.objects.get(name="response_limit")
+    except Exception as e:
+        print("No se encontró el tipo de archivo")
+        print(e)
+        return
+    final_date = date_mex(row["Fecha límite de entrega"])
+    try:
+        petition_break, created_pb = PetitionBreak.objects.get_or_create(
+            petition=main, date_break=default_break)
+        petition_break.date = final_date
+        petition_break.save()
+    except Exception as e:
+        print("No se pudo crear la fecha")
+        print(e)
+    #main.update()
 
 
 def join_lines(row, main):
@@ -102,11 +128,18 @@ def insert_from_json(
         #from inai.models import Petition, ProcessFile
         from catalog.models import Entity
         MainModel = apps.get_model(main_app, main_model)
+        related_elem = None
         try:
             related_elem = Entity.objects.get(
                 idSujetoObligado=row["idSujetoObligado"])
         except Exception as e:
             print(e)
+        try:
+            related_elem = Entity.objects.get(
+                nombreSujetoObligado=row["Institución"].upper())
+        except Exception as e:
+            print(e)
+        if not related_elem:
             continue
         if not related_elem.nombreSujetoObligado:
             related_elem.nombreSujetoObligado = row["nombreSujetoObligado"]
@@ -117,7 +150,7 @@ def insert_from_json(
         unique_query = {
             #Item["final_field"]:row.get(Item[main_key], related_elem)
             #    for Item in unique_columns }
-            Item["final_field"]:row.get(Item[main_key], related_elem)
+            Item["final_field"]: row.get(Item[main_key], related_elem)
                 for Item in main_columns if Item.get('unique', False)}
         #list(filter(lambda d: d['unique'] in keyValList, exampleSet))
         try:

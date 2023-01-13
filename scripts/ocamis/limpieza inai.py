@@ -84,6 +84,50 @@ def intento_de_limpieza():
         csv_file.close()"""
 
         
+def adivinar_nombre():
+    import re
+    from catalog.models import Entity
 
+    unique_entities = [
+        'Centro Regional de Alta Especialidad de Chiapas (CRAE)',
+        'Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado (ISSSTE)',
+        'Instituto Mexicano del Seguro Social (IMSS)',
+        'Instituto Nacional de Cancerología (INCAN)',
+        'Instituto Nacional de Cardiología Ignacio Chávez (INCAR)',
+        'Instituto Nacional de Ciencias Médicas y Nutrición Salvador Zubirán (INNSZ)',
+        'Instituto Nacional de Enfermedades Respiratorias Ismael Cosío Villegas (INER)',
+        'SSA-Instituto Nacional de Geriatría (*)',
+        'Instituto Nacional de las Personas Adultas Mayores (INAPAM)',
+        'Instituto Nacional de Medicina Genómica (INMEGEN)',
+        'Instituto Nacional de Neurología y Neurocirugía Manuel Velasco Suárez (INNN)',
+        'Instituto Nacional de Pediatría (INP)',
+        'Instituto Nacional de Perinatología Isidro Espinosa de los Reyes (INPER)',
+        'Instituto Nacional de Psiquiatría Ramón de la Fuente Muñiz (INPRFM)',
+        'Instituto Nacional de Rehabilitación Luis Guillermo Ibarra Ibarra (INR)',
+        'Instituto Nacional de Salud Pública (INSP)',
+        'Hospital General "Dr. Manuel Gea González" (HOSPITAL GEA)',
+        'Hospital General de México "Dr. Eduardo Liceaga" (HGM)',
+        'Hospital Infantil de México Federico Gómez (HIMFG)',
+        'Hospital Juárez de México (HJM',
+        'Hospital Regional de Alta Especialidad de Ciudad Victoria "Bicentenario 2010" (HRAEV)',
+        'Hospital Regional de Alta Especialidad de Ixtapaluca (HRAEI)',
+        'Hospital Regional de Alta Especialidad de la Península de Yucatán (HRAEPY)',
+        'Hospital Regional de Alta Especialidad de Oaxaca (HRAEO)',
+        'Hospital Regional de Alta Especialidad del Bajío (HRAEB)',
+        'Sindicato Único de Trabajadores del Instituto Nacional de Perinatología (SUTINPER)',
+        'INSABI-Fondo de Salud para el Bienestar',
+        'Instituto de Salud para el Bienestar',
+    ]
 
-
+    for entity in unique_entities:
+        match = re.search(r"\(([a-zA-Z]+?)\)", entity)
+        if match:
+            first_text_between_parentheses = match.group(1)
+            try:
+                entity_obj = Entity.objects.get(acronym=first_text_between_parentheses)
+                entity_obj.nameForInai = entity
+                entity_obj.save()
+            except Entity.DoesNotExist:
+                continue
+        else:
+            print("No text between parentheses found.")

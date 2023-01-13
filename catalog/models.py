@@ -287,6 +287,10 @@ class Entity(models.Model):
         verbose_name="idSujetoObligado",
         help_text="idSujetoObligado del INAI",
         blank=True, null=True)
+    nameForInai = models.CharField(
+        max_length=255,
+        verbose_name="nombre según INAI",
+        blank=True, null=True)
     nombreSujetoObligado = models.CharField(
         max_length=160,
         verbose_name="nombreSujetoObligado)",

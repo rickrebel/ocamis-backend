@@ -85,7 +85,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 buffer = BytesIO(zip_obj.get()["Body"].read())
             else:
                 buffer = get_file(process_file, dev_resource)
-            # RICK AWS corroborar si en cesario
+            # RICK AWS corroborar si en necesario
             #if is_prod:
             #    buffer = BytesIO(buffer.read())
             
@@ -149,60 +149,11 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             data_file.save()
             data_file, errors, suffix = data_file.decompress_file()
             if not data_file:
-                print("______data_file:\n", data_file)
-                print("\n")
+                print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
                 continue
             for file_ctrl in all_file_controls:
+                saved = data_file.find_coincidences(file_ctrl, suffix, saved)
                 #print(f"Vamos por file control {file_ctrl.name}")
-                data = data_file.transform_file_in_data(
-                    'auto_explore', suffix, file_ctrl)
-                if not data:
-                    continue
-                if isinstance(data, dict):
-                    if data.get("errors", False):
-                        #print(data)
-                        continue
-                #row_headers = file_ctrl.row_headers or 0
-                #headers = data["headers"]
-                current_sheets = data["current_sheets"]
-                structured_data = data["structured_data"]
-                all_pet_file_ctrl = []
-                validated_data = data_file.explore_data or {}
-                
-                #print("-------\n-----------")
-                #print(structured_data)
-                #print("-------\n-----------")
-                for sheet_name in current_sheets:
-                    if not "headers" in structured_data[sheet_name]:
-                        continue
-                    headers = structured_data[sheet_name]["headers"]
-                    headers = [head.strip() for head in headers]
-                    #headers = validated_rows[row_headers-1] if row_headers else []
-                    #validated_rows = validated_rows[file_ctrl.row_start_data-1:]
-                    name_columns = NameColumn.objects.filter(
-                            file_control=file_ctrl, name_in_data__isnull=False)\
-                        .values_list("name_in_data", flat=True)
-                    if headers and list(name_columns) == headers:
-                        succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects\
-                            .get_or_create(
-                                file_control=file_ctrl, petition=petition)
-                        validated_data[sheet_name] = structured_data[sheet_name]
-                        if succ_pet_file_ctrl.id in all_pet_file_ctrl:
-                            continue
-                        if saved:
-                            info_text = "El archivo está en varios grupos de control"
-                            data_file.add_result(("info", info_text))
-                            new_data_file = data_file
-                            new_data_file.pk = None
-                            new_data_file.petition_file_control = succ_pet_file_ctrl
-                            new_data_file.save()
-                            new_data_file.add_result(("info", info_text))
-                        else:
-                            data_file.petition_file_control = succ_pet_file_ctrl
-                            data_file.save()
-                            data_file.change_status("success_exploration")
-                            saved = True
-                        all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
                 #data_file.explore_data = validated_data
                 #data_file.save()
             if not saved:
@@ -216,7 +167,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 petition.entity).data["file_controls"],
         }
         return Response(data, status=status.HTTP_200_OK)
-
 
 
 def move_and_duplicate(data_files, petition, request):
@@ -301,6 +251,28 @@ class DataFileViewSet(CreateRetrievView):
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
 
+    @action(methods=["get"], detail=True, url_path='counting')
+    def counting(self, request, **kwargs):
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        data_file = self.get_object()
+
+        data_file, errors, suffix = data_file.decompress_file()
+        if not data_file:
+            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
+            return Response(
+                {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        data_file.find_coincidences(file_ctrl, suffix, saved)
+
+        data = data_file.count_file_rows()
+        if data.get("errors", False):
+            return Response(
+                data, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(
+                data, status=status.HTTP_200_OK)
+
     @action(methods=["get"], detail=True, url_path='explore')
     def explore(self, request, **kwargs):
         if not request.user.is_staff:
@@ -310,7 +282,7 @@ class DataFileViewSet(CreateRetrievView):
         if data.get("errors", False):
             return Response(
                 data, status=status.HTTP_400_BAD_REQUEST)
-        
+
         def textNormalizer(text):
             import re
             import unidecode
@@ -345,7 +317,7 @@ class DataFileViewSet(CreateRetrievView):
                         for posit, head in enumerate(prov_headers, start=1)]
                 return Response(
                     first_valid_sheet, status=status.HTTP_201_CREATED)
-        print("DESPUES DE HEADER")
+        print("DESPUÉS DE HEADER")
         try:
             headers = first_valid_sheet["headers"]
             complex_headers = []
@@ -364,24 +336,24 @@ class DataFileViewSet(CreateRetrievView):
 
             final_names = {}
             for name_col in all_name_columns:
-                standar_name = textNormalizer(name_col["name_in_data"])
+                standard_name = textNormalizer(name_col["name_in_data"])
                 unique_name = (
-                    f'{standar_name}-{name_col["final_field"]}-'
+                    f'{standard_name}-{name_col["final_field"]}-'
                     f'{name_col["final_field__parameter_group"]}')
-                if final_names.get(standar_name, False):
-                    if not final_names[standar_name]["valid"]:
+                if final_names.get(standard_name, False):
+                    if not final_names[standard_name]["valid"]:
                         continue
-                    elif final_names[standar_name]["unique_name"] != unique_name:
-                        final_names[standar_name]["valid"] = False
+                    elif final_names[standard_name]["unique_name"] != unique_name:
+                        final_names[standard_name]["valid"] = False
                     continue
                 else:
                     base_dict = {
                         "valid": True,
                         "unique_name": unique_name,
-                        "standar_name": standar_name
+                        "standard_name": standard_name,
                     }
                     base_dict.update(name_col)
-                    final_names[standar_name] = base_dict
+                    final_names[standard_name] = base_dict
             final_names = {
                 name: vals for name, vals in final_names.items()
                     if vals["valid"]}
@@ -409,6 +381,102 @@ class OpenDataInaiViewSet(ListRetrieveView):
 
     def get_queryset(self):
         return DataFile.objects.all()
+
+    @action(methods=["post"], detail=False, url_path='insert_xls')
+    def insert_xls(self, request, **kwargs):
+        import json
+        import zipfile
+        import pandas as pd
+        from datetime import datetime
+        from scripts.import_inai import insert_from_json
+        if not request.user.is_staff:
+            raise PermissionDenied()
+
+        zip_file = zipfile.ZipFile(request.FILES['file'])
+        petitions = []
+        for zip_elem in zip_file.infolist():
+            file_bytes = zip_file.open(zip_elem).read()
+            excel_file = pd.read_excel(
+                file_bytes, sheet_name="Reporte", dtype='string',
+                na_filter=False, keep_default_na=False)
+            #print(excel_file)
+            records = excel_file.to_dict(orient='records')
+            petitions += records
+
+        for pet in petitions:
+            val = pet["Fecha de recepción"]
+            pet["fecha_orden"] = datetime.strptime(val, '%d/%m/%Y')
+
+        petitions = sorted(petitions, key=lambda i: i['fecha_orden'])
+
+        inai_fields = [
+            {
+                "inai_open_search": "Institución",
+                "model_name": "Entity",
+                "app_name": "catalog",
+                "final_field": "nombreSujetoObligado",
+                "insert": True,
+                "related": 'entity',
+            },
+            {
+                "inai_open_search": "No. de folio",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "folio_petition",
+                "unique": True,
+            },
+            {
+                "inai_open_search": False,
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "entity",
+                "unique": True,
+            },
+            {
+                "inai_open_search": "Descripción",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "description_petition",
+                # "transform": "unescape",
+            },
+            {
+                "inai_open_search": "Fecha de recepción",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "send_petition",
+                "transform": "date_mex",
+            },
+            {
+                "inai_open_search": "Estatus",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "status_petition",
+                "related": "status_petition",
+                "transform": "get_status_obj",
+            },
+            {
+                "inai_open_search": "Respuesta",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "description_response",
+                # "transform": "unescape",
+            },
+        ]
+
+        spec_functions = [
+            ("insert_between_months", False),
+            ("add_limit_complain", True),
+        ]
+        insert_from_json(
+            petitions, inai_fields, 'inai', 'Petition', 'inai_open_search',
+            special_functions=spec_functions)
+
+        #if data.get("errors", False):
+        #    return Response(
+        #        data, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"success": True}, status=status.HTTP_201_CREATED)
 
     @action(methods=["post"], detail=False, url_path='insert_json')
     def insert_json(self, request, **kwargs):
@@ -441,7 +509,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
                 "model_name": "Entity",
                 "app_name": "catalog",
                 "final_field": "nombreSujetoObligado",
-                "insert": True,
+                # "insert": True,
                 "related": 'entity',
             },
             {

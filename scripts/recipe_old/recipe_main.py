@@ -18,7 +18,7 @@ institution = None
 state = None
 
 
-def start_file_process(file, file_control, is_explore=False):
+def start_file_process_prev(file, file_control, is_explore=False):
     from inai.models import File
     file.error_process = None
     file.save()

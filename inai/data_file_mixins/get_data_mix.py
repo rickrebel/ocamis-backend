@@ -32,7 +32,7 @@ class ExtractorsMix:
     def transform_file_in_data(self, type_xplor, suffix, file_control=None):
         from category.models import FileFormat
         is_explore = bool(type_xplor)
-        is_auto = type_xplor == 'auto_explore'
+        #is_auto = type_xplor == 'auto_explore'
         status_error = 'explore_fail' if is_explore else 'extraction_failed'
         if not file_control:
             file_control = self.petition_file_control.file_control
@@ -46,9 +46,10 @@ class ExtractorsMix:
             data_rows, errors = self.get_data_from_file_simple(is_explore)
             if isinstance(data_rows, dict):
                 validated_data = data_rows
-            #print(data_rows[0])
-            #print("LEN - data_rows: ", len(data_rows))
+                #print(data_rows[0])
+                #print("LEN - data_rows: ", len(data_rows))
             else:
+                total_rows = len(data_rows)
                 if is_explore:
                     data_rows = data_rows[:200]
                 if errors:
@@ -56,7 +57,10 @@ class ExtractorsMix:
                 validated_data_default = self.divide_rows(
                     data_rows, file_control, is_explore)
                 validated_data = {"default": 
-                    {"all_data": validated_data_default[:200]}
+                    {
+                        "all_data": validated_data_default[:200],
+                        "total_rows": total_rows,
+                    }
                 }
             current_sheets = ["default"]
         elif suffix in FileFormat.objects.get(short_name='xls').suffixes:
@@ -218,18 +222,18 @@ class ExtractorsMix:
             all_sheets = {}
         current_sheets = []
 
-        for transf in file_transformations:
-            current_vals = transf.addl_params["value"].split(",")
-            func_name = transf.clean_function.name
-            all_names = [name.upper().strip() for name in current_vals]
+        for transform in file_transformations:
+            current_values = transform.addl_params["value"].split(",")
+            func_name = transform.clean_function.name
+            all_names = [name.upper().strip() for name in current_values]
             if func_name == 'include_tabs_by_name':
                 include_names = all_names
             elif func_name == 'exclude_tabs_by_name':
                 exclude_names = all_names
             elif func_name == 'include_tabs_by_index':
-                include_idx = [int(val.strip()) for val in current_vals]
+                include_idx = [int(val.strip()) for val in current_values]
             elif func_name == 'exclude_tabs_by_index':
-                exclude_idx = [int(val.strip()) for val in current_vals]
+                exclude_idx = [int(val.strip()) for val in current_values]
 
         def clean_na(row):
             cols = row[1].tolist()
@@ -255,9 +259,11 @@ class ExtractorsMix:
                 keep_default_na=False, header=None)
             #listval = [row[1].tolist() for row in data_excel.iterrows()]
             listval = [clean_na(row) for row in data_excel.iterrows()]
-            all_sheets[sheet_name] = {"all_data": listval[:200]}
+            all_sheets[sheet_name] = {
+                "all_data": listval[:200],
+            }
             #all_sheets[sheet_name]["all_data"] = listval
-            #return False, ["todo bien, checa prints"]
+            #return False, ["hasta aquí sin errores, checa prints"]
             #if file_control.file_transformations.clean_function
         #Nombres de columnas (pandaarray)
         #Renglones de las variables

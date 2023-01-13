@@ -36,12 +36,10 @@ def read_data_dict_CSV(filename, delimiter=',', quotechar='"'):
 
     return datos
 
-
 def get_datetime_mx(datetime_utc):
     import pytz
     cdmx_tz = pytz.timezone("America/Mexico_City")
     return datetime_utc.astimezone(cdmx_tz)
-
 
 
 def start_session():
@@ -80,6 +78,25 @@ def get_file(file_obj, dev_resource=None):
             # RICK AWS corroborar el cambio:
             # return BytesIO(content_object.get()["Body"].read())
             #return content_object.get()['Body'].read().decode('utf-8')
+        except Exception as e:
+            print(e)
+            return {"errors": [f"Error leyendo los datos: {e}"]}
+    else:
+        return file_obj.final_path
+
+
+def get_csv_file(file_obj, s3_client=None):
+    import pandas as pd
+    if s3_client:
+        try:
+            content_object = s3_client.get_object(
+                Bucket=bucket_name,
+                Key=f"{aws_location}/{file_obj.file.name}"
+                )
+            #print(BytesIO(content_object['Body'].read()))
+            csv_file = BytesIO(content_object['Body'].read())
+            return  pd.read_csv(csv_file, on_bad_lines='skip')
+            #return pd.read_csv(BytesIO(content_object['Body'].read()))
         except Exception as e:
             print(e)
             return {"errors": [f"Error leyendo los datos: {e}"]}
