@@ -25,6 +25,7 @@ class ExploreMix:
         elif file_format.short_name == 'xls':
             total_count = self.count_xls_rows()
             minus_headers = len(self.explore_data.keys()) * minus_headers
+        self.change_status("success_counting")
         total_count = total_count - minus_headers
         self.total_rows = total_count
         self.save()

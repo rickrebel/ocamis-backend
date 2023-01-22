@@ -263,7 +263,7 @@ class DataFileViewSet(CreateRetrievView):
             return Response(
                 {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        data_file.find_coincidences(file_ctrl, suffix, saved)
+        #data_file.find_coincidences(file_ctrl, suffix, saved)
 
         data = data_file.count_file_rows()
         if data.get("errors", False):
