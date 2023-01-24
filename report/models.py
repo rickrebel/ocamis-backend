@@ -138,7 +138,7 @@ class Report(models.Model):
     testimony = models.TextField(blank=True, null=True)
     public_testimony = models.BooleanField(blank=True, null=True)
     has_corruption = models.BooleanField(
-        verbose_name=u"¿Incluyó corrupción?", null=True)
+        verbose_name=u"¿Incluyó corrupción?", null=True, blank=True)
     narration = models.TextField(
         blank=True, null=True,
         verbose_name=u"Relato de la corrupción")
@@ -421,7 +421,7 @@ class ComplementReport(models.Model):
     testimony = models.TextField(blank=True, null=True)
     public_testimony = models.BooleanField(blank=True, null=True)
     has_corruption = models.BooleanField(
-        verbose_name=u"¿Incluyó corrupción?")
+        verbose_name=u"¿Incluyó corrupción?", blank=True, null=True)
     narration = models.TextField(
         blank=True, null=True,
         verbose_name=u"Relato de la corrupción")

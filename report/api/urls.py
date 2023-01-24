@@ -27,16 +27,16 @@ urlpatterns = [
     path('export_covid/', CovidReportExportView.as_view()),
     #url(r'^covid/$', CovidReportView.as_view()),
     #re_url(r'^new_covid/$', CovidReportView3, name="new-covid"),
-    path('eports/', ReportList.as_view()),
-    path('ll_supplies/', SupplyList2.as_view()),
+    path('reports/', ReportList.as_view()),
+    path('all_supplies/', SupplyList2.as_view()),
     path('state_count/', ReportStateInstitutionCountList.as_view()),
     path('public_export/', PublicReportExportView.as_view()),
     path('generate_public/', PublicReportExportView2.as_view()),
     #path(r'^reports/$', ReportListView.as_view()),
     path('generate_export/', ReportExportView2.as_view()),
     path('generate_export_covid/', CovidReportExportView2.as_view()),
-    path('hiny/narrations/', RelatosList.as_view()),
-    path('hiny/(?P<group_name>[-\w]+)/', DinamicList.as_view()),
+    path('shiny/narrations/', RelatosList.as_view()),
+    path('shiny/(?P<group_name>[-\w]+)/', DinamicList.as_view()),
 ]
 
 urlpatterns += router.urls
