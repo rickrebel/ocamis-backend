@@ -152,7 +152,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
                 continue
             for file_ctrl in all_file_controls:
-                saved = data_file.find_coincidences(file_ctrl, suffix, saved)
+                saved = data_file.find_coincidences(
+                    file_ctrl, suffix, saved, petition)
                 #print(f"Vamos por file control {file_ctrl.name}")
                 #data_file.explore_data = validated_data
                 #data_file.save()

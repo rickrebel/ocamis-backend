@@ -1,7 +1,7 @@
 import os
 
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.utils.deconstruct import deconstructible
 
 from catalog.models import Entity
@@ -58,7 +58,7 @@ class Petition(models.Model):
         Entity,
         related_name="petitions",
         on_delete=models.CASCADE)
-    ask_extension = models.NullBooleanField(
+    ask_extension = models.BooleanField(
         blank=True, null=True,
         verbose_name="Se solicitó extensión")
     notes = models.TextField(blank=True, null=True)
@@ -210,7 +210,7 @@ class FileControl(models.Model):
         FileFormat, verbose_name="formato del archivo",
         blank=True, null=True, on_delete=models.CASCADE)
     other_format = models.CharField(max_length=80, blank=True, null=True)
-    final_data = models.NullBooleanField(
+    final_data = models.BooleanField(
         verbose_name="Es información final", blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     row_start_data = models.IntegerField(

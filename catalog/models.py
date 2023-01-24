@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 
 
 class State(models.Model):
@@ -306,7 +306,7 @@ class Entity(models.Model):
         'CLUES', null=True, 
         blank=True, on_delete=models.CASCADE)
     addl_params = JSONField(blank=True, null=True)
-    vigencia = models.NullBooleanField(
+    vigencia = models.BooleanField(
         default=True, help_text="Actualmente se le sigue preguntando")
     competent = models.BooleanField(
         default=True,

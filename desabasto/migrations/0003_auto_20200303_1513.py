@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='report',
             name='corruption',
-            field=models.NullBooleanField(verbose_name='\xbfConsideras que es un caso de corrupci\xf3n'),
+            field=models.BooleanField(verbose_name='\xbfConsideras que es un caso de corrupci\xf3n'),
         ),
         migrations.AlterField(
             model_name='report',

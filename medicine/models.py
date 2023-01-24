@@ -135,10 +135,10 @@ class Container(models.Model):
         max_length=20, verbose_name=u"Clave sin puntos",
         blank=True, null=True,
     )
-    is_current = models.NullBooleanField(default=True)
+    is_current = models.BooleanField(default=True)
     short_name = models.TextField(blank=True, null=True)
 
-    origen_cvmei = models.NullBooleanField(default=False)
+    origen_cvmei = models.BooleanField(default=False)
 
     def __str__(self):
         return u"%s - %s - %s" % (

@@ -253,6 +253,7 @@ class ExtractorsMix:
             if is_explore and sheet_name in all_sheets:
                 if "all_data" in all_sheets[sheet_name]:
                     continue
+            print("SE TUVO QUE LEER EL EXCEL DE NUEVO")
             data_excel = excel_file.parse(
                 sheet_name,
                 dtype='string', nrows=nrows, na_filter=False,

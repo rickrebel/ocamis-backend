@@ -28,6 +28,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='entity',
             name='vigencia',
-            field=models.NullBooleanField(default=True, help_text='Actualmente se le sigue preguntando'),
+            field=models.BooleanField(default=True, help_text='Actualmente se le sigue preguntando'),
         ),
     ]

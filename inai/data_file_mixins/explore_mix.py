@@ -116,7 +116,7 @@ class ExploreMix:
             return data
         return data
 
-    def find_coincidences(self, file_ctrl, suffix, saved):
+    def find_coincidences(self, file_ctrl, suffix, saved, petition):
         from inai.models import NameColumn, PetitionFileControl
         data = self.transform_file_in_data(
             'auto_explore', suffix, file_ctrl)

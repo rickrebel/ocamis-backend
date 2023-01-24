@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=255)),
                 ('extension', models.CharField(max_length=80)),
                 ('is_default', models.BooleanField(default=False)),
-                ('has_data', models.NullBooleanField(verbose_name='Tiene datos procesables')),
+                ('has_data', models.BooleanField(verbose_name='Tiene datos procesables')),
                 ('icon', models.CharField(max_length=80)),
             ],
             options={

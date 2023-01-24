@@ -15,11 +15,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='report',
             name='sent_email',
-            field=models.NullBooleanField(),
+            field=models.BooleanField(),
         ),
         migrations.AddField(
             model_name='report',
             name='sent_responsible',
-            field=models.NullBooleanField(),
+            field=models.BooleanField(),
         ),
     ]

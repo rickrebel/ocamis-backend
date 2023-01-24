@@ -40,9 +40,9 @@ class Migration(migrations.Migration):
                 ('name', models.TextField()),
                 ('key', models.CharField(max_length=20, verbose_name='Clave')),
                 ('key2', models.CharField(blank=True, max_length=20, null=True, verbose_name='Clave sin puntos')),
-                ('is_current', models.NullBooleanField(default=True)),
+                ('is_current', models.BooleanField(default=True)),
                 ('short_name', models.TextField(blank=True, null=True)),
-                ('origen_cvmei', models.NullBooleanField(default=False)),
+                ('origen_cvmei', models.BooleanField(default=False)),
             ],
             options={
                 'verbose_name': 'Recipiente (Contenedor)',

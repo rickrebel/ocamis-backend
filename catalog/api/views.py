@@ -88,11 +88,11 @@ class EntityViewSet(ListRetrieveUpdateMix):
         from inai.api.serializers import FileControlSimpleSerializer
         from inai.api.serializers_viz import (
             FileControlViz2Serializer)
-        indeces_query = TransparencyIndex.objects.all()\
+        indices_query = TransparencyIndex.objects.all()\
             .prefetch_related(
                 "levels", "levels__anomalies", "levels__file_formats")
-        indeces = TransparencyIndexSerializer(indeces_query, many=True).data
-        #operability = indeces_query.filter(short_name="operability").first()
+        indices = TransparencyIndexSerializer(indices_query, many=True).data
+        #operability = indices_query.filter(short_name="operability").first()
         #operability_levels = operability.levels.all()
         operb_levels_query = TransparencyLevel.objects\
             .filter(transparency_index__short_name="operability")\

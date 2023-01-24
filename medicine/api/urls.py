@@ -1,5 +1,5 @@
 from rest_framework import routers
-from django.conf.urls import url, include
+from django.urls import path, include
 
 from medicine.api.views import (
     ComponentList,
@@ -18,5 +18,5 @@ router.register(r'container', ContainerList)
 
 
 urlpatterns = [
-    url('', include(router.urls)),
+    path('', include(router.urls)),
 ]

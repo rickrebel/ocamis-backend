@@ -14,12 +14,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='persona',
             name='want_litigation',
-            field=models.NullBooleanField(verbose_name='¿Permite contacto para asesoría legal?'),
+            field=models.BooleanField(verbose_name='¿Permite contacto para asesoría legal?'),
         ),
         migrations.AddField(
             model_name='persona',
             name='want_management',
-            field=models.NullBooleanField(verbose_name='¿Permite contacto para acompañar proceso?'),
+            field=models.BooleanField(verbose_name='¿Permite contacto para acompañar proceso?'),
         ),
         migrations.AlterField(
             model_name='responsable',

@@ -1,8 +1,8 @@
 from rest_framework import routers
-from django.conf.urls import url, include
+from django.urls import path, include
 
 router = routers.DefaultRouter()
 
 urlpatterns = [
-    url('', include(router.urls)),
+    path('', include(router.urls)),
 ]

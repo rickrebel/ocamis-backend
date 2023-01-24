@@ -1,7 +1,7 @@
 #Para qué era esta importación?
 from unicodedata import name
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 
 from category.models import ColumnType
 ##Otros catalogos

@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 from inai.models import NameColumn, DataFile
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 
 
 class MedicalSpeciality(models.Model):

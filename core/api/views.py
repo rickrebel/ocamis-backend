@@ -93,7 +93,7 @@ class CatalogViz(views.APIView):
     def get(self, request):
         #data = {}
         final_fields_query = FinalField.objects.filter(need_for_viz=True)
-        indeces_query = TransparencyIndex.objects.all()\
+        indices_query = TransparencyIndex.objects.all()\
             .prefetch_related(
                 "levels", "levels__anomalies", "levels__file_formats")
 
@@ -104,8 +104,8 @@ class CatalogViz(views.APIView):
             "final_fields": FinalFieldSimpleSerializer(
                 final_fields_query, many=True).data,
             ## CATÁLOGOS DE TRANSPARENCIA:
-            "indeces": TransparencyIndexSerializer(
-                indeces_query, many=True).data,
+            "indices": TransparencyIndexSerializer(
+                indices_query, many=True).data,
             #"levels": TransparencyLevelSimpleSerializer(
             #    TransparencyLevel.objects.all(), many=True).data,
             ## CATÁLOGOS GENERALES:

@@ -9,7 +9,7 @@ click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.2.0
 boto3==1.24.36
-Django==2.2.25
+Django~=4.1.5
 django-ckeditor==6.2.0
 django-cors-headers==3.10.1
 django-js-asset==1.2.2
@@ -42,3 +42,5 @@ xlrd==2.0.1
 lxml
 html5lib
 bs4
+channels~=4.0.0
+pandas~=1.4.3

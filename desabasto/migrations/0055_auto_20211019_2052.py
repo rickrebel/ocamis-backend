@@ -71,12 +71,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='container',
             name='is_current',
-            field=models.NullBooleanField(default=True),
+            field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
             model_name='container',
             name='origen_cvmei',
-            field=models.NullBooleanField(default=False),
+            field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
             model_name='container',

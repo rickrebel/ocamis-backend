@@ -1,5 +1,5 @@
 from rest_framework import routers
-from django.conf.urls import url, include
+from django.urls import path, include
 
 from desabasto.api.views import CatalogView
 
@@ -11,7 +11,7 @@ url(r'^reports/$', ReportList.as_view()),
 url(r'^reports/state_count/$', ReportStateInstitutionCountList.as_view()),
 url(r'^public_export/$', PublicReportExportView.as_view()),
 url(r'^reports/$', ReportListView.as_view()),"""
-url(r'^catalog/$', CatalogView.as_view()),
+path('catalog/', CatalogView.as_view()),
 urlpatterns = [
-    url('', include(router.urls)),
+    path('', include(router.urls)),
 ]

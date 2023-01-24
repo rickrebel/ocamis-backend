@@ -5,7 +5,7 @@ from django.core.validators import validate_email
 from django.db import models
 from catalog.models import Institution, State, CLUES, Municipality, Disease
 from medicine.models import Component, Presentation
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 
 
 class Responsable(models.Model):
@@ -57,10 +57,10 @@ class Persona(models.Model):
     phone = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Número de contacto")
-    want_litigation = models.NullBooleanField(
+    want_litigation = models.BooleanField(
         verbose_name=u"¿Permite contacto para asesoría legal?",
         blank=True, null=True)
-    want_management = models.NullBooleanField(
+    want_management = models.BooleanField(
         verbose_name=u"¿Permite contacto para acompañar proceso?",
         blank=True, null=True)
 
@@ -121,7 +121,7 @@ class Report(models.Model):
     phone = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name=u"Número de contacto")
-    want_litigation = models.NullBooleanField(
+    want_litigation = models.BooleanField(
         verbose_name=u"¿Permite contacto para litigio?",
         blank=True, null=True)
 
@@ -129,23 +129,23 @@ class Report(models.Model):
     origin_app = models.CharField(
         max_length=100, default="CD2",
         verbose_name=u"Aplicacion")
-    validated = models.NullBooleanField(default=None, blank=True, null=True)
+    validated = models.BooleanField(default=None, blank=True, null=True)
     session_ga = models.CharField(max_length=255, blank=True, null=True)
     validator = models.IntegerField(blank=True, null=True)
     validated_date = models.DateTimeField(blank=True, null=True)
     pending = models.BooleanField(default=False)
 
     testimony = models.TextField(blank=True, null=True)
-    public_testimony = models.NullBooleanField(blank=True, null=True)
-    has_corruption = models.NullBooleanField(
-        verbose_name=u"¿Incluyó corrupción?")
+    public_testimony = models.BooleanField(blank=True, null=True)
+    has_corruption = models.BooleanField(
+        verbose_name=u"¿Incluyó corrupción?", null=True)
     narration = models.TextField(
         blank=True, null=True,
         verbose_name=u"Relato de la corrupción")
 
     #DEBERÍAN ELIMINARSE:
-    sent_email = models.NullBooleanField(blank=True, null=True)
-    sent_responsible = models.NullBooleanField(blank=True, null=True)
+    sent_email = models.BooleanField(blank=True, null=True)
+    sent_responsible = models.BooleanField(blank=True, null=True)
     medicine_type = models.CharField(
         max_length=30, blank=True, null=True,
         verbose_name=u"Tipo de medicina")
@@ -416,11 +416,11 @@ class ComplementReport(models.Model):
     covid_report = models.OneToOneField(
         CovidReport, blank=True, null=True, related_name="complement",
         on_delete=models.CASCADE)
-    key = models.CharField(max_length=30, default='')
+    key = models.CharField(max_length=30, default="")
 
     testimony = models.TextField(blank=True, null=True)
-    public_testimony = models.NullBooleanField(blank=True, null=True)
-    has_corruption = models.NullBooleanField(
+    public_testimony = models.BooleanField(blank=True, null=True)
+    has_corruption = models.BooleanField(
         verbose_name=u"¿Incluyó corrupción?")
     narration = models.TextField(
         blank=True, null=True,
@@ -429,7 +429,7 @@ class ComplementReport(models.Model):
         blank=True, null=True,
         verbose_name=u"Notas (para corrección)")
 
-    validated = models.NullBooleanField(default=None, blank=True, null=True)
+    validated = models.BooleanField(default=None, blank=True, null=True)
     validator = models.IntegerField(blank=True, null=True)
     validated_date = models.DateTimeField(blank=True, null=True)
     pending = models.BooleanField(default=False)

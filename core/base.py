@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "corsheaders",
     "rest_framework",
+    "channels",
     #"desabasto.apps.DesabastoConfig",
     "catalog.apps.CatalogConfig",
     "medicine.apps.MedicineConfig",
@@ -103,7 +104,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'core.urls'
 
-WSGI_APPLICATION = 'core.wsgi.application'
+#WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
+
 
 
 

@@ -80,7 +80,7 @@ class Migration(migrations.Migration):
                 ('date_response', models.DateTimeField(blank=True, null=True)),
                 ('limit_pickup', models.DateTimeField(blank=True, null=True, verbose_name='límite para recoger datos')),
                 ('limit_complain', models.DateTimeField(blank=True, null=True, verbose_name='límite para presentar queja')),
-                ('ask_extension', models.NullBooleanField(verbose_name='Se solicitó extensión')),
+                ('ask_extension', models.BooleanField(verbose_name='Se solicitó extensión')),
                 ('notes', models.TextField(blank=True, null=True)),
                 ('folio_petition', models.IntegerField(blank=True, null=True, verbose_name='Folio de la solicitud')),
                 ('folio_queja', models.IntegerField(blank=True, null=True, verbose_name='Folio de la queja')),

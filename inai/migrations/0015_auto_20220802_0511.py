@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='filecontrol',
             name='final_data',
-            field=models.NullBooleanField(verbose_name='Es información final'),
+            field=models.BooleanField(verbose_name='Es información final'),
         ),
         migrations.AlterField(
             model_name='filecontrol',

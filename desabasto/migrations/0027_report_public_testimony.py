@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='report',
             name='public_testimony',
-            field=models.NullBooleanField(),
+            field=models.BooleanField(),
         ),
     ]

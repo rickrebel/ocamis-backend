@@ -1,5 +1,5 @@
 from rest_framework import routers
-from django.conf.urls import url, include
+from django.urls import path, include
 
 from catalog.api.views import (
     # StateList,
@@ -18,6 +18,6 @@ router.register(r'state', StateViewSet)
 router.register(r'entity', EntityViewSet)
 
 urlpatterns = [
-    url(r'^new_organization/$', SendEmailNewOrganizationView.as_view()),
-    url('', include(router.urls)),
+    path('new_organization/', SendEmailNewOrganizationView.as_view()),
+    path('', include(router.urls)),
 ]

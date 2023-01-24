@@ -85,7 +85,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='report',
             name='want_litigation',
-            field=models.NullBooleanField(verbose_name='\xbfPermite contacto para litigio?'),
+            field=models.BooleanField(verbose_name='\xbfPermite contacto para litigio?'),
         ),
         migrations.AddField(
             model_name='responsable',
@@ -110,7 +110,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='report',
             name='validated',
-            field=models.NullBooleanField(default=None),
+            field=models.BooleanField(default=None),
         ),
         migrations.AlterField(
             model_name='responsable',
