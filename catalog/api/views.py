@@ -138,7 +138,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     final_operatib = level["short_name"]
                 #for other_cond in level["other_conditions"]:
                 #    if locals()[other_cond]:
-                #        final_operatib = level["short_name"]
+                #        final_operatib = leved["short_name"]
             file_ctrl["operability_name"] = final_operatib
             try:
                 file_ctrl["has_ent_clues"] = bool(
