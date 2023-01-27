@@ -15,7 +15,7 @@ def fetch_entities(include_groups):
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
     
     filter_petition_month = PetitionMonth.objects\
-        .filter(month_entity__year_month__lt="202212")
+        .filter(month_entity__year_month__lte="202212")
     prefetch_petition_month = Prefetch(
         "petitions__petition_months",
         queryset=filter_petition_month)
