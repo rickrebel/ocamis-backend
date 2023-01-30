@@ -26,34 +26,20 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
     def retrieve(self, request, pk=None):
         #self.check_permissions(request)
-        import zipfile
-        import rarfile
-        import pathlib
-        from django.conf import settings
         from inai.models import ProcessFile, FileControl
         from category.models import FileType
         from data_param.models import DataGroup
-        from io import BytesIO
-        from scripts.common import get_file, start_session, create_file
-
-        is_prod = getattr(settings, "IS_PRODUCTION", False)
-        all_errors = []
-
-        s3_client = None
-        dev_resource = None
-        if is_prod:
-            s3_client, dev_resource = start_session()
 
         petition = self.get_object()
         current_file_ctrl = request.query_params.get("file_ctrl", False)
+        file_id = request.query_params.get("file_id", False)
 
-        process_files = ProcessFile.objects.filter(
-            petition=petition, has_data=True)
         data_group = DataGroup.objects.get(name="orphan")
         file_type = FileType.objects.get(name="with_data")
         name_control = "Archivos por agrupar. Petición %s" % (
             petition.folio_petition)
-        prev_file_controls = FileControl.objects.filter(data_group=data_group, 
+        prev_file_controls = FileControl.objects.filter(
+            data_group=data_group,
             petition_file_control__petition=petition)
         if prev_file_controls.exists():
             file_control = prev_file_controls.first()
@@ -63,73 +49,23 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 file_type=file_type,
                 data_group=data_group,
                 final_data=False,
-                )
-        pet_file_ctrl, created_pfc = PetitionFileControl.objects\
+            )
+        pet_file_ctrl, created_pfc = PetitionFileControl.objects \
             .get_or_create(
-                file_control=file_control, petition=petition)
+            file_control=file_control, petition=petition)
+        if not file_id:
+            all_errors = petition.decompress_process_files(pet_file_ctrl)
+            all_data_files = DataFile.objects.filter(
+                petition_file_control=pet_file_ctrl).order_by("date")
+        else:
+            all_errors = []
+            all_data_files = DataFile.objects.filter(id=file_id)
 
-        process_file_ids = []
-        
-        for process_file in process_files:
-            process_file_ids.append(process_file.id)
-            if DataFile.objects.filter(process_file=process_file).exists():
-                continue
-            suffixes = pathlib.Path(process_file.final_path).suffixes
-            suffixes = set([suffix.lower() for suffix in suffixes])
-            if is_prod:
-                bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-                zip_obj = dev_resource.Object(
-                    bucket_name=bucket_name, 
-                    key=f"{settings.AWS_LOCATION}/{process_file.file.name}"
-                    )
-                buffer = BytesIO(zip_obj.get()["Body"].read())
-            else:
-                buffer = get_file(process_file, dev_resource)
-            # RICK AWS corroborar si en necesario
-            #if is_prod:
-            #    buffer = BytesIO(buffer.read())
-            
-            if '.zip' in suffixes:
-                zip_file = zipfile.ZipFile(buffer) 
-            elif '.rar' in suffixes:
-                zip_file = rarfile.RarFile(buffer)
-            else:
-                continue
-
-            for zip_elem in zip_file.infolist():
-                if zip_elem.is_dir():
-                    continue
-                pos_slash = zip_elem.filename.rfind("/")
-                only_name = zip_elem.filename[pos_slash + 1:]
-                directory = (zip_elem.filename[:pos_slash]
-                    if pos_slash > 0 else None)
-                #z_file.open(filename).read()
-                file_bytes = zip_file.open(zip_elem).read()
-
-                curr_file, file_errors = create_file(
-                    process_file, file_bytes, only_name, s3_client=s3_client)
-                if file_errors:
-                    all_errors += file_errors
-                    continue
-
-                new_file = DataFile.objects.create(
-                    file=curr_file,
-                    process_file=process_file,
-                    directory=directory,
-                    #status_process=initial_status,
-                    petition_file_control=pet_file_ctrl,
-                    )
-                new_file.change_status('initial')
-
-        all_data_files = DataFile.objects.filter(
-            petition_file_control=pet_file_ctrl).order_by("date")
-
-        last_file_control = None
         entity_file_controls = FileControl.objects.filter(
             petition_file_control__petition__entity=petition.entity,
-            file_format__isnull=False)\
-            .exclude(data_group__name="orphan")\
-            .prefetch_related("columns")\
+            file_format__isnull=False) \
+            .exclude(data_group__name="orphan") \
+            .prefetch_related("columns") \
             .distinct()
 
         if current_file_ctrl:
@@ -152,14 +88,14 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
                 continue
             for file_ctrl in all_file_controls:
-                saved = data_file.find_coincidences(
+                data_file, saved = data_file.find_coincidences(
                     file_ctrl, suffix, saved, petition)
                 #print(f"Vamos por file control {file_ctrl.name}")
                 #data_file.explore_data = validated_data
                 #data_file.save()
             if not saved:
                 data_file.change_status("explore_fail")
-        
+
         petition_data = serializers.PetitionFullSerializer(petition).data
         data = {
             "errors": all_errors,
@@ -252,27 +188,45 @@ class DataFileViewSet(CreateRetrievView):
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
 
-    @action(methods=["get"], detail=True, url_path='counting')
-    def counting(self, request, **kwargs):
+    @action(methods=["get"], detail=True, url_path='build_explore_data')
+    def build_explore_data(self, request, **kwargs):
+        from inai.api.serializers import DataFileSerializer
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
-
-        data_file, errors, suffix = data_file.decompress_file()
-        if not data_file:
-            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-            return Response(
-                {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
-
-        #data_file.find_coincidences(file_ctrl, suffix, saved)
-
-        data = data_file.count_file_rows()
-        if data.get("errors", False):
-            return Response(
-                data, status=status.HTTP_400_BAD_REQUEST)
+        data_file, errors = data_file.comprobate_coincidences()
+        response_body = {}
+        if errors:
+            response_body["errors"] = errors
+            final_status = status.HTTP_400_BAD_REQUEST
         else:
-            return Response(
-                data, status=status.HTTP_200_OK)
+            final_status = status.HTTP_200_OK
+        if data_file:
+            data = DataFileSerializer(data_file).data
+            response_body["data_file"] = data
+        return Response(response_body, status=final_status)
+
+    @action(methods=["get"], detail=True, url_path='counting')
+    def counting(self, request, **kwargs):
+        from inai.api.serializers import DataFileSerializer
+        if not request.user.is_staff:
+            raise PermissionDenied()
+        data_file = self.get_object()
+        data_file, errors = data_file.comprobate_coincidences()
+        response_body = {}
+        final_status = status.HTTP_200_OK
+        if data_file:
+            data_rows = data_file.count_file_rows()
+            data = DataFileSerializer(data_file).data
+            response_body["data_file"] = data
+            if data_rows.get("errors", False):
+                response_body["errors"] = data_rows["errors"]
+                final_status = status.HTTP_400_BAD_REQUEST
+        if errors:
+            response_body["errors"] = response_body.get("errors", []) + errors
+            final_status = status.HTTP_400_BAD_REQUEST
+
+        return Response(response_body, status=final_status)
 
     @action(methods=["get"], detail=True, url_path='explore')
     def explore(self, request, **kwargs):

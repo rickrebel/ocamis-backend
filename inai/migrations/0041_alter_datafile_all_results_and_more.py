@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='filecontrol',
             name='addl_params',
-            field=models.JSONField(default=inai.models.FileControl.default_addl_params),
+            field=models.JSONField(),
         ),
         migrations.AlterField(
             model_name='filecontrol',

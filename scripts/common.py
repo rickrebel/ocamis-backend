@@ -36,31 +36,49 @@ def read_data_dict_CSV(filename, delimiter=',', quotechar='"'):
 
     return datos
 
+
 def get_datetime_mx(datetime_utc):
     import pytz
     cdmx_tz = pytz.timezone("America/Mexico_City")
     return datetime_utc.astimezone(cdmx_tz)
 
 
-def start_session():
+def build_s3():
+    return {
+        "aws_access_key_id": getattr(settings, "AWS_ACCESS_KEY_ID"),
+        "aws_secret_access_key": getattr(settings, "AWS_SECRET_ACCESS_KEY"),
+        "bucket_name": getattr(settings, "AWS_STORAGE_BUCKET_NAME"),
+        "aws_location": getattr(settings, "AWS_LOCATION"),
+    }
+
+
+def start_session(service='s3'):
     import boto3
     is_prod = getattr(settings, "IS_PRODUCTION", False)
     if not is_prod:
         return None, None
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
-    #s3 = boto3.resource(
+    region_aws = getattr(settings, "AWS_S3_REGION_NAME")
     s3_client = boto3.client(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-    dev_resource = boto3.resource(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-    return s3_client, dev_resource
+        service,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        region_name=region_aws,
+    )
+    if service == 's3':
+        s3_resource = boto3.resource(
+            service,
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            region_name=region_aws,
+        )
+        return s3_client, s3_resource
+    else:
+        return s3_client, None
 
 
 def get_file(file_obj, dev_resource=None):
-
     if dev_resource:
         try:
             content_object = dev_resource.Object(
@@ -117,7 +135,6 @@ def create_file(file_obj, file_bytes, only_name, s3_client=None):
                 Body=file_bytes,
                 Bucket=bucket_name,
                 ACL='public-read',
-                #ContentType='application/pdf'
             )
             if success_file:
                 final_file = final_path

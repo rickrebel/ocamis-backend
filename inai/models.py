@@ -15,6 +15,7 @@ from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
 from .data_file_mixins.matches_mix import MatchesMix
 from .data_file_mixins.get_data_mix import ExtractorsMix
+from .petition_mixins.explore_file_mix import PetitionProcessMix
 
 
 def set_upload_path(instance, filename):
@@ -50,7 +51,7 @@ def set_upload_path(instance, filename):
     return "/".join([entity_type, acronym, last_year_month, filename])
 
 
-class Petition(models.Model):
+class Petition(models.Model, PetitionProcessMix):
     folio_petition = models.CharField(
         max_length=50,
         verbose_name="Folio de la solicitud")
@@ -139,7 +140,6 @@ class Petition(models.Model):
             return "Sin descripción"
     months_in_description.short_description = u"Meses escritos"
 
-
     def __str__(self):
         return "%s -- %s" % (self.entity, self.folio_petition or self.id)
 
@@ -182,6 +182,10 @@ class PetitionNegativeReason(models.Model):
         verbose_name_plural = "Peticiones - razones negativas (m2m)"
 
 
+def default_addl_params():
+    return {"need_partition": True, "need_transform": False}
+
+
 class FileControl(models.Model):
 
     FORMAT_CHOICES = (
@@ -193,8 +197,6 @@ class FileControl(models.Model):
         ("email", "Correo electrónico"),
         ("other", "Otro"),
     )
-    def default_addl_params():
-        return {"need_partition": True, "need_transform": False}
 
     name = models.CharField(max_length=255)
     file_type = models.ForeignKey(
@@ -358,6 +360,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         from django.conf import settings
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         return self.file.url if is_prod else self.file.path
+
+    def save(self, *args, **kwargs):
+        print("saving datafile: ")
+        print(bool(self.explore_data))
+        print(self.explore_data)
+        super(DataFile, self).save(*args, **kwargs)
 
     def __str__(self):
         return "%s %s" % (str(self.file), self.petition_file_control)

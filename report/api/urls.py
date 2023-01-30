@@ -36,7 +36,6 @@ urlpatterns = [
     path('generate_export/', ReportExportView2.as_view()),
     path('generate_export_covid/', CovidReportExportView2.as_view()),
     path('shiny/narrations/', RelatosList.as_view()),
-    # path('shiny/(?P<group_name>[-\w]+)/', DinamicList.as_view()),
     path('shiny/<str:group_name>/', DinamicList.as_view()),
 ]
 

@@ -11,6 +11,9 @@ def build_query_filter(row, columns):
 class ExploreMix:
     from category.models import FileFormat
 
+    def __init__(self):
+        self.explore_data = None
+
     def get_table_ref(self):
         print(self)
         return 2
@@ -39,16 +42,11 @@ class ExploreMix:
         final_count = len(data.readlines())
         return final_count
 
-    def count_xls_rows(self):
-        from scripts.common import get_file, start_session
-        from django.conf import settings
+    def count_xls_rows_prev(self):
         import pandas as pd
-        #s3_client, dev_resource = start_session()
-        #data = get_file(self, dev_resource)
         total_count = 0
         explore_data = self.explore_data
         explore_modificated = False
-        #if not explore_data:
 
         if isinstance(explore_data, dict):
             current_sheets = explore_data.keys()
@@ -63,6 +61,44 @@ class ExploreMix:
                     explore_modificated = True
                     explore_data[sheet_name]["total_rows"] = current_count
                     total_count += current_count
+        if explore_modificated:
+            self.explore_data = explore_data
+            self.save()
+        return total_count
+
+
+    def count_xls_rows(self):
+        from scripts.count_excel_rows import lambda_handler
+        from scripts.common import build_s3
+        from scripts.serverless import count_excel_rows
+        total_count = 0
+        explore_data = self.explore_data
+        explore_modificated = False
+
+        if isinstance(explore_data, dict):
+            current_sheets = explore_data.keys()
+            #print("current_sheets: ", current_sheets)
+            sheets_for_count = []
+            for sheet_name in current_sheets:
+                if "total_rows" in explore_data[sheet_name]:
+                    total_count += explore_data[sheet_name]["total_rows"]
+                else:
+                    sheets_for_count.append(sheet_name)
+                    #excel_file = pd.ExcelFile(self.file, sheet_name=sheet_name)
+            params = {
+                "sheets": sheets_for_count,
+                "file": self.file.name,
+                's3': build_s3(),
+            }
+            print("------------------params: \n", params)
+            #all_counts = lambda_handler(params, None)
+            all_counts = count_excel_rows(params)
+            print("all_counts", all_counts)
+            for sheet_name in current_sheets:
+                if sheet_name in all_counts:
+                    explore_data[sheet_name]["total_rows"] = all_counts[sheet_name]
+                    total_count += all_counts[sheet_name]
+                    explore_modificated = True
         if explore_modificated:
             self.explore_data = explore_data
             self.save()
@@ -116,16 +152,33 @@ class ExploreMix:
             return data
         return data
 
+    def comprobate_coincidences(self):
+        data_file, errors, suffix = self.decompress_file()
+        if not data_file:
+            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
+            return None, errors
+        if data_file.explore_data:
+            return data_file, None
+        file_ctrl = data_file.petition_file_control.file_control
+        petition = data_file.petition_file_control.petition
+        data_file, saved = data_file.find_coincidences(
+            file_ctrl, suffix, False, petition)
+        if not saved:
+            errors = ["No hay coincidencias con las columnas"]
+            data_file.save_errors(errors, "explore_fail")
+            return data_file, errors
+        else:
+            return data_file, None
+
     def find_coincidences(self, file_ctrl, suffix, saved, petition):
         from inai.models import NameColumn, PetitionFileControl
-        data = self.transform_file_in_data(
-            'auto_explore', suffix, file_ctrl)
+        data = self.transform_file_in_data('auto_explore', suffix, file_ctrl)
         if not data:
-            return None
+            return None, None
         if isinstance(data, dict):
             if data.get("errors", False):
                 # print(data)
-                return None
+                return None, None
         # row_headers = file_ctrl.row_headers or 0
         # headers = data["headers"]
         current_sheets = data["current_sheets"]
@@ -148,7 +201,7 @@ class ExploreMix:
             if headers and list(name_columns) == headers:
                 succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
                     .get_or_create(
-                    file_control=file_ctrl, petition=petition)
+                        file_control=file_ctrl, petition=petition)
                 validated_data[sheet_name] = structured_data[sheet_name]
                 if succ_pet_file_ctrl.id in all_pet_file_ctrl:
                     continue
@@ -158,15 +211,17 @@ class ExploreMix:
                     new_data_file = self
                     new_data_file.pk = None
                     new_data_file.petition_file_control = succ_pet_file_ctrl
+                    new_data_file.explore_data = validated_data
                     new_data_file.save()
                     new_data_file.add_result(("info", info_text))
                 else:
                     self.petition_file_control = succ_pet_file_ctrl
+                    self.explore_data = validated_data
                     self.save()
                     self.change_status("success_exploration")
                     saved = True
                 all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
-        return saved
+        return self, saved
 
     def decompress_file(self):
         import os
@@ -180,7 +235,7 @@ class ExploreMix:
         #Se obienen todos los tipos del archivo inicial:
         print(self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
-        re_is_suffix = re.compile(r'^\.([a-z]{3,4})$')
+        re_is_suffix = re.compile(r'^\.([a-zA-Z]{3,4})$')
         suffixes = [suffix.lower() for suffix in suffixes
             if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
         print("suffixes", suffixes)
