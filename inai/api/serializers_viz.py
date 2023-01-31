@@ -86,6 +86,7 @@ class FileControlViz2Serializer(serializers.ModelSerializer):
             "format_file",
             "file_format",
             "anomalies",
+            "name",
             #"data_group",
             "columns",
             "petition_file_control",
