@@ -11,9 +11,6 @@ def build_query_filter(row, columns):
 class ExploreMix:
     from category.models import FileFormat
 
-    def __init__(self):
-        self.explore_data = None
-
     def get_table_ref(self):
         print(self)
         return 2

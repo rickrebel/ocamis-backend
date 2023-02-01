@@ -307,10 +307,11 @@ class PetitionMonth(models.Model):
         verbose_name_plural = u"Meses de peticion"
 
 
+def default_explore_data():
+    return {}
+
+
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
-    
-    def default_explore_data():
-        return {}
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
     zip_path = models.TextField(blank=True, null=True)
@@ -342,7 +343,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     #jump_columns = models.IntegerField(
     #    default=0, verbose_name="Columnas vacías al comienzo")
     explore_data = JSONField(
-        default=default_explore_data, blank=True, null=True,
+        blank=True, null=True,
         verbose_name="Primeros datos, de exploración")
     directory = models.CharField(
         max_length=255, verbose_name="Ruta en archivo comprimido",
