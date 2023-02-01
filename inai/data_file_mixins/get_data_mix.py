@@ -87,8 +87,8 @@ class ExtractorsMix:
             try:
                 all_data = curr_sheet.get("all_data")
             except Exception as e:
-                print("----------")
-                print(curr_sheet)
+                print("------ERROR EN OBTENER ALL_DATA-------")
+                print(sheet_name, e)
                 raise e
             if not "headers" in curr_sheet:
                 few_nulls = False

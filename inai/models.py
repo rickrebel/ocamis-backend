@@ -361,11 +361,11 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         return self.file.url if is_prod else self.file.path
 
-    def save(self, *args, **kwargs):
+    """def save(self, *args, **kwargs):
         print("saving datafile: ")
         print(bool(self.explore_data))
         print(self.explore_data)
-        super(DataFile, self).save(*args, **kwargs)
+        super(DataFile, self).save(*args, **kwargs)"""
 
     def __str__(self):
         return "%s %s" % (str(self.file), self.petition_file_control)

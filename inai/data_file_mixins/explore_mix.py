@@ -66,7 +66,6 @@ class ExploreMix:
             self.save()
         return total_count
 
-
     def count_xls_rows(self):
         from scripts.count_excel_rows import lambda_handler
         from scripts.common import build_s3

@@ -278,7 +278,7 @@ class DataFileViewSet(CreateRetrievView):
             complex_headers = []
             file_control = data_file.petition_file_control.file_control
             data_groups = [file_control.data_group.name, 'catalogs']
-            print(data_groups)
+            #print(data_groups)
             all_name_columns = NameColumn.objects\
                 .filter(
                     final_field__isnull=False,

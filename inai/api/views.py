@@ -338,6 +338,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         for (order, column_item) in enumerate(columns_items, start=1):
             column_id = column_item.get("id", False)
             transformations = column_item.pop('transformations', [])
+            print("TRANSFORMATIONS", transformations)
             column_item["seq"] = order
             if column_id:
                 #print("sí tenngo column", column_item["id"])
@@ -354,17 +355,22 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             column_serializer = serializers.NameColumnEditSerializer(
                 column, data=column_item)
             if column_serializer.is_valid():
-                #print("es válido")
+                print("es válido")
                 column = column_serializer.save()
                 actual_id_columns.append(column.id)
                 actual_id_tranformations = []
                 for transf_item in transformations:
                     transformation = Transformation()
+                    transf_item["name_column"] = column.id
                     transform_ser = serializers.TransformationEditSerializer(
                         transformation, data=transf_item)
                     if transform_ser.is_valid():
+                        print("transf válido")
                         tranform = transform_ser.save()
                         actual_id_tranformations.append(tranform.id)
+                        print("transf_id", tranform.id)
+                    else:
+                        print("NO ES VALIDO", transform_ser.errors)
                 Transformation.objects.filter(name_column=column)\
                     .exclude(id__in=actual_id_tranformations).delete()
             else:
