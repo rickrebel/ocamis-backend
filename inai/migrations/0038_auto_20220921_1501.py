@@ -19,6 +19,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='datafile',
             name='explore_data',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=inai.models.DataFile.default_explore_data, null=True, verbose_name='Primeros datos, de exploración'),
+            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=inai.models.default_explore_data, null=True, verbose_name='Primeros datos, de exploración'),
         ),
     ]

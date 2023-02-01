@@ -30,12 +30,12 @@ def obtain_names_from_s3(path, folio_petition, is_process_file=False):
             try:
                 default_type = FileType.objects.get(name="no_final_info")
                 petition = Petition.objects.get(folio_petition=folio_petition)
-                ProcessFile.objects.create(
+                pf, created = ProcessFile.objects.get_or_create(
                     petition=petition,
                     file=final_name,
                     file_type=default_type,
                     )
-                print(f"Exitosamente creado {petition}")
+                print(f"{'Exitosamente' if created else 'Previamente'} creado: {petition}")
             except Exception as e:
                 print("No fue posible obtener la Solicitud")
                 print(e)
@@ -44,7 +44,7 @@ def obtain_names_from_s3(path, folio_petition, is_process_file=False):
 
 
 
-#obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
+obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
 #obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)
 #obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
 

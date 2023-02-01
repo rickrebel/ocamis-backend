@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='datafile',
             name='explore_data',
-            field=models.JSONField(blank=True, default=inai.models.DataFile.default_explore_data, null=True, verbose_name='Primeros datos, de exploración'),
+            field=models.JSONField(blank=True, default=inai.models.default_explore_data, null=True, verbose_name='Primeros datos, de exploración'),
         ),
         migrations.AlterField(
             model_name='filecontrol',
