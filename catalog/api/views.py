@@ -113,6 +113,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
         detailed_controls_query = FileControl.objects\
             .filter(
                 data_group__name="detailed",
+                petition_file_control__isnull=False
             )\
             .prefetch_related(
                 "anomalies",
