@@ -55,6 +55,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             file_control=file_control, petition=petition)
         if not file_id:
             all_errors = petition.decompress_process_files(pet_file_ctrl)
+            print("all_errors", all_errors)
             all_data_files = DataFile.objects.filter(
                 petition_file_control=pet_file_ctrl).order_by("date")
         else:
