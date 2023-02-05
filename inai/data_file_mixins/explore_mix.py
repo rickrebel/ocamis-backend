@@ -8,6 +8,7 @@ def build_query_filter(row, columns):
         query_filter[name_column] = row[column.position_in_data]
     return query_filter
 
+
 class ExploreMix:
     from category.models import FileFormat
 
@@ -39,32 +40,7 @@ class ExploreMix:
         final_count = len(data.readlines())
         return final_count
 
-    def count_xls_rows_prev(self):
-        import pandas as pd
-        total_count = 0
-        explore_data = self.explore_data
-        explore_modificated = False
-
-        if isinstance(explore_data, dict):
-            current_sheets = explore_data.keys()
-            #print("current_sheets: ", current_sheets)
-            for sheet_name in current_sheets:
-                if "total_rows" in explore_data[sheet_name]:
-                    total_count += explore_data[sheet_name]["total_rows"]
-                else:
-                    #excel_file = pd.ExcelFile(self.file, sheet_name=sheet_name)
-                    excel_file = pd.read_excel(self.file, sheet_name=sheet_name)
-                    current_count = excel_file.shape[0]
-                    explore_modificated = True
-                    explore_data[sheet_name]["total_rows"] = current_count
-                    total_count += current_count
-        if explore_modificated:
-            self.explore_data = explore_data
-            self.save()
-        return total_count
-
     def count_xls_rows(self):
-        from scripts.count_excel_rows import lambda_handler
         from scripts.common import build_s3
         from scripts.serverless import count_excel_rows
         total_count = 0
@@ -86,8 +62,7 @@ class ExploreMix:
                 "file": self.file.name,
                 's3': build_s3(),
             }
-            print("------------------params: \n", params)
-            #all_counts = lambda_handler(params, None)
+            #print("------------------params: \n", params)
             all_counts = count_excel_rows(params)
             print("all_counts", all_counts)
             for sheet_name in current_sheets:
@@ -101,7 +76,7 @@ class ExploreMix:
         return total_count
 
     #Comienzo del proceso de transformación.
-    #Si es esploración (is_explore) solo va a obtener los headers y las 
+    #Si es esploración (is_explore) solo va a obtener los headers y las
     #primeras filas
     def start_file_process(self, is_explore=False):
         from rest_framework.response import Response
@@ -157,9 +132,13 @@ class ExploreMix:
             return data_file, None
         file_ctrl = data_file.petition_file_control.file_control
         petition = data_file.petition_file_control.petition
-        data_file, saved = data_file.find_coincidences(
+        data_file, saved, errors = data_file.find_coincidences(
             file_ctrl, suffix, False, petition)
-        if not saved:
+        if errors:
+            data_file.error_process += errors
+            data_file = data_file.change_status("explore_fail")
+            return data_file, errors
+        elif not saved:
             errors = ["No hay coincidencias con las columnas"]
             data_file.save_errors(errors, "explore_fail")
             return data_file, errors
@@ -168,13 +147,14 @@ class ExploreMix:
 
     def find_coincidences(self, file_ctrl, suffix, saved, petition):
         from inai.models import NameColumn, PetitionFileControl
+        from datetime import datetime
         data = self.transform_file_in_data('auto_explore', suffix, file_ctrl)
         if not data:
-            return None, None
+            return self, saved
         if isinstance(data, dict):
             if data.get("errors", False):
                 # print(data)
-                return None, None
+                return self, saved
         # row_headers = file_ctrl.row_headers or 0
         # headers = data["headers"]
         current_sheets = data["current_sheets"]
@@ -195,9 +175,13 @@ class ExploreMix:
                 file_control=file_ctrl, name_in_data__isnull=False) \
                 .values_list("name_in_data", flat=True)
             if headers and list(name_columns) == headers:
-                succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
-                    .get_or_create(
-                        file_control=file_ctrl, petition=petition)
+                try:
+                    succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
+                        .get_or_create(
+                            file_control=file_ctrl, petition=petition)
+                except PetitionFileControl.MultipleObjectsReturned:
+                    errors = ["El grupos de control está duplicado en la solicitud"]
+                    return self, saved, errors
                 validated_data[sheet_name] = structured_data[sheet_name]
                 if succ_pet_file_ctrl.id in all_pet_file_ctrl:
                     continue
@@ -217,23 +201,18 @@ class ExploreMix:
                     self.change_status("success_exploration")
                     saved = True
                 all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
-        return self, saved
+        return self, saved, []
 
     def decompress_file(self):
-        import os
-        import zipfile 
         import pathlib
-        from django.conf import settings
-        from scripts.common import get_file, start_session, create_file
-        from io import BytesIO
         from category.models import FileFormat
         import re
         #Se obienen todos los tipos del archivo inicial:
-        print(self.final_path)
+        print("final_path: ", self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
         re_is_suffix = re.compile(r'^\.([a-zA-Z]{3,4})$')
         suffixes = [suffix.lower() for suffix in suffixes
-            if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
+                    if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
         print("suffixes", suffixes)
         all_errors = []
         if '.gz' in suffixes:
@@ -245,7 +224,7 @@ class ExploreMix:
             print("final_path", final_path)
             if not success_decompress:
                 print("error en success_decompress")
-                errors = ['No se pudo descomprimir el archivo gz %s' % final_path]            
+                errors = ['No se pudo descomprimir el archivo gz %s' % final_path]
                 return None, errors, None
             #print("final_path:", final_path)
             #Se vuelve a obtener la ubicación final del nuevo archivo
@@ -256,7 +235,7 @@ class ExploreMix:
             # Se realiza todito el proceso para guardar el nuevo objeto DataFinal,
             # manteniendo todas las características del archivo original
             prev_self_pk = self.pk
-            new_file = self 
+            new_file = self
             new_file.pk = None
             new_file.file = final_path
             #se guarda el nuevo objeto DataFinal
@@ -365,7 +344,7 @@ class ExploreMix:
                 s3_client, dev_resource = start_session()
                 bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
                 gz_obj = dev_resource.Object(
-                    bucket_name=bucket_name, 
+                    bucket_name=bucket_name,
                     key=f"{settings.AWS_LOCATION}/{self.file.name}"
                     )
                 with gzip.GzipFile(fileobj=gz_obj.get()["Body"]) as gzipfile:
@@ -533,8 +512,8 @@ class ExploreMix:
 
         #with zipfile.ZipFile(self.url, 'r') as zip_ref:
         with zipfile.ZipFile(url, 'r') as zip_ref:
-            zip_ref.extractall(directory)               
-        #ZipFile.extractall(path=None, members=None, pwd=None)   
+            zip_ref.extractall(directory)
+        #ZipFile.extractall(path=None, members=None, pwd=None)
         #for f in os.listdir(directory):
         for f in all_files:
             new_file = self

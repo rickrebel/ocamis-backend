@@ -18,7 +18,8 @@ def create_zip_file(function_name, packages, function_text=None):
     # Create a temporary directory
     base_dir = settings.BASE_DIR
     temp_dir_prev = tempfile.mkdtemp()
-    temp_dir = f"{base_dir}/fixture/packages/{random_string(6)}"
+    current_string = random_string(6)
+    temp_dir = f"{base_dir}/fixture/packages/{current_string}"
     # Install the packages
     for package in packages:
         os.system(f"pip3 install {package} -t {temp_dir}")
@@ -31,7 +32,8 @@ def create_zip_file(function_name, packages, function_text=None):
             if function_text:
                 zip_ref.writestr(f'{function_name}.py', function_text)
             for root, dirs, files in os.walk(temp_dir):
-                match = re.search(r'packages/(.*)', root)
+                match = re.search(r"packages/[a-zA-Z]{6}/(.*)", root)
+                # match = re.search(r'packages/(.*)', root)
                 if match:
                     current_root = match.group(1)
                 else:
@@ -140,19 +142,19 @@ def create_lambda_layer(layer_name, final_path):
             'S3Key': s3_key
         },
         CompatibleRuntimes=['python3.9'],
+        CompatibleArchitectures=['x86_64']
     )
     return response
 
 
-def definitive_lambda():
-    layer_name = "pandas_example_2"
-    zip_layer = create_zip_file(layer_name, ['pandas'])
+def definitive_lambda(layer_name="my_layer1", packages=[]):
+    zip_layer = create_zip_file(layer_name, packages)
     resp, layer_path = upload_to_s3(zip_layer, layer_name)
     create_lambda_layer(layer_name, layer_path)
 
 
 #definitive_function()
-definitive_function_real()
-#definitive_lambda()
+#definitive_function_real()
+definitive_lambda("decompressors", ["rarfile"])
 
 

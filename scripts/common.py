@@ -1,9 +1,10 @@
-# encoding:utf-8
-
 from django.conf import settings
+from io import BytesIO
+import functools
+
 bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
 aws_location = getattr(settings, "AWS_LOCATION")
-from io import BytesIO
+
 
 def similar(a, b):
     from difflib import SequenceMatcher
@@ -12,10 +13,16 @@ def similar(a, b):
     else:
         return 0
 
+
+@functools.lru_cache(maxsize=None)
+def get_excel_file(file_path):
+    import pandas as pd
+    return pd.ExcelFile(file_path)
+
+
 # esta función evalúa si hay algún parámetro en el url para el
 # redireccionamiento, si no lo hay evalúa si la página de origen es distinta
 # a alguna de login o register, para redirigirla al home si es el caso
-
 
 def get_or_none(model, *args, **kwargs):
     try:
@@ -54,17 +61,20 @@ def build_s3():
 
 def start_session(service='s3'):
     import boto3
+    from botocore.config import Config
     is_prod = getattr(settings, "IS_PRODUCTION", False)
     if not is_prod:
         return None, None
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
     region_aws = getattr(settings, "AWS_S3_REGION_NAME")
+    config = Config(read_timeout=600, retries={ 'max_attempts': 0 })
     s3_client = boto3.client(
         service,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
         region_name=region_aws,
+        config=config
     )
     if service == 's3':
         s3_resource = boto3.resource(

@@ -14,6 +14,7 @@ from api.mixins import (
 
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
 from catalog.api.serializers import EntityFileControlsSerializer
+last_final_path = None
 
 
 class AutoExplorePetitionViewSet(ListRetrieveView):
@@ -26,9 +27,11 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
     def retrieve(self, request, pk=None):
         #self.check_permissions(request)
-        from inai.models import ProcessFile, FileControl
+        from inai.models import FileControl
         from category.models import FileType
         from data_param.models import DataGroup
+        from scripts.common import get_excel_file
+        from datetime import datetime
 
         petition = self.get_object()
         current_file_ctrl = request.query_params.get("file_ctrl", False)
@@ -51,16 +54,16 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 final_data=False,
             )
         pet_file_ctrl, created_pfc = PetitionFileControl.objects \
-            .get_or_create(
-            file_control=file_control, petition=petition)
+            .get_or_create(file_control=file_control, petition=petition)
         if not file_id:
             all_errors = petition.decompress_process_files(pet_file_ctrl)
-            print("all_errors", all_errors)
             all_data_files = DataFile.objects.filter(
                 petition_file_control=pet_file_ctrl).order_by("date")
         else:
             all_errors = []
             all_data_files = DataFile.objects.filter(id=file_id)
+        all_data_files = all_data_files.prefetch_related(
+            "petition_file_control")
 
         entity_file_controls = FileControl.objects.filter(
             petition_file_control__petition__entity=petition.entity,
@@ -73,29 +76,39 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             entity_file_controls = entity_file_controls.filter(
                 id=current_file_ctrl)
 
-        near_file_controls = entity_file_controls.filter(
-            petition_file_control__petition=petition)
-        others_file_controls = entity_file_controls.exclude(
-            petition_file_control__petition=petition)
+        near_file_controls = entity_file_controls\
+            .filter(petition_file_control__petition=petition)\
+            .prefetch_related("file_format")
+        others_file_controls = entity_file_controls\
+            .exclude(petition_file_control__petition=petition)\
+            .prefetch_related("file_format")
 
         all_file_controls = near_file_controls | others_file_controls
+        global last_final_path
         for data_file in all_data_files:
             saved = False
             data_file.error_process = []
-            #print("data_file_original: ", data_file)
             data_file.save()
             data_file, errors, suffix = data_file.decompress_file()
             if not data_file:
                 print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
                 continue
             for file_ctrl in all_file_controls:
-                data_file, saved = data_file.find_coincidences(
+                print("file_ctrl: ", file_ctrl, "\nformat:", file_ctrl.file_format)
+                data_file, saved, errors = data_file.find_coincidences(
                     file_ctrl, suffix, saved, petition)
                 #print(f"Vamos por file control {file_ctrl.name}")
                 #data_file.explore_data = validated_data
                 #data_file.save()
+                if errors:
+                    all_errors.append(errors)
+                    data_file.error_process += errors
+                    data_file = data_file.change_status("explore_fail")
+                    break
             if not saved:
+                all_errors.append(errors)
                 data_file.change_status("explore_fail")
+            get_excel_file.cache_clear()
 
         petition_data = serializers.PetitionFullSerializer(petition).data
         data = {
@@ -202,6 +215,7 @@ class DataFileViewSet(CreateRetrievView):
             final_status = status.HTTP_400_BAD_REQUEST
         else:
             final_status = status.HTTP_200_OK
+            data_file = data_file.change_status("success_exploration")
         if data_file:
             data = DataFileSerializer(data_file).data
             response_body["data_file"] = data

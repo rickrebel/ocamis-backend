@@ -1,6 +1,4 @@
 
-import json
-
 raws = {}
 
 def execute_matches(row, file):    
@@ -29,9 +27,9 @@ def execute_matches(row, file):
 
 class ExtractorsMix:
 
-    def transform_file_in_data(self, type_xplor, suffix, file_control=None):
+    def transform_file_in_data(self, type_explor, suffix, file_control=None):
         from category.models import FileFormat
-        is_explore = bool(type_xplor)
+        is_explore = bool(type_explor)
         #is_auto = type_xplor == 'auto_explore'
         status_error = 'explore_fail' if is_explore else 'extraction_failed'
         if not file_control:
@@ -195,25 +193,29 @@ class ExtractorsMix:
         raws["missing_r"] = missing_data
         return structured_data
 
-
     def get_data_from_excel(self, is_explore, file_control):
-        import pandas as pd
         from inai.models import Transformation
+        from scripts.serverless import execute_in_lambda
+        from scripts.common import get_excel_file
         #print("ESTOY EN EXCEEEEL")
         #print(self.file.path)
         #print(self.file.url)
         #print(self.file.name)
         #print("---------")
-        """data_excel = pd.read_excel(
+        """
+        data_excel = pd.read_excel(
             self.final_path, dtype='string', nrows=50,
             #converters=str.strip,
             na_filter=False,
-            keep_default_na=False, header=None)"""
-        excel_file = pd.ExcelFile(self.final_path)
+            keep_default_na=False, header=None)
+        """
+        #excel_file = pd.ExcelFile(self.final_path)
+        excel_file = get_excel_file(self.final_path)
         sheet_names = excel_file.sheet_names
         file_transformations = Transformation.objects.filter(
             file_control=file_control,
-            clean_function__name__icontains="_tabs_")
+            clean_function__name__icontains="_tabs_").prefetch_related(
+            "clean_function")
         include_names = exclude_names = include_idx = exclude_idx = None
         nrows = 220 if is_explore else None
         if is_explore:
@@ -221,6 +223,7 @@ class ExtractorsMix:
         else:
             all_sheets = {}
         current_sheets = []
+        pending_sheets = []
 
         for transform in file_transformations:
             current_values = transform.addl_params["value"].split(",")
@@ -235,9 +238,12 @@ class ExtractorsMix:
             elif func_name == 'exclude_tabs_by_index':
                 exclude_idx = [int(val.strip()) for val in current_values]
 
+        #def clean_na(row):
+        #    cols = row[1].tolist()
+        #    return [col if isinstance(col, str) else "" for col in cols]
         def clean_na(row):
-            cols = row[1].tolist()
-            return [col if isinstance(col, str) else "" for col in cols]
+            cols = row.tolist()
+            return [col.strip() if isinstance(col, str) else "" for col in cols]
 
         for position, sheet_name in enumerate(sheet_names, start=1):
             if include_names and sheet_name not in include_names:
@@ -254,18 +260,33 @@ class ExtractorsMix:
                 if "all_data" in all_sheets[sheet_name]:
                     continue
             print("SE TUVO QUE LEER EL EXCEL DE NUEVO")
+            pending_sheets.append(sheet_name)
+            continue
             data_excel = excel_file.parse(
                 sheet_name,
-                dtype='string', nrows=nrows, na_filter=False,
+                dtype='string', na_filter=False,
                 keep_default_na=False, header=None)
-            #listval = [row[1].tolist() for row in data_excel.iterrows()]
-            listval = [clean_na(row) for row in data_excel.iterrows()]
+            total_rows = data_excel.shape[0]
+            # list_val = [row[1].tolist() for row in data_excel.iterrows()]
+            if nrows:
+                data_excel = data_excel.head(nrows)
+            iter_data = data_excel.apply(clean_na, axis=1)
+            list_val = iter_data.tolist()
             all_sheets[sheet_name] = {
-                "all_data": listval[:200],
+                "all_data": list_val,
+                "total_rows": total_rows,
             }
             #all_sheets[sheet_name]["all_data"] = listval
             #return False, ["hasta aquí sin errores, checa prints"]
             #if file_control.file_transformations.clean_function
+        if pending_sheets:
+            params = {
+                "final_path": self.final_path,
+                "nrows": nrows,
+                "sheets": pending_sheets,
+            }
+            new_sheets = execute_in_lambda("explore_data_xls", params, True)
+            all_sheets.update(new_sheets)
         #Nombres de columnas (pandaarray)
         #Renglones de las variables
         #rows= []
@@ -285,7 +306,6 @@ class ExtractorsMix:
         #print(listval)
         #return headers, listval, []
         return all_sheets, current_sheets, []
-
 
     def get_data_from_file_simple(self, is_explore):
         from scripts.recipe_specials import (
@@ -343,4 +363,3 @@ class ExtractorsMix:
             data = clean_special(data)
         """
         return data, []
-
