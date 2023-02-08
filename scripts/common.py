@@ -158,6 +158,59 @@ def create_file(file_obj, file_bytes, only_name, s3_client=None):
     return final_file, all_errors
 
 
+def create_file_big(file_obj, zip_content, only_name, s3_client=None):
+    from inai.models import set_upload_path
+    from django.core.files import File
+    all_errors = []
+    final_file = None
+    try:
+        final_path = set_upload_path(file_obj, only_name)
+        print("COMIENZA EL MULTIPART")
+        multipart_upload = s3_client.create_multipart_upload(
+            Bucket=bucket_name,
+            Key=f"{aws_location}/{final_path}",
+            ACL='public-read',
+        )
+        print("multipart_upload", multipart_upload)
+        upload_id = multipart_upload['UploadId']
+
+        print("comenzamos")
+        part_number = 1
+        parts = []
+        while True:
+            data = zip_content.read(1024 * 1024 * 5)
+            #data = zip_content.read(1024 * 10)
+            if not data:
+                break
+            part_number += 1
+            response = s3_client.upload_part(
+                Bucket=bucket_name,
+                Key=f"{aws_location}/{final_path}",
+                Body=data,
+                PartNumber=part_number,
+                UploadId=upload_id,
+            )
+            parts.append({
+                'PartNumber': part_number,
+                'ETag': response['ETag'],
+            })
+        success_file = s3_client.complete_multipart_upload(
+            Bucket=bucket_name,
+            Key=f"{aws_location}/{final_path}",
+            UploadId=upload_id,
+            MultipartUpload={'Parts': parts},
+        )
+        print("success_file", success_file)
+        if success_file:
+            final_file = final_path
+        else:
+            all_errors += [f"No se pudo insertar el archivo {final_path}"]
+    except Exception as e:
+        print(e)
+        all_errors += [u"Error leyendo los datos %s" % e]
+    return final_file, all_errors
+
+
 
 
 """

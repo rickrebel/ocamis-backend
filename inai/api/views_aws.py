@@ -208,7 +208,7 @@ class DataFileViewSet(CreateRetrievView):
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
-        data_file, errors = data_file.comprobate_coincidences()
+        data_file, errors, new_ch = data_file.comprobate_coincidences()
         response_body = {}
         if errors:
             response_body["errors"] = errors
@@ -219,6 +219,12 @@ class DataFileViewSet(CreateRetrievView):
         if data_file:
             data = DataFileSerializer(data_file).data
             response_body["data_file"] = data
+        child_data_files = DataFile.objects.filter(
+            origin_file=data_file)
+        print("child_data_files: ", child_data_files.count())
+        if new_ch:
+            response_body["new_files"] = DataFileSerializer(
+                new_ch, many=True).data
         return Response(response_body, status=final_status)
 
     @action(methods=["get"], detail=True, url_path='counting')
@@ -227,7 +233,7 @@ class DataFileViewSet(CreateRetrievView):
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
-        data_file, errors = data_file.comprobate_coincidences()
+        data_file, errors, new_ch = data_file.comprobate_coincidences()
         response_body = {}
         final_status = status.HTTP_200_OK
         if data_file:

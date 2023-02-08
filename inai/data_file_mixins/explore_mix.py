@@ -87,10 +87,13 @@ class ExploreMix:
         self.error_process = []
         self.save()
         #se llama a la función para descomprimir el archivo o archivos:
+        childs_count = self.child_files.count()
         new_self, errors, suffix = self.decompress_file()
+        print("new_self: ", new_self)
         if errors:
             status_error = 'explore_fail' if is_explore else 'extraction_failed'
             return self.save_errors(errors, status_error)
+        new_childs_count = self.child_files.count()
         count_splited = 0
         file_size = new_self.file.size
         if file_size > 400000000:
@@ -99,7 +102,6 @@ class ExploreMix:
                 return None, errors, None
             count_splited = new_self.split_file()
         #return count_splited, [], list(suffixes)[0]
-
         if errors:
             status_error = 'explore_fail' if is_explore else 'extraction_failed'
             return new_self.save_errors(errors, status_error)
@@ -115,6 +117,9 @@ class ExploreMix:
             all_childs = DataFile.objects.filter(origin_file=new_self)
             for ch_file in all_childs:
                 data = ch_file.transform_file_in_data('is_explore', suffix)
+        elif new_childs_count and childs_count < new_childs_count:
+            first_child = new_self.child_files.first()
+            data = first_child.transform_file_in_data('is_explore', suffix)
         else:
             data = new_self.transform_file_in_data('is_explore', suffix)
         if is_explore:
@@ -124,37 +129,64 @@ class ExploreMix:
         return data
 
     def comprobate_coincidences(self):
+        from inai.models import DataFile
+        init_children = list(self.child_files.all().values_list('id', flat=True))
+        print("init_children: ", init_children)
         data_file, errors, suffix = self.decompress_file()
+        new_children = data_file.child_files.all()
+        print("new_children: ", new_children.count())
+        if init_children:
+            print("init_children: ", init_children)
+            new_children = new_children.exclude(id__in=init_children)
+            print("new_children: ", new_children.count())
+        new_children_ids = new_children.values_list('id', flat=True)
+        print("new_children_ids: ", new_children_ids)
         if not data_file:
             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-            return None, errors
+            return None, errors, 0
         if data_file.explore_data:
-            return data_file, None
+            return data_file, None, 0
         file_ctrl = data_file.petition_file_control.file_control
         petition = data_file.petition_file_control.petition
-        data_file, saved, errors = data_file.find_coincidences(
-            file_ctrl, suffix, False, petition)
+        child_data_files = DataFile.objects.filter(origin_file=self)
+        print("child_data_files: ", child_data_files.count())
+        if new_children_ids:
+            print("HAY NUEVOS CHILDREN")
+            first_child = new_children.first()
+            first_child, saved, errors = first_child.find_coincidences(
+                file_ctrl, suffix, False, petition)
+            for child in new_children:
+                child.explore_data = first_child.explore_data
+                child.status_process = first_child.status_process
+                child.save()
+            data_file.explore_data = first_child.explore_data
+            data_file.status_process = first_child.status_process
+            data_file.save()
+        else:
+            data_file, saved, errors = data_file.find_coincidences(
+                file_ctrl, suffix, False, petition)
         if errors:
-            data_file.error_process += errors
+            data_file.error_process = (data_file.error_process or []) + errors
             data_file = data_file.change_status("explore_fail")
-            return data_file, errors
-        elif not saved:
+            return data_file, errors, new_children
+        elif not saved and file_ctrl.row_headers:
             errors = ["No hay coincidencias con las columnas"]
             data_file.save_errors(errors, "explore_fail")
-            return data_file, errors
+            return data_file, errors, new_children
         else:
-            return data_file, None
+            return data_file, None, new_children
 
-    def find_coincidences(self, file_ctrl, suffix, saved, petition):
+    def find_coincidences(self, file_ctrl, suffix, saved, petition, parent=None):
         from inai.models import NameColumn, PetitionFileControl
-        from datetime import datetime
+        if not parent:
+            parent = self
         data = self.transform_file_in_data('auto_explore', suffix, file_ctrl)
         if not data:
-            return self, saved
+            return self, saved, ["No se pudo explorar el archivo"]
         if isinstance(data, dict):
             if data.get("errors", False):
                 # print(data)
-                return self, saved
+                return self, saved, data["errors"]
         # row_headers = file_ctrl.row_headers or 0
         # headers = data["headers"]
         current_sheets = data["current_sheets"]
@@ -220,32 +252,17 @@ class ExploreMix:
             #print("name", self.file.name)
             #print("url", self.file.url)
             #Se llama a la función que descomprime el arhivo
-            success_decompress, final_path = self.decompress_file_gz()
-            print("final_path", final_path)
-            if not success_decompress:
-                print("error en success_decompress")
-                errors = ['No se pudo descomprimir el archivo gz %s' % final_path]
-                return None, errors, None
-            #print("final_path:", final_path)
-            #Se vuelve a obtener la ubicación final del nuevo archivo
-            # real_final_path = self.final_path.replace(".gz", "")
-            #Como el archivo ya está descomprimido, se guarda sus status
-            self.change_status('decompressed')
-
+            if not self.child_files.all().count():
+                success_decompress, example_file = self.decompress_file_gz()
+                if not success_decompress:
+                    print("error en success_decompress")
+                    errors = ['No se pudo descomprimir el archivo gz %s' % self.final_path]
+                    return None, errors, None
+                #Se vuelve a obtener la ubicación final del nuevo archivo
+                #Como el archivo ya está descomprimido, se guarda sus status
+            self = self.change_status('decompressed')
             # Se realiza todito el proceso para guardar el nuevo objeto DataFinal,
             # manteniendo todas las características del archivo original
-            prev_self_pk = self.pk
-            new_file = self
-            new_file.pk = None
-            new_file.file = final_path
-            #se guarda el nuevo objeto DataFinal
-            new_file.save()
-            #Se asigna su status y la referencia con el archivo original
-            new_file.change_status("initial")
-            new_file.origin_file_id = prev_self_pk
-            new_file.save()
-            #ahora es con el nuevo archivo con el que estamos tratando
-            self = new_file
             suffixes.remove('.gz')
             print("new_suffixex",  suffixes)
         elif '.zip' in suffixes:
@@ -326,43 +343,70 @@ class ExploreMix:
         for suff in list(readable_suffixes):
             final_readeable += suff
         #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
+
         if not real_suffixes.issubset(final_readeable):
             errors = ["Formato no legible", u"%s" % suffixes]
             return None, errors, None
+        print("Parece que todo está bien")
         return self, [], list(real_suffixes)[0]
 
     def decompress_file_gz(self):
         print("decompress_file_gz")
         import gzip
-        import shutil
+        from inai.models import DataFile
+        from category.models import StatusControl
         from scripts.common import get_file, start_session, create_file
         from django.conf import settings
-        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        size_hint = 330 * 1000000
+        initial_status = StatusControl.objects.get(
+            name='initial', group="process")
+
+        def write_split_files(complete_file, simple_name):
+            [base_name, extension] = simple_name.rsplit(".", 1)
+            file_num = 0
+            last_file = None
+            while True:
+                buf = complete_file.readlines(size_hint)
+                if not buf:
+                    print("No hay más datos")
+                    # we've read the entire file in, so we're done.
+                    break
+                file_num += 1
+                curr_only_name = f"{base_name}_{file_num + 1}.{extension}"
+                buf = b"".join(buf)
+                current_s3_client, dev_resource_2 = start_session()
+                print("rr_file_name", curr_only_name)
+                rr_file_name, errors = create_file(
+                    self, buf, curr_only_name, current_s3_client)
+                print("exito en creación de archivo")
+                print("errors", errors)
+                DataFile.objects.create(
+                    file=rr_file_name,
+                    origin_file=self,
+                    date=self.date,
+                    status_process=initial_status,
+                    #Revisar si lo más fácil es poner o no los siguientes:
+                    #file_control=original_file.file_control,
+                    petition_file_control=self.petition_file_control,
+                    #petition=original_file.petition,
+                    petition_month=self.petition_month)
+            return True
 
         try:
-            if is_prod:
-                s3_client, dev_resource = start_session()
-                bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-                gz_obj = dev_resource.Object(
-                    bucket_name=bucket_name,
-                    key=f"{settings.AWS_LOCATION}/{self.file.name}"
-                    )
-                with gzip.GzipFile(fileobj=gz_obj.get()["Body"]) as gzipfile:
-                    content = gzipfile.read()
-                    decomp_path = self.file.name.replace(".gz", "")
-                    pos_slash = decomp_path.rfind("/")
-                    only_name = decomp_path[pos_slash + 1:]
-                    curr_file, file_errors = create_file(
-                        self, content, only_name, s3_client=s3_client)
-                    return True, curr_file
-            else:
-                with gzip.open(self.file, 'rb') as f_in:
-                    #Se contruye el path del nuevo archivo:
-                    decomp_path = self.final_path.replace(".gz", "")
-                    with open(decomp_path, 'wb') as f_out:
-                        #Se crea el nuevo archivo
-                        shutil.copyfileobj(f_in, f_out)
-                        return True, decomp_path
+            decompressed_path = self.file.name.replace(".gz", "")
+            pos_slash = decompressed_path.rfind("/")
+            only_name = decompressed_path[pos_slash + 1:]
+            s3_client, dev_resource = start_session()
+            bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+            gz_obj = dev_resource.Object(
+                bucket_name=bucket_name,
+                key=f"{settings.AWS_LOCATION}/{self.file.name}"
+                )
+            with gzip.GzipFile(fileobj=gz_obj.get()["Body"]) as gzip_file:
+                #print(gzipfile.readlines(200))
+                success_gz = write_split_files(gzip_file, only_name)
+                return success_gz, None
+                #content = gzipfile.read()
         except Exception as e:
             print("error", e)
             return False, e
@@ -385,8 +429,6 @@ class ExploreMix:
 
         SIZE_HINT = 330 * 1000000
 
-        initial_status = StatusControl.objects.get(
-            name='initial', group="process")
         original_file = self.origin_file or self
 
         def write_splited_files(complete_file):
@@ -430,53 +472,14 @@ class ExploreMix:
             with open(self.final_path, "rt") as fl:
                 file_num = write_splited_files(fl)
                 fl.close()
+            #os.remove(self.final_path)
 
-        """
-        with open(data, "rt") as fl:
-            #buf = fl.readlines(SIZE_HINT)
-            #print("+++++++++++++++++++++")
-            #print(len(buf))
-            #fl.close()
-            while True:
-                buf = fl.readlines(SIZE_HINT)
-                if not buf:
-                    # we've read the entire file in, so we're done.
-                    break
-                rr_file_name = f"{directory}\\{base_name}_{file_num + 1}.{extension}"
-                print("buf_size", len(buf))
-                outFile = open(rr_file_name, "wt", encoding="UTF-8")
-                outFile.writelines(buf)
-                outFile.close()
-                file_num += 1
-                new_file = DataFile.objects.create(
-                    file=rr_file_name,
-                    origin_file=original_file,
-                    date=original_file.date,
-                    status_process=initial_status,
-                    #Revisar si lo más fácil es poner o no los siguientes:
-                    #file_control=original_file.file_control,
-                    petition_file_control=original_file.petition_file_control,
-                    #petition=original_file.petition,
-                    petition_month=original_file.petition_month)
-            fl.close()
-        """
         print("SE LOGRARON:", file_num)
         #print("directory", directory)
         #print("only_name", only_name)
         #print("base_name", base_name)
         #print("extension", extension)
         return file_num
-        if file_num > 0:
-            #if self.origin_file:
-            #    self.delete()
-            #first_file_name = f"{directory}/{base_name}_1.{extension}"
-            #first_file = DataFile.objects.get(file=first_file_name)
-            new_file = DataFile.objects.filter(origin_file=self).first
-            return new_file, file_num
-        else:
-            return self, 0
-
-
 
     #[directory, only_name] = self.path.rsplit("/", 1)
     #[base_name, extension] = only_name.rsplit(".", 1)

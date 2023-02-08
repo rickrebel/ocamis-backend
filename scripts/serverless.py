@@ -6,16 +6,55 @@ def execute_in_lambda(function_name, params, in_lambda=True):
     s3_client, dev_resource = start_session("lambda")
     if in_lambda:
         dumb_params = json.dumps(params)
-        print("EJECUTADO EN LAMBDA")
+        print("SE ENVÍA A LAMBDA", function_name)
         function_name = f"{function_name}:normal"
         response = s3_client.invoke(
             FunctionName=function_name,
             InvocationType='RequestResponse',
             Payload=dumb_params
         )
-        #print("response", response)
+        print("response", response)
         #print("response['Payload']", response['Payload'])
-        return json.loads(response['Payload'].read())
+        payload_response = json.loads(response['Payload'].read())
+        if "errorMessage" in payload_response:
+            print("ERROR EN LAMBDA:\n", payload_response)
+            #raise Exception(payload_response["errorMessage"])
+        return payload_response
+    else:
+        print("EJECUTADO EN LOCAL")
+        return globals()[function_name](params, None)
+
+
+def async_in_lambda(function_name, params, in_lambda=True):
+    from scripts.common import start_session
+    s3_client, dev_resource = start_session("lambda")
+    if in_lambda:
+        dumb_params = json.dumps(params)
+        print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
+        function_name = f"{function_name}:normal"
+        response = s3_client.invoke(
+            FunctionName=function_name,
+            InvocationType='Event',
+            LogType='Tail',
+            Payload=dumb_params
+        )
+        print("response", response, "\n")
+        print("response['Payload'] :", response['Payload'], "\n")
+
+        try:
+            print(response['Payload'].read().decode("utf-8"))
+            #invoke_response['Payload'].read().decode("utf-8")
+        except Exception as e:
+            print("ERROR 1 EN LAMBDA:\n", e)
+        try:
+            print(json.loads(response['Payload'].read().decode("utf-8")))
+            #invoke_response['Payload'].read().decode("utf-8")
+        except Exception as e:
+            print("ERROR 2 EN LAMBDA:\n", e)
+
+        #payload_response = json.loads(response['Payload'].read())
+        #print("payload_response", payload_response)
+        return response
     else:
         print("EJECUTADO EN LOCAL")
         return globals()[function_name](params, None)

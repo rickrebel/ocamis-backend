@@ -11,6 +11,9 @@ from inai.api.views import (
 from inai.api.views_aws import (
     DataFileViewSet, OpenDataInaiViewSet, AutoExplorePetitionViewSet)
 
+from inai.views import (AWSMessage)
+
+
 router = routers.DefaultRouter()
 router.register(r'petition', PetitionViewSet)
 router.register(
@@ -27,7 +30,9 @@ router.register(r'auto_explore', AutoExplorePetitionViewSet)
 router.register(
     r'^petition/(?P<petition_id>[-\d]+)/process_file', ProcessFileViewSet)
 
-urlpatterns = [
-    #url(r'^commitmentgroup/$', FileTypeSimpleSerializer.as_view()),
+urlpatterns = (
+    # path('suscription_test', AWSMessage.as_view()),
+    path('suscription_test', AWSMessage.as_view()),
+    # url(r'^commitmentgroup/$', FileTypeSimpleSerializer.as_view()),
     path('', include(router.urls)),
-]
+)

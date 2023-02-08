@@ -118,22 +118,14 @@ class DataFileSimpleSerializer(serializers.ModelSerializer):
 class DataFileSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
-    origin_file = DataFileSimpleSerializer(read_only=True)
-    """month_entity = MonthEntitySimpleSerializer(read_only=True)
-    month_entity_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="month_entity",
-        queryset=MonthEntity.objects.all(), required=False)
-    status_process = StatusControlSimpleSerializer(read_only=True)
-    status_process_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="status_process",
-        queryset=StatusControl.objects.all()) """
+    #origin_file = DataFileSimpleSerializer(read_only=True)
     origin_file_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="origin_file",
         queryset=DataFile.objects.all(), required=False)
     petition_file_control_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="petition_file_control",
         queryset=PetitionFileControl.objects.all())
-
+    #child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
 
     class Meta:
         model = DataFile

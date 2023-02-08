@@ -37,11 +37,16 @@ class ExtractorsMix:
         #if (".%s" % file_control.format_file) != suffix and (
         #    (".%sx" % file_control.format_file) != suffix):
         if not suffix in file_control.file_format.suffixes:
-            errors = ["Formato especificado no coincide con el archivo"]
+            if type_explor == 'auto_explore':
+                errors = ["No existe ningún grupo de control coincidente"]
+            else:
+                errors = ["Formato especificado no coincide con el archivo"]
             #return self.save_errors(errors, status_error)
             return {"errors": errors}
         if suffix in ['.txt', '.csv']:
             data_rows, errors = self.get_data_from_file_simple(is_explore)
+            if errors:
+                return self.save_errors(errors, status_error)
             if isinstance(data_rows, dict):
                 validated_data = data_rows
                 #print(data_rows[0])
@@ -80,7 +85,11 @@ class ExtractorsMix:
         #for sheet_name, all_data in validated_data.items():
         new_validated_data = {}
         for sheet_name in current_sheets:
-            curr_sheet = validated_data.get(sheet_name).copy()            
+            try:
+                curr_sheet = validated_data.get(sheet_name).copy()
+            except Exception as e:
+                print("validatd_data: ", validated_data)
+                raise e
             plus_rows = 0
             try:
                 all_data = curr_sheet.get("all_data")
@@ -137,7 +146,6 @@ class ExtractorsMix:
             row = execute_matches(row, self)
             matched_rows.append(row)
         return matched_rows
-
 
     def divide_rows(self, data_rows, file_control, is_explore=False):
         global raws
@@ -262,23 +270,6 @@ class ExtractorsMix:
             print("SE TUVO QUE LEER EL EXCEL DE NUEVO")
             pending_sheets.append(sheet_name)
             continue
-            data_excel = excel_file.parse(
-                sheet_name,
-                dtype='string', na_filter=False,
-                keep_default_na=False, header=None)
-            total_rows = data_excel.shape[0]
-            # list_val = [row[1].tolist() for row in data_excel.iterrows()]
-            if nrows:
-                data_excel = data_excel.head(nrows)
-            iter_data = data_excel.apply(clean_na, axis=1)
-            list_val = iter_data.tolist()
-            all_sheets[sheet_name] = {
-                "all_data": list_val,
-                "total_rows": total_rows,
-            }
-            #all_sheets[sheet_name]["all_data"] = listval
-            #return False, ["hasta aquí sin errores, checa prints"]
-            #if file_control.file_transformations.clean_function
         if pending_sheets:
             params = {
                 "final_path": self.final_path,
@@ -286,6 +277,8 @@ class ExtractorsMix:
                 "sheets": pending_sheets,
             }
             new_sheets = execute_in_lambda("explore_data_xls", params, True)
+            if "errorMessage" in new_sheets:
+                return None, None, [new_sheets["errorMessage"]]
             all_sheets.update(new_sheets)
         #Nombres de columnas (pandaarray)
         #Renglones de las variables
