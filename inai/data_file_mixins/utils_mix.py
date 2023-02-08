@@ -25,7 +25,7 @@ class DataUtilsMix:
         from category.models import StatusControl
         new_status, created = StatusControl.objects.get_or_create(
                 name=status_name, group="process")
-        self.error_process = list(set(self.error_process))
+        self.error_process = list(set(self.error_process or []))
         self.status_process = new_status
         self.save()
         return self
