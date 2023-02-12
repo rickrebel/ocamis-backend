@@ -14,14 +14,14 @@ from data_param.api.serializers import (
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
     DateBreak, Anomaly, InvalidReason, FileFormat,
-    TransparencyIndex, TransparencyLevel)
+    TransparencyIndex, TransparencyLevel, StatusTask)
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
     DateBreakSimpleSerializer, AnomalySimpleSerializer,
     InvalidReasonSimpleSerializer, FileFormatSimpleSerializer,
     TransparencyIndexSimpleSerializer, TransparencyLevelSimpleSerializer,
-    TransparencyIndexSerializer)
+    TransparencyIndexSerializer, StatusTaskSimpleSerializer,)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
@@ -71,6 +71,8 @@ class CatalogView(views.APIView):
                 FileType.objects.all(), many=True).data,
             "status": StatusControlSimpleSerializer(
                 StatusControl.objects.all(), many=True).data,
+            "status_tasks": StatusTaskSimpleSerializer(
+                StatusTask.objects.all(), many=True).data,
             "column_types": ColumnTypeSimpleSerializer(
                 ColumnType.objects.all(), many=True).data,
             "negative_reasons": NegativeReasonSimpleSerializer(

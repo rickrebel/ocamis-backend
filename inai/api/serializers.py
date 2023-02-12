@@ -4,10 +4,9 @@ from rest_framework import serializers
 from inai.models import (
     FileControl, Petition, PetitionFileControl, Transformation,
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
-    PetitionBreak, PetitionNegativeReason)
+    PetitionBreak, PetitionNegativeReason, AsyncTask)
 
 from category.models import StatusControl, FileType
-
 from category.api.serializers import (
     NegativeReasonSimpleSerializer)
 
@@ -19,12 +18,14 @@ from data_param.api.serializers import (
 
 
 class ProcessFileSerializer(serializers.ModelSerializer):
-    #name = serializers.ReadOnlyField(source="file.name", required=False)
-    #url = serializers.ReadOnlyField(source="file.url", required=False)
-    """file_type = FileTypeSimpleSerializer(read_only=True)
+    # name = serializers.ReadOnlyField(source="file.name", required=False)
+    # url = serializers.ReadOnlyField(source="file.url", required=False)
+    """
+    file_type = FileTypeSimpleSerializer(read_only=True)
     file_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="file_type",
-        queryset=FileType.objects.all())"""
+        queryset=FileType.objects.all())
+    """
     name = serializers.SerializerMethodField(read_only=True)
     url = serializers.SerializerMethodField(read_only=True)
 
@@ -115,6 +116,10 @@ class DataFileSimpleSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "url"]
 
 
+def get_has_explore_data(obj):
+    return bool(obj.explore_data)
+
+
 class DataFileSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
@@ -126,11 +131,12 @@ class DataFileSerializer(serializers.ModelSerializer):
         write_only=True, source="petition_file_control",
         queryset=PetitionFileControl.objects.all())
     #child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
+    #has_explore_data = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = DataFile
         #fields = "__all__"
-        read_only_fields = ["petition_file_control"]
+        read_only_fields = ["petition_file_control", "has_explore_data"]
         exclude = ('explore_data', )
 
 
@@ -196,7 +202,7 @@ class FileControlSimpleSerializer(serializers.ModelSerializer):
 
 
 class FileControlSerializer(FileControlSimpleSerializer):
-    from category.models import FileType
+    # from category.models import FileType
     from data_param.models import DataGroup
     name = serializers.CharField(required=False)
     transformations = TransformationSerializer(
@@ -311,4 +317,11 @@ class PetitionEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         read_only_fields = ["id", "break_dates"]
+        fields = "__all__"
+
+
+class AsyncTaskSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AsyncTask
         fields = "__all__"

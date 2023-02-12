@@ -59,6 +59,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='transformation',
             name='addl_params',
-            field=models.JSONField(blank=True, default=inai.models.Transformation.default_addl_params, null=True),
+            field=models.JSONField(blank=True, default=inai.models.default_addl_params, null=True),
         ),
     ]

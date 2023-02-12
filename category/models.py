@@ -227,3 +227,22 @@ class TransparencyLevel(models.Model):
         ordering = ["transparency_index__order_viz", "-order_viz"]
         verbose_name = u"Transparencia: Nivel"
         verbose_name_plural = u"Transparencia: Niveles"
+
+
+class StatusTask(models.Model):
+
+    name = models.CharField(max_length=80, primary_key=True)
+    public_name = models.CharField(max_length=120, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    order = models.IntegerField(default=5)
+    icon = models.CharField(max_length=30, blank=True, null=True)
+    color = models.CharField(max_length=30, blank=True, null=True)
+    is_completed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.public_name or self.name
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = u"Estado de tarea"
+        verbose_name_plural = u"Estados de tareas"

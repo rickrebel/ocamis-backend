@@ -50,9 +50,7 @@ def import_subcats(init_delete=True):
             field = "category_%s" % str(category.number)
             try:
                 has_category = int(hydrated[field])
-                SubCategory.objects.create(
-                    category_product=category,
-                    name=hydrated["name"])
+                SubCategory.objects.create()
             except:
                 pass
 
@@ -85,33 +83,7 @@ def import_clues():
                     state = None
                 institution_clave = row[2]
                 institution = Institution.objects.get(code=institution_clave)
-                clues = CLUES.objects.create(
-                    name=row[0],
-                    state=state,
-                    institution=institution,
-                    municipality=row[3],
-                    municipality_inegi_code=row[4],
-                    tipology=row[5],
-                    tipology_cve=row[6],
-                    id_clues=row[7],
-                    clues=row[8],
-                    status_operation=row[9],
-                    longitude=row[10],
-                    latitude=row[11],
-                    locality=row[12],
-                    locality_inegi_code=row[13],
-                    jurisdiction=row[14],
-                    jurisdiction_clave=row[15],
-                    establishment_type=row[16],
-                    consultings_general=get_int(row[17]),
-                    consultings_other=get_int(row[18]),
-                    beds_hopital=get_int(row[19]),
-                    beds_other=get_int(row[20]),
-                    total_unities=get_int(row[21]),
-                    admin_institution=row[22],
-                    atention_level=row[23],
-                    stratum=row[24],
-                )
+                clues = CLUES.objects.create()
                 print(clues)
 
 

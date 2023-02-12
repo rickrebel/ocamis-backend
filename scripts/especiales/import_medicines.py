@@ -218,20 +218,12 @@ def to_work3(selected_rows=None):
         for present in presents:
             pres_type, is_created = PresentationType.objects.get_or_create(
                 name=present["name"])
-            present_obj = Presentation.objects.create(
-                component=comp,
-                presentation_type_raw=present["name"],
-                presentation_type=pres_type,
-                description=present["description"])
+            present_obj = Presentation.objects.create()
             for key in present["keys"]:
                 # A continuación, quitar el previo 'Envase con ' para el
                 # short_name
                 short_name = key["container"]
-                Container.objects.create(
-                    presentation=present_obj,
-                    key=key["key"],
-                    name=key["container"],
-                    short_name=short_name)
+                Container.objects.create()
 
 
 def run_importation(exp=True, save_json=False):

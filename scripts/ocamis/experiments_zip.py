@@ -32,16 +32,7 @@ def zip_experiments():
     for f in all_files:
         new_file = self
         new_file.pk = None
-        new_file = DataFile.objects.create(
-            file="%s%s" % (directory, f),
-            origin_file=self,
-            date=self.date,
-            status=initial_status,
-            #Revisar si lo más fácil es poner o no los siguientes:
-            file_control=file_control,
-            petition=self.petition,
-            petition_month=file.petition_month,
-            )
+        new_file = DataFile.objects.create()
     self = new_file
     suffixes.remove('.zip')
 

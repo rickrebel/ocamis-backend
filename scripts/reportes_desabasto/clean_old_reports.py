@@ -48,28 +48,9 @@ def import_reports():
                     has_corruption=True
                 else:
                     has_corruption=False
-                report=Report.objects.create(
-                    informer_type=row[1],
-                    state=state,
-                    institution_raw=row[6],
-                    institution=institution,
-                    is_other=is_other,
-                    hospital_name_raw=row[9],
-                    has_corruption=has_corruption,
-                    informer_name=row[11],
-                    email=row[12],
-                    phone=row[13],
-                    origin_app=row[14],
-                    disease=row[15],
-                    validated=validated
-                )
+                report= Report.objects.create()
                 Report.objects.filter(id=report.id).update(created=created)
-                supply=Supply.objects.create(
-                    medicine_type=medicine_type,
-                    medicine_name_raw=medicine_name_raw,
-                    medicine_real_name=medicine_real_name,
-                    report=report,
-                )
+                supply= Supply.objects.create()
                 print report
 
 
@@ -77,11 +58,7 @@ def create_report_supply():
     from desabasto.models import (State, Institution, Report, Supply)
     for report in Report.objects.filter(
         medicine_type__isnull=False, medication_name__isnull=False):
-        supply=Supply.objects.create(
-            medicine_type=report.medicine_type,
-            medicine_name_raw=report.medication_name,
-            report=report
-        )
+        supply= Supply.objects.create()
         report.medicine_type=None
         report.medication_name=None
         report.save()

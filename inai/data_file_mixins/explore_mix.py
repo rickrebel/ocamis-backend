@@ -11,6 +11,7 @@ def build_query_filter(row, columns):
 
 class ExploreMix:
     from category.models import FileFormat
+    final_path: str
 
     def get_table_ref(self):
         print(self)
@@ -26,10 +27,10 @@ class ExploreMix:
         elif file_format.short_name == 'xls':
             total_count = self.count_xls_rows()
             minus_headers = len(self.explore_data.keys()) * minus_headers
-        self.change_status("success_counting")
         total_count = total_count - minus_headers
         self.total_rows = total_count
-        self.save()
+        #self.save()
+        self.change_status("success_counting")
         return {"total_rows": total_count}
 
     def count_csv_rows(self):
@@ -88,11 +89,12 @@ class ExploreMix:
         self.save()
         #se llama a la función para descomprimir el archivo o archivos:
         childs_count = self.child_files.count()
-        new_self, errors, suffix = self.decompress_file()
+        (new_self, errors, suffix), first_task = self.decompress_file()
         print("new_self: ", new_self)
         if errors:
             status_error = 'explore_fail' if is_explore else 'extraction_failed'
-            return self.save_errors(errors, status_error)
+            self.save_errors(errors, status_error)
+            return None, errors, None
         new_childs_count = self.child_files.count()
         count_splited = 0
         file_size = new_self.file.size
@@ -104,35 +106,47 @@ class ExploreMix:
         #return count_splited, [], list(suffixes)[0]
         if errors:
             status_error = 'explore_fail' if is_explore else 'extraction_failed'
-            return new_self.save_errors(errors, status_error)
+            new_self.save_errors(errors, status_error)
+            return None, errors, None
         if count_splited and not is_explore:
-            warnings = [("Son muchos archivos y tardarán en"
-                " procesarse, espera por favor")]
-            return Response(
-                {"errors": warnings}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            warnings = ["Son muchos archivos y tardarán en procesarse, espera por favor"]
+            return None, warnings, None
         if not is_explore:
             new_self.build_catalogs()
+            new_errors = []
+            new_tasks = []
         elif count_splited:
             #FALTA AFINAR FUNCIÓN PARA ESTO
-            all_childs = DataFile.objects.filter(origin_file=new_self)
-            for ch_file in all_childs:
-                data = ch_file.transform_file_in_data('is_explore', suffix)
+            new_errors = []
+            new_tasks = []
+            all_children = DataFile.objects.filter(origin_file=new_self)
+            for ch_file in all_children:
+                data, current_errors, new_task = ch_file.transform_file_in_data(
+                    'is_explore', suffix)
+                new_errors.append(current_errors)
+                new_tasks.append(new_task)
         elif new_childs_count and childs_count < new_childs_count:
             first_child = new_self.child_files.first()
-            data = first_child.transform_file_in_data('is_explore', suffix)
+            data, new_errors, new_task = first_child.transform_file_in_data(
+                'is_explore', suffix)
+            new_tasks = [new_task]
         else:
-            data = new_self.transform_file_in_data('is_explore', suffix)
+            data, new_errors, new_task = new_self.transform_file_in_data(
+                'is_explore', suffix)
+            new_tasks = [new_task]
         if is_explore:
             #print(data["headers"])
             #print(data["structured_data"][:6])
-            return data
-        return data
+            return data, new_errors, new_tasks
+        else:
+            print("POR ALGUNA RAZÓN NO ES EXPLORE")
+            return new_self, new_errors, new_tasks
 
     def comprobate_coincidences(self):
         from inai.models import DataFile
         init_children = list(self.child_files.all().values_list('id', flat=True))
         print("init_children: ", init_children)
-        data_file, errors, suffix = self.decompress_file()
+        (data_file, errors, suffix), first_task = self.decompress_file()
         new_children = data_file.child_files.all()
         print("new_children: ", new_children.count())
         if init_children:
@@ -165,28 +179,29 @@ class ExploreMix:
         else:
             data_file, saved, errors = data_file.find_coincidences(
                 file_ctrl, suffix, False, petition)
-        if errors:
-            data_file.error_process = (data_file.error_process or []) + errors
-            data_file = data_file.change_status("explore_fail")
-            return data_file, errors, new_children
-        elif not saved and file_ctrl.row_headers:
+
+        if not errors and not saved and file_ctrl.row_headers:
             errors = ["No hay coincidencias con las columnas"]
-            data_file.save_errors(errors, "explore_fail")
+        if errors:
+            data_file = data_file.save_errors(errors, "explore_fail")
             return data_file, errors, new_children
         else:
             return data_file, None, new_children
 
-    def find_coincidences(self, file_ctrl, suffix, saved, petition, parent=None):
+    def find_coincidences(
+            self, file_ctrl, suffix, saved, petition,
+            parent=None, task_params=None):
         from inai.models import NameColumn, PetitionFileControl
         if not parent:
             parent = self
-        data = self.transform_file_in_data('auto_explore', suffix, file_ctrl)
-        if not data:
-            return self, saved, ["No se pudo explorar el archivo"]
-        if isinstance(data, dict):
-            if data.get("errors", False):
-                # print(data)
-                return self, saved, data["errors"]
+        if task_params:
+            task_params["function_name"] = "find_coincidences"
+        data, errors, new_task = self.transform_file_in_data(
+            'auto_explore', suffix, file_ctrl, task_params=task_params)
+        # if not data:
+        if errors:
+            errors += ["No se pudo explorar el archivo"]
+            return self, saved, errors
         # row_headers = file_ctrl.row_headers or 0
         # headers = data["headers"]
         current_sheets = data["current_sheets"]
@@ -197,7 +212,7 @@ class ExploreMix:
         # print(structured_data)
         # print("-------\n-----------")
         for sheet_name in current_sheets:
-            if not "headers" in structured_data[sheet_name]:
+            if "headers" not in structured_data[sheet_name]:
                 continue
             headers = structured_data[sheet_name]["headers"]
             headers = [head.strip() for head in headers]
@@ -229,13 +244,12 @@ class ExploreMix:
                 else:
                     self.petition_file_control = succ_pet_file_ctrl
                     self.explore_data = validated_data
-                    self.save()
                     self.change_status("success_exploration")
                     saved = True
                 all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
         return self, saved, []
 
-    def decompress_file(self):
+    def decompress_file(self, task_params=None):
         import pathlib
         from category.models import FileFormat
         import re
@@ -253,11 +267,12 @@ class ExploreMix:
             #print("url", self.file.url)
             #Se llama a la función que descomprime el arhivo
             if not self.child_files.all().count():
-                success_decompress, example_file = self.decompress_file_gz()
+                success_decompress, example_file = self.decompress_file_gz(
+                    task_params=task_params)
                 if not success_decompress:
                     print("error en success_decompress")
                     errors = ['No se pudo descomprimir el archivo gz %s' % self.final_path]
-                    return None, errors, None
+                    return (None, errors, None), None
                 #Se vuelve a obtener la ubicación final del nuevo archivo
                 #Como el archivo ya está descomprimido, se guarda sus status
             self = self.change_status('decompressed')
@@ -268,66 +283,8 @@ class ExploreMix:
         elif '.zip' in suffixes:
             #[directory, only_name] = self.path.rsplit("/", 1)
             #[base_name, extension] = only_name.rsplit(".", 1)
-            """
-            directory = self.final_path
-            is_prod = getattr(settings, "IS_PRODUCTION", False)
-            s3_client = None
-            dev_resource = None
-            if is_prod:
-                s3_client, dev_resource = start_session()
-
-            if is_prod:
-                bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-                zip_obj = dev_resource.Object(
-                    bucket_name=bucket_name, 
-                    key=f"{settings.AWS_LOCATION}/{self.file.name}"
-                    )
-                buffer = BytesIO(zip_obj.get()["Body"].read())
-            else:
-                buffer = get_file(self, dev_resource)
-
-            zip_file = zipfile.ZipFile(buffer)
-            #all_files = zip_file.namelist()
-            #infolist = zip_file.infolist()
-            initial_status = StatusControl.objects.get(
-                name='initial', group="process")
-            #with zipfile.ZipFile(self.url, 'r') as zip_ref:
-            #    zip_ref.extractall(directory)
-            #ZipFile.extractall(path=None, members=None, pwd=None)   
-            #for f in os.listdir(directory):
-            for zip_elem in zip_file.infolist():
-                if zip_elem.is_dir():
-                    continue
-                pos_slash = zip_elem.filename.rfind("/")
-                only_name = zip_elem.filename[pos_slash + 1:]
-                directory = (zip_elem.filename[:pos_slash]
-                    if pos_slash > 0 else None)
-                #z_file.open(filename).read()
-                file_bytes = zip_file.open(zip_elem).read()
-
-                curr_file, file_errors = create_file(
-                    self, file_bytes, only_name, s3_client=s3_client)
-                if file_errors:
-                    all_errors += file_errors
-                    continue
-                new_file = self
-                new_file.pk = None
-                new_file = DataFile.objects.create(
-                    file=curr_file,
-                    origin_file=self,
-                    date=self.date,
-                    directory=directory,
-                    status=initial_status,
-                    #Revisar si lo más fácil es poner o no los siguientes:
-                    file_control=file_control,
-                    petition=self.petition,
-                    petition_month=file.petition_month,
-                    )
-                self = new_file
-            suffixes.remove('.zip')
-            """
             error_zip = "Mover a 'archivos no finales' para descomprimir desde allí"
-            return None, [error_zip], None
+            return (None, [error_zip], None), None
 
         #Obtener el tamaño
         #file_name = self.file_name
@@ -335,7 +292,7 @@ class ExploreMix:
         if len(real_suffixes) != 1:
             errors = [("Tiene más o menos extensiones de las que"
                 " podemos reconocer: %s" % real_suffixes)]
-            return None, errors, None
+            return (None, errors, None), None
         real_suffixes = set(real_suffixes)
         readable_suffixes = FileFormat.objects.filter(readable=True)\
             .values_list("suffixes", flat=True)
@@ -346,11 +303,11 @@ class ExploreMix:
 
         if not real_suffixes.issubset(final_readeable):
             errors = ["Formato no legible", u"%s" % suffixes]
-            return None, errors, None
-        print("Parece que todo está bien")
-        return self, [], list(real_suffixes)[0]
+            return (None, errors, None), None
+        # print("Parece que todo está bien")
+        return (self, [], list(real_suffixes)[0]), None
 
-    def decompress_file_gz(self):
+    def decompress_file_gz(self, task_params=None):
         print("decompress_file_gz")
         import gzip
         from inai.models import DataFile
@@ -481,6 +438,40 @@ class ExploreMix:
         #print("extension", extension)
         return file_num
 
+    def find_matches_in_file_controls(self, task_params=None, **kwargs):
+        from scripts.common import get_excel_file
+        from inai.models import FileControl
+
+        data_file = self
+        saved = False
+        petition = self.petition_file_control.petition
+        all_errors = []
+        all_file_controls = kwargs.get("file_controls", None)
+        suffix = kwargs.get("suffix", None)
+        if not all_file_controls:
+            all_file_controls_ids = kwargs.get("all_file_controls_ids", [])
+            all_file_controls = FileControl.objects.filter(
+                id__in=all_file_controls_ids)
+        for file_ctrl in all_file_controls:
+            if suffix not in file_ctrl.file_format.suffixes:
+                continue
+            print("file_ctrl: ", file_ctrl, "\nformat:", file_ctrl.file_format)
+            data_file, saved, errors = self.find_coincidences(
+                file_ctrl, suffix, saved, petition)
+            # print(f"Vamos por file control {file_ctrl.name}")
+            # data_file.explore_data = validated_data
+            # data_file.save()
+            if errors:
+                all_errors.append(errors)
+                # data_file.error_process += errors
+                # data_file = data_file.save_errors(errors, "explore_fail")
+                # break
+        if not saved:
+            all_errors.append("No existe ningún grupo de control coincidente")
+            data_file.save_errors(all_errors, "explore_fail")
+        get_excel_file.cache_clear()
+        return None, all_errors
+
     #[directory, only_name] = self.path.rsplit("/", 1)
     #[base_name, extension] = only_name.rsplit(".", 1)
     def test_zip_file(self):
@@ -521,15 +512,6 @@ class ExploreMix:
         for f in all_files:
             new_file = self
             new_file.pk = None
-            new_file = DataFile.objects.create(
-                file="%s%s" % (directory, f),
-                origin_file=self,
-                date=self.date,
-                status=initial_status,
-                #Revisar si lo más fácil es poner o no los siguientes:
-                file_control=file_control,
-                petition=self.petition,
-                petition_month=file.petition_month,
-                )
+            new_file = DataFile.objects.create()
         self = new_file
         suffixes.remove('.zip')

@@ -10,7 +10,7 @@ from inai.models import (
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
-    MultiSerializerCreateRetrieveMix as CreateRetrievView, 
+    MultiSerializerCreateRetrieveMix as CreateRetrievView,
     MultiSerializerModelViewSet)
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
 
@@ -44,7 +44,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         petition_breaks = data_petition.pop('build_petition_breaks', [])
         entity = data_petition.pop('entity', [])
         data_petition["entity"] = entity["id"]
-        
+
         serializer_pet = self.get_serializer_class()(
             new_petition, data=data_petition)
         if serializer_pet.is_valid():
@@ -56,7 +56,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         data_petition["petition"] = petition.id
 
         month_entitites = MonthEntity.objects.filter(
-            entity=petition.entity, 
+            entity=petition.entity,
             year_month__gte=range_months[0],
             year_month__lte=range_months[1])
 
@@ -81,7 +81,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             new_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, **kwargs):
-        from rest_framework.exceptions import (NotFound) 
+        from rest_framework.exceptions import (NotFound)
         from category.models import NegativeReason
         from inai.models import PetitionNegativeReason
 
@@ -102,13 +102,13 @@ class PetitionViewSet(ListRetrieveUpdateMix):
                             status=status.HTTP_400_BAD_REQUEST)
 
         for negative in other_reasons:
-            negative_obj = NegativeReason.objects.get(name=negative)            
+            negative_obj = NegativeReason.objects.get(name=negative)
             petition_negative_reason, created = PetitionNegativeReason.objects\
-                .get_or_create(petition=petition, 
+                .get_or_create(petition=petition,
                     negative_reason = negative_obj, is_main=False)
 
         if main_reason:
-            negative_obj = NegativeReason.objects.get(name=main_reason)            
+            negative_obj = NegativeReason.objects.get(name=main_reason)
             petition_negative_reason, created = PetitionNegativeReason.objects\
                 .get_or_create(petition=petition,
                     negative_reason = negative_obj, is_main=True)
@@ -169,7 +169,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 class PetitionList(views.APIView):
     permission_classes = (permissions.AllowAny, )
     pagination_class = NormalResultsSetPagination
-    
+
     def get(self, request):
         status_petition = request.query_params.get("status_petition")
         #state_inegi_code = request.query_params.get("estado")
@@ -198,7 +198,7 @@ class ProcessFileViewSet(MultiSerializerModelViewSet):
         from rest_framework.exceptions import (
             #ParseError,  #400
             NotFound)  # 404
-        
+
         process_file = request.data
         new_process_file = ProcessFile()
         new_process_file.petition_id = petition_id
@@ -269,7 +269,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         new_file_control = FileControl()
 
         petition_id = data_file_control.pop('petition_id', None)
-        
+
         serializer_ctrl = self.get_serializer_class()(
             new_file_control, data=data_file_control)
         if serializer_ctrl.is_valid():
@@ -407,7 +407,7 @@ class PetitionFileControlViewSet(CreateRetrievView):
         from rest_framework.exceptions import (
             #ParseError,  #400
             NotFound)  # 404
-        
+
         petition_file_control = request.data
         new_pet_file_ctrl = PetitionFileControl()
 
@@ -426,17 +426,17 @@ class PetitionFileControlViewSet(CreateRetrievView):
     @action(methods=["put"], detail=True, url_path='move_massive')
     def move_massive(self, request, **kwargs):
         from inai.api.views_aws import move_and_duplicate
+        from inai.models import DataFile
         if not request.user.is_staff:
             raise PermissionDenied()
-        
-        petitition_file_control = self.get_object()
-        petition = petitition_file_control.petition
+
+        petition_file_control = self.get_object()
+        petition = petition_file_control.petition
         files_id = request.data.get("files")
-        data_files = [d_files for d_file in 
-            DataFile.objects.filter(
-                petitition_file_control=petitition_file_control,
-                id__in=files_id)]
-        
+        data_files = DataFile.objects.filter(
+            petition_file_control=petition_file_control,
+            id__in=files_id)
+
         return move_and_duplicate(data_files, petition, request)
 
 
@@ -446,7 +446,7 @@ class AscertainableViewSet(CreateRetrievView):
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
         "list": serializers.DataFileSerializer,
-        "retrieve": serializers.DataFileSimpleSerializer,
+        "retrieve": serializers.DataFileEditSerializer,
         "create": serializers.DataFileSerializer,
         "update": serializers.DataFileEditSerializer,
         "delete": serializers.DataFileSerializer,
@@ -458,7 +458,7 @@ class AscertainableViewSet(CreateRetrievView):
                 petition_file_control_id=self.kwargs["petition_file_control_id"])
         return DataFile.objects.all()
 
-    def create(self, request, petition_file_control_id=False):
+    def create(self, request, petition_file_control_id=False, **kwargs):
         from rest_framework.exceptions import (
             #ParseError,  #400
             NotFound)  # 404

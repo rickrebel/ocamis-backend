@@ -74,10 +74,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    "corsheaders",
-    "rest_framework",
     "channels",
-    #"desabasto.apps.DesabastoConfig",
+    "rest_framework",
+    "channels_redis",
+    "corsheaders",
+    # "desabasto.apps.DesabastoConfig",
     "catalog.apps.CatalogConfig",
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",
@@ -102,13 +103,19 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
+WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.routing.application'
 ROOT_URLCONF = 'core.urls'
 
-#WSGI_APPLICATION = 'core.wsgi.application'
-ASGI_APPLICATION = 'core.asgi.application'
-
-
-
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            'hosts': [('localhost', 6379)],
+        },
+    },
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -134,7 +141,6 @@ LANGUAGE_CODE = 'es-mx'
 TIME_ZONE = 'America/Mexico_City'
 
 
-
 USE_I18N = True
 
 USE_L10N = True
@@ -154,3 +160,4 @@ REST_FRAMEWORK = {
     )
 }
 
+DEFAULT_CHANNEL_LAYER = "default"

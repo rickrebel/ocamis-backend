@@ -157,4 +157,4 @@ def definitive_lambda(layer_name="my_layer1", packages=[]):
 #definitive_function_real()
 #definitive_lambda("pandas_with_complements",
 #                  ["XlsxWriter", "xlrd", "lxml", "wheel", "pandas", "numpy"])
-definitive_lambda("request_package", ["requests"])
+#definitive_lambda("request_package", ["requests"])

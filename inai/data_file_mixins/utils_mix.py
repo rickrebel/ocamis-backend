@@ -1,5 +1,11 @@
+import django
+
 
 class DataUtilsMix:
+    save: classmethod
+    error_process: object
+    status_process: object
+    all_results: object
 
     def save_errors(self, errors, error_name):
         from rest_framework.response import Response
@@ -9,17 +15,15 @@ class DataUtilsMix:
         #errors = ['No se pudo descomprimir el archivo gz']
         curr_errors = self.error_process or []
         curr_errors += errors
-        print("error_name", error_name)
+        # print("error_name", error_name)
         current_status, created = StatusControl.objects.get_or_create(
             name=error_name, group="process")
         curr_errors = list(set(curr_errors))
         self.error_process = curr_errors
         self.status_process = current_status
-        print(curr_errors)
+        # print(curr_errors)
         self.save()
-        return {"errors": errors}
-        #return Response(
-        #    {"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
+        return self
 
     def change_status(self, status_name):
         from category.models import StatusControl

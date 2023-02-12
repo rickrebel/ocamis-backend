@@ -377,10 +377,7 @@ for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
 from catalog.models import CLUES
 for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
     if i == "False":
-        cluesjem= CLUES.objects.create(
-                    #state=
-                    #institution=
-                    name=ejmdta["NOMBRE DE LA UNIDAD"])
+        cluesjem= CLUES.objects.create()
         cluesjem.save()
 
 ### AQUI ME QUEDE ###
@@ -863,33 +860,7 @@ def import_clues():
                     state = None
                 institution_clave = row[2]
                 institution = Institution.objects.get(code=institution_clave)
-                clues = CLUES.objects.create(
-                    name=row[0],
-                    state=state,
-                    institution=institution,
-                    municipality=row[3],
-                    municipality_inegi_code=row[4],
-                    tipology=row[5],
-                    tipology_cve=row[6],
-                    id_clues=row[7],
-                    clues=row[8],
-                    status_operation=row[9],
-                    longitude=row[10],
-                    latitude=row[11],
-                    locality=row[12],
-                    locality_inegi_code=row[13],
-                    jurisdiction=row[14],
-                    jurisdiction_clave=row[15],
-                    establishment_type=row[16],
-                    consultings_general=get_int(row[17]),
-                    consultings_other=get_int(row[18]),
-                    beds_hopital=get_int(row[19]),
-                    beds_other=get_int(row[20]),
-                    total_unities=get_int(row[21]),
-                    admin_institution=row[22],
-                    atention_level=row[23],
-                    stratum=row[24],
-                )
+                clues = CLUES.objects.create()
                 print(clues)
 
 
@@ -1040,7 +1011,7 @@ def get_state(state_name):
             catalog_state[state.name] = state
 
     if state_name not in catalog_state:
-        state_obj = State.objects.create(inegi_code="xx", name=state_name)
+        state_obj = State.objects.create()
         catalog_state[state_name] = state_obj
 
     return catalog_state[state_name]

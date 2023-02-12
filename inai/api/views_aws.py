@@ -5,7 +5,8 @@ from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
 import unidecode
 
-from inai.models import DataFile, NameColumn, Petition, PetitionFileControl
+from inai.models import (
+    DataFile, NameColumn, Petition, PetitionFileControl, AsyncTask)
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -27,7 +28,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
     def retrieve(self, request, pk=None):
         #self.check_permissions(request)
-        from inai.models import FileControl
+        from inai.models import FileControl, ProcessFile
         from category.models import FileType
         from data_param.models import DataGroup
         from scripts.common import get_excel_file
@@ -55,64 +56,61 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             )
         pet_file_ctrl, created_pfc = PetitionFileControl.objects \
             .get_or_create(file_control=file_control, petition=petition)
-        if not file_id:
-            all_errors = petition.decompress_process_files(pet_file_ctrl)
-            all_data_files = DataFile.objects.filter(
-                petition_file_control=pet_file_ctrl).order_by("date")
-        else:
-            all_errors = []
+        all_tasks = []
+        all_errors = []
+        key_task = None
+        if file_id:
             all_data_files = DataFile.objects.filter(id=file_id)
-        all_data_files = all_data_files.prefetch_related(
-            "petition_file_control")
-
-        entity_file_controls = FileControl.objects.filter(
-            petition_file_control__petition__entity=petition.entity,
-            file_format__isnull=False) \
-            .exclude(data_group__name="orphan") \
-            .prefetch_related("columns") \
-            .distinct()
-
-        if current_file_ctrl:
-            entity_file_controls = entity_file_controls.filter(
-                id=current_file_ctrl)
-
-        near_file_controls = entity_file_controls\
-            .filter(petition_file_control__petition=petition)\
-            .prefetch_related("file_format")
-        others_file_controls = entity_file_controls\
-            .exclude(petition_file_control__petition=petition)\
-            .prefetch_related("file_format")
-
-        all_file_controls = near_file_controls | others_file_controls
-        global last_final_path
-        for data_file in all_data_files:
-            saved = False
-            data_file.error_process = []
-            data_file.save()
-            data_file, errors, suffix = data_file.decompress_file()
-            if not data_file:
-                print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-                continue
-            for file_ctrl in all_file_controls:
-                print("file_ctrl: ", file_ctrl, "\nformat:", file_ctrl.file_format)
-                data_file, saved, errors = data_file.find_coincidences(
-                    file_ctrl, suffix, saved, petition)
-                #print(f"Vamos por file control {file_ctrl.name}")
-                #data_file.explore_data = validated_data
-                #data_file.save()
-                if errors:
-                    all_errors.append(errors)
-                    data_file.error_process += errors
-                    data_file = data_file.change_status("explore_fail")
-                    break
-            if not saved:
-                all_errors.append(errors)
-                data_file.change_status("explore_fail")
-            get_excel_file.cache_clear()
+            new_tasks, errors = petition.find_matches_in_children(
+                all_data_files, current_file_ctrl=current_file_ctrl)
+            all_tasks.extend(new_tasks)
+            all_errors.extend(errors)
+        else:
+            key_task = AsyncTask.objects.create(
+                user=request.user, function_name="auto_explore",
+                date_start=datetime.now(), petition=petition,
+                status_task_id="running")
+            process_files = ProcessFile.objects.filter(
+                petition=petition, has_data=True)
+            for process_file in process_files:
+                task_params = {
+                    "parent_task": key_task,
+                    "models": [process_file]
+                }
+                children_files = DataFile.objects.\
+                    filter(process_file=process_file)
+                if children_files.exists():
+                    print("children_files: ", children_files)
+                    new_tasks, new_errors = petition.find_matches_in_children(
+                        children_files, current_file_ctrl=current_file_ctrl,
+                        task_params=task_params)
+                    all_tasks.extend(new_tasks)
+                    all_errors.extend(new_errors)
+                else:
+                    async_task = process_file.decompress(
+                        pet_file_ctrl, task_params=task_params)
+                    all_tasks.append(async_task)
+        if len(all_tasks) == 0 and key_task:
+            key_task.status_task_id = "finished"
+            key_task.save()
+            all_tasks.append(key_task)
 
         petition_data = serializers.PetitionFullSerializer(petition).data
+        tasks_data = serializers.AsyncTaskSerializer(all_tasks, many=True).data
         data = {
             "errors": all_errors,
+            "petition": petition_data,
+            "file_controls": EntityFileControlsSerializer(
+                petition.entity).data["file_controls"],
+            "tasks": tasks_data,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="finished")
+    def finished(self, request, pk=None):
+        petition = self.get_object()
+        petition_data = serializers.PetitionFullSerializer(petition).data
+        data = {
             "petition": petition_data,
             "file_controls": EntityFileControlsSerializer(
                 petition.entity).data["file_controls"],
@@ -162,7 +160,7 @@ def move_and_duplicate(data_files, petition, request):
                 new_file = data_file
                 new_file.pk = None
                 new_file.petition_file_control = pet_file_ctrl
-                new_file.save()
+                # new_file.save()
                 new_file.change_status('initial')
             #if not is_dupl:
             else:
@@ -188,6 +186,7 @@ class DataFileViewSet(CreateRetrievView):
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
         "list": serializers.DataFileSerializer,
+        "retrieve": serializers.DataFileEditSerializer,
     }
 
     def get_queryset(self):
@@ -254,12 +253,12 @@ class DataFileViewSet(CreateRetrievView):
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
-        data = data_file.start_file_process(is_explore=True)
-        if data.get("errors", False):
+        data, errors, new_task = data_file.start_file_process(is_explore=True)
+        if errors:
             return Response(
                 data, status=status.HTTP_400_BAD_REQUEST)
 
-        def textNormalizer(text):
+        def text_normalizer(text):
             import re
             import unidecode
             final_text = text.upper().strip()
@@ -312,7 +311,7 @@ class DataFileViewSet(CreateRetrievView):
 
             final_names = {}
             for name_col in all_name_columns:
-                standard_name = textNormalizer(name_col["name_in_data"])
+                standard_name = text_normalizer(name_col["name_in_data"])
                 unique_name = (
                     f'{standard_name}-{name_col["final_field"]}-'
                     f'{name_col["final_field__parameter_group"]}')
@@ -334,7 +333,7 @@ class DataFileViewSet(CreateRetrievView):
                 name: vals for name, vals in final_names.items()
                     if vals["valid"]}
             for (position, header) in enumerate(headers, start=1):
-                std_header = textNormalizer(header)
+                std_header = text_normalizer(header)
                 base_dict = {"position_in_data": position}
                 if final_names.get(std_header, False):
                     vals = final_names[std_header]
@@ -348,6 +347,62 @@ class DataFileViewSet(CreateRetrievView):
         #print(data["structured_data"][:6])
         return Response(
             first_valid_sheet, status=status.HTTP_201_CREATED)
+
+
+class AsyncTaskViewSet(ListRetrieveView):
+    queryset = AsyncTask.objects.all()
+    serializer_class = serializers.AsyncTaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "list": serializers.AsyncTaskSerializer,
+        "retrieve": serializers.AsyncTaskSerializer,
+    }
+
+    def get_queryset(self):
+        return AsyncTask.objects.all()
+
+    @action(methods=["get"], detail=False, url_path='last_hours')
+    def last_hours(self, request, **kwargs):
+        from datetime import datetime, timedelta
+        from django.contrib.auth.models import User
+        from auth.api.serializers import UserDataSerializer
+        total_hours = request.query_params.get("hours", 3)
+        now = datetime.now()
+        last_hours = now - timedelta(hours=int(total_hours))
+        task_by_start = AsyncTask.objects.filter(
+            date_start__gte=last_hours)
+        task_by_end = AsyncTask.objects.filter(
+            date_end__gte=last_hours)
+        all_tasks = task_by_start | task_by_end
+        staff_users = User.objects.filter(is_staff=True)
+        staff_data = UserDataSerializer(staff_users, many=True).data
+        data = {
+            "tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
+            "staff_users": staff_data,
+            "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], detail=False, url_path='news')
+    def news(self, request, **kwargs):
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        last_request = request.query_params.get("last_request")
+        if last_request:
+            last_request = datetime.strptime(last_request, "%Y-%m-%d %H:%M:%S")
+        else:
+            last_request = now - timedelta(hours=3)
+        task_by_start = AsyncTask.objects.filter(
+            date_start__gte=last_request)
+        task_by_end = AsyncTask.objects.filter(
+            date_end__gte=last_request)
+        all_tasks = task_by_start | task_by_end
+        data = {
+            "new_tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
+            "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class OpenDataInaiViewSet(ListRetrieveView):

@@ -167,7 +167,7 @@ def get_state(state_name):
             catalog_state[state.name] = state
 
     if state_name not in catalog_state:
-        state_obj = State.objects.create(inegi_code="xx", name=state_name)
+        state_obj = State.objects.create()
         catalog_state[state_name] = state_obj
 
     return catalog_state[state_name]

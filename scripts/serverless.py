@@ -1,5 +1,5 @@
 import json
-
+from django.conf import settings
 
 def execute_in_lambda(function_name, params, in_lambda=True):
     from scripts.common import start_session
@@ -25,46 +25,57 @@ def execute_in_lambda(function_name, params, in_lambda=True):
         return globals()[function_name](params, None)
 
 
-def async_in_lambda(function_name, params, in_lambda=True):
+def async_in_lambda(function_name, params, task_params):
     from scripts.common import start_session
+    from inai.models import AsyncTask
+    from datetime import datetime
     s3_client, dev_resource = start_session("lambda")
-    if in_lambda:
-        dumb_params = json.dumps(params)
-        print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
-        function_name = f"{function_name}:normal"
-        response = s3_client.invoke(
-            FunctionName=function_name,
-            InvocationType='Event',
-            LogType='Tail',
-            Payload=dumb_params
-        )
-        print("response", response, "\n")
-        print("response['Payload'] :", response['Payload'], "\n")
-
-        try:
-            print(response['Payload'].read().decode("utf-8"))
-            #invoke_response['Payload'].read().decode("utf-8")
-        except Exception as e:
-            print("ERROR 1 EN LAMBDA:\n", e)
-        try:
-            print(json.loads(response['Payload'].read().decode("utf-8")))
-            #invoke_response['Payload'].read().decode("utf-8")
-        except Exception as e:
-            print("ERROR 2 EN LAMBDA:\n", e)
-
-        #payload_response = json.loads(response['Payload'].read())
-        #print("payload_response", payload_response)
-        return response
-    else:
-        print("EJECUTADO EN LOCAL")
-        return globals()[function_name](params, None)
+    api_url = getattr(settings, "API_URL", False)
+    params["webhook_url"] = f"{api_url}inai/webhook_aws/"
+    function_after = task_params.get("function_after") or f"{function_name}_after"
+    query_kwargs = {
+        "function_name": function_name,
+        "function_after": function_after,
+        "original_request": params,
+        "status_task_id": "pending",
+        "date_start": datetime.now(),
+    }
+    for field in ["parent_task", "params_after"]:
+        if field in task_params:
+            query_kwargs[field] = task_params[field]
+    def camel_to_snake(name):
+        import re
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    for model in task_params["models"]:
+        query_kwargs[camel_to_snake(model.__class__.__name__)] = model
+    print("query_kwargs:\n", query_kwargs, "\n")
+    current_task = AsyncTask.objects.create(**query_kwargs)
+    dumb_params = json.dumps(params)
+    print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
+    function_name = f"{function_name}:normal"
+    response = s3_client.invoke(
+        FunctionName=function_name,
+        InvocationType='Event',
+        LogType='Tail',
+        Payload=dumb_params
+    )
+    print("response", response, "\n")
+    request_id = response["ResponseMetadata"]["RequestId"]
+    current_task.request_id = request_id
+    current_task.status_task_id = "running"
+    current_task.save()
+    print("SE GUARDÓ BIEN")
+    #payload_response = json.loads(response['Payload'].read())
+    #print("payload_response", payload_response)
+    return current_task
 
 
 def count_excel_rows(params):
     from scripts.common import start_session
     s3_client, dev_resource = start_session("lambda")
     response = s3_client.invoke(
-        FunctionName='simple_function_3:1',
+        FunctionName='simple_function_3:normal',
         InvocationType='RequestResponse',
         Payload=json.dumps(params)
     )

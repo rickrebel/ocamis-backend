@@ -4,7 +4,8 @@ from django.utils.html import format_html
 
 from .models import (
     FileType, StatusControl, ColumnType, NegativeReason, DateBreak, Anomaly,
-    InvalidReason, TransparencyIndex, TransparencyLevel, FileFormat)
+    InvalidReason, TransparencyIndex, TransparencyLevel, FileFormat,
+    StatusTask)
 
 
 class StatusControlAdmin(admin.ModelAdmin):
@@ -15,6 +16,14 @@ class StatusControlAdmin(admin.ModelAdmin):
     list_filter = ["group"]
 
 ocamis_admin_site.register(StatusControl, StatusControlAdmin)
+
+
+class StatusTaskAdmin(admin.ModelAdmin):
+    list_display = [
+        "name", "public_name", "order", "description", "color", "icon"]
+    list_editable = ["order", "color"]
+
+ocamis_admin_site.register(StatusTask, StatusTaskAdmin)
 
 
 class FileTypeAdmin(admin.ModelAdmin):

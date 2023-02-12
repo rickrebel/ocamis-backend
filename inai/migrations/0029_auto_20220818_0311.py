@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='transformation',
             name='addl_params',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=inai.models.Transformation.default_addl_params, null=True),
+            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=inai.models.default_addl_params, null=True),
         ),
     ]

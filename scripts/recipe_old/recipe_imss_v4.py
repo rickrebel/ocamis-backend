@@ -487,11 +487,7 @@ def divide_recipe_report_data(
     #if rr_data_count == 14:
         return recipe_report_data
     else:
-        MissingRow.objects.create(
-            file=file,
-            original_data=recipe_report_data,
-            row_seq=row_seq
-        )
+        MissingRow.objects.create()
         print("conteo extraño: %s columnas" % rr_data_count)
         print(recipe_report_data)
     return None

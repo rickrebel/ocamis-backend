@@ -2,20 +2,20 @@ import os
 
 from django.db import models
 from django.db.models import JSONField
-from django.utils.deconstruct import deconstructible
 
+from django.contrib.auth.models import User
 from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, 
-    DateBreak, Anomaly, InvalidReason, FileFormat)
+    DateBreak, Anomaly, InvalidReason, FileFormat, StatusTask)
 from data_param.models import (
     DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup)
 
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
-from .data_file_mixins.matches_mix import MatchesMix
 from .data_file_mixins.get_data_mix import ExtractorsMix
-from .petition_mixins.explore_file_mix import PetitionProcessMix
+from .process_file_mixins.process_mix import ProcessFileMix
+from .petition_mixins.petition_mix import PetitionMix, PetitionTransformsMix
 
 
 def set_upload_path(instance, filename):
@@ -51,7 +51,8 @@ def set_upload_path(instance, filename):
     return "/".join([entity_type, acronym, last_year_month, filename])
 
 
-class Petition(models.Model, PetitionProcessMix):
+class Petition(models.Model, PetitionTransformsMix):
+
     folio_petition = models.CharField(
         max_length=50,
         verbose_name="Folio de la solicitud")
@@ -79,66 +80,34 @@ class Petition(models.Model, PetitionProcessMix):
         verbose_name="Texto de la queja",
         blank=True, null=True)
     status_data = models.ForeignKey(
-        StatusControl, null=True, blank=True, 
+        StatusControl, null=True, blank=True,
         related_name="petitions_data",
         verbose_name="Status de los datos entregados",
         on_delete=models.CASCADE)
     status_petition = models.ForeignKey(
-        StatusControl, null=True, blank=True, 
+        StatusControl, null=True, blank=True,
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
     status_complain = models.ForeignKey(
-        StatusControl, null=True, blank=True, 
+        StatusControl, null=True, blank=True,
         related_name="petitions_complain",
         verbose_name="Status de la queja",
         on_delete=models.CASCADE)
     invalid_reason = models.ForeignKey(
-        InvalidReason, null=True, blank=True, 
+        InvalidReason, null=True, blank=True,
         verbose_name="Razón de invalidez",
         on_delete=models.CASCADE)
     folio_complain = models.IntegerField(
-        verbose_name="Folio de la queja", 
+        verbose_name="Folio de la queja",
         blank=True, null=True)
     id_inai_open_data = models.IntegerField(
-        verbose_name="Id en el sistema de INAI", 
+        verbose_name="Id en el sistema de INAI",
         blank=True, null=True)
     info_queja_inai = JSONField(
-        verbose_name="Datos de queja", 
-        help_text="Información de la queja en INAI Seach", 
+        verbose_name="Datos de queja",
+        help_text="Información de la queja en INAI Seach",
         blank=True, null=True)
-
-    def first_year_month(self):
-        return self.petition_months.earliest().month_entity.year_month
-
-    def last_year_month(self):
-        return self.petition_months.latest().month_entity.year_month
-
-    def months(self):
-        html_list = ''
-        start = self.petition_months.earliest().month_entity.human_name
-        end = self.petition_months.latest().month_entity.human_name
-        return " ".join(list(set([start, end])))
-    months.short_description = u"Meses"
-
-    def months_in_description(self):
-        from django.utils.html import format_html
-        months = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-        curr_months = []
-        if self.description_petition:
-            description = self.description_petition.lower()
-            for month in months:
-                if month in description:
-                    curr_months.append(month)
-            html_list = ''
-            for month in list(curr_months):
-                html_list = html_list + ('<span>%s</span><br>' % month)
-            return format_html(html_list)
-        else:
-            return "Sin descripción"
-    months_in_description.short_description = u"Meses escritos"
 
     def __str__(self):
         return "%s -- %s" % (self.entity, self.folio_petition or self.id)
@@ -345,6 +314,9 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     explore_data = JSONField(
         blank=True, null=True,
         verbose_name="Primeros datos, de exploración")
+    sheet_names = JSONField(
+        blank=True, null=True,
+        verbose_name="Nombres de las hojas")
     directory = models.CharField(
         max_length=255, verbose_name="Ruta en archivo comprimido",
         blank=True, null=True)
@@ -379,7 +351,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         verbose_name_plural = u"Archivos con datos"
 
 
-class ProcessFile(models.Model):
+class ProcessFile(models.Model, ProcessFileMix):
 
     petition = models.ForeignKey(
         Petition,
@@ -472,10 +444,11 @@ class NameColumn (models.Model):
         verbose_name_plural = "Nombres de Columnas"   
 
 
-class Transformation(models.Model):
+def default_params():
+    return {}
 
-    def default_addl_params():
-        return {}
+
+class Transformation(models.Model):
 
     clean_function = models.ForeignKey(
         CleanFunction, 
@@ -492,8 +465,63 @@ class Transformation(models.Model):
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Columna")
     addl_params = JSONField(
-        blank=True, null=True, default=default_addl_params)
+        blank=True, null=True, default=default_params)
 
     class Meta:
         verbose_name = "Transformación a aplicar"
         verbose_name_plural = "Transformaciones a aplicar"   
+
+
+class AsyncTask(models.Model):
+
+    request_id = models.CharField(max_length=100, blank=True, null=True)
+    parent_task = models.ForeignKey(
+        "self", related_name="child_tasks",
+        blank=True, null=True, on_delete=models.CASCADE)
+    file_control = models.ForeignKey(
+        FileControl,
+        related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    petition = models.ForeignKey(
+        Petition,
+        blank=True, null=True,
+        related_name="async_tasks",
+        on_delete=models.CASCADE)
+    data_file = models.ForeignKey(
+        DataFile,
+        related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    process_file = models.ForeignKey(
+        ProcessFile,
+        related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    # status = models.CharField(
+    #     max_length=100, blank=True, null=True,
+    #     verbose_name="Estado de la tarea")
+    status_task = models.ForeignKey(
+        StatusTask, on_delete=models.CASCADE, blank=True, null=True,
+        verbose_name="Estado de la tarea")
+    function_name = models.CharField(
+        max_length=100, blank=True, null=True,
+        verbose_name="Nombre de la función")
+    function_after = models.CharField(
+        max_length=100, blank=True, null=True)
+    original_request = JSONField(
+        blank=True, null=True, verbose_name="Request original")
+    params_after = JSONField(
+        blank=True, null=True, verbose_name="Parámetros de la función after")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, blank=True, null=True)
+    result = JSONField(blank=True, null=True)
+    error = models.TextField(blank=True, null=True)
+    traceback = models.TextField(blank=True, null=True)
+    date_start = models.DateTimeField(blank=True, null=True)
+    date_end = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s -- %s" % (self.function_name, self.status_task)
+
+    class Meta:
+        ordering = ["-date_start"]
+        verbose_name = "Tarea asincrónica"
+        verbose_name_plural = "Tareas asincrónicas"

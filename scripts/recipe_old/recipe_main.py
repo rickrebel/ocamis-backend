@@ -50,6 +50,7 @@ def start_file_process_prev(file, file_control, is_explore=False):
 def transform_files_in_data(file, file_control, is_explore, suffix)
     data_rows = []
     headers = []
+    errors = []
     status_error = 'initial_explore' if is_explore else 'fail_extraction'
     if suffix in ['txt', 'csv']:
         data_rows, errors = get_data_from_file_simple(file)
@@ -220,8 +221,7 @@ def execute_matches(row, file):
         delegation = delegation_match(row, columns_state, 'Delegation')
         if not delegation:
             #missing_row = MissingRow.objects.get_or_create(file=file)
-            missing_row = MissingRow.objects.create(
-                file=file, row_seq = row[0], orinal_data=row)
+            missing_row = MissingRow.objects.create()
         if delegation and not state:
             state = delegation.state
     if not state:
@@ -275,16 +275,7 @@ def split_and_decompress(file):
             name='initial')
         file.status_process = decompressed_status
         file.save()
-        new_file = File.objects.create(
-            file=file_without_extension,
-            origin_file=file,
-            date=file.date,
-            status=initial_status,
-            #Revisar si lo más fácil es poner o no los siguientes:
-            file_control=file_control,
-            petition=file.petition,
-            petition_month=file.petition_month,
-            )
+        new_file = File.objects.create()
         file = new_file
         suffixes.remove('gz')
     if 'zip' in suffixes:
@@ -297,16 +288,7 @@ def split_and_decompress(file):
             zip_ref.extractall(directory)
         #for f in os.listdir(directory):
         for f in all_files:
-            new_file = File.objects.create(
-                file="%s%s" % (directory, f),
-                origin_file=file,
-                date=file.date,
-                status=initial_status,
-                #Revisar si lo más fácil es poner o no los siguientes:
-                file_control=file_control,
-                petition=file.petition,
-                petition_month=file.petition_month,
-                )
+            new_file = File.objects.create()
         file = new_file
         suffixes.remove('zip')
     #Obtener el tamaño
@@ -347,15 +329,7 @@ def split_file(file):
         if not os.path.isfile(reporte_recetas_path):
             print("Invalid path")
             break
-        new_file = File.objects.create(
-            file=rr_file_name,
-            origin_file=original_file,
-            date=original_file.date,
-            status=initial_status,
-            #Revisar si lo más fácil es poner o no los siguientes:
-            file_control=original_file.file_control,
-            petition=original_file.petition,
-            petition_month=original_file.petition_month)
+        new_file = File.objects.create()
         count_splited += 1
     if count_splited > 0:
         if file.origin_file:
@@ -391,11 +365,7 @@ def divide_recipe_report_data(row, file=None, row_seq=None):
     if len(row_data) == columns_count:
         return [row_seq] + row_data
     else:
-        MissingRow.objects.create(
-            file=file,
-            original_data=row_data,
-            row_seq=row_seq,
-        )
+        MissingRow.objects.create()
         print("conteo extraño: %s columnas" % rr_data_count)
         print(row_data)
     return None

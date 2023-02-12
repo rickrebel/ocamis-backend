@@ -49,28 +49,9 @@ def import_reports():
                     has_corruption = True
                 else:
                     has_corruption = False
-                report = Report.objects.create(
-                    informer_type=row[1],
-                    state=state,
-                    institution_raw=row[6],
-                    institution=institution,
-                    is_other=is_other,
-                    hospital_name_raw=row[9],
-                    has_corruption=has_corruption,
-                    informer_name=row[11],
-                    email=row[12],
-                    phone=row[13],
-                    origin_app=row[14],
-                    disease=row[15],
-                    validated=validated
-                )
+                report = Report.objects.create()
                 Report.objects.filter(id=report.id).update(created=created)
-                Supply.objects.create(
-                    medicine_type=medicine_type,
-                    medicine_name_raw=medicine_name_raw,
-                    medicine_real_name=medicine_real_name,
-                    report=report,
-                )
+                Supply.objects.create()
                 print(report)
 
 
@@ -100,33 +81,7 @@ def import_clues():
                     state = None
                 institution_clave = row[2]
                 institution = Institution.objects.get(code=institution_clave)
-                clues = CLUES.objects.create(
-                    name=row[0],
-                    state=state,
-                    institution=institution,
-                    municipality=row[3],
-                    municipality_inegi_code=row[4],
-                    tipology=row[5],
-                    tipology_cve=row[6],
-                    id_clues=row[7],
-                    clues=row[8],
-                    status_operation=row[9],
-                    longitude=row[10],
-                    latitude=row[11],
-                    locality=row[12],
-                    locality_inegi_code=row[13],
-                    jurisdiction=row[14],
-                    jurisdiction_clave=row[15],
-                    establishment_type=row[16],
-                    consultings_general=int(row[17]) if row[17].isdigit() else 0,
-                    consultings_other=int(row[18]) if row[18].isdigit() else 0,
-                    beds_hopital=int(row[19]) if row[19].isdigit() else 0,
-                    beds_other=int(row[20]) if row[20].isdigit() else 0,
-                    total_unities=int(row[21]) if row[21].isdigit() else 0,
-                    admin_institution=row[22],
-                    atention_level=row[23],
-                    stratum=row[24],
-                )
+                clues = CLUES.objects.create()
                 print(clues)
 
 
@@ -134,11 +89,7 @@ def create_report_supply():
     from desabasto.models import (Report, Supply)
     for report in Report.objects.filter(medicine_type__isnull=False,
                                         medication_name__isnull=False):
-        Supply.objects.create(
-            medicine_type=report.medicine_type,
-            medicine_name_raw=report.medication_name,
-            report=report
-        )
+        Supply.objects.create()
         report.medicine_type = None
         report.medication_name = None
         report.save()

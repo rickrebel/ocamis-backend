@@ -4,7 +4,7 @@ from django.contrib.admin import AdminSite
 # Register your models here.
 from .models import (
     Petition, FileControl, NameColumn, PetitionFileControl, DataFile, 
-    PetitionMonth, ProcessFile, Transformation)
+    PetitionMonth, ProcessFile, Transformation, AsyncTask)
 
 
 class OcamisAdminSite(AdminSite):
@@ -149,3 +149,14 @@ class TransformationAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(Transformation, TransformationAdmin)
 
 
+class AsyncTaskAdmin(admin.ModelAdmin):
+    list_display = [
+        "request_id",
+        "function_name",
+        "status_task",
+        "date_start",
+        "date_end",
+    ]
+    raw_id_fields = ["petition", "file_control", "data_file", "process_file"]
+
+ocamis_admin_site.register(AsyncTask, AsyncTaskAdmin)
