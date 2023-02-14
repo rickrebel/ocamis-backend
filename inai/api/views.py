@@ -287,10 +287,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
-        #return Response(
-        #    serializer_ctrl.data, status=status.HTTP_201_CREATED)
-
-
     def update(self, request, **kwargs):
         file_control = self.get_object()
         data = request.data
@@ -385,6 +381,41 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(methods=["get"], detail=True, url_path='link_orphans')
+    def link_orphans(self, request, **kwargs):
+        from inai.models import AsyncTask
+        from datetime import datetime
+        from inai.api.common import send_response
+
+        file_control = self.get_object()
+        petition = file_control.petition_file_control.petition
+        orphan_files = DataFile.objects.filter(
+            petition_file_control__petition=petition,
+            petition_file_control__file_control__data_group__name="orphan",
+        )
+        if orphan_files.exists():
+            key_task = AsyncTask.objects.create(
+                user=request.user,
+                file_control=file_control,
+                function_name="link_orphans",
+                status_task_id="created",
+                date_start=datetime.now(),
+            )
+            task_params = {
+                "parent_task": key_task,
+            }
+            new_tasks, new_errors = petition.find_matches_in_children(
+                orphan_files, current_file_ctrl=file_control.id,
+                task_params=task_params)
+            if len(new_tasks) == 0 and key_task:
+                key_task.status_task_id = "finished"
+                key_task.save()
+            return send_response(petition, task=key_task, errors=new_errors)
+        else:
+            return Response(
+                {"errors": ["No hay archivos en grupos huérfanos"]},
+                status=status.HTTP_400_BAD_REQUEST)
+
 
 class PetitionFileControlViewSet(CreateRetrievView):
     queryset = PetitionFileControl.objects.all()
@@ -393,7 +424,7 @@ class PetitionFileControlViewSet(CreateRetrievView):
     action_serializers = {
         "list": serializers.PetitionFileControlFullSerializer,
         "retrieve": serializers.PetitionFileControlFullSerializer,
-        "create": serializers.PetitionFileControlFullSerializer,
+        "create": serializers.PetitionFileControlCreateSerializer,
         "delete": serializers.PetitionFileControlFullSerializer,
     }
 

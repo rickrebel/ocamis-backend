@@ -131,7 +131,10 @@ class DataFileSerializer(serializers.ModelSerializer):
         write_only=True, source="petition_file_control",
         queryset=PetitionFileControl.objects.all())
     #child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
-    #has_explore_data = serializers.SerializerMethodField(read_only=True)
+    has_explore_data = serializers.SerializerMethodField(read_only=True)
+
+    def get_has_explore_data(self, obj):
+        return bool(obj.explore_data)
 
     class Meta:
         model = DataFile
@@ -172,6 +175,14 @@ class PetitionMonthSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         fields = "__all__" """
+
+
+class PetitionFileControlCreateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PetitionFileControl
+        fields = "__all__"
+        read_only_fields = ["data_files"]
 
 
 class PetitionFileControlSerializer(serializers.ModelSerializer):

@@ -3,8 +3,8 @@ from . import serializers
 from rest_framework.response import Response
 from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
-import unidecode
 
+from inai.api.common import send_response
 from inai.models import (
     DataFile, NameColumn, Petition, PetitionFileControl, AsyncTask)
 
@@ -15,6 +15,7 @@ from api.mixins import (
 
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
 from catalog.api.serializers import EntityFileControlsSerializer
+from inai.views import comprobate_status
 last_final_path = None
 
 
@@ -31,19 +32,18 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         from inai.models import FileControl, ProcessFile
         from category.models import FileType
         from data_param.models import DataGroup
-        from scripts.common import get_excel_file
         from datetime import datetime
 
         petition = self.get_object()
         current_file_ctrl = request.query_params.get("file_ctrl", False)
         file_id = request.query_params.get("file_id", False)
 
-        data_group = DataGroup.objects.get(name="orphan")
+        orphan_group = DataGroup.objects.get(name="orphan")
         file_type = FileType.objects.get(name="with_data")
         name_control = "Archivos por agrupar. Petición %s" % (
             petition.folio_petition)
         prev_file_controls = FileControl.objects.filter(
-            data_group=data_group,
+            data_group=orphan_group,
             petition_file_control__petition=petition)
         if prev_file_controls.exists():
             file_control = prev_file_controls.first()
@@ -51,7 +51,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             file_control, created = FileControl.objects.get_or_create(
                 name=name_control,
                 file_type=file_type,
-                data_group=data_group,
+                data_group=orphan_group,
                 final_data=False,
             )
         pet_file_ctrl, created_pfc = PetitionFileControl.objects \
@@ -69,18 +69,20 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             key_task = AsyncTask.objects.create(
                 user=request.user, function_name="auto_explore",
                 date_start=datetime.now(), petition=petition,
-                status_task_id="running")
+                status_task_id="created")
             process_files = ProcessFile.objects.filter(
                 petition=petition, has_data=True)
             for process_file in process_files:
                 task_params = {
-                    "parent_task": key_task,
-                    "models": [process_file]
+                    "parent_task": key_task
                 }
                 children_files = DataFile.objects.\
                     filter(process_file=process_file)
                 if children_files.exists():
-                    print("children_files: ", children_files)
+                    if not children_files.filter(
+                        petition_file_control__file_control__data_group__name='orphan'
+                    ).exists():
+                        continue
                     new_tasks, new_errors = petition.find_matches_in_children(
                         children_files, current_file_ctrl=current_file_ctrl,
                         task_params=task_params)
@@ -90,32 +92,15 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     async_task = process_file.decompress(
                         pet_file_ctrl, task_params=task_params)
                     all_tasks.append(async_task)
-        if len(all_tasks) == 0 and key_task:
-            key_task.status_task_id = "finished"
-            key_task.save()
-            all_tasks.append(key_task)
 
-        petition_data = serializers.PetitionFullSerializer(petition).data
-        tasks_data = serializers.AsyncTaskSerializer(all_tasks, many=True).data
-        data = {
-            "errors": all_errors,
-            "petition": petition_data,
-            "file_controls": EntityFileControlsSerializer(
-                petition.entity).data["file_controls"],
-            "tasks": tasks_data,
-        }
-        return Response(data, status=status.HTTP_200_OK)
+        key_task = comprobate_status(
+            key_task, errors=all_errors, new_tasks=all_tasks)
+        return send_response(petition, task=key_task, errors=all_errors)
 
     @action(detail=True, methods=["get"], url_path="finished")
     def finished(self, request, pk=None):
         petition = self.get_object()
-        petition_data = serializers.PetitionFullSerializer(petition).data
-        data = {
-            "petition": petition_data,
-            "file_controls": EntityFileControlsSerializer(
-                petition.entity).data["file_controls"],
-        }
-        return Response(data, status=status.HTTP_200_OK)
+        return send_response(petition)
 
 
 def move_and_duplicate(data_files, petition, request):
@@ -192,7 +177,7 @@ class DataFileViewSet(CreateRetrievView):
     def get_queryset(self):
         return DataFile.objects.all()
 
-    @action(methods=["put"], detail=True, url_path='move')
+    @action(methods=["put"], detail=True, url_path="move")
     def move(self, request, **kwargs):
         if not request.user.is_staff:
             raise PermissionDenied()
@@ -201,32 +186,51 @@ class DataFileViewSet(CreateRetrievView):
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
 
-    @action(methods=["get"], detail=True, url_path='build_explore_data')
+    @action(methods=["get"], detail=True, url_path="build_explore_data")
     def build_explore_data(self, request, **kwargs):
         from inai.api.serializers import DataFileSerializer
+        from datetime import datetime
+
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
-        data_file, errors, new_ch = data_file.comprobate_coincidences()
+        task_params = data_file.build_task_params(
+            "build_explore_data", request)
+        new_tasks = []
+        new_data_file, errors, new_ch = data_file.comprobate_coincidences(
+            task_params=task_params)
         response_body = {}
         if errors:
             response_body["errors"] = errors
             final_status = status.HTTP_400_BAD_REQUEST
         else:
-            final_status = status.HTTP_200_OK
-            data_file = data_file.change_status("success_exploration")
-        if data_file:
-            data = DataFileSerializer(data_file).data
+            if new_data_file:
+                new_data_file = new_data_file.change_status("success_exploration")
+                final_status = status.HTTP_200_OK
+            else:
+                new_data_file = data_file.change_status("success_exploration")
+                final_status = status.HTTP_400_BAD_REQUEST
+        if new_data_file:
+            if new_data_file:
+                data = DataFileSerializer(new_data_file).data
+            else:
+                data = DataFileSerializer(data_file).data
             response_body["data_file"] = data
         child_data_files = DataFile.objects.filter(
             origin_file=data_file)
-        print("child_data_files: ", child_data_files.count())
+        # print("child_data_files: ", child_data_files.count())
+        key_task = task_params["parent_task"]
+        key_task = comprobate_status(
+            key_task, errors=[], new_tasks=new_tasks)
+        if key_task:
+            current_task_data = serializers.AsyncTaskSerializer(key_task).data
+            response_body["current_task"] = current_task_data
         if new_ch:
             response_body["new_files"] = DataFileSerializer(
                 new_ch, many=True).data
         return Response(response_body, status=final_status)
 
-    @action(methods=["get"], detail=True, url_path='counting')
+    @action(methods=["get"], detail=True, url_path="counting")
     def counting(self, request, **kwargs):
         from inai.api.serializers import DataFileSerializer
         if not request.user.is_staff:
@@ -245,16 +249,28 @@ class DataFileViewSet(CreateRetrievView):
         if errors:
             response_body["errors"] = response_body.get("errors", []) + errors
             final_status = status.HTTP_400_BAD_REQUEST
-
+        print("response_body: ", response_body)
         return Response(response_body, status=final_status)
 
-    @action(methods=["get"], detail=True, url_path='explore')
+    @action(methods=["get"], detail=True, url_path="explore")
     def explore(self, request, **kwargs):
-        if not request.user.is_staff:
-            raise PermissionDenied()
+
         data_file = self.get_object()
+        print("antes de start_file_process")
+        if file_id:
+            all_data_files = DataFile.objects.filter(id=file_id)
+            new_tasks, errors = petition.find_matches_in_children(
+                all_data_files, current_file_ctrl=current_file_ctrl)
+            all_tasks.extend(new_tasks)
+            all_errors.extend(errors)
+
+
+
         data, errors, new_task = data_file.start_file_process(is_explore=True)
+
+        print("despues de start_file_process")
         if errors:
+            print("errors: ", errors)
             return Response(
                 data, status=status.HTTP_400_BAD_REQUEST)
 
@@ -292,7 +308,7 @@ class DataFileViewSet(CreateRetrievView):
                         for posit, head in enumerate(prov_headers, start=1)]
                 return Response(
                     first_valid_sheet, status=status.HTTP_201_CREATED)
-        print("DESPUÉS DE HEADER")
+        # print("DESPUÉS DE HEADER")
         try:
             headers = first_valid_sheet["headers"]
             complex_headers = []

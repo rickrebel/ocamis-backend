@@ -20,8 +20,9 @@ ocamis_admin_site.register(StatusControl, StatusControlAdmin)
 
 class StatusTaskAdmin(admin.ModelAdmin):
     list_display = [
-        "name", "public_name", "order", "description", "color", "icon"]
-    list_editable = ["order", "color"]
+        "name", "public_name", "order", "description", "color", "icon",
+        "is_completed"]
+    list_editable = ["order", "color", "is_completed"]
 
 ocamis_admin_site.register(StatusTask, StatusTaskAdmin)
 

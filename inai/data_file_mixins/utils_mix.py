@@ -51,3 +51,17 @@ class DataUtilsMix:
             errors=["Conteo distinto de Columnas %s" % len(row_data)],
         )"""
         return 2
+
+    def build_task_params(self, function_name, request):
+        from inai.models import AsyncTask
+        from datetime import datetime
+        key_task = AsyncTask.objects.create(
+            user=request.user, function_name="build_explore_data",
+            data_file=self, date_start=datetime.now(),
+            status_task_id="created"
+        )
+        return {
+            "parent_task": key_task
+        }
+
+

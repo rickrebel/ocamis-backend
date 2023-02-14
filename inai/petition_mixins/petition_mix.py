@@ -61,12 +61,24 @@ class PetitionTransformsMix(PetitionMix):
         others_file_controls = entity_file_controls\
             .exclude(petition_file_control__petition=self)\
             .prefetch_related("file_format")
-
         all_file_controls = near_file_controls | others_file_controls
+
         for data_file in all_data_files:
-            data_file.error_process = []
-            data_file.save()
-            task_params = task_params or {}
+            # task_params = task_params or {}
+            # task_params["function_after"] = "find_matches_in_file_controls"
+            ctrl_list = list(all_file_controls.values_list("id", flat=True))
+            curr_kwargs = {
+                "after_if_empty": "find_matches_in_file_controls",
+                "after_params_if_empty": {
+                    "all_file_controls_ids": ctrl_list
+                }
+            }
+            result = data_file.get_explore_data(task_params, **curr_kwargs)
+            new_task, errors, body = result
+            task_params["models"] = [data_file]
+
+            # data_file.error_process = []
+            # data_file.save()
             task_params["models"] = [data_file]
             (data_file, errors, suffix), first_task = data_file.decompress_file(
                 task_params=task_params)
@@ -86,7 +98,7 @@ class PetitionTransformsMix(PetitionMix):
                     all_tasks.append(new_task)
                     continue
             if errors:
-                all_errors.append(errors)
+                all_errors.extend(errors)
                 continue
             body = {
                 "suffix": suffix,
@@ -95,6 +107,4 @@ class PetitionTransformsMix(PetitionMix):
             }
             data_file.find_matches_in_file_controls(
                 task_params=task_params, **body)
-            if errors:
-                all_errors.append(errors)
         return all_tasks, all_errors

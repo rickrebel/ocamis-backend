@@ -1,9 +1,6 @@
 from rest_framework import routers
 from django.urls import path, include
-from inai.consumers import MyConsumer
 
-from category.models import (
-    FileType, StatusControl, ColumnType, NegativeReason)
 #from inai.api.views import FileControlViewSet, PetitionViewSet
 from inai.api.views import (
     FileControlViewSet, PetitionViewSet, ProcessFileViewSet,
@@ -12,8 +9,9 @@ from inai.api.views import (
 from inai.api.views_aws import (
     DataFileViewSet, OpenDataInaiViewSet, AutoExplorePetitionViewSet,
     AsyncTaskViewSet)
+from inai.api.views_channel import MessageSendAPIView
 
-from inai.views import (AWSMessage)
+from inai.views import (AWSMessage, AWSErrors)
 
 
 router = routers.DefaultRouter()
@@ -35,13 +33,8 @@ router.register(
     r'^petition/(?P<petition_id>[-\d]+)/process_file', ProcessFileViewSet)
 
 urlpatterns = (
-    # path('suscription_test', AWSMessage.as_view()),
-    path('suscription_test/', AWSMessage.as_view()),
+    path('suscription_test', AWSErrors.as_view()),
+    path('send_socket_example/', MessageSendAPIView.as_view()),
     path('webhook_aws/', AWSMessage.as_view()),
-    # url(r'^commitmentgroup/$', FileTypeSimpleSerializer.as_view()),
     path('', include(router.urls)),
 )
-
-websocket_urlpatterns = [
-    path('ws/file_process/', MyConsumer.as_asgi()),
-]

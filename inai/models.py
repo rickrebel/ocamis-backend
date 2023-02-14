@@ -2,6 +2,8 @@ import os
 
 from django.db import models
 from django.db.models import JSONField
+from django.dispatch import receiver
+from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
 from catalog.models import Entity
@@ -495,9 +497,6 @@ class AsyncTask(models.Model):
         ProcessFile,
         related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    # status = models.CharField(
-    #     max_length=100, blank=True, null=True,
-    #     verbose_name="Estado de la tarea")
     status_task = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Estado de la tarea")
@@ -505,7 +504,11 @@ class AsyncTask(models.Model):
         max_length=100, blank=True, null=True,
         verbose_name="Nombre de la función")
     function_after = models.CharField(
-        max_length=100, blank=True, null=True)
+        max_length=100, blank=True, null=True,
+        verbose_name="Función a ejecutar después")
+    # model_after = models.CharField(
+    #     max_length=100, blank=True, null=True,
+    #     verbose_name="Modelo a ejecutar después")
     original_request = JSONField(
         blank=True, null=True, verbose_name="Request original")
     params_after = JSONField(
@@ -518,6 +521,14 @@ class AsyncTask(models.Model):
     date_start = models.DateTimeField(blank=True, null=True)
     date_end = models.DateTimeField(blank=True, null=True)
 
+    def save_status(self, status_id=None):
+        if status_id:
+            self.status_task_id = status_id
+        else:
+            self.status_task_id = self.status_task_id
+        self.save()
+        return self
+
     def __str__(self):
         return "%s -- %s" % (self.function_name, self.status_task)
 
@@ -525,3 +536,41 @@ class AsyncTask(models.Model):
         ordering = ["-date_start"]
         verbose_name = "Tarea asincrónica"
         verbose_name_plural = "Tareas asincrónicas"
+
+
+@receiver(post_save, sender=AsyncTask)
+def async_task_post_save(sender, instance, created, **kwargs):
+    print("kwargs", kwargs)
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+    from inai.api.serializers import AsyncTaskSerializer
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "dashboard", {
+            "type": "send_task_info",
+            "result": {
+                "model": sender.__name__,
+                "created": created,
+                "task_data": AsyncTaskSerializer(instance).data,
+            }
+        },
+    )
+
+
+@receiver(post_delete, sender=AsyncTask)
+def async_task_post_delete(sender, instance, **kwargs):
+    print("kwargs", kwargs)
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+    from inai.api.serializers import AsyncTaskSerializer
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "dashboard", {
+            "type": "send_task_info",
+            "result": {
+                "model": sender.__name__,
+                "deleted": True,
+                "task_id": instance.id,
+            }
+        },
+    )

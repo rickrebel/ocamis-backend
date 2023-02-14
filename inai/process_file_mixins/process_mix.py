@@ -28,6 +28,7 @@ class ProcessFileMix:
             "upload_path": set_upload_path(self, "NEW_FILE_NAME")
         }
         task_params = task_params or {}
+        task_params["models"] = [self]
         params_after = task_params.get("params_after", {})
         params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
         task_params["params_after"] = params_after
@@ -40,7 +41,7 @@ class ProcessFileMix:
 
     def decompress_zip_aws_after(self, task_params=None, **kwargs):
         from inai.models import DataFile, PetitionFileControl
-        print("kwargs", kwargs)
+        # print("kwargs", kwargs)
         errors = []
         parent_task = task_params.get("parent_task")
         params_after = parent_task.params_after
@@ -69,4 +70,4 @@ class ProcessFileMix:
         all_tasks, new_errors = self.petition.find_matches_in_children(
             all_data_files, task_params=task_params)
         errors += new_errors
-        return all_tasks, errors
+        return all_tasks, errors, None

@@ -63,9 +63,8 @@ class ExploreMix:
                 "file": self.file.name,
                 's3': build_s3(),
             }
-            #print("------------------params: \n", params)
             all_counts = count_excel_rows(params)
-            print("all_counts", all_counts)
+            # print("all_counts", all_counts)
             for sheet_name in current_sheets:
                 if sheet_name in all_counts:
                     explore_data[sheet_name]["total_rows"] = all_counts[sheet_name]
@@ -90,7 +89,7 @@ class ExploreMix:
         #se llama a la función para descomprimir el archivo o archivos:
         childs_count = self.child_files.count()
         (new_self, errors, suffix), first_task = self.decompress_file()
-        print("new_self: ", new_self)
+        # print("new_self: ", new_self)
         if errors:
             status_error = 'explore_fail' if is_explore else 'extraction_failed'
             self.save_errors(errors, status_error)
@@ -123,7 +122,7 @@ class ExploreMix:
             for ch_file in all_children:
                 data, current_errors, new_task = ch_file.transform_file_in_data(
                     'is_explore', suffix)
-                new_errors.append(current_errors)
+                new_errors.extend(current_errors)
                 new_tasks.append(new_task)
         elif new_childs_count and childs_count < new_childs_count:
             first_child = new_self.child_files.first()
@@ -142,46 +141,74 @@ class ExploreMix:
             print("POR ALGUNA RAZÓN NO ES EXPLORE")
             return new_self, new_errors, new_tasks
 
-    def comprobate_coincidences(self):
-        from inai.models import DataFile
-        init_children = list(self.child_files.all().values_list('id', flat=True))
-        print("init_children: ", init_children)
-        (data_file, errors, suffix), first_task = self.decompress_file()
-        new_children = data_file.child_files.all()
-        print("new_children: ", new_children.count())
-        if init_children:
-            print("init_children: ", init_children)
-            new_children = new_children.exclude(id__in=init_children)
-            print("new_children: ", new_children.count())
-        new_children_ids = new_children.values_list('id', flat=True)
-        print("new_children_ids: ", new_children_ids)
-        if not data_file:
-            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-            return None, errors, 0
-        if data_file.explore_data:
-            return data_file, None, 0
+    def comprobate_coincidences(self, task_params=None, **kwargs):
+        from inai.models import DataFile, AsyncTask
+        # print("new_children_ids: ", new_children_ids)
+        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
+        from_aws = kwargs.get("from_aws", False)
+
         file_ctrl = data_file.petition_file_control.file_control
         petition = data_file.petition_file_control.petition
-        child_data_files = DataFile.objects.filter(origin_file=self)
-        print("child_data_files: ", child_data_files.count())
-        if new_children_ids:
-            print("HAY NUEVOS CHILDREN")
-            first_child = new_children.first()
-            first_child, saved, errors = first_child.find_coincidences(
-                file_ctrl, suffix, False, petition)
-            for child in new_children:
-                child.explore_data = first_child.explore_data
-                child.status_process = first_child.status_process
-                child.save()
-            data_file.explore_data = first_child.explore_data
-            data_file.status_process = first_child.status_process
-            data_file.save()
+
+        parent_task = task_params.get("parent_task", None)
+        if from_aws:
+            new_children_ids = kwargs.get("new_children_ids", [])
+            suffix = kwargs.get("suffix", None)
+            new_children = DataFile.objects.filter(id__in=new_children_ids)
         else:
+            init_children = list(
+                self.child_files.all().values_list('id', flat=True))
+            (data_file, errors, suffix), first_task = self.decompress_file()
+            if not data_file:
+                print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
+                return None, errors, 0
+            new_children = data_file.child_files.all()
+            if init_children:
+                new_children = new_children.exclude(id__in=init_children)
+            new_children_ids = new_children.values_list('id', flat=True)
+
+        task_params = task_params or {}
+        params_after = task_params.get("params_after", { })
+        params_after["new_children_ids"] = list(new_children_ids)
+        # params_after["all_file_controls_ids"] = [file_ctrl.id]
+        params_after["suffix"] = suffix
+        task_params["params_after"] = params_after
+        task_params["function_after"] = "comprobate_coincidences"
+        task_params["models"] = [data_file]
+
+        if not new_children_ids:
+            data_file, errors, new_task = data_file.transform_file_in_data(
+                'only_save', suffix, file_ctrl,
+                task_params=task_params)
+            if new_task:
+                return data_file, errors, 0
+            if not data_file:
+                print("NO ENTIENDO QUÉ PASÓ")
+                return None, errors, 0
             data_file, saved, errors = data_file.find_coincidences(
                 file_ctrl, suffix, False, petition)
+        else:
+            print("HAY NUEVOS CHILDREN")
+            first_child = new_children.first()
+            first_child, errors, new_task = first_child.transform_file_in_data(
+                'only_save', suffix, file_ctrl,
+                task_params=task_params)
+            if new_task:
+                return first_child, errors, 0, new_task
+            first_child, saved, errors = first_child.find_coincidences(
+                file_ctrl, suffix, False, petition)
+            if saved:
+                for child in new_children:
+                    child.explore_data = first_child.explore_data
+                    child.status_process = first_child.status_process
+                    child.save()
+                data_file.explore_data = first_child.explore_data
+                data_file.status_process = first_child.status_process
+                data_file = data_file.save()
 
         if not errors and not saved and file_ctrl.row_headers:
-            errors = ["No hay coincidencias con las columnas"]
+            errors.append("Las columnas no coincide con el archivo")
+            # errors = ["No hay coincidencias con las columnas"]
         if errors:
             data_file = data_file.save_errors(errors, "explore_fail")
             return data_file, errors, new_children
@@ -194,13 +221,15 @@ class ExploreMix:
         from inai.models import NameColumn, PetitionFileControl
         if not parent:
             parent = self
-        if task_params:
-            task_params["function_name"] = "find_coincidences"
+        # if task_params:
+        #    task_params["function_name"] = "find_coincidences"
         data, errors, new_task = self.transform_file_in_data(
             'auto_explore', suffix, file_ctrl, task_params=task_params)
         # if not data:
         if errors:
-            errors += ["No se pudo explorar el archivo"]
+            # errors.append("No se pudo explorar el archivo")
+            return self, saved, errors
+        if not data and not errors and not new_task:
             return self, saved, errors
         # row_headers = file_ctrl.row_headers or 0
         # headers = data["headers"]
@@ -210,7 +239,6 @@ class ExploreMix:
         validated_data = self.explore_data or {}
         # print("-------\n-----------")
         # print(structured_data)
-        # print("-------\n-----------")
         for sheet_name in current_sheets:
             if "headers" not in structured_data[sheet_name]:
                 continue
@@ -254,12 +282,12 @@ class ExploreMix:
         from category.models import FileFormat
         import re
         #Se obienen todos los tipos del archivo inicial:
-        print("final_path: ", self.final_path)
+        # print("final_path: ", self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
         re_is_suffix = re.compile(r'^\.([a-zA-Z]{3,4})$')
         suffixes = [suffix.lower() for suffix in suffixes
                     if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
-        print("suffixes", suffixes)
+        # print("suffixes", suffixes)
         all_errors = []
         if '.gz' in suffixes:
             #print("path", self.file.path)
@@ -279,7 +307,7 @@ class ExploreMix:
             # Se realiza todito el proceso para guardar el nuevo objeto DataFinal,
             # manteniendo todas las características del archivo original
             suffixes.remove('.gz')
-            print("new_suffixex",  suffixes)
+            # print("new_suffixex",  suffixes)
         elif '.zip' in suffixes:
             #[directory, only_name] = self.path.rsplit("/", 1)
             #[base_name, extension] = only_name.rsplit(".", 1)
@@ -438,31 +466,42 @@ class ExploreMix:
         #print("extension", extension)
         return file_num
 
+    def corroborate_save_data(self, task_params=None, **kwargs):
+        from_aws = kwargs.get("from_aws", False)
+        if from_aws:
+            x, y, data_file = self.explore_data_xls_after(**kwargs)
+            parent_task = task_params.get("parent_task", None)
+            if parent_task.params_after:
+                kwargs.update(parent_task.params_after)
+        else:
+            data_file = self
+        return data_file, kwargs
+
     def find_matches_in_file_controls(self, task_params=None, **kwargs):
         from scripts.common import get_excel_file
         from inai.models import FileControl
-
-        data_file = self
+        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
+        # print("kwargs", kwargs)
         saved = False
-        petition = self.petition_file_control.petition
+        petition = data_file.petition_file_control.petition
         all_errors = []
-        all_file_controls = kwargs.get("file_controls", None)
+        all_file_controls = kwargs.get("all_file_controls", None)
         suffix = kwargs.get("suffix", None)
         if not all_file_controls:
             all_file_controls_ids = kwargs.get("all_file_controls_ids", [])
+            print("all_file_controls_ids", all_file_controls_ids)
             all_file_controls = FileControl.objects.filter(
                 id__in=all_file_controls_ids)
         for file_ctrl in all_file_controls:
             if suffix not in file_ctrl.file_format.suffixes:
                 continue
-            print("file_ctrl: ", file_ctrl, "\nformat:", file_ctrl.file_format)
-            data_file, saved, errors = self.find_coincidences(
+            data_file, saved, errors = data_file.find_coincidences(
                 file_ctrl, suffix, saved, petition)
             # print(f"Vamos por file control {file_ctrl.name}")
             # data_file.explore_data = validated_data
             # data_file.save()
             if errors:
-                all_errors.append(errors)
+                all_errors.extend(errors)
                 # data_file.error_process += errors
                 # data_file = data_file.save_errors(errors, "explore_fail")
                 # break
@@ -470,7 +509,7 @@ class ExploreMix:
             all_errors.append("No existe ningún grupo de control coincidente")
             data_file.save_errors(all_errors, "explore_fail")
         get_excel_file.cache_clear()
-        return None, all_errors
+        return None, all_errors, None
 
     #[directory, only_name] = self.path.rsplit("/", 1)
     #[base_name, extension] = only_name.rsplit(".", 1)

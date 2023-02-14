@@ -30,6 +30,42 @@ class ExtractorsMix:
     save_errors: classmethod
     final_path: str
 
+    def get_explore_data(self, task_params=None, **kwargs):
+        from inai.models import ExploreData
+        all_errors = []
+        data_file = self
+        data_file.error_process = []
+        data_file.save()
+        all_tasks = []
+        task_params = task_params or {}
+        task_params["models"] = [data_file]
+        (data_file, errors, suffix), first_task = data_file.decompress_file(
+            task_params=task_params)
+        if not data_file:
+            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
+        elif not data_file.explore_data:
+            task_params["function_after"] = kwargs.get("after_if_empty")
+            params_after = task_params.get("params_after", {})
+            params_after["suffix"] = suffix
+            after_params_if_empty = kwargs.get("after_params_if_empty", {})
+            params_after.update(after_params_if_empty)
+            task_params["params_after"] = params_after
+            data_file, errors, new_task = data_file.transform_file_in_data(
+                'only_save', suffix, current_file_ctrl,
+                task_params=task_params)
+            if new_task:
+                all_tasks.append(new_task)
+                # continue
+        if errors:
+            all_errors.extend(errors)
+            # continue
+        body = {
+            "suffix": suffix,
+            "all_file_controls": all_file_controls,
+            "petition": self
+        }
+        return all_tasks, all_errors, body
+
     def transform_file_in_data(
             self, type_explor, suffix, file_control=None, task_params=None):
         from category.models import FileFormat
@@ -43,19 +79,23 @@ class ExtractorsMix:
         current_sheets = ["default"]
         same_suffix = True
         if not is_orphan:
-            same_suffix = suffix not in file_control.file_format.suffixes
+            if not file_control.file_format:
+                errors = ["El grupo de control no tiene formato específico"]
+                return self, errors, None
+            same_suffix = suffix in file_control.file_format.suffixes
         if not same_suffix:
             if type_explor == 'auto_explore':
                 errors = ["No existe ningún grupo de control coincidente"]
             else:
                 errors = ["Formato especificado no coincide con el archivo"]
+            return None, None, None
         elif suffix in FileFormat.objects.get(short_name='xls').suffixes:
             result, new_task = self.get_data_from_excel(
                 type_explor, file_control=file_control, task_params=task_params)
             (validated_data, current_sheets, errors) = result
         elif suffix in ['.txt', '.csv']:
             validated_data, errors, new_task = self.get_data_from_file_simple(
-                is_explore, file_control=file_control, task_params=task_params)
+                type_explor, file_control=file_control, task_params=task_params)
         else:
             errors = ["No es un formato válido"]
         if errors or new_task:
@@ -65,7 +105,7 @@ class ExtractorsMix:
 
         if is_explore:
             self.explore_data = validated_data
-            self = self.save()
+            self.save()
 
         if type_explor == 'only_save':
             return self, errors, new_task
@@ -78,6 +118,7 @@ class ExtractorsMix:
                 curr_sheet = validated_data.get(sheet_name).copy()
             except Exception as e:
                 print("validated_data: ", validated_data)
+                print("current_sheets: ", current_sheets)
                 raise e
             plus_rows = 0
             try:
@@ -134,30 +175,23 @@ class ExtractorsMix:
         from inai.models import Transformation
         from scripts.serverless import execute_in_lambda, async_in_lambda
         from scripts.common import get_excel_file
-        # print("ESTOY EN EXCEEEEL")
-        # print(self.file.path)
-        # print(self.file.url)
-        # print(self.file.name)
-        # print("---------")
-        """
-        data_excel = pd.read_excel(
-            self.final_path, dtype='string', nrows=50,
-            #converters=str.strip,
-            na_filter=False,
-            keep_default_na=False, header=None)
-        """
         is_explore = bool(type_explor)
         if is_explore:
             all_sheets = self.explore_data or {}
         else:
             all_sheets = {}
-        # excel_file = pd.ExcelFile(self.final_path)
         sheet_names = self.sheet_names
         if not sheet_names:
-            excel_file = get_excel_file(self.final_path)
-            sheet_names = excel_file.sheet_names
-            self.sheet_names = sheet_names
-            self.save()
+            try:
+                print(self.final_path)
+                excel_file = get_excel_file(self.final_path)
+                sheet_names = excel_file.sheet_names
+                self.sheet_names = sheet_names
+                self.save()
+            except Exception as error:
+                import traceback
+                error_ = traceback.format_exc()
+                return (None, None, [error_]), None
         if type_explor == 'only_save':
             # nrows = 220 if is_explore else None
             n_rows = 220 if len(sheet_names) < 10 else 20
@@ -223,49 +257,62 @@ class ExtractorsMix:
         return (all_sheets, current_sheets, []), None
 
     def explore_data_xls_after(self, parent_task=None, **kwargs):
-        params_after = {}
-        if parent_task:
-            params_after = parent_task.params_after
+        # params_after = {}
+        # if parent_task:
+        #     params_after = parent_task.params_after
         new_sheets = kwargs.get("new_sheets", {})
-        current_sheets = params_after.get("current_sheets", [])
-        print(current_sheets)
-        all_sheets = self.explore_data or { }
+        # current_sheets = params_after.get("current_sheets", [])
+        # print(current_sheets)
+        all_sheets = self.explore_data or {}
         all_sheets.update(new_sheets)
         self.explore_data = all_sheets
         self.save()
-        return [], []
+        return [], [], self
 
     def get_data_from_file_simple(
-            self, is_explore, file_control=None, task_params=None):
+            self, type_explor, file_control=None, task_params=None):
         from scripts.common import get_file, start_session, create_file
+        from scripts.serverless import execute_in_lambda, async_in_lambda
+        from scripts.common import build_s3
 
-        validated_data = None
         errors = []
+        is_explore = bool(type_explor)
 
         if is_explore and isinstance(self.explore_data, dict):
             if "all_data" in self.explore_data.get("default", {}):
-                #return self.explore_data, []
-                validated_data = self.explore_data
-                return validated_data, errors, None
-
-        if not validated_data:
-            s3_client, dev_resource = start_session()
-            data = get_file(self, dev_resource)
-            if isinstance(data, dict):
-                if data.get("errors", False):
-                    return False, data["errors"], None
-            data_rows = data.readlines()
-            total_rows = len(data_rows)
-            if is_explore:
-                data_rows = data_rows[220]
-            validated_data_default = self.divide_rows(
-                data_rows, file_control, is_explore=is_explore)
-            validated_data = {
-                "default": {
-                    "all_data": validated_data_default[:200],
-                    "total_rows": total_rows,
-                }
+                return self.explore_data, errors, None
+        if type_explor == 'only_save':
+            params = {
+                "file": self.file.name,
+                "s3": build_s3(),
+                "delimiter": file_control.delimiter or "|",
             }
+            task_params = task_params or {}
+            # params_after = task_params.get("params_after", {})
+            # params_after["next_"] = is_explore
+            # task_params["params_after"] = params_after
+            task_params["function_after"] = "find_matches_in_file_controls"
+            async_task = async_in_lambda(
+                "explore_data_simple", params, task_params)
+            return None, [], async_task
+
+        s3_client, dev_resource = start_session()
+        data = get_file(self, dev_resource)
+        if isinstance(data, dict):
+            if data.get("errors", False):
+                return False, data["errors"], None
+        data_rows = data.readlines()
+        total_rows = len(data_rows)
+        if is_explore:
+            data_rows = data_rows[220]
+        validated_data_default = self.divide_rows(
+            data_rows, file_control, is_explore=is_explore)
+        validated_data = {
+            "default": {
+                "all_data": validated_data_default[:200],
+                "total_rows": total_rows,
+            }
+        }
 
         # is_issste = self.petition_file_control.petition.entity.institution.code == 'ISSSTE'
         # file_control = self.petition_file_control.file_control
@@ -297,7 +344,7 @@ class ExtractorsMix:
         structured_data = []
         missing_data = []
         # print("delimiter", delimiter)
-        encoding = "utf-8"
+        # encoding = "utf-8"
         try:
             sample = data_rows[3]
         except Exception as e:
