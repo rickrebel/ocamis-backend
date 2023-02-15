@@ -64,47 +64,26 @@ class PetitionTransformsMix(PetitionMix):
         all_file_controls = near_file_controls | others_file_controls
 
         for data_file in all_data_files:
-            # task_params = task_params or {}
-            # task_params["function_after"] = "find_matches_in_file_controls"
             ctrl_list = list(all_file_controls.values_list("id", flat=True))
             curr_kwargs = {
                 "after_if_empty": "find_matches_in_file_controls",
                 "after_params_if_empty": {
                     "all_file_controls_ids": ctrl_list
-                }
+                },
+                "current_file_ctrl": current_file_ctrl,
+                "all_tasks": all_tasks,
+                "all_errors": all_errors,
             }
-            result = data_file.get_explore_data(task_params, **curr_kwargs)
-            new_task, errors, body = result
-            task_params["models"] = [data_file]
-
-            # data_file.error_process = []
-            # data_file.save()
-            task_params["models"] = [data_file]
-            (data_file, errors, suffix), first_task = data_file.decompress_file(
-                task_params=task_params)
+            all_tasks, all_errors, data_file = data_file.get_explore_data(
+                task_params, **curr_kwargs)
             if not data_file:
-                print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-            elif not data_file.explore_data:
-                task_params["function_after"] = "find_matches_in_file_controls"
-                params_after = task_params.get("params_after", {})
-                params_after["suffix"] = suffix
-                params_after["all_file_controls_ids"] =\
-                    list(all_file_controls.values_list("id", flat=True))
-                task_params["params_after"] = params_after
-                data_file, errors, new_task = data_file.transform_file_in_data(
-                    'only_save', suffix, current_file_ctrl,
-                    task_params=task_params)
-                if new_task:
-                    all_tasks.append(new_task)
-                    continue
-            if errors:
-                all_errors.extend(errors)
                 continue
-            body = {
-                "suffix": suffix,
+            task_params["models"] = [data_file]
+            new_body = {
                 "all_file_controls": all_file_controls,
                 "petition": self
             }
             data_file.find_matches_in_file_controls(
-                task_params=task_params, **body)
+                task_params=task_params, **new_body)
+
         return all_tasks, all_errors

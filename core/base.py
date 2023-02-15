@@ -68,6 +68,7 @@ TEMPLATES = [
 
 
 INSTALLED_APPS = [
+    "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -105,7 +106,7 @@ MIDDLEWARE = [
 
 
 WSGI_APPLICATION = 'core.wsgi.application'
-ASGI_APPLICATION = 'core.routing.application'
+ASGI_APPLICATION = 'core.asgi.application'
 ROOT_URLCONF = 'core.urls'
 
 CHANNEL_LAYERS = {

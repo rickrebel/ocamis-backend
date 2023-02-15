@@ -12,6 +12,7 @@ def build_query_filter(row, columns):
 class ExploreMix:
     from category.models import FileFormat
     final_path: str
+    petition_file_control: None
 
     def get_table_ref(self):
         print(self)
@@ -75,168 +76,43 @@ class ExploreMix:
             self.save()
         return total_count
 
-    #Comienzo del proceso de transformación.
-    #Si es esploración (is_explore) solo va a obtener los headers y las
-    #primeras filas
-    def start_file_process(self, is_explore=False):
-        from rest_framework.response import Response
-        from rest_framework import (permissions, views, status)
-        from inai.models import DataFile
-        #FieldFile.open(mode='rb')
-        import json
-        self.error_process = []
-        self.save()
-        #se llama a la función para descomprimir el archivo o archivos:
-        childs_count = self.child_files.count()
-        (new_self, errors, suffix), first_task = self.decompress_file()
-        # print("new_self: ", new_self)
-        if errors:
-            status_error = 'explore_fail' if is_explore else 'extraction_failed'
-            self.save_errors(errors, status_error)
-            return None, errors, None
-        new_childs_count = self.child_files.count()
-        count_splited = 0
-        file_size = new_self.file.size
-        if file_size > 400000000:
-            if suffix in FileFormat.objects.get(short_name='xls').suffixes:
-                errors = ["Archivo excel muy grande, aún no se puede partir"]
-                return None, errors, None
-            count_splited = new_self.split_file()
-        #return count_splited, [], list(suffixes)[0]
-        if errors:
-            status_error = 'explore_fail' if is_explore else 'extraction_failed'
-            new_self.save_errors(errors, status_error)
-            return None, errors, None
-        if count_splited and not is_explore:
-            warnings = ["Son muchos archivos y tardarán en procesarse, espera por favor"]
-            return None, warnings, None
-        if not is_explore:
-            new_self.build_catalogs()
-            new_errors = []
-            new_tasks = []
-        elif count_splited:
-            #FALTA AFINAR FUNCIÓN PARA ESTO
-            new_errors = []
-            new_tasks = []
-            all_children = DataFile.objects.filter(origin_file=new_self)
-            for ch_file in all_children:
-                data, current_errors, new_task = ch_file.transform_file_in_data(
-                    'is_explore', suffix)
-                new_errors.extend(current_errors)
-                new_tasks.append(new_task)
-        elif new_childs_count and childs_count < new_childs_count:
-            first_child = new_self.child_files.first()
-            data, new_errors, new_task = first_child.transform_file_in_data(
-                'is_explore', suffix)
-            new_tasks = [new_task]
-        else:
-            data, new_errors, new_task = new_self.transform_file_in_data(
-                'is_explore', suffix)
-            new_tasks = [new_task]
-        if is_explore:
-            #print(data["headers"])
-            #print(data["structured_data"][:6])
-            return data, new_errors, new_tasks
-        else:
-            print("POR ALGUNA RAZÓN NO ES EXPLORE")
-            return new_self, new_errors, new_tasks
-
-    def comprobate_coincidences(self, task_params=None, **kwargs):
-        from inai.models import DataFile, AsyncTask
-        # print("new_children_ids: ", new_children_ids)
+    def find_coincidences_from_aws(self, task_params=None, **kwargs):
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
-        from_aws = kwargs.get("from_aws", False)
-
-        file_ctrl = data_file.petition_file_control.file_control
-        petition = data_file.petition_file_control.petition
-
-        parent_task = task_params.get("parent_task", None)
-        if from_aws:
-            new_children_ids = kwargs.get("new_children_ids", [])
-            suffix = kwargs.get("suffix", None)
-            new_children = DataFile.objects.filter(id__in=new_children_ids)
-        else:
-            init_children = list(
-                self.child_files.all().values_list('id', flat=True))
-            (data_file, errors, suffix), first_task = self.decompress_file()
-            if not data_file:
-                print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-                return None, errors, 0
-            new_children = data_file.child_files.all()
-            if init_children:
-                new_children = new_children.exclude(id__in=init_children)
-            new_children_ids = new_children.values_list('id', flat=True)
-
-        task_params = task_params or {}
-        params_after = task_params.get("params_after", { })
-        params_after["new_children_ids"] = list(new_children_ids)
-        # params_after["all_file_controls_ids"] = [file_ctrl.id]
-        params_after["suffix"] = suffix
-        task_params["params_after"] = params_after
-        task_params["function_after"] = "comprobate_coincidences"
-        task_params["models"] = [data_file]
-
-        if not new_children_ids:
-            data_file, errors, new_task = data_file.transform_file_in_data(
-                'only_save', suffix, file_ctrl,
-                task_params=task_params)
-            if new_task:
-                return data_file, errors, 0
-            if not data_file:
-                print("NO ENTIENDO QUÉ PASÓ")
-                return None, errors, 0
-            data_file, saved, errors = data_file.find_coincidences(
-                file_ctrl, suffix, False, petition)
-        else:
-            print("HAY NUEVOS CHILDREN")
-            first_child = new_children.first()
-            first_child, errors, new_task = first_child.transform_file_in_data(
-                'only_save', suffix, file_ctrl,
-                task_params=task_params)
-            if new_task:
-                return first_child, errors, 0, new_task
-            first_child, saved, errors = first_child.find_coincidences(
-                file_ctrl, suffix, False, petition)
-            if saved:
-                for child in new_children:
-                    child.explore_data = first_child.explore_data
-                    child.status_process = first_child.status_process
-                    child.save()
-                data_file.explore_data = first_child.explore_data
-                data_file.status_process = first_child.status_process
-                data_file = data_file.save()
-
-        if not errors and not saved and file_ctrl.row_headers:
-            errors.append("Las columnas no coincide con el archivo")
-            # errors = ["No hay coincidencias con las columnas"]
+        data_file, saved, errors = data_file.find_coincidences(saved=False)
+        if not saved and not errors:
+            errors = ["No coincide con el formato del archivo"]
         if errors:
-            data_file = data_file.save_errors(errors, "explore_fail")
-            return data_file, errors, new_children
-        else:
-            return data_file, None, new_children
+            data_file.save_errors(errors, "explore_fail")
+            return [], errors, None
+        return [], errors, None
 
     def find_coincidences(
-            self, file_ctrl, suffix, saved, petition,
-            parent=None, task_params=None):
+            self, saved=False, petition=None, file_ctrl=None,
+            parent=None, task_params=None, **kwargs):
         from inai.models import NameColumn, PetitionFileControl
+        data_file = self
         if not parent:
-            parent = self
-        # if task_params:
-        #    task_params["function_name"] = "find_coincidences"
-        data, errors, new_task = self.transform_file_in_data(
-            'auto_explore', suffix, file_ctrl, task_params=task_params)
+            parent = data_file
+        if not petition or not file_ctrl:
+            pfc = data_file.petition_file_control
+            if not petition:
+                petition = pfc.petition
+            if not file_ctrl:
+                file_ctrl = pfc.file_control
+        data, errors, new_task = data_file.transform_file_in_data(
+            'auto_explore', task_params=task_params)
         # if not data:
         if errors:
             # errors.append("No se pudo explorar el archivo")
-            return self, saved, errors
+            return data_file, saved, errors
         if not data and not errors and not new_task:
-            return self, saved, errors
+            return data_file, saved, errors
         # row_headers = file_ctrl.row_headers or 0
         # headers = data["headers"]
         current_sheets = data["current_sheets"]
         structured_data = data["structured_data"]
         all_pet_file_ctrl = []
-        validated_data = self.explore_data or {}
+        validated_data = data_file.explore_data or {}
         # print("-------\n-----------")
         # print(structured_data)
         for sheet_name in current_sheets:
@@ -256,26 +132,26 @@ class ExploreMix:
                             file_control=file_ctrl, petition=petition)
                 except PetitionFileControl.MultipleObjectsReturned:
                     errors = ["El grupos de control está duplicado en la solicitud"]
-                    return self, saved, errors
+                    return data_file, saved, errors
                 validated_data[sheet_name] = structured_data[sheet_name]
                 if succ_pet_file_ctrl.id in all_pet_file_ctrl:
                     continue
                 if saved:
                     info_text = "El archivo está en varios grupos de control"
-                    self.add_result(("info", info_text))
-                    new_data_file = self
+                    data_file.add_result(("info", info_text))
+                    new_data_file = data_file
                     new_data_file.pk = None
                     new_data_file.petition_file_control = succ_pet_file_ctrl
                     new_data_file.explore_data = validated_data
                     new_data_file.save()
                     new_data_file.add_result(("info", info_text))
                 else:
-                    self.petition_file_control = succ_pet_file_ctrl
-                    self.explore_data = validated_data
-                    self.change_status("success_exploration")
+                    data_file.petition_file_control = succ_pet_file_ctrl
+                    data_file.explore_data = validated_data
+                    data_file.change_status("success_exploration")
                     saved = True
                 all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
-        return self, saved, []
+        return data_file, saved, []
 
     def decompress_file(self, task_params=None):
         import pathlib
@@ -325,9 +201,9 @@ class ExploreMix:
         readable_suffixes = FileFormat.objects.filter(readable=True)\
             .values_list("suffixes", flat=True)
         final_readeable = []
-        for suff in list(readable_suffixes):
-            final_readeable += suff
-        #if not set(['.txt', '.csv', '.xls', '.xlsx']).issubset(suffixes):
+        for suffix in list(readable_suffixes):
+            final_readeable += suffix
+        # final_readeable = [suffix for suffix in list(readable_suffixes)]
 
         if not real_suffixes.issubset(final_readeable):
             errors = ["Formato no legible", u"%s" % suffixes]
@@ -417,6 +293,10 @@ class ExploreMix:
         original_file = self.origin_file or self
 
         def write_splited_files(complete_file):
+            from category.models import StatusControl
+
+            initial_status = StatusControl.objects.get(
+                name='initial', group="process")
             file_num = 0
             while True:
                 buf = complete_file.readlines(SIZE_HINT)
@@ -481,76 +361,258 @@ class ExploreMix:
         from scripts.common import get_excel_file
         from inai.models import FileControl
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
-        # print("kwargs", kwargs)
         saved = False
-        petition = data_file.petition_file_control.petition
         all_errors = []
         all_file_controls = kwargs.get("all_file_controls", None)
-        suffix = kwargs.get("suffix", None)
         if not all_file_controls:
             all_file_controls_ids = kwargs.get("all_file_controls_ids", [])
             print("all_file_controls_ids", all_file_controls_ids)
             all_file_controls = FileControl.objects.filter(
                 id__in=all_file_controls_ids)
         for file_ctrl in all_file_controls:
-            if suffix not in file_ctrl.file_format.suffixes:
+            if data_file.suffix not in file_ctrl.file_format.suffixes:
                 continue
             data_file, saved, errors = data_file.find_coincidences(
-                file_ctrl, suffix, saved, petition)
-            # print(f"Vamos por file control {file_ctrl.name}")
-            # data_file.explore_data = validated_data
-            # data_file.save()
+                saved, file_ctrl=file_ctrl)
             if errors:
                 all_errors.extend(errors)
-                # data_file.error_process += errors
-                # data_file = data_file.save_errors(errors, "explore_fail")
-                # break
         if not saved:
             all_errors.append("No existe ningún grupo de control coincidente")
             data_file.save_errors(all_errors, "explore_fail")
         get_excel_file.cache_clear()
         return None, all_errors, None
 
-    #[directory, only_name] = self.path.rsplit("/", 1)
-    #[base_name, extension] = only_name.rsplit(".", 1)
-    def test_zip_file(self):
-        import zipfile
-        import datetime
-        url = "C:\\Users\\Ricardo\\dev\\desabasto\\desabasto-api\\fixture\\zipfolder.zip"
+    def build_complex_headers(self, task_params=None, **kwargs):
+        from inai.models import NameColumn
 
-        #directory = self.final_path
-        directory = url
-        #path_imss_zip = "C:\\Users\\Ricardo\\recetas grandes\\Recetas IMSS\\Septiembre-20220712T233123Z-001.zip"
-        #zip_file = zipfile.ZipFile(self.final_path)
-        zip_file = zipfile.ZipFile(url)
-        all_files = zip_file.namelist()
-        print(all_files)
-        for curr_file in all_files:
-            print(curr_file)
+        data_file = self
+        all_errors = []
+        data, errors, new_task = data_file.transform_file_in_data(
+            'auto_explore', task_params=task_params)
+        if errors:
+            all_errors.extend(errors)
+            data_file.save_errors(all_errors, "explore_fail")
+            return None, errors, None
 
-        initial_status = StatusControl.objects.get(
-            name='initial', group="process")
+        def text_normalizer(text):
+            import re
+            import unidecode
+            final_text = text.upper().strip()
+            final_text = unidecode.unidecode(final_text)
+            final_text = re.sub(r'[^A-Z][DE|DEL][^A-Z]', ' ', final_text)
+            final_text = re.sub(r' +', ' ', final_text)
+            final_text = re.sub(r'[^A-Z]', '', final_text)
+            return final_text
 
-        with zipfile.ZipFile(url, mode="r") as archive:
-            for info in archive.infolist():
-                print(f"Es directorio: {info.is_dir()}")
-                print(f"Filename: {info.filename}")
-                print(f"Internal attr: {info.internal_attr}")
-                print(f"External attr: {info.external_attr}")
-                print(f"Modified: {datetime.datetime(*info.date_time)}")
-                print(f"Normal size: {info.file_size} bytes")
-                print(f"Compressed size: {info.compress_size} bytes")
-                print("-" * 20)
-            archive.close()
+        valid_fields = [
+            "name_in_data", "column_type", "final_field",
+            "final_field__parameter_group", "data_type"]
+        validated_data = data["structured_data"]
+        current_sheets = data["current_sheets"]
+        first_valid_sheet = None
+        for sheet_name in current_sheets:
+            sheet_data = validated_data[sheet_name]
+            if "headers" in sheet_data and sheet_data["headers"]:
+                first_valid_sheet = sheet_data
+                break
+        if not first_valid_sheet:
+            first_valid_sheet = validated_data[current_sheets[0]]
+            if not first_valid_sheet:
+                errors = ["WARNING: No se encontró algo que coincidiera"]
+                return None, errors, None
+            else:
+                prov_headers = first_valid_sheet["all_data"][0]
+                first_valid_sheet["complex_headers"] = [
+                    {"position_in_data": posit}
+                    for posit, head in enumerate(prov_headers, start=1)]
+                return None, None, first_valid_sheet
+        try:
+            headers = first_valid_sheet["headers"]
+            complex_headers = []
+            file_control = data_file.petition_file_control.file_control
+            data_groups = [file_control.data_group.name, 'catalogs']
+            # print(data_groups)
+            all_name_columns = NameColumn.objects.filter(
+                final_field__isnull=False,
+                name_in_data__isnull=False,
+                final_field__parameter_group__data_group__name__in=data_groups,
+            ).values(*valid_fields)
 
-        #with zipfile.ZipFile(self.url, 'r') as zip_ref:
-        with zipfile.ZipFile(url, 'r') as zip_ref:
-            zip_ref.extractall(directory)
-        #ZipFile.extractall(path=None, members=None, pwd=None)
-        #for f in os.listdir(directory):
-        for f in all_files:
-            new_file = self
-            new_file.pk = None
-            new_file = DataFile.objects.create()
-        self = new_file
-        suffixes.remove('.zip')
+            final_names = {}
+            for name_col in all_name_columns:
+                standard_name = text_normalizer(name_col["name_in_data"])
+                unique_name = (
+                    f'{standard_name}-{name_col["final_field"]}-'
+                    f'{name_col["final_field__parameter_group"]}')
+                if final_names.get(standard_name, False):
+                    if not final_names[standard_name]["valid"]:
+                        continue
+                    elif final_names[standard_name]["unique_name"] != unique_name:
+                        final_names[standard_name]["valid"] = False
+                    continue
+                else:
+                    base_dict = {
+                        "valid": True,
+                        "unique_name": unique_name,
+                        "standard_name": standard_name,
+                    }
+                    base_dict.update(name_col)
+                    final_names[standard_name] = base_dict
+            final_names = {
+                name: vals for name, vals in final_names.items()
+                if vals["valid"] }
+            for (position, header) in enumerate(headers, start=1):
+                std_header = text_normalizer(header)
+                base_dict = { "position_in_data": position }
+                if final_names.get(std_header, False):
+                    vals = final_names[std_header]
+                    base_dict.update({ field: vals[field] for field in valid_fields })
+                base_dict["name_in_data"] = header
+                complex_headers.append(base_dict)
+            first_valid_sheet["complex_headers"] = complex_headers
+        except Exception as e:
+            print("HUBO UN ERRORZASO")
+            print(e)
+        # print(data["structured_data"][:6])
+        return None, None, first_valid_sheet
+
+    #Comienzo del proceso de transformación.
+    #Si es esploración (is_explore) solo va a obtener los headers y las
+    #primeras filas
+    # RICK 14
+    def start_file_process(self, is_explore=False):
+        from rest_framework.response import Response
+        from rest_framework import (permissions, views, status)
+        from inai.models import DataFile
+        from category.models import FileFormat
+        #FieldFile.open(mode='rb')
+        import json
+        self.error_process = []
+        self.save()
+        #se llama a la función para descomprimir el archivo o archivos:
+        childs_count = self.child_files.count()
+        (new_self, errors, suffix), first_task = self.decompress_file()
+        # print("new_self: ", new_self)
+        if errors:
+            status_error = 'explore_fail' if is_explore else 'extraction_failed'
+            self.save_errors(errors, status_error)
+            return None, errors, None
+        new_childs_count = self.child_files.count()
+        count_splited = 0
+        file_size = new_self.file.size
+        if file_size > 400000000:
+            if suffix in FileFormat.objects.get(short_name='xls').suffixes:
+                errors = ["Archivo excel muy grande, aún no se puede partir"]
+                return None, errors, None
+            count_splited = new_self.split_file()
+        if errors:
+            status_error = 'explore_fail' if is_explore else 'extraction_failed'
+            new_self.save_errors(errors, status_error)
+            return None, errors, None
+        if count_splited and not is_explore:
+            warnings = ["Son muchos archivos y tardarán en procesarse, espera por favor"]
+            return None, warnings, None
+        if not is_explore:
+            new_self.build_catalogs()
+            new_errors = []
+            new_tasks = []
+        elif count_splited:
+            #FALTA AFINAR FUNCIÓN PARA ESTO
+            new_errors = []
+            new_tasks = []
+            all_children = DataFile.objects.filter(origin_file=new_self)
+            for ch_file in all_children:
+                data, current_errors, new_task = ch_file.transform_file_in_data(
+                    'is_explore')
+                new_errors.extend(current_errors)
+                new_tasks.append(new_task)
+        elif new_childs_count and childs_count < new_childs_count:
+            first_child = new_self.child_files.first()
+            data, new_errors, new_task = first_child.transform_file_in_data(
+                'is_explore')
+            new_tasks = [new_task]
+        else:
+            data, new_errors, new_task = new_self.transform_file_in_data(
+                'is_explore')
+            new_tasks = [new_task]
+        if is_explore:
+            #print(data["headers"])
+            #print(data["structured_data"][:6])
+            return data, new_errors, new_tasks
+        else:
+            print("POR ALGUNA RAZÓN NO ES EXPLORE")
+            return new_self, new_errors, new_tasks
+
+    def comprobate_coincidences(self, task_params=None, **kwargs):
+        from inai.models import DataFile, AsyncTask
+        # print("new_children_ids: ", new_children_ids)
+        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
+        from_aws = kwargs.get("from_aws", False)
+
+        file_ctrl = data_file.petition_file_control.file_control
+        petition = data_file.petition_file_control.petition
+
+        parent_task = task_params.get("parent_task", None)
+        if from_aws:
+            new_children_ids = kwargs.get("new_children_ids", [])
+            new_children = DataFile.objects.filter(id__in=new_children_ids)
+        else:
+            init_children = list(
+                self.child_files.all().values_list('id', flat=True))
+            # RICK 14
+            (data_file, errors, suffix), first_task = self.decompress_file()
+            if not data_file:
+                print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
+                return None, errors, 0
+            new_children = data_file.child_files.all()
+            if init_children:
+                new_children = new_children.exclude(id__in=init_children)
+            new_children_ids = new_children.values_list('id', flat=True)
+
+        task_params = task_params or {}
+        params_after = task_params.get("params_after", { })
+        params_after["new_children_ids"] = list(new_children_ids)
+        # params_after["all_file_controls_ids"] = [file_ctrl.id]
+        task_params["params_after"] = params_after
+        task_params["function_after"] = "comprobate_coincidences"
+        task_params["models"] = [data_file]
+
+        if not new_children_ids:
+            data_file, errors, new_task = data_file.transform_file_in_data(
+                'only_save', file_control=file_ctrl,
+                task_params=task_params)
+            if new_task:
+                return data_file, errors, 0
+            if not data_file:
+                print("NO ENTIENDO QUÉ PASÓ")
+                return None, errors, 0
+            data_file, saved, errors = data_file.find_coincidences(
+                False, petition=petition, file_ctrl=file_ctrl)
+        else:
+            print("HAY NUEVOS CHILDREN")
+            first_child = new_children.first()
+            first_child, errors, new_task = first_child.transform_file_in_data(
+                'only_save', file_control=file_ctrl,
+                task_params=task_params)
+            if new_task:
+                return first_child, errors, 0, new_task
+            first_child, saved, errors = first_child.find_coincidences(
+                False, petition=petition, file_ctrl=file_ctrl)
+            if saved:
+                for child in new_children:
+                    child.explore_data = first_child.explore_data
+                    child.status_process = first_child.status_process
+                    child.save()
+                data_file.explore_data = first_child.explore_data
+                data_file.status_process = first_child.status_process
+                data_file = data_file.save()
+
+        if not errors and not saved and file_ctrl.row_headers:
+            errors.append("Las columnas no coincide con el archivo")
+            # errors = ["No hay coincidencias con las columnas"]
+        if errors:
+            data_file = data_file.save_errors(errors, "explore_fail")
+            return data_file, errors, new_children
+        else:
+            return data_file, None, new_children
+

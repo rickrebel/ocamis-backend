@@ -88,8 +88,8 @@ def sincronize_entities(app_name, model_name):
 
 #generate_file('category', 'TransparencyLevel')
 #sincronize_entities('category', 'TransparencyLevel')
-#generate_file('category', 'TransparencyIndex')
-#sincronize_entities('category', 'TransparencyIndex')
+generate_file('category', 'StatusTask')
+sincronize_entities('category', 'StatusTask')
 
 #generate_file('catalog', 'Entity')
 #sincronize_entities('catalog', 'Entity')

@@ -40,7 +40,6 @@ class CatalogView(views.APIView):
             "institution", "state", "clues")
         file_control_query = FileControl.objects.all().prefetch_related(
             "data_group",
-            "file_type",
             "columns",
             "columns__column_transformations",
             "petition_file_control",

@@ -231,7 +231,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     serializer_class = serializers.FileControlSerializer
     queryset = FileControl.objects.all().prefetch_related(
             "data_group",
-            "file_type",
             "columns",
             "file_transformations",
             "columns__column_transformations",
@@ -415,6 +414,54 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             return Response(
                 {"errors": ["No hay archivos en grupos huérfanos"]},
                 status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["put"], detail=True, url_path='massive_action')
+    def massive_action(self, request, **kwargs):
+        from inai.views import comprobate_status
+        file_control = self.get_object()
+        status_req = request.data.get("status", {})
+        status_id = status_req.get("id", False)
+        all_data_files = DataFile.objects.filter(
+            petition_file_control__file_control=file_control,
+            status_process_id=status_id)
+        method = status_req.get("addl_params", {}).get("next_step", {}).get("method", False)
+        if method == "buildExploreDataFile":
+            task_params = file_control.build_task_params(
+                "massive_action", request)
+            key_task = task_params["parent_task"]
+            all_tasks = []
+            all_errors = []
+            for data_file in all_data_files:
+                curr_kwargs = {
+                    "after_if_empty": "find_coincidences_from_aws",
+                    "all_tasks": all_tasks,
+                }
+                all_tasks, new_errors, data_file = data_file.get_explore_data(
+                    task_params, **curr_kwargs)
+                if not data_file:
+                    continue
+                task_params["models"] = [data_file]
+                data_file, saved, errors = data_file.find_coincidences()
+                if not saved and not errors:
+                    errors = ["No coincide con el formato del archivo"]
+                if errors:
+                    all_errors.extend(errors)
+                    data_file.save_errors(errors, "explore_fail")
+            data = {
+                "errors": all_errors,
+                "file_control": serializers.FileControlFullSerializer(
+                    file_control).data,
+            }
+            key_task = comprobate_status(
+                key_task, errors=all_errors, new_tasks=all_tasks)
+            if key_task:
+                data["new_task"] = key_task.id
+            return Response(data, status=status.HTTP_200_OK)
+
+        # print("STATUS", status_req)
+
+        return Response({"errors": ["No se encontró el método"]},
+            status=status.HTTP_400_BAD_REQUEST)
 
 
 class PetitionFileControlViewSet(CreateRetrievView):

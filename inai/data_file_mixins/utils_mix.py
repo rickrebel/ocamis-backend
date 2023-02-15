@@ -56,7 +56,7 @@ class DataUtilsMix:
         from inai.models import AsyncTask
         from datetime import datetime
         key_task = AsyncTask.objects.create(
-            user=request.user, function_name="build_explore_data",
+            user=request.user, function_name=function_name,
             data_file=self, date_start=datetime.now(),
             status_task_id="created"
         )

@@ -170,9 +170,9 @@ class FileControl(models.Model):
     )
 
     name = models.CharField(max_length=255)
-    file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE,
-        blank=True, null=True,)
+    # file_type = models.ForeignKey(
+    #     FileType, on_delete=models.CASCADE,
+    #     blank=True, null=True,)
     data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE)
     format_file = models.CharField(
@@ -203,7 +203,19 @@ class FileControl(models.Model):
         on_delete=models.CASCADE)
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
-    notes = models.TextField(blank=True, null=True)
+
+    def build_task_params(self, function_name, request):
+        from datetime import datetime
+        key_task = AsyncTask.objects.create(
+            user=request.user, function_name=function_name,
+            file_control=self, date_start=datetime.now(),
+            status_task_id="created"
+        )
+        return {
+            "parent_task": key_task
+        }
+
+
 
     def __str__(self):
         #all_entities = Entity.objects.filter(
@@ -311,6 +323,10 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         StatusControl,
         blank=True, null=True,
         on_delete=models.CASCADE)
+    file_type = models.ForeignKey(
+        FileType, blank=True, null=True,
+        on_delete=models.CASCADE,
+        verbose_name="Tipo de archivo")
     #jump_columns = models.IntegerField(
     #    default=0, verbose_name="Columnas vacías al comienzo")
     explore_data = JSONField(
@@ -319,6 +335,8 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     sheet_names = JSONField(
         blank=True, null=True,
         verbose_name="Nombres de las hojas")
+    suffix = models.CharField(
+        max_length=10, blank=True, null=True)
     directory = models.CharField(
         max_length=255, verbose_name="Ruta en archivo comprimido",
         blank=True, null=True)

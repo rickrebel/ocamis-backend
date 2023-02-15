@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 
 from inai.api.common import send_response
 from inai.models import (
-    DataFile, NameColumn, Petition, PetitionFileControl, AsyncTask)
+    DataFile, Petition, PetitionFileControl, AsyncTask)
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -16,6 +16,7 @@ from api.mixins import (
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
 from catalog.api.serializers import EntityFileControlsSerializer
 from inai.views import comprobate_status
+
 last_final_path = None
 
 
@@ -28,9 +29,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     }
 
     def retrieve(self, request, pk=None):
-        #self.check_permissions(request)
         from inai.models import FileControl, ProcessFile
-        from category.models import FileType
         from data_param.models import DataGroup
         from datetime import datetime
 
@@ -39,7 +38,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         file_id = request.query_params.get("file_id", False)
 
         orphan_group = DataGroup.objects.get(name="orphan")
-        file_type = FileType.objects.get(name="with_data")
         name_control = "Archivos por agrupar. Petición %s" % (
             petition.folio_petition)
         prev_file_controls = FileControl.objects.filter(
@@ -50,7 +48,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         else:
             file_control, created = FileControl.objects.get_or_create(
                 name=name_control,
-                file_type=file_type,
                 data_group=orphan_group,
                 final_data=False,
             )
@@ -181,7 +178,7 @@ class DataFileViewSet(CreateRetrievView):
     def move(self, request, **kwargs):
         if not request.user.is_staff:
             raise PermissionDenied()
-        
+
         data_file = self.get_object()
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
@@ -189,20 +186,41 @@ class DataFileViewSet(CreateRetrievView):
     @action(methods=["get"], detail=True, url_path="build_explore_data")
     def build_explore_data(self, request, **kwargs):
         from inai.api.serializers import DataFileSerializer
-        from datetime import datetime
-
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
         task_params = data_file.build_task_params(
             "build_explore_data", request)
-        new_tasks = []
-        new_data_file, errors, new_ch = data_file.comprobate_coincidences(
-            task_params=task_params)
-        response_body = {}
+        # new_tasks = []
+        key_task = task_params.get("parent_task")
+        curr_kwargs = {
+            "after_if_empty": "find_coincidences_from_aws",
+        }
+        all_tasks, all_errors, data_file = data_file.get_explore_data(
+            task_params, **curr_kwargs)
+        key_task = comprobate_status(
+            key_task, errors=all_errors, new_tasks=all_tasks)
+        if key_task:
+            return Response(
+                {"new_task": key_task.id}, status=status.HTTP_201_CREATED)
+        data_file, saved, errors = data_file.find_coincidences()
+        if not saved and not errors:
+            errors = ["No coincide con el formato del archivo"]
+        response_body = { }
         if errors:
+            data_file.save_errors(errors, "explore_fail")
             response_body["errors"] = errors
             final_status = status.HTTP_400_BAD_REQUEST
+        elif data_file:
+            data = DataFileSerializer(data_file).data
+            response_body["data_file"] = data
+            final_status = status.HTTP_200_OK
+
+        if response_body:
+            return Response(response_body, status=final_status)
+        #RICK 14
+        if errors:
+            print("ANALIZAR")
         else:
             if new_data_file:
                 new_data_file = new_data_file.change_status("success_exploration")
@@ -223,8 +241,7 @@ class DataFileViewSet(CreateRetrievView):
         key_task = comprobate_status(
             key_task, errors=[], new_tasks=new_tasks)
         if key_task:
-            current_task_data = serializers.AsyncTaskSerializer(key_task).data
-            response_body["current_task"] = current_task_data
+            response_body["new_task"] = key_task.id
         if new_ch:
             response_body["new_files"] = DataFileSerializer(
                 new_ch, many=True).data
@@ -256,113 +273,25 @@ class DataFileViewSet(CreateRetrievView):
     def explore(self, request, **kwargs):
 
         data_file = self.get_object()
-        print("antes de start_file_process")
-        if file_id:
-            all_data_files = DataFile.objects.filter(id=file_id)
-            new_tasks, errors = petition.find_matches_in_children(
-                all_data_files, current_file_ctrl=current_file_ctrl)
-            all_tasks.extend(new_tasks)
-            all_errors.extend(errors)
-
-
-
-        data, errors, new_task = data_file.start_file_process(is_explore=True)
-
-        print("despues de start_file_process")
-        if errors:
-            print("errors: ", errors)
+        task_params = data_file.build_task_params("explore", request)
+        key_task = task_params["parent_task"]
+        curr_kwargs = {
+            "after_if_empty": "explore_data_xls_after",
+        }
+        all_tasks, all_errors, data_file = data_file.get_explore_data(
+            task_params, **curr_kwargs)
+        key_task = comprobate_status(
+            key_task, errors=all_errors, new_tasks=all_tasks)
+        if key_task:
             return Response(
-                data, status=status.HTTP_400_BAD_REQUEST)
-
-        def text_normalizer(text):
-            import re
-            import unidecode
-            final_text = text.upper().strip()
-            final_text = unidecode.unidecode(final_text)
-            final_text = re.sub(r'[^A-Z][DE|DEL][^A-Z]', ' ', final_text)
-            final_text = re.sub(r' +', ' ', final_text)
-            final_text = re.sub(r'[^A-Z]', '', final_text)
-            return final_text
-        
-        valid_fields = [
-            "name_in_data", "column_type", "final_field", 
-            "final_field__parameter_group", "data_type"]
-        validated_data = data["structured_data"]
-        current_sheets = data["current_sheets"]
-        first_valid_sheet = None
-        for sheet_name in current_sheets:
-            sheet_data = validated_data[sheet_name]
-            if "headers" in sheet_data and sheet_data["headers"]:
-                first_valid_sheet = sheet_data
-                break
-        if not first_valid_sheet:
-            first_valid_sheet = validated_data[current_sheets[0]]
-            if not first_valid_sheet:
-                return Response(
-                    {"errors": ["WARNING: No se encontró algo que coincidiera"]},
-                    status=status.HTTP_400_BAD_REQUEST)
-            else:
-                prov_headers = first_valid_sheet["all_data"][0]
-                first_valid_sheet["complex_headers"] = [
-                    {"position_in_data": posit}
-                        for posit, head in enumerate(prov_headers, start=1)]
-                return Response(
-                    first_valid_sheet, status=status.HTTP_201_CREATED)
-        # print("DESPUÉS DE HEADER")
-        try:
-            headers = first_valid_sheet["headers"]
-            complex_headers = []
-            file_control = data_file.petition_file_control.file_control
-            data_groups = [file_control.data_group.name, 'catalogs']
-            #print(data_groups)
-            all_name_columns = NameColumn.objects\
-                .filter(
-                    final_field__isnull=False,
-                    name_in_data__isnull=False,
-                    final_field__parameter_group__data_group__name__in=data_groups,
-                )\
-                .values(*valid_fields)
-            
-            #.exclude(name_in_data__startswith="_")
-
-            final_names = {}
-            for name_col in all_name_columns:
-                standard_name = text_normalizer(name_col["name_in_data"])
-                unique_name = (
-                    f'{standard_name}-{name_col["final_field"]}-'
-                    f'{name_col["final_field__parameter_group"]}')
-                if final_names.get(standard_name, False):
-                    if not final_names[standard_name]["valid"]:
-                        continue
-                    elif final_names[standard_name]["unique_name"] != unique_name:
-                        final_names[standard_name]["valid"] = False
-                    continue
-                else:
-                    base_dict = {
-                        "valid": True,
-                        "unique_name": unique_name,
-                        "standard_name": standard_name,
-                    }
-                    base_dict.update(name_col)
-                    final_names[standard_name] = base_dict
-            final_names = {
-                name: vals for name, vals in final_names.items()
-                    if vals["valid"]}
-            for (position, header) in enumerate(headers, start=1):
-                std_header = text_normalizer(header)
-                base_dict = {"position_in_data": position}
-                if final_names.get(std_header, False):
-                    vals = final_names[std_header]
-                    base_dict.update({field: vals[field] for field in valid_fields})
-                base_dict["name_in_data"] = header
-                complex_headers.append(base_dict)
-            first_valid_sheet["complex_headers"] = complex_headers
-        except Exception as e:
-            print("HUBO UN ERRORZASO")
-            print(e)
-        #print(data["structured_data"][:6])
+                {"new_task": key_task.id}, status=status.HTTP_201_CREATED)
+        if data_file:
+            new_tasks, errors, data = data_file.build_complex_headers()
+            all_errors.extend(errors or [])
+            if data:
+                return Response(data, status=status.HTTP_201_CREATED)
         return Response(
-            first_valid_sheet, status=status.HTTP_201_CREATED)
+            {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AsyncTaskViewSet(ListRetrieveView):
@@ -640,13 +569,13 @@ class OpenDataInaiViewSet(ListRetrieveView):
             ("insert_between_months", False)
         ]
         insert_from_json(
-            petitions, inai_fields, 'inai', 'Petition', 'inai_open_search', 
+            petitions, inai_fields, 'inai', 'Petition', 'inai_open_search',
             special_functions=spec_functions)
 
         if data.get("errors", False):
             return Response(
                 data, status=status.HTTP_400_BAD_REQUEST)
-        
+
         return Response(
             data, status=status.HTTP_201_CREATED)
 

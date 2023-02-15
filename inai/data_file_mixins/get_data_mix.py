@@ -31,43 +31,42 @@ class ExtractorsMix:
     final_path: str
 
     def get_explore_data(self, task_params=None, **kwargs):
-        from inai.models import ExploreData
-        all_errors = []
         data_file = self
         data_file.error_process = []
         data_file.save()
-        all_tasks = []
+        all_tasks = kwargs.get("all_tasks", [])
+        all_errors = kwargs.get("all_errors", [])
         task_params = task_params or {}
         task_params["models"] = [data_file]
-        (data_file, errors, suffix), first_task = data_file.decompress_file(
-            task_params=task_params)
+        if not data_file.suffix:
+            (data_file, errors, suffix), first_task = data_file.decompress_file(
+                task_params=task_params)
+            if data_file and suffix:
+                data_file.suffix = suffix
+                data_file.save()
+        new_errors = []
         if not data_file:
             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
         elif not data_file.explore_data:
             task_params["function_after"] = kwargs.get("after_if_empty")
+            current_file_ctrl = kwargs.get("current_file_ctrl")
             params_after = task_params.get("params_after", {})
-            params_after["suffix"] = suffix
             after_params_if_empty = kwargs.get("after_params_if_empty", {})
             params_after.update(after_params_if_empty)
             task_params["params_after"] = params_after
-            data_file, errors, new_task = data_file.transform_file_in_data(
-                'only_save', suffix, current_file_ctrl,
+            data_file, new_errors, new_task = data_file.transform_file_in_data(
+                'only_save', file_control=current_file_ctrl,
                 task_params=task_params)
             if new_task:
                 all_tasks.append(new_task)
-                # continue
-        if errors:
-            all_errors.extend(errors)
-            # continue
-        body = {
-            "suffix": suffix,
-            "all_file_controls": all_file_controls,
-            "petition": self
-        }
-        return all_tasks, all_errors, body
+                return all_tasks, all_errors, None
+        if new_errors:
+            all_errors.extend(new_errors)
+            return all_tasks, all_errors, None
+        return all_tasks, all_errors, data_file
 
     def transform_file_in_data(
-            self, type_explor, suffix, file_control=None, task_params=None):
+            self, type_explor, file_control=None, task_params=None):
         from category.models import FileFormat
         is_explore = bool(type_explor)
         # is_auto = type_explor == 'auto_explore'
@@ -81,19 +80,19 @@ class ExtractorsMix:
         if not is_orphan:
             if not file_control.file_format:
                 errors = ["El grupo de control no tiene formato específico"]
-                return self, errors, None
-            same_suffix = suffix in file_control.file_format.suffixes
+                return None, errors, None
+            same_suffix = self.suffix in file_control.file_format.suffixes
         if not same_suffix:
-            if type_explor == 'auto_explore':
-                errors = ["No existe ningún grupo de control coincidente"]
-            else:
-                errors = ["Formato especificado no coincide con el archivo"]
+            # if type_explor == 'auto_explore':
+            #     errors = ["No existe ningún grupo de control coincidente"]
+            # else:
+            #     errors = ["Formato especificado no coincide con el archivo"]
             return None, None, None
-        elif suffix in FileFormat.objects.get(short_name='xls').suffixes:
+        elif self.suffix in FileFormat.objects.get(short_name='xls').suffixes:
             result, new_task = self.get_data_from_excel(
                 type_explor, file_control=file_control, task_params=task_params)
             (validated_data, current_sheets, errors) = result
-        elif suffix in ['.txt', '.csv']:
+        elif self.suffix in ['.txt', '.csv']:
             validated_data, errors, new_task = self.get_data_from_file_simple(
                 type_explor, file_control=file_control, task_params=task_params)
         else:
@@ -291,7 +290,9 @@ class ExtractorsMix:
             # params_after = task_params.get("params_after", {})
             # params_after["next_"] = is_explore
             # task_params["params_after"] = params_after
-            task_params["function_after"] = "find_matches_in_file_controls"
+            function_after = task_params.get(
+                "function_after", "find_matches_in_file_controls")
+            task_params["function_after"] = function_after
             async_task = async_in_lambda(
                 "explore_data_simple", params, task_params)
             return None, [], async_task

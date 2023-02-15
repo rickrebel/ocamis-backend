@@ -129,7 +129,6 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
             .distinct()\
             .prefetch_related(
                 "data_group",
-                "file_type",
                 "columns",
                 "columns__column_transformations",
                 #"petition_file_control",

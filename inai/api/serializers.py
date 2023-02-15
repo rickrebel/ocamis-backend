@@ -20,12 +20,6 @@ from data_param.api.serializers import (
 class ProcessFileSerializer(serializers.ModelSerializer):
     # name = serializers.ReadOnlyField(source="file.name", required=False)
     # url = serializers.ReadOnlyField(source="file.url", required=False)
-    """
-    file_type = FileTypeSimpleSerializer(read_only=True)
-    file_type_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="file_type",
-        queryset=FileType.objects.all())
-    """
     name = serializers.SerializerMethodField(read_only=True)
     url = serializers.SerializerMethodField(read_only=True)
 

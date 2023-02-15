@@ -1,6 +1,7 @@
 import json
 from django.conf import settings
 
+
 def execute_in_lambda(function_name, params, in_lambda=True):
     from scripts.common import start_session
     s3_client, dev_resource = start_session("lambda")
@@ -43,16 +44,18 @@ def async_in_lambda(function_name, params, task_params):
     for field in ["parent_task", "params_after"]:
         if field in task_params:
             query_kwargs[field] = task_params[field]
+
     def camel_to_snake(name):
         import re
         s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
     for model in task_params["models"]:
         query_kwargs[camel_to_snake(model.__class__.__name__)] = model
-    print("query_kwargs:\n", query_kwargs, "\n")
+    # print("query_kwargs:\n", query_kwargs, "\n")
     current_task = AsyncTask.objects.create(**query_kwargs)
     dumb_params = json.dumps(params)
-    print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
+    # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
     function_name = f"{function_name}:normal"
     response = s3_client.invoke(
         FunctionName=function_name,
@@ -60,12 +63,12 @@ def async_in_lambda(function_name, params, task_params):
         LogType='Tail',
         Payload=dumb_params
     )
-    print("response", response, "\n")
+    # print("response", response, "\n")
     request_id = response["ResponseMetadata"]["RequestId"]
     current_task.request_id = request_id
     current_task.status_task_id = "running"
     current_task.save()
-    print("SE GUARDÓ BIEN")
+    # print("SE GUARDÓ BIEN")
     #payload_response = json.loads(response['Payload'].read())
     #print("payload_response", payload_response)
     return current_task

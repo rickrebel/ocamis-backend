@@ -67,9 +67,10 @@ class AWSMessage(generic.View):
         import json
         from datetime import datetime
         from inai.models import AsyncTask
-        # print("HOLA POST")
+        print("HOLA POST")
         # print(request)
         body = json.loads(request.body)
+        # print("body: \n", body)
         request_id = body.get("request_id")
         result = body.get("result", {})
         errors = result.get("errors", [])
@@ -85,18 +86,20 @@ class AWSMessage(generic.View):
         for model in models:
             current_obj = getattr(current_task, model)
             if current_obj:
-                print("CURRENT OBJ: ", current_obj)
+                # print("CURRENT OBJ: ", current_obj)
                 name_model = current_obj.__class__.__name__
-                print("NAME MODEL: ", name_model)
+                # print("NAME MODEL: ", name_model)
                 method = getattr(current_obj, function_after)
+                # print("METHOD: ", method)
                 task_params = {"parent_task": current_task}
                 result["from_aws"] = True
                 new_tasks, final_errors, data = method(
                     **result, task_params=task_params)
                 break
-        errors += final_errors
+        errors += (final_errors or [])
         comprobate_status(current_task, errors=errors, new_tasks=new_tasks)
         return HttpResponse()
+
 
 class AWSErrors(generic.View):
 
