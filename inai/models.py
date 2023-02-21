@@ -1,15 +1,10 @@
-import os
-
 from django.db import models
 from django.db.models import JSONField
-from django.dispatch import receiver
-from django.db.models.signals import post_save, post_delete
 
-from django.contrib.auth.models import User
 from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason, 
-    DateBreak, Anomaly, InvalidReason, FileFormat, StatusTask)
+    DateBreak, Anomaly, InvalidReason, FileFormat)
 from data_param.models import (
     DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup)
 
@@ -201,21 +196,9 @@ class FileControl(models.Model):
         StatusControl, null=True, blank=True, 
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
+    all_results = JSONField(blank=True, null=True)
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
-
-    def build_task_params(self, function_name, request):
-        from datetime import datetime
-        key_task = AsyncTask.objects.create(
-            user=request.user, function_name=function_name,
-            file_control=self, date_start=datetime.now(),
-            status_task_id="created"
-        )
-        return {
-            "parent_task": key_task
-        }
-
-
 
     def __str__(self):
         #all_entities = Entity.objects.filter(
@@ -305,36 +288,25 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     notes = models.TextField(blank=True, null=True)
     #is_final = models.BooleanField(default= True)
     origin_file = models.ForeignKey(
-        "DataFile",
-        blank=True, null=True,
-        related_name="child_files",
-        verbose_name="archivo origen",
-        on_delete=models.CASCADE)
+        "DataFile", blank=True, null=True, related_name="child_files",
+        verbose_name="archivo origen", on_delete=models.CASCADE)
     process_file = models.ForeignKey(
-        "ProcessFile", blank=True, null=True, 
-        on_delete=models.CASCADE, verbose_name="archivo base",
-        related_name="data_file_childs")
+        "ProcessFile", blank=True, null=True, on_delete=models.CASCADE,
+        verbose_name="archivo base", related_name="data_file_childs")
     petition_file_control = models.ForeignKey(
-        PetitionFileControl,
-        related_name="data_files",
-        blank=True, null=True,
+        PetitionFileControl, related_name="data_files", blank=True, null=True,
         on_delete=models.CASCADE)
     status_process = models.ForeignKey(
-        StatusControl,
-        blank=True, null=True,
-        on_delete=models.CASCADE)
+        StatusControl, blank=True, null=True, on_delete=models.CASCADE)
     file_type = models.ForeignKey(
-        FileType, blank=True, null=True,
-        on_delete=models.CASCADE,
+        FileType, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="Tipo de archivo")
     #jump_columns = models.IntegerField(
     #    default=0, verbose_name="Columnas vacías al comienzo")
-    explore_data = JSONField(
-        blank=True, null=True,
-        verbose_name="Primeros datos, de exploración")
+    sample_data = JSONField(
+        blank=True, null=True, verbose_name="Primeros datos, de exploración")
     sheet_names = JSONField(
-        blank=True, null=True,
-        verbose_name="Nombres de las hojas")
+        blank=True, null=True, verbose_name="Nombres de las hojas")
     suffix = models.CharField(
         max_length=10, blank=True, null=True)
     directory = models.CharField(
@@ -356,8 +328,8 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     """def save(self, *args, **kwargs):
         print("saving datafile: ")
-        print(bool(self.explore_data))
-        print(self.explore_data)
+        print(bool(self.sample_data))
+        print(self.sample_data)
         super(DataFile, self).save(*args, **kwargs)"""
 
     def __str__(self):
@@ -490,105 +462,3 @@ class Transformation(models.Model):
     class Meta:
         verbose_name = "Transformación a aplicar"
         verbose_name_plural = "Transformaciones a aplicar"   
-
-
-class AsyncTask(models.Model):
-
-    request_id = models.CharField(max_length=100, blank=True, null=True)
-    parent_task = models.ForeignKey(
-        "self", related_name="child_tasks",
-        blank=True, null=True, on_delete=models.CASCADE)
-    file_control = models.ForeignKey(
-        FileControl,
-        related_name="async_tasks",
-        on_delete=models.CASCADE, blank=True, null=True)
-    petition = models.ForeignKey(
-        Petition,
-        blank=True, null=True,
-        related_name="async_tasks",
-        on_delete=models.CASCADE)
-    data_file = models.ForeignKey(
-        DataFile,
-        related_name="async_tasks",
-        on_delete=models.CASCADE, blank=True, null=True)
-    process_file = models.ForeignKey(
-        ProcessFile,
-        related_name="async_tasks",
-        on_delete=models.CASCADE, blank=True, null=True)
-    status_task = models.ForeignKey(
-        StatusTask, on_delete=models.CASCADE, blank=True, null=True,
-        verbose_name="Estado de la tarea")
-    function_name = models.CharField(
-        max_length=100, blank=True, null=True,
-        verbose_name="Nombre de la función")
-    function_after = models.CharField(
-        max_length=100, blank=True, null=True,
-        verbose_name="Función a ejecutar después")
-    # model_after = models.CharField(
-    #     max_length=100, blank=True, null=True,
-    #     verbose_name="Modelo a ejecutar después")
-    original_request = JSONField(
-        blank=True, null=True, verbose_name="Request original")
-    params_after = JSONField(
-        blank=True, null=True, verbose_name="Parámetros de la función after")
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, blank=True, null=True)
-    result = JSONField(blank=True, null=True)
-    error = models.TextField(blank=True, null=True)
-    traceback = models.TextField(blank=True, null=True)
-    date_start = models.DateTimeField(blank=True, null=True)
-    date_end = models.DateTimeField(blank=True, null=True)
-
-    def save_status(self, status_id=None):
-        if status_id:
-            self.status_task_id = status_id
-        else:
-            self.status_task_id = self.status_task_id
-        self.save()
-        return self
-
-    def __str__(self):
-        return "%s -- %s" % (self.function_name, self.status_task)
-
-    class Meta:
-        ordering = ["-date_start"]
-        verbose_name = "Tarea asincrónica"
-        verbose_name_plural = "Tareas asincrónicas"
-
-
-@receiver(post_save, sender=AsyncTask)
-def async_task_post_save(sender, instance, created, **kwargs):
-    print("kwargs", kwargs)
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-    from inai.api.serializers import AsyncTaskSerializer
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        "dashboard", {
-            "type": "send_task_info",
-            "result": {
-                "model": sender.__name__,
-                "created": created,
-                "task_data": AsyncTaskSerializer(instance).data,
-            }
-        },
-    )
-
-
-@receiver(post_delete, sender=AsyncTask)
-def async_task_post_delete(sender, instance, **kwargs):
-    print("kwargs", kwargs)
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-    from inai.api.serializers import AsyncTaskSerializer
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        "dashboard", {
-            "type": "send_task_info",
-            "result": {
-                "model": sender.__name__,
-                "deleted": True,
-                "task_id": instance.id,
-            }
-        },
-    )

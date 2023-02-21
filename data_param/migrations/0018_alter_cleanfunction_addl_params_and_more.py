@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='datatype',
             name='addl_params',
-            field=models.JSONField(default=data_param.models.DataType.default_params_data_type, verbose_name='Otras configuraciones'),
+            field=models.JSONField(verbose_name='Otras configuraciones'),
         ),
         migrations.AlterField(
             model_name='finalfield',

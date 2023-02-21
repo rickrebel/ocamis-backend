@@ -42,6 +42,7 @@ class PetitionTransformsMix(PetitionMix):
         from inai.models import FileControl
         # self.__module__
         # cls = self.__class__
+        # print("comienza find_matches_in_children", "\n")
         entity_file_controls = FileControl.objects.filter(
             petition_file_control__petition__entity=self.entity,
             file_format__isnull=False) \
@@ -74,8 +75,10 @@ class PetitionTransformsMix(PetitionMix):
                 "all_tasks": all_tasks,
                 "all_errors": all_errors,
             }
-            all_tasks, all_errors, data_file = data_file.get_explore_data(
+
+            all_tasks, all_errors, data_file = data_file.get_sample_data(
                 task_params, **curr_kwargs)
+            # print("Nuevos tasks y errors:", "\n", all_tasks, "\n", all_errors, "\n")
             if not data_file:
                 continue
             task_params["models"] = [data_file]

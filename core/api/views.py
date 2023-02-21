@@ -14,14 +14,16 @@ from data_param.api.serializers import (
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
     DateBreak, Anomaly, InvalidReason, FileFormat,
-    TransparencyIndex, TransparencyLevel, StatusTask)
+    TransparencyIndex)
+from task.models import StatusTask, TaskFunction
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
     DateBreakSimpleSerializer, AnomalySimpleSerializer,
     InvalidReasonSimpleSerializer, FileFormatSimpleSerializer,
     TransparencyIndexSimpleSerializer, TransparencyLevelSimpleSerializer,
-    TransparencyIndexSerializer, StatusTaskSimpleSerializer,)
+    TransparencyIndexSerializer,)
+from task.api.serializers import StatusTaskSimpleSerializer, TaskFunctionSerializer
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
@@ -61,6 +63,12 @@ class CatalogView(views.APIView):
                 ParameterGroup.objects.all(), many=True).data,
             "final_fields": FinalFieldSimpleSerializer(
                 final_fields_query, many=True).data,
+            ## TASKS:
+            "status_tasks": StatusTaskSimpleSerializer(
+                StatusTask.objects.all(), many=True).data,
+            "task_functions": TaskFunctionSerializer(
+                TaskFunction.objects.all(), many=True).data,
+
             ## CATÁLOGOS GENERALES:
             "data_types": DataTypeSimpleSerializer(
                 DataType.objects.all(), many=True).data,
@@ -70,8 +78,6 @@ class CatalogView(views.APIView):
                 FileType.objects.all(), many=True).data,
             "status": StatusControlSimpleSerializer(
                 StatusControl.objects.all(), many=True).data,
-            "status_tasks": StatusTaskSimpleSerializer(
-                StatusTask.objects.all(), many=True).data,
             "column_types": ColumnTypeSimpleSerializer(
                 ColumnType.objects.all(), many=True).data,
             "negative_reasons": NegativeReasonSimpleSerializer(

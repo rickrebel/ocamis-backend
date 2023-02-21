@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 import json
+from django.conf import settings
 
 
 def hydrateCol(row, all_headers):
@@ -48,7 +48,11 @@ def generate_file(app_name, model_name):
         fields.append(final_name)
     final_data = list(all_objects)
     final_data.insert(0, fields)
-    json_path = 'fixture/sincronize/%s.json' % model_name
+    base_dir = settings.BASE_DIR
+    json_path = f"{base_dir}\\fixture\\sincronize\\{model_name}.json"
+    # json_path = 'fixture/sincronize/%s.json' % model_name
+    print("json_path: %s" % json_path)
+    print("final_data: %s" % final_data)
     with open(json_path, 'w') as json_file:
         json.dump(final_data, json_file)
         json_file.close()
@@ -57,8 +61,7 @@ def generate_file(app_name, model_name):
 #generate_file('catalog', 'State')
 #sincronize_entities('catalog', 'State')
 
-
-def sincronize_entities(app_name, model_name):
+def sincronize_entities(app_name, model_name, field_id="id"):
     from django.apps import apps
     json_path = 'fixture/sincronize/%s.json' % model_name
     all_headers, rr_data_rows = getFileJson(json_path)
@@ -69,11 +72,11 @@ def sincronize_entities(app_name, model_name):
         if not row:
             break
         hydrated = hydrateCol(row, all_headers)
-        #print(hydrated)
-        elem = MyModel.objects.filter(id=hydrated["id"])
+        params_query = {field_id: hydrated[field_id]}
+        elem = MyModel.objects.filter(**params_query)
         if elem.exists():
             try:
-                del hydrated["id"]
+                del hydrated[field_id]
                 elem.update(**hydrated)
             except Exception as e:
                 print(e)
@@ -88,8 +91,8 @@ def sincronize_entities(app_name, model_name):
 
 #generate_file('category', 'TransparencyLevel')
 #sincronize_entities('category', 'TransparencyLevel')
-generate_file('category', 'StatusTask')
-sincronize_entities('category', 'StatusTask')
+#generate_file('category', 'StatusTask')
+sincronize_entities('task', 'StatusTask', field_id='name')
 
 #generate_file('catalog', 'Entity')
 #sincronize_entities('catalog', 'Entity')

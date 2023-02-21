@@ -9,7 +9,7 @@ class ProcessFileMix:
         from inai.models import DataFile
         from scripts.common import build_s3
         from inai.models import set_upload_path
-        from scripts.serverless import async_in_lambda, execute_in_lambda
+        from task.serverless import async_in_lambda
 
         base_s3 = build_s3()
         if DataFile.objects.filter(process_file=self).exists():
@@ -40,6 +40,7 @@ class ProcessFileMix:
         return async_task
 
     def decompress_zip_aws_after(self, task_params=None, **kwargs):
+        print("decompress_zip_aws_after---------------------------------")
         from inai.models import DataFile, PetitionFileControl
         # print("kwargs", kwargs)
         errors = []
@@ -64,9 +65,11 @@ class ProcessFileMix:
             )
             new_file.change_status('initial')
             all_data_files_ids.append(new_file.id)
-            print("new_file", new_file)
+            # print("new_file", new_file)
+        print("all_data_files_ids", all_data_files_ids)
         all_data_files = DataFile.objects.filter(id__in=all_data_files_ids)\
             .prefetch_related("petition_file_control")
+        print("all_data_files", all_data_files)
         all_tasks, new_errors = self.petition.find_matches_in_children(
             all_data_files, task_params=task_params)
         errors += new_errors

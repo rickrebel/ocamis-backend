@@ -28,14 +28,14 @@ def execute_in_lambda(function_name, params, in_lambda=True):
 
 def async_in_lambda(function_name, params, task_params):
     from scripts.common import start_session
-    from inai.models import AsyncTask
+    from task.models import AsyncTask
     from datetime import datetime
     s3_client, dev_resource = start_session("lambda")
     api_url = getattr(settings, "API_URL", False)
-    params["webhook_url"] = f"{api_url}inai/webhook_aws/"
-    function_after = task_params.get("function_after") or f"{function_name}_after"
+    params["webhook_url"] = f"{api_url}task/webhook_aws/"
+    function_after = task_params.get("function_after", f"{function_name}_after")
     query_kwargs = {
-        "function_name": function_name,
+        "task_function_id": function_name,
         "function_after": function_after,
         "original_request": params,
         "status_task_id": "pending",
@@ -168,7 +168,6 @@ def clean_na(row):
     return [col.strip() if isinstance(col, str) else "" for col in cols]
 
 
-#def lambda_handler(event, context):
 def explore_data_xls(event, context):
     import pandas as pd
     final_path = event["final_path"]

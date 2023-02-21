@@ -4,8 +4,8 @@ from django.utils.html import format_html
 
 from .models import (
     FileType, StatusControl, ColumnType, NegativeReason, DateBreak, Anomaly,
-    InvalidReason, TransparencyIndex, TransparencyLevel, FileFormat,
-    StatusTask)
+    InvalidReason, TransparencyIndex, TransparencyLevel, FileFormat)
+from task.models import StatusTask
 
 
 class StatusControlAdmin(admin.ModelAdmin):
@@ -16,15 +16,6 @@ class StatusControlAdmin(admin.ModelAdmin):
     list_filter = ["group"]
 
 ocamis_admin_site.register(StatusControl, StatusControlAdmin)
-
-
-class StatusTaskAdmin(admin.ModelAdmin):
-    list_display = [
-        "name", "public_name", "order", "description", "color", "icon",
-        "is_completed"]
-    list_editable = ["order", "color", "is_completed"]
-
-ocamis_admin_site.register(StatusTask, StatusTaskAdmin)
 
 
 class FileTypeAdmin(admin.ModelAdmin):
@@ -102,6 +93,7 @@ class TransparencyLevelAdmin(admin.ModelAdmin):
     def display_final(self, obj):
         return format_html(obj.final_level.public_name) if obj.final_level else ""
     display_final.short_description = "Concentrado destino"
+
 
 ocamis_admin_site.register(TransparencyLevel, TransparencyLevelAdmin)
 

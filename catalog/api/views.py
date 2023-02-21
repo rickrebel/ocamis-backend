@@ -55,7 +55,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
         serializer = serializers.EntityFullSerializer(
             entity, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response()
 
     @action(methods=["post"], detail=True, url_path='create_months')
     def create_months(self, request, **kwargs):
@@ -194,6 +193,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
         #return Response(
         #    serializer.data, status=status.HTTP_200_OK)
         return Response(final_data, status=status.HTTP_200_OK)
+
 
 class InstitutionList(ListMix):
     permission_classes = (permissions.AllowAny,)

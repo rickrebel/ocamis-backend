@@ -24,5 +24,6 @@ urlpatterns = [
     re_path(r'^report/', include('report.api.urls')),
     re_path(r'^formula/', include('formula.api.urls')),
     re_path(r'^inai/', include('inai.api.urls')),
+    re_path(r'^task/', include('task.api.urls')),
     re_path(r'^', include('core.api.urls')),
 ]

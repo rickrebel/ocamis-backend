@@ -6,7 +6,8 @@ from rest_framework.decorators import action
 
 from inai.api.common import send_response
 from inai.models import (
-    DataFile, Petition, PetitionFileControl, AsyncTask)
+    DataFile, Petition, PetitionFileControl)
+from task.models import AsyncTask
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -15,7 +16,7 @@ from api.mixins import (
 
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
 from catalog.api.serializers import EntityFileControlsSerializer
-from inai.views import comprobate_status
+from task.views import comprobate_status, build_task_params
 
 last_final_path = None
 
@@ -57,41 +58,40 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         all_errors = []
         key_task = None
         if file_id:
+            key_task, task_params = build_task_params(
+                petition, "auto_explore", request)
             all_data_files = DataFile.objects.filter(id=file_id)
             new_tasks, errors = petition.find_matches_in_children(
-                all_data_files, current_file_ctrl=current_file_ctrl)
+                all_data_files, current_file_ctrl=current_file_ctrl,
+                task_params=task_params)
             all_tasks.extend(new_tasks)
             all_errors.extend(errors)
         else:
-            key_task = AsyncTask.objects.create(
-                user=request.user, function_name="auto_explore",
-                date_start=datetime.now(), petition=petition,
-                status_task_id="created")
+            key_task, task_params = build_task_params(
+                petition, "auto_explore", request)
             process_files = ProcessFile.objects.filter(
                 petition=petition, has_data=True)
             for process_file in process_files:
-                task_params = {
-                    "parent_task": key_task
-                }
-                children_files = DataFile.objects.\
+                children_files = DataFile.objects. \
                     filter(process_file=process_file)
                 if children_files.exists():
                     if not children_files.filter(
-                        petition_file_control__file_control__data_group__name='orphan'
+                            petition_file_control__file_control__data_group__name='orphan'
                     ).exists():
                         continue
                     new_tasks, new_errors = petition.find_matches_in_children(
                         children_files, current_file_ctrl=current_file_ctrl,
                         task_params=task_params)
+
                     all_tasks.extend(new_tasks)
                     all_errors.extend(new_errors)
                 else:
                     async_task = process_file.decompress(
                         pet_file_ctrl, task_params=task_params)
                     all_tasks.append(async_task)
-
         key_task = comprobate_status(
             key_task, errors=all_errors, new_tasks=all_tasks)
+
         return send_response(petition, task=key_task, errors=all_errors)
 
     @action(detail=True, methods=["get"], url_path="finished")
@@ -183,30 +183,31 @@ class DataFileViewSet(CreateRetrievView):
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
 
-    @action(methods=["get"], detail=True, url_path="build_explore_data")
-    def build_explore_data(self, request, **kwargs):
+    @action(methods=["get"], detail=True, url_path="build_sample_data")
+    def build_sample_data(self, request, **kwargs):
         from inai.api.serializers import DataFileSerializer
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
-        task_params = data_file.build_task_params(
-            "build_explore_data", request)
+        task_params = build_task_params(
+            data_file, "build_sample_data", request)
         # new_tasks = []
         key_task = task_params.get("parent_task")
         curr_kwargs = {
             "after_if_empty": "find_coincidences_from_aws",
         }
-        all_tasks, all_errors, data_file = data_file.get_explore_data(
+        all_tasks, all_errors, data_file = data_file.get_sample_data(
             task_params, **curr_kwargs)
-        key_task = comprobate_status(
-            key_task, errors=all_errors, new_tasks=all_tasks)
-        if key_task:
-            return Response(
-                {"new_task": key_task.id}, status=status.HTTP_201_CREATED)
+
+        resp = comprobate_status(
+            key_task, all_errors, all_tasks, want_http_response=True)
+        if resp:
+            return resp
+
         data_file, saved, errors = data_file.find_coincidences()
         if not saved and not errors:
             errors = ["No coincide con el formato del archivo"]
-        response_body = { }
+        response_body = {}
         if errors:
             data_file.save_errors(errors, "explore_fail")
             response_body["errors"] = errors
@@ -269,22 +270,21 @@ class DataFileViewSet(CreateRetrievView):
         print("response_body: ", response_body)
         return Response(response_body, status=final_status)
 
-    @action(methods=["get"], detail=True, url_path="explore")
-    def explore(self, request, **kwargs):
+    @action(methods=["get"], detail=True, url_path="build_columns")
+    def build_columns(self, request, **kwargs):
 
         data_file = self.get_object()
-        task_params = data_file.build_task_params("explore", request)
+        task_params = build_task_params(data_file, "build_columns", request)
         key_task = task_params["parent_task"]
         curr_kwargs = {
             "after_if_empty": "explore_data_xls_after",
         }
-        all_tasks, all_errors, data_file = data_file.get_explore_data(
+        all_tasks, all_errors, data_file = data_file.get_sample_data(
             task_params, **curr_kwargs)
-        key_task = comprobate_status(
-            key_task, errors=all_errors, new_tasks=all_tasks)
-        if key_task:
-            return Response(
-                {"new_task": key_task.id}, status=status.HTTP_201_CREATED)
+        resp = comprobate_status(
+            key_task, all_errors, all_tasks, want_http_response=True)
+        if resp:
+            return resp
         if data_file:
             new_tasks, errors, data = data_file.build_complex_headers()
             all_errors.extend(errors or [])
@@ -293,61 +293,9 @@ class DataFileViewSet(CreateRetrievView):
         return Response(
             {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
-
-class AsyncTaskViewSet(ListRetrieveView):
-    queryset = AsyncTask.objects.all()
-    serializer_class = serializers.AsyncTaskSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    action_serializers = {
-        "list": serializers.AsyncTaskSerializer,
-        "retrieve": serializers.AsyncTaskSerializer,
-    }
-
-    def get_queryset(self):
-        return AsyncTask.objects.all()
-
-    @action(methods=["get"], detail=False, url_path='last_hours')
-    def last_hours(self, request, **kwargs):
-        from datetime import datetime, timedelta
-        from django.contrib.auth.models import User
-        from auth.api.serializers import UserDataSerializer
-        total_hours = request.query_params.get("hours", 3)
-        now = datetime.now()
-        last_hours = now - timedelta(hours=int(total_hours))
-        task_by_start = AsyncTask.objects.filter(
-            date_start__gte=last_hours)
-        task_by_end = AsyncTask.objects.filter(
-            date_end__gte=last_hours)
-        all_tasks = task_by_start | task_by_end
-        staff_users = User.objects.filter(is_staff=True)
-        staff_data = UserDataSerializer(staff_users, many=True).data
-        data = {
-            "tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
-            "staff_users": staff_data,
-            "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        return Response(data, status=status.HTTP_200_OK)
-
-    @action(methods=["get"], detail=False, url_path='news')
-    def news(self, request, **kwargs):
-        from datetime import datetime, timedelta
-
-        now = datetime.now()
-        last_request = request.query_params.get("last_request")
-        if last_request:
-            last_request = datetime.strptime(last_request, "%Y-%m-%d %H:%M:%S")
-        else:
-            last_request = now - timedelta(hours=3)
-        task_by_start = AsyncTask.objects.filter(
-            date_start__gte=last_request)
-        task_by_end = AsyncTask.objects.filter(
-            date_end__gte=last_request)
-        all_tasks = task_by_start | task_by_end
-        data = {
-            "new_tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
-            "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        return Response(data, status=status.HTTP_200_OK)
+    @action(methods=["get"], detail=True, url_path="auto_explore_all")
+    def auto_explore_all(self, request, **kwargs):
+        return True
 
 
 class OpenDataInaiViewSet(ListRetrieveView):

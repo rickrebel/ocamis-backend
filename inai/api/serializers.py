@@ -4,7 +4,7 @@ from rest_framework import serializers
 from inai.models import (
     FileControl, Petition, PetitionFileControl, Transformation,
     DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
-    PetitionBreak, PetitionNegativeReason, AsyncTask)
+    PetitionBreak, PetitionNegativeReason)
 
 from category.models import StatusControl, FileType
 from category.api.serializers import (
@@ -110,8 +110,8 @@ class DataFileSimpleSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "url"]
 
 
-def get_has_explore_data(obj):
-    return bool(obj.explore_data)
+def get_has_sample_data(obj):
+    return bool(obj.sample_data)
 
 
 class DataFileSerializer(serializers.ModelSerializer):
@@ -125,16 +125,16 @@ class DataFileSerializer(serializers.ModelSerializer):
         write_only=True, source="petition_file_control",
         queryset=PetitionFileControl.objects.all())
     #child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
-    has_explore_data = serializers.SerializerMethodField(read_only=True)
+    has_sample_data = serializers.SerializerMethodField(read_only=True)
 
-    def get_has_explore_data(self, obj):
-        return bool(obj.explore_data)
+    def get_has_sample_data(self, obj):
+        return bool(obj.sample_data)
 
     class Meta:
         model = DataFile
         #fields = "__all__"
-        read_only_fields = ["petition_file_control", "has_explore_data"]
-        exclude = ('explore_data', )
+        read_only_fields = ["petition_file_control", "has_sample_data"]
+        exclude = ('sample_data', )
 
 
 class DataFileEditSerializer(DataFileSerializer):
@@ -322,11 +322,4 @@ class PetitionEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         read_only_fields = ["id", "break_dates"]
-        fields = "__all__"
-
-
-class AsyncTaskSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = AsyncTask
         fields = "__all__"

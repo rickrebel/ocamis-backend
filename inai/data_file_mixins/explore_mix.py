@@ -1,6 +1,3 @@
-import unidecode
-
-
 def build_query_filter(row, columns):
     query_filter = {}
     for column in columns:
@@ -10,7 +7,6 @@ def build_query_filter(row, columns):
 
 
 class ExploreMix:
-    from category.models import FileFormat
     final_path: str
     petition_file_control: None
 
@@ -27,7 +23,7 @@ class ExploreMix:
             total_count = self.count_csv_rows()
         elif file_format.short_name == 'xls':
             total_count = self.count_xls_rows()
-            minus_headers = len(self.explore_data.keys()) * minus_headers
+            minus_headers = len(self.sample_data.keys()) * minus_headers
         total_count = total_count - minus_headers
         self.total_rows = total_count
         #self.save()
@@ -35,8 +31,7 @@ class ExploreMix:
         return {"total_rows": total_count}
 
     def count_csv_rows(self):
-        from scripts.common import get_file, start_session, get_csv_file
-        import pandas as pd
+        from scripts.common import get_file, start_session
         s3_client, dev_resource = start_session()
         data = get_file(self, dev_resource)
         final_count = len(data.readlines())
@@ -44,18 +39,18 @@ class ExploreMix:
 
     def count_xls_rows(self):
         from scripts.common import build_s3
-        from scripts.serverless import count_excel_rows
+        from task.serverless import count_excel_rows
         total_count = 0
-        explore_data = self.explore_data
+        sample_data = self.sample_data
         explore_modificated = False
 
-        if isinstance(explore_data, dict):
-            current_sheets = explore_data.keys()
+        if isinstance(sample_data, dict):
+            current_sheets = sample_data.keys()
             #print("current_sheets: ", current_sheets)
             sheets_for_count = []
             for sheet_name in current_sheets:
-                if "total_rows" in explore_data[sheet_name]:
-                    total_count += explore_data[sheet_name]["total_rows"]
+                if "total_rows" in sample_data[sheet_name]:
+                    total_count += sample_data[sheet_name]["total_rows"]
                 else:
                     sheets_for_count.append(sheet_name)
                     #excel_file = pd.ExcelFile(self.file, sheet_name=sheet_name)
@@ -68,11 +63,11 @@ class ExploreMix:
             # print("all_counts", all_counts)
             for sheet_name in current_sheets:
                 if sheet_name in all_counts:
-                    explore_data[sheet_name]["total_rows"] = all_counts[sheet_name]
+                    sample_data[sheet_name]["total_rows"] = all_counts[sheet_name]
                     total_count += all_counts[sheet_name]
                     explore_modificated = True
         if explore_modificated:
-            self.explore_data = explore_data
+            self.sample_data = sample_data
             self.save()
         return total_count
 
@@ -100,7 +95,7 @@ class ExploreMix:
             if not file_ctrl:
                 file_ctrl = pfc.file_control
         data, errors, new_task = data_file.transform_file_in_data(
-            'auto_explore', task_params=task_params)
+            'auto_explore', task_params=task_params, file_control=file_ctrl)
         # if not data:
         if errors:
             # errors.append("No se pudo explorar el archivo")
@@ -112,9 +107,7 @@ class ExploreMix:
         current_sheets = data["current_sheets"]
         structured_data = data["structured_data"]
         all_pet_file_ctrl = []
-        validated_data = data_file.explore_data or {}
-        # print("-------\n-----------")
-        # print(structured_data)
+        validated_data = data_file.sample_data or {}
         for sheet_name in current_sheets:
             if "headers" not in structured_data[sheet_name]:
                 continue
@@ -142,12 +135,12 @@ class ExploreMix:
                     new_data_file = data_file
                     new_data_file.pk = None
                     new_data_file.petition_file_control = succ_pet_file_ctrl
-                    new_data_file.explore_data = validated_data
+                    new_data_file.sample_data = validated_data
                     new_data_file.save()
                     new_data_file.add_result(("info", info_text))
                 else:
                     data_file.petition_file_control = succ_pet_file_ctrl
-                    data_file.explore_data = validated_data
+                    data_file.sample_data = validated_data
                     data_file.change_status("success_exploration")
                     saved = True
                 all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
@@ -190,8 +183,8 @@ class ExploreMix:
             error_zip = "Mover a 'archivos no finales' para descomprimir desde allí"
             return (None, [error_zip], None), None
 
-        #Obtener el tamaño
-        #file_name = self.file_name
+        # Obtener el tamaño
+        # file_name = self.file_name
         real_suffixes = suffixes
         if len(real_suffixes) != 1:
             errors = [("Tiene más o menos extensiones de las que"
@@ -216,7 +209,7 @@ class ExploreMix:
         import gzip
         from inai.models import DataFile
         from category.models import StatusControl
-        from scripts.common import get_file, start_session, create_file
+        from scripts.common import start_session, create_file
         from django.conf import settings
         size_hint = 330 * 1000000
         initial_status = StatusControl.objects.get(
@@ -273,10 +266,7 @@ class ExploreMix:
             return False, e
 
     def split_file(self):
-        from filesplit.split import Split
         from inai.models import DataFile
-        from category.models import StatusControl
-        import os
         from django.conf import settings
         from scripts.common import get_file, start_session, create_file
 
@@ -358,7 +348,6 @@ class ExploreMix:
         return data_file, kwargs
 
     def find_matches_in_file_controls(self, task_params=None, **kwargs):
-        from scripts.common import get_excel_file
         from inai.models import FileControl
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
         saved = False
@@ -366,7 +355,6 @@ class ExploreMix:
         all_file_controls = kwargs.get("all_file_controls", None)
         if not all_file_controls:
             all_file_controls_ids = kwargs.get("all_file_controls_ids", [])
-            print("all_file_controls_ids", all_file_controls_ids)
             all_file_controls = FileControl.objects.filter(
                 id__in=all_file_controls_ids)
         for file_ctrl in all_file_controls:
@@ -379,7 +367,6 @@ class ExploreMix:
         if not saved:
             all_errors.append("No existe ningún grupo de control coincidente")
             data_file.save_errors(all_errors, "explore_fail")
-        get_excel_file.cache_clear()
         return None, all_errors, None
 
     def build_complex_headers(self, task_params=None, **kwargs):
@@ -481,12 +468,9 @@ class ExploreMix:
     #primeras filas
     # RICK 14
     def start_file_process(self, is_explore=False):
-        from rest_framework.response import Response
-        from rest_framework import (permissions, views, status)
         from inai.models import DataFile
         from category.models import FileFormat
         #FieldFile.open(mode='rb')
-        import json
         self.error_process = []
         self.save()
         #se llama a la función para descomprimir el archivo o archivos:
@@ -544,7 +528,7 @@ class ExploreMix:
             return new_self, new_errors, new_tasks
 
     def comprobate_coincidences(self, task_params=None, **kwargs):
-        from inai.models import DataFile, AsyncTask
+        from inai.models import DataFile
         # print("new_children_ids: ", new_children_ids)
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
         from_aws = kwargs.get("from_aws", False)
@@ -600,10 +584,10 @@ class ExploreMix:
                 False, petition=petition, file_ctrl=file_ctrl)
             if saved:
                 for child in new_children:
-                    child.explore_data = first_child.explore_data
+                    child.sample_data = first_child.sample_data
                     child.status_process = first_child.status_process
                     child.save()
-                data_file.explore_data = first_child.explore_data
+                data_file.sample_data = first_child.sample_data
                 data_file.status_process = first_child.status_process
                 data_file = data_file.save()
 
@@ -615,4 +599,3 @@ class ExploreMix:
             return data_file, errors, new_children
         else:
             return data_file, None, new_children
-

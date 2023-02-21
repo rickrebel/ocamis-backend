@@ -2,8 +2,7 @@ raws = {}
 
 
 def execute_matches(row, file):
-    from inai.models import NameColumn
-    from formula.models import MissingRow, MissingField
+    from formula.models import MissingRow
     delegation = None
     missing_row = None
     if not state:
@@ -30,13 +29,20 @@ class ExtractorsMix:
     save_errors: classmethod
     final_path: str
 
-    def get_explore_data(self, task_params=None, **kwargs):
+    def get_sample_data(self, task_params=None, **kwargs):
+        from task.models import AsyncTask
         data_file = self
-        data_file.error_process = []
-        data_file.save()
         all_tasks = kwargs.get("all_tasks", [])
         all_errors = kwargs.get("all_errors", [])
         task_params = task_params or {}
+        data_file.error_process = []
+        parent_task = task_params.get("parent_task")
+        # previos_tasks
+        AsyncTask.objects.filter(data_file=data_file)\
+            .exclude(parent_task=parent_task)\
+            .exclude(id=parent_task.id)\
+            .update(is_current=False)
+        data_file.save()
         task_params["models"] = [data_file]
         if not data_file.suffix:
             (data_file, errors, suffix), first_task = data_file.decompress_file(
@@ -44,10 +50,17 @@ class ExtractorsMix:
             if data_file and suffix:
                 data_file.suffix = suffix
                 data_file.save()
+            else:
+                return [first_task], errors, None
+                # else:
+                #     all_results["ValidFormat"] = {
+                #         "success": False,
+                #         "errors": errors}
+                # return all_tasks, errors, None
         new_errors = []
         if not data_file:
             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-        elif not data_file.explore_data:
+        elif not data_file.sample_data:
             task_params["function_after"] = kwargs.get("after_if_empty")
             current_file_ctrl = kwargs.get("current_file_ctrl")
             params_after = task_params.get("params_after", {})
@@ -69,10 +82,11 @@ class ExtractorsMix:
             self, type_explor, file_control=None, task_params=None):
         from category.models import FileFormat
         is_explore = bool(type_explor)
+        data_file = self
         # is_auto = type_explor == 'auto_explore'
         status_error = 'explore_fail' if is_explore else 'extraction_failed'
         if not file_control:
-            file_control = self.petition_file_control.file_control
+            file_control = data_file.petition_file_control.file_control
         is_orphan = file_control.data_group.name == "orphan"
         new_task = None
         current_sheets = ["default"]
@@ -81,33 +95,33 @@ class ExtractorsMix:
             if not file_control.file_format:
                 errors = ["El grupo de control no tiene formato específico"]
                 return None, errors, None
-            same_suffix = self.suffix in file_control.file_format.suffixes
+            same_suffix = data_file.suffix in file_control.file_format.suffixes
         if not same_suffix:
             # if type_explor == 'auto_explore':
             #     errors = ["No existe ningún grupo de control coincidente"]
             # else:
             #     errors = ["Formato especificado no coincide con el archivo"]
             return None, None, None
-        elif self.suffix in FileFormat.objects.get(short_name='xls').suffixes:
-            result, new_task = self.get_data_from_excel(
+        elif data_file.suffix in FileFormat.objects.get(short_name='xls').suffixes:
+            result, new_task = data_file.get_data_from_excel(
                 type_explor, file_control=file_control, task_params=task_params)
             (validated_data, current_sheets, errors) = result
-        elif self.suffix in ['.txt', '.csv']:
-            validated_data, errors, new_task = self.get_data_from_file_simple(
+        elif data_file.suffix in ['.txt', '.csv']:
+            validated_data, errors, new_task = data_file.get_data_from_file_simple(
                 type_explor, file_control=file_control, task_params=task_params)
         else:
-            errors = ["No es un formato válido"]
+            errors = "No es un formato válido"
         if errors or new_task:
             if errors:
-                self.save_errors(errors, status_error)
+                data_file.save_errors(errors, status_error)
             return None, errors, new_task
 
         if is_explore:
-            self.explore_data = validated_data
-            self.save()
+            data_file.sample_data = validated_data
+            data_file.save()
 
         if type_explor == 'only_save':
-            return self, errors, new_task
+            return data_file, errors, new_task
 
         row_headers = file_control.row_headers or 0
         # for sheet_name, all_data in validated_data.items():
@@ -116,8 +130,6 @@ class ExtractorsMix:
             try:
                 curr_sheet = validated_data.get(sheet_name).copy()
             except Exception as e:
-                print("validated_data: ", validated_data)
-                print("current_sheets: ", current_sheets)
                 raise e
             plus_rows = 0
             try:
@@ -172,42 +184,48 @@ class ExtractorsMix:
     def get_data_from_excel(
             self, type_explor, file_control=None, task_params=None):
         from inai.models import Transformation
-        from scripts.serverless import execute_in_lambda, async_in_lambda
+        from task.serverless import async_in_lambda
         from scripts.common import get_excel_file
         is_explore = bool(type_explor)
         if is_explore:
-            all_sheets = self.explore_data or {}
+            all_sheets = self.sample_data or {}
         else:
             all_sheets = {}
-        sheet_names = self.sheet_names
-        if not sheet_names:
-            try:
-                print(self.final_path)
-                excel_file = get_excel_file(self.final_path)
-                sheet_names = excel_file.sheet_names
-                self.sheet_names = sheet_names
-                self.save()
-            except Exception as error:
-                import traceback
-                error_ = traceback.format_exc()
-                return (None, None, [error_]), None
+
+        sheet_names = self.sheet_names or []
+        has_sheet_names = bool(sheet_names)
+        # if not sheet_names:
+        #     try:
+        #         print(self.final_path)
+        #         excel_file = get_excel_file(self.final_path)
+        #         sheet_names = excel_file.sheet_names
+        #         self.sheet_names = sheet_names
+        #         self.save()
+        #     except Exception as error:
+        #         import traceback
+        #         print("obteniendo sheets", error)
+        #         error_ = traceback.format_exc()
+        #         return (None, None, [error_]), None
         if type_explor == 'only_save':
             # nrows = 220 if is_explore else None
-            n_rows = 220 if len(sheet_names) < 10 else 20
+            n_rows = 220 if len(sheet_names) < 10 else 40
+            n_end = 30 if len(sheet_names) < 10 else 15
             saved_sheet_names = all_sheets.keys()
             pending_sheets = list(set(sheet_names) - set(saved_sheet_names))
-            if pending_sheets:
+            if pending_sheets or has_sheet_names:
                 params = {
                     "final_path": self.final_path,
                     "n_rows": n_rows,
+                    "n_end": n_end,
                     "sheets": pending_sheets,
+                    "ready_sheets": saved_sheet_names,
                 }
                 task_params = task_params or {}
                 params_after = task_params.get("params_after", {})
                 params_after["current_sheets"] = pending_sheets
                 task_params["params_after"] = params_after
-                #new_sheets = execute_in_lambda("explore_data_xls", params, True)
-                new_task = async_in_lambda("explore_data_xls", params, task_params)
+                new_task = async_in_lambda(
+                    "explore_data_xls", params, task_params)
                 # if "errorMessage" in new_sheets:
                 #     return None, None, [new_sheets["errorMessage"]]
                 # all_sheets.update(new_sheets)
@@ -260,26 +278,28 @@ class ExtractorsMix:
         # if parent_task:
         #     params_after = parent_task.params_after
         new_sheets = kwargs.get("new_sheets", {})
+        all_sheet_names = kwargs.get("all_sheet_names", [])
+        self.sheet_names = all_sheet_names
         # current_sheets = params_after.get("current_sheets", [])
         # print(current_sheets)
-        all_sheets = self.explore_data or {}
-        all_sheets.update(new_sheets)
-        self.explore_data = all_sheets
+        sample_data = self.sample_data or {}
+        sample_data.update(new_sheets)
+        self.sample_data = sample_data
         self.save()
         return [], [], self
 
     def get_data_from_file_simple(
             self, type_explor, file_control=None, task_params=None):
-        from scripts.common import get_file, start_session, create_file
-        from scripts.serverless import execute_in_lambda, async_in_lambda
+        from scripts.common import get_file, start_session
+        from task.serverless import async_in_lambda
         from scripts.common import build_s3
 
         errors = []
         is_explore = bool(type_explor)
 
-        if is_explore and isinstance(self.explore_data, dict):
-            if "all_data" in self.explore_data.get("default", {}):
-                return self.explore_data, errors, None
+        if is_explore and isinstance(self.sample_data, dict):
+            if "all_data" in self.sample_data.get("default", {}):
+                return self.sample_data, errors, None
         if type_explor == 'only_save':
             params = {
                 "file": self.file.name,
@@ -337,7 +357,6 @@ class ExtractorsMix:
     def divide_rows(self, data_rows, file_control, is_explore=False):
         global raws
         from inai.models import NameColumn
-        from formula.models import MissingRow, MissingField
         current_columns = NameColumn.objects.filter(
             file_control=file_control)
         columns_count = current_columns.filter(

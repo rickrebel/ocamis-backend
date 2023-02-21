@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
 
+from task.views import build_task_params, comprobate_status
+
 from inai.models import (
     FileControl, Petition, MonthEntity, PetitionMonth, PetitionBreak,
     ProcessFile, PetitionFileControl, DataFile, Transformation)
@@ -19,6 +21,8 @@ class NormalResultsSetPagination(PageNumberPagination):
     page_size = 100
     page_size_query_param = 'page_size'
     max_page_size = 500
+
+
 # -----------------------------------------------------------------------------
 
 
@@ -30,12 +34,12 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         "create": serializers.PetitionEditSerializer,
         "retrieve": serializers.PetitionFullSerializer,
         "update": serializers.PetitionEditSerializer,
-        #"list": serializers.PetitionFilterSerializer,
-        #"change_months": serializers.PetitionEditSerializer,
+        # "list": serializers.PetitionFilterSerializer,
+        # "change_months": serializers.PetitionEditSerializer,
     }
 
     def create(self, request, **kwargs):
-        #self.check_permissions(request)
+        # self.check_permissions(request)
         data_petition = request.data
         new_petition = Petition()
         petition = None
@@ -50,7 +54,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         if serializer_pet.is_valid():
             petition = serializer_pet.save()
         else:
-            return Response({"errors": serializer_pet.errors},
+            return Response({ "errors": serializer_pet.errors },
                             status=status.HTTP_400_BAD_REQUEST)
 
         data_petition["petition"] = petition.id
@@ -76,7 +80,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
                 print(serializer_pb.errors)
 
         new_serializer = serializers.PetitionFullSerializer(
-            petition, context={'request': request})
+            petition, context={ 'request': request })
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -95,23 +99,23 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         serializer_petition = self.get_serializer_class()(
             petition, data=data_petition)
         if serializer_petition.is_valid():
-            #control = serializer_data_file.save()
+            # control = serializer_data_file.save()
             serializer_petition.save()
         else:
-            return Response({"errors": serializer_petition.errors},
+            return Response({ "errors": serializer_petition.errors },
                             status=status.HTTP_400_BAD_REQUEST)
 
         for negative in other_reasons:
             negative_obj = NegativeReason.objects.get(name=negative)
-            petition_negative_reason, created = PetitionNegativeReason.objects\
+            petition_negative_reason, created = PetitionNegativeReason.objects \
                 .get_or_create(petition=petition,
-                    negative_reason = negative_obj, is_main=False)
+                               negative_reason=negative_obj, is_main=False)
 
         if main_reason:
             negative_obj = NegativeReason.objects.get(name=main_reason)
-            petition_negative_reason, created = PetitionNegativeReason.objects\
+            petition_negative_reason, created = PetitionNegativeReason.objects \
                 .get_or_create(petition=petition,
-                    negative_reason = negative_obj, is_main=True)
+                               negative_reason=negative_obj, is_main=True)
 
         for pet_break in petition_breaks:
             if "id" in pet_break:
@@ -129,11 +133,11 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
         petition_updated = Petition.objects.get(id=petition.id)
         new_serializer = serializers.PetitionFullSerializer(
-            petition_updated, context={'request': request})
+            petition_updated, context={ 'request': request })
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
-        #return Response(
+        # return Response(
         #    serializer_petition.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["post"], detail=True)
@@ -143,14 +147,14 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             raise PermissionDenied()
         limiters = request.data.get("limiters")
         print(limiters)
-        #limiters = json.loads(limiters)
+        # limiters = json.loads(limiters)
 
         petition = self.get_object()
         current_pet_months = PetitionMonth.objects.filter(petition=petition)
         current_pet_months.exclude(
             month_entity__year_month__gte=limiters[0],
             month_entity__year_month__lte=limiters[1],
-            ).delete()
+        ).delete()
         new_month_entities = MonthEntity.objects.filter(
             entity=petition.entity,
             year_month__gte=limiters[0], year_month__lte=limiters[1])
@@ -167,12 +171,12 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
 
 class PetitionList(views.APIView):
-    permission_classes = (permissions.AllowAny, )
+    permission_classes = (permissions.AllowAny,)
     pagination_class = NormalResultsSetPagination
 
     def get(self, request):
         status_petition = request.query_params.get("status_petition")
-        #state_inegi_code = request.query_params.get("estado")
+        # state_inegi_code = request.query_params.get("estado")
 
         serial = serializers.PetitionFilterSerializer()
 
@@ -196,21 +200,21 @@ class ProcessFileViewSet(MultiSerializerModelViewSet):
 
     def create(self, request, petition_id=False):
         from rest_framework.exceptions import (
-            #ParseError,  #400
+            # ParseError,  #400
             NotFound)  # 404
 
         process_file = request.data
         new_process_file = ProcessFile()
         new_process_file.petition_id = petition_id
 
-        #serializer = serializers.ProcessFileEditSerializer(data=request.data)
+        # serializer = serializers.ProcessFileEditSerializer(data=request.data)
         serializer_proc_file = self.get_serializer_class()(
             new_process_file, data=process_file)
 
         if serializer_proc_file.is_valid():
             serializer_proc_file.save()
         else:
-            return Response({"errors": serializer_proc_file.errors},
+            return Response({ "errors": serializer_proc_file.errors },
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
             serializer_proc_file.data, status=status.HTTP_201_CREATED)
@@ -230,20 +234,20 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.FileControlSerializer
     queryset = FileControl.objects.all().prefetch_related(
-            "data_group",
-            "columns",
-            "file_transformations",
-            "columns__column_transformations",
-            "petition_file_control",
-            "petition_file_control__data_files",
-            "petition_file_control__data_files__origin_file",
-        )
+        "data_group",
+        "columns",
+        "file_transformations",
+        "columns__column_transformations",
+        "petition_file_control",
+        "petition_file_control__data_files",
+        "petition_file_control__data_files__origin_file",
+    )
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["show_institution"] = True
-        #context["show_institution"] = self.kwargs['customer_id']
-        #context["query_params"] = self.request.query_params
+        # context["show_institution"] = self.kwargs['customer_id']
+        # context["query_params"] = self.request.query_params
         return context
 
     action_serializers = {
@@ -255,15 +259,15 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     }
 
     def get(self, request):
-        #print("ESTOY EN GET")
+        # print("ESTOY EN GET")
         file_control = self.get_object()
         serializer = serializers.FileControlFullSerializer(
-            file_control, context={'request': request})
+            file_control, context={ 'request': request })
         return Response(serializer.data, status=status.HTTP_200_OK)
         return Response()
 
     def create(self, request, **kwargs):
-        #print("ESTOY EN CREATE")
+        # print("ESTOY EN CREATE")
         data_file_control = request.data
         new_file_control = FileControl()
 
@@ -274,7 +278,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         if serializer_ctrl.is_valid():
             file_control = serializer_ctrl.save()
         else:
-            return Response({"errors": serializer_ctrl.errors},
+            return Response({ "errors": serializer_ctrl.errors },
                             status=status.HTTP_400_BAD_REQUEST)
 
         if petition_id:
@@ -282,7 +286,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 petition_id=petition_id, file_control=file_control)
 
         new_serializer = serializers.PetitionFileControlDeepSerializer(
-            new_pet_file_ctrl, context={'request': request})
+            new_pet_file_ctrl, context={ 'request': request })
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -296,7 +300,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         if serializer_file_control.is_valid():
             serializer_file_control.save()
         else:
-            return Response({"errors": serializer_file_control.errors},
+            return Response({ "errors": serializer_file_control.errors },
                             status=status.HTTP_400_BAD_REQUEST)
 
         actual_id_tranformations = []
@@ -307,7 +311,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             if transform_ser.is_valid():
                 tranform = transform_ser.save()
                 actual_id_tranformations.append(tranform.id)
-        Transformation.objects.filter(file_control=file_control)\
+        Transformation.objects.filter(file_control=file_control) \
             .exclude(id__in=actual_id_tranformations).delete()
 
         new_file_control = FileControl.objects.get(id=file_control.id)
@@ -316,7 +320,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         return Response(
             new_serializer.data, status=status.HTTP_206_PARTIAL_CONTENT)
 
-        #return Response(
+        # return Response(
         #    serializer_file_control.data, status=status.HTTP_206_PARTIAL_CONTENT)
 
     @action(methods=["post"], detail=True, url_path='columns')
@@ -327,7 +331,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             raise PermissionDenied()
         columns_items = request.data.get("columns")
         file_control = self.get_object()
-        #limiters = json.loads(limiters)
+        # limiters = json.loads(limiters)
 
         actual_id_columns = []
         for (order, column_item) in enumerate(columns_items, start=1):
@@ -336,14 +340,14 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             print("TRANSFORMATIONS", transformations)
             column_item["seq"] = order
             if column_id:
-                #print("sí tenngo column", column_item["id"])
+                # print("sí tenngo column", column_item["id"])
                 column = NameColumn.objects.filter(
                     id=column_id, file_control=file_control).first()
                 if not column:
                     print("no continúo")
                     continue
             else:
-                #print("Es nuevooo")
+                # print("Es nuevooo")
                 column = NameColumn()
                 column.file_control = file_control
 
@@ -366,12 +370,12 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                         print("transf_id", tranform.id)
                     else:
                         print("NO ES VALIDO", transform_ser.errors)
-                Transformation.objects.filter(name_column=column)\
+                Transformation.objects.filter(name_column=column) \
                     .exclude(id__in=actual_id_tranformations).delete()
             else:
                 print("no es válido")
                 print(column_serializer.errors)
-        NameColumn.objects.filter(file_control=file_control)\
+        NameColumn.objects.filter(file_control=file_control) \
             .exclude(id__in=actual_id_columns).delete()
 
         new_file_control = FileControl.objects.get(id=file_control.id)
@@ -382,8 +386,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
     @action(methods=["get"], detail=True, url_path='link_orphans')
     def link_orphans(self, request, **kwargs):
-        from inai.models import AsyncTask
-        from datetime import datetime
         from inai.api.common import send_response
 
         file_control = self.get_object()
@@ -393,16 +395,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             petition_file_control__file_control__data_group__name="orphan",
         )
         if orphan_files.exists():
-            key_task = AsyncTask.objects.create(
-                user=request.user,
-                file_control=file_control,
-                function_name="link_orphans",
-                status_task_id="created",
-                date_start=datetime.now(),
-            )
-            task_params = {
-                "parent_task": key_task,
-            }
+            key_task, task_params = build_task_params(
+                file_control, "link_orphans", request)
             new_tasks, new_errors = petition.find_matches_in_children(
                 orphan_files, current_file_ctrl=file_control.id,
                 task_params=task_params)
@@ -412,23 +406,23 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             return send_response(petition, task=key_task, errors=new_errors)
         else:
             return Response(
-                {"errors": ["No hay archivos en grupos huérfanos"]},
+                { "errors": ["No hay archivos en grupos huérfanos"] },
                 status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["put"], detail=True, url_path='massive_action')
     def massive_action(self, request, **kwargs):
-        from inai.views import comprobate_status
+
         file_control = self.get_object()
-        status_req = request.data.get("status", {})
+        status_req = request.data.get("status", { })
         status_id = status_req.get("id", False)
+        status_name = status_req.get("name", False)
         all_data_files = DataFile.objects.filter(
             petition_file_control__file_control=file_control,
             status_process_id=status_id)
-        method = status_req.get("addl_params", {}).get("next_step", {}).get("method", False)
+        method = status_req.get("addl_params", { }).get("next_step", { }).get("method", False)
         if method == "buildExploreDataFile":
-            task_params = file_control.build_task_params(
-                "massive_action", request)
-            key_task = task_params["parent_task"]
+            key_task, task_params = build_task_params(
+                file_control, "massive_explore", request, subgroup=status_name)
             all_tasks = []
             all_errors = []
             for data_file in all_data_files:
@@ -436,7 +430,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                     "after_if_empty": "find_coincidences_from_aws",
                     "all_tasks": all_tasks,
                 }
-                all_tasks, new_errors, data_file = data_file.get_explore_data(
+                all_tasks, new_errors, data_file = data_file.get_sample_data(
                     task_params, **curr_kwargs)
                 if not data_file:
                     continue
@@ -452,16 +446,14 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 "file_control": serializers.FileControlFullSerializer(
                     file_control).data,
             }
-            key_task = comprobate_status(
-                key_task, errors=all_errors, new_tasks=all_tasks)
-            if key_task:
-                data["new_task"] = key_task.id
+            comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
+            data["new_task"] = key_task.id
             return Response(data, status=status.HTTP_200_OK)
 
         # print("STATUS", status_req)
 
         return Response({"errors": ["No se encontró el método"]},
-            status=status.HTTP_400_BAD_REQUEST)
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class PetitionFileControlViewSet(CreateRetrievView):
@@ -476,14 +468,14 @@ class PetitionFileControlViewSet(CreateRetrievView):
     }
 
     def get_queryset(self):
-        #if "petition_id" in self.kwargs:
+        # if "petition_id" in self.kwargs:
         #    return PetitionFileControl.objects.filter(
         #        petition=self.kwargs["petition_id"])
         return PetitionFileControl.objects.all()
 
     def create(self, request, petition_id=False):
         from rest_framework.exceptions import (
-            #ParseError,  #400
+            # ParseError,  #400
             NotFound)  # 404
 
         petition_file_control = request.data
@@ -495,7 +487,7 @@ class PetitionFileControlViewSet(CreateRetrievView):
         if serializer_pet_file_ctrl.is_valid():
             serializer_pet_file_ctrl.save()
         else:
-            return Response({"errors": serializer_pet_file_ctrl.errors},
+            return Response({ "errors": serializer_pet_file_ctrl.errors },
                             status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
@@ -538,7 +530,7 @@ class AscertainableViewSet(CreateRetrievView):
 
     def create(self, request, petition_file_control_id=False, **kwargs):
         from rest_framework.exceptions import (
-            #ParseError,  #400
+            # ParseError,  #400
             NotFound)  # 404
 
         data_file = request.data
@@ -547,30 +539,30 @@ class AscertainableViewSet(CreateRetrievView):
         serializer_data_file = self.get_serializer_class()(
             new_data_file, data=data_file)
         if serializer_data_file.is_valid():
-            #control = serializer_data_file.save()
+            # control = serializer_data_file.save()
             serializer_data_file.save()
         else:
-            return Response({"errors": serializer_data_file.errors},
+            return Response({ "errors": serializer_data_file.errors },
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
             serializer_data_file.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, **kwargs):
         from rest_framework.exceptions import (
-            #ParseError,  #400
+            # ParseError,  #400
             NotFound)  # 404
 
         data_file = self.get_object()
         data = request.data
-        #new_data_file = DataFile()
+        # new_data_file = DataFile()
 
         serializer_data_file = self.get_serializer_class()(
             data_file, data=data)
         if serializer_data_file.is_valid():
-            #control = serializer_data_file.save()
+            # control = serializer_data_file.save()
             serializer_data_file.save()
         else:
-            return Response({"errors": serializer_data_file.errors},
+            return Response({ "errors": serializer_data_file.errors },
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
             serializer_data_file.data, status=status.HTTP_206_PARTIAL_CONTENT)
@@ -578,11 +570,10 @@ class AscertainableViewSet(CreateRetrievView):
     def destroy(self, request, **kwargs):
         petition_file_control_id = self.kwargs.get("petition_file_control_id")
         try:
-            petition_file_control = PetitionFileControl.objects\
+            petition_file_control = PetitionFileControl.objects \
                 .get(id=petition_file_control_id)
         except Exception:
             return Response(status=status.HTTP_404_NOT_FOUND)
         data_file = self.get_object()
         self.perform_destroy(data_file)
         return Response(status=status.HTTP_200_OK)
-

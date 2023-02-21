@@ -4,7 +4,7 @@ from rest_framework import serializers
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
     DateBreak, Anomaly, InvalidReason, FileFormat,
-    TransparencyIndex, TransparencyLevel, StatusTask)
+    TransparencyIndex, TransparencyLevel)
 
 
 class FileTypeSimpleSerializer(serializers.ModelSerializer):
@@ -89,11 +89,4 @@ class TransparencyIndexSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TransparencyIndex
-        fields = "__all__"
-
-
-class StatusTaskSimpleSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = StatusTask
         fields = "__all__"

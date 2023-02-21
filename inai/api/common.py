@@ -3,17 +3,20 @@ from catalog.api.serializers import EntityFileControlsSerializer
 from rest_framework.response import Response
 from rest_framework import status
 
+from task.api.serializers import AsyncTaskSerializer
+
 
 def send_response(petition, task=None, errors=None):
     petition_data = serializers.PetitionFullSerializer(petition).data
-    # tasks_data = serializers.AsyncTaskSerializer(all_tasks, many=True).data
     data = {
         "errors": errors,
         "petition": petition_data,
         "file_controls": EntityFileControlsSerializer(
             petition.entity).data["file_controls"],
     }
+
     if task:
-        current_task_data = serializers.AsyncTaskSerializer(task).data
-        data["current_task"] = current_task_data
+        # current_task_data = AsyncTaskSerializer(task).data
+        # data["current_task"] = current_task_data
+        data["new_task"] = task.id
     return Response(data, status=status.HTTP_200_OK)

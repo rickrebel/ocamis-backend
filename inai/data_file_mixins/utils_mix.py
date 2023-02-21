@@ -41,6 +41,7 @@ class DataUtilsMix:
         self.all_results = curr_result
         self.save()
 
+    # RICK 14
     def massive_insert_copy(self, errors, error_name):
         #guardo esto para considerarlo en "missing_rows":
         """
@@ -51,17 +52,3 @@ class DataUtilsMix:
             errors=["Conteo distinto de Columnas %s" % len(row_data)],
         )"""
         return 2
-
-    def build_task_params(self, function_name, request):
-        from inai.models import AsyncTask
-        from datetime import datetime
-        key_task = AsyncTask.objects.create(
-            user=request.user, function_name=function_name,
-            data_file=self, date_start=datetime.now(),
-            status_task_id="created"
-        )
-        return {
-            "parent_task": key_task
-        }
-
-

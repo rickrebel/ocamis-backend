@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "data_param.apps.DataParamConfig",
     "inai.apps.InaiConfig",
     "category.apps.CategoryConfig",
+    "task.apps.TaskConfig",
 ]
 
 MIDDLEWARE = [
@@ -113,7 +114,8 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            'hosts': [('localhost', 6379)],
+            # 'hosts': [('localhost', 6379)],
+            'hosts': ['redis://localhost:6379'],
         },
     },
 }

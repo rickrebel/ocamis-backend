@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=225)),
                 ('description', models.TextField(blank=True, null=True)),
-                ('addl_params', django.contrib.postgres.fields.jsonb.JSONField(default=data_param.models.DataType.default_params_data_type, verbose_name='Otras configuraciones')),
+                ('addl_params', django.contrib.postgres.fields.jsonb.JSONField(verbose_name='Otras configuraciones')),
                 ('is_common', models.BooleanField(default=True)),
                 ('order', models.IntegerField(default=1)),
             ],

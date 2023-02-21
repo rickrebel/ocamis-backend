@@ -14,7 +14,7 @@ def similar(a, b):
         return 0
 
 
-@functools.lru_cache(maxsize=None)
+# @functools.lru_cache(maxsize=None)
 def get_excel_file(file_path):
     import pandas as pd
     return pd.ExcelFile(file_path)

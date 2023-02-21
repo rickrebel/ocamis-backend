@@ -1,0 +1,64 @@
+from rest_framework import permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from api.mixins import (
+    MultiSerializerListRetrieveMix as ListRetrieveView)
+
+from task.api import serializers
+from task.models import AsyncTask
+
+
+class AsyncTaskViewSet(ListRetrieveView):
+    queryset = AsyncTask.objects.all()
+    serializer_class = serializers.AsyncTaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "list": serializers.AsyncTaskSerializer,
+        "retrieve": serializers.AsyncTaskSerializer,
+    }
+
+    def get_queryset(self):
+        return AsyncTask.objects.all()
+
+    @action(methods=["get"], detail=False, url_path='last_hours')
+    def last_hours(self, request, **kwargs):
+        from datetime import datetime, timedelta
+        from django.contrib.auth.models import User
+        from auth.api.serializers import UserDataSerializer
+        total_hours = request.query_params.get("hours", 3)
+        now = datetime.now()
+        last_hours = now - timedelta(hours=int(total_hours))
+        task_by_start = AsyncTask.objects.filter(
+            date_start__gte=last_hours)
+        task_by_end = AsyncTask.objects.filter(
+            date_end__gte=last_hours)
+        all_tasks = task_by_start | task_by_end
+        staff_users = User.objects.filter(is_staff=True)
+        staff_data = UserDataSerializer(staff_users, many=True).data
+        data = {
+            "tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
+            "staff_users": staff_data,
+            "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], detail=False, url_path='news')
+    def news(self, request, **kwargs):
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        last_request = request.query_params.get("last_request")
+        if last_request:
+            last_request = datetime.strptime(last_request, "%Y-%m-%d %H:%M:%S")
+        else:
+            last_request = now - timedelta(hours=3)
+        task_by_start = AsyncTask.objects.filter(
+            date_start__gte=last_request)
+        task_by_end = AsyncTask.objects.filter(
+            date_end__gte=last_request)
+        all_tasks = task_by_start | task_by_end
+        data = {
+            "new_tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
+            "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        return Response(data, status=status.HTTP_200_OK)

@@ -1,7 +1,5 @@
-from distutils import extension
 from django.db import models
 from django.db.models import JSONField
-
 
 GROUP_CHOICES = (
     ("petition", "de Solicitud"),
@@ -11,8 +9,10 @@ GROUP_CHOICES = (
     ("register", "Registro de variables (solo devs)"),
 )
 
+
 def default_list():
     return []
+
 
 def default_dict():
     return {}
@@ -204,7 +204,8 @@ class TransparencyLevel(models.Model):
     other_conditions = JSONField(default=default_list, blank=True)
     viz_params = JSONField(default=default_dict, blank=True)
     is_default = models.BooleanField(default=False)
-    final_level = models.ForeignKey("TransparencyLevel", 
+    final_level = models.ForeignKey(
+        "TransparencyLevel",
         verbose_name="Concentrado destino", 
         help_text="Si existe, se va a ese nivel de indicador principal",
         blank=True, null=True, on_delete=models.CASCADE)
@@ -228,21 +229,3 @@ class TransparencyLevel(models.Model):
         verbose_name = u"Transparencia: Nivel"
         verbose_name_plural = u"Transparencia: Niveles"
 
-
-class StatusTask(models.Model):
-
-    name = models.CharField(max_length=80, primary_key=True)
-    public_name = models.CharField(max_length=120, blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
-    order = models.IntegerField(default=5)
-    icon = models.CharField(max_length=30, blank=True, null=True)
-    color = models.CharField(max_length=30, blank=True, null=True)
-    is_completed = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.public_name or self.name
-
-    class Meta:
-        ordering = ['order']
-        verbose_name = u"Estado de tarea"
-        verbose_name_plural = u"Estados de tareas"
