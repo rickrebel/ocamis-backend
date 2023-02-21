@@ -25,6 +25,16 @@ class AsyncTaskSimpleSerializer(serializers.ModelSerializer):
         exclude = ()
 
 
+class AsyncTaskFullSerializer(serializers.ModelSerializer):
+    from inai.api.serializers import DataFileSerializer
+    data_file_full = DataFileSerializer(read_only=True, source="data_file")
+
+    class Meta:
+        model = AsyncTask
+        fields = "__all__"
+        exclude = ["result"]
+
+
 class TaskFunctionSerializer(serializers.ModelSerializer):
     model_public_name = serializers.SerializerMethodField()
 

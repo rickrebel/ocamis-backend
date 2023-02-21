@@ -92,7 +92,10 @@ def sincronize_entities(app_name, model_name, field_id="id"):
 #generate_file('category', 'TransparencyLevel')
 #sincronize_entities('category', 'TransparencyLevel')
 #generate_file('category', 'StatusTask')
+# generate_file('task', 'StatusTask')
+# generate_file('task', 'TaskFunction')
 sincronize_entities('task', 'StatusTask', field_id='name')
+sincronize_entities('task', 'TaskFunction', field_id='name')
 
 #generate_file('catalog', 'Entity')
 #sincronize_entities('catalog', 'Entity')

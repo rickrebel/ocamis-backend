@@ -79,6 +79,7 @@ def async_task_post_save(sender, instance, created, **kwargs):
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
     from task.api.serializers import AsyncTaskSerializer
+    from task.api.serializers import AsyncTaskFullSerializer
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         "dashboard", {

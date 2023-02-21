@@ -75,7 +75,7 @@ class ExploreMix:
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
         data_file, saved, errors = data_file.find_coincidences(saved=False)
         if not saved and not errors:
-            errors = ["No coincide con el formato del archivo"]
+            errors = ["No coincide con el formato del archivo 3"]
         if errors:
             data_file.save_errors(errors, "explore_fail")
             return [], errors, None
@@ -88,14 +88,14 @@ class ExploreMix:
         data_file = self
         if not parent:
             parent = data_file
+        data, errors, new_task = data_file.transform_file_in_data(
+            'auto_explore', task_params=task_params, file_control=file_ctrl)
         if not petition or not file_ctrl:
             pfc = data_file.petition_file_control
             if not petition:
                 petition = pfc.petition
             if not file_ctrl:
                 file_ctrl = pfc.file_control
-        data, errors, new_task = data_file.transform_file_in_data(
-            'auto_explore', task_params=task_params, file_control=file_ctrl)
         # if not data:
         if errors:
             # errors.append("No se pudo explorar el archivo")
@@ -396,6 +396,7 @@ class ExploreMix:
             "final_field__parameter_group", "data_type"]
         validated_data = data["structured_data"]
         current_sheets = data["current_sheets"]
+        print("current_sheets", current_sheets)
         first_valid_sheet = None
         for sheet_name in current_sheets:
             sheet_data = validated_data[sheet_name]

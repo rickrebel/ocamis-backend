@@ -130,8 +130,10 @@ def build_task_params(
 
     def update_previous_tasks(tasks):
         # print("TASKS: ", tasks)
-        tasks.update(is_current=False)
+        # tasks.update(is_current=False)
         for task in tasks:
+            task.is_current = False
+            task.save()
             if task.child_tasks.exists():
                 update_previous_tasks(task.child_tasks.all())
 
@@ -168,7 +170,7 @@ def comprobate_status(
             body_response["errors"] = errors
             return Response(body_response, status=status.HTTP_400_BAD_REQUEST)
         if new_tasks:
-            return Response(body_response, status=status.HTTP_200_ACCEPTED)
+            return Response(body_response, status=status.HTTP_200_OK)
         else:
             return None
     return current_task

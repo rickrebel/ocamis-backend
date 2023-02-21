@@ -189,10 +189,8 @@ class DataFileViewSet(CreateRetrievView):
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
-        task_params = build_task_params(
+        key_task, task_params = build_task_params(
             data_file, "build_sample_data", request)
-        # new_tasks = []
-        key_task = task_params.get("parent_task")
         curr_kwargs = {
             "after_if_empty": "find_coincidences_from_aws",
         }
@@ -206,7 +204,7 @@ class DataFileViewSet(CreateRetrievView):
 
         data_file, saved, errors = data_file.find_coincidences()
         if not saved and not errors:
-            errors = ["No coincide con el formato del archivo"]
+            errors = ["No coincide con el formato del archivo 2"]
         response_body = {}
         if errors:
             data_file.save_errors(errors, "explore_fail")
@@ -274,8 +272,8 @@ class DataFileViewSet(CreateRetrievView):
     def build_columns(self, request, **kwargs):
 
         data_file = self.get_object()
-        task_params = build_task_params(data_file, "build_columns", request)
-        key_task = task_params["parent_task"]
+        key_task, task_params = build_task_params(
+            data_file, "build_columns", request)
         curr_kwargs = {
             "after_if_empty": "explore_data_xls_after",
         }

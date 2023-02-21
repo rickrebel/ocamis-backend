@@ -437,7 +437,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 task_params["models"] = [data_file]
                 data_file, saved, errors = data_file.find_coincidences()
                 if not saved and not errors:
-                    errors = ["No coincide con el formato del archivo"]
+                    errors = ["No coincide con el formato del archivo 1"]
                 if errors:
                     all_errors.extend(errors)
                     data_file.save_errors(errors, "explore_fail")

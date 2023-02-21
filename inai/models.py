@@ -286,7 +286,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         PetitionMonth, blank=True, null=True,
         on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
-    #is_final = models.BooleanField(default= True)
+    # is_final = models.BooleanField(default= True)
     origin_file = models.ForeignKey(
         "DataFile", blank=True, null=True, related_name="child_files",
         verbose_name="archivo origen", on_delete=models.CASCADE)

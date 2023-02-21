@@ -52,7 +52,7 @@ def async_in_lambda(function_name, params, task_params):
 
     for model in task_params["models"]:
         query_kwargs[camel_to_snake(model.__class__.__name__)] = model
-    # print("query_kwargs:\n", query_kwargs, "\n")
+    print("query_kwargs:\n", query_kwargs, "\n")
     current_task = AsyncTask.objects.create(**query_kwargs)
     dumb_params = json.dumps(params)
     # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)

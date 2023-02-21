@@ -38,10 +38,12 @@ class ExtractorsMix:
         data_file.error_process = []
         parent_task = task_params.get("parent_task")
         # previos_tasks
-        AsyncTask.objects.filter(data_file=data_file)\
+        previos_tasks = AsyncTask.objects.filter(data_file=data_file)\
             .exclude(parent_task=parent_task)\
-            .exclude(id=parent_task.id)\
-            .update(is_current=False)
+            .exclude(id=parent_task.id)
+        for task in previos_tasks:
+            task.is_current = False
+            task.save()
         data_file.save()
         task_params["models"] = [data_file]
         if not data_file.suffix:
@@ -51,6 +53,7 @@ class ExtractorsMix:
                 data_file.suffix = suffix
                 data_file.save()
             else:
+                self.save_errors(errors, 'explore_fail')
                 return [first_task], errors, None
                 # else:
                 #     all_results["ValidFormat"] = {
@@ -61,6 +64,7 @@ class ExtractorsMix:
         if not data_file:
             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
         elif not data_file.sample_data:
+            print("NO HAY SAMPLE DATA")
             task_params["function_after"] = kwargs.get("after_if_empty")
             current_file_ctrl = kwargs.get("current_file_ctrl")
             params_after = task_params.get("params_after", {})
@@ -121,6 +125,8 @@ class ExtractorsMix:
             data_file.save()
 
         if type_explor == 'only_save':
+            print("Estoy en only_save")
+            print("current_sheets", current_sheets)
             return data_file, errors, new_task
 
         row_headers = file_control.row_headers or 0
@@ -193,6 +199,7 @@ class ExtractorsMix:
             all_sheets = {}
 
         sheet_names = self.sheet_names or []
+        print("sheet_names en get_data_from_excel", sheet_names)
         has_sheet_names = bool(sheet_names)
         # if not sheet_names:
         #     try:
@@ -212,13 +219,13 @@ class ExtractorsMix:
             n_end = 30 if len(sheet_names) < 10 else 15
             saved_sheet_names = all_sheets.keys()
             pending_sheets = list(set(sheet_names) - set(saved_sheet_names))
-            if pending_sheets or has_sheet_names:
+            if pending_sheets or not has_sheet_names:
                 params = {
                     "final_path": self.final_path,
                     "n_rows": n_rows,
                     "n_end": n_end,
                     "sheets": pending_sheets,
-                    "ready_sheets": saved_sheet_names,
+                    "ready_sheets": list(saved_sheet_names),
                 }
                 task_params = task_params or {}
                 params_after = task_params.get("params_after", {})
