@@ -56,6 +56,18 @@ class AWSMessage(generic.View):
         return HttpResponse()
 
 
+def extract_only_message(error_text):
+    import re
+    pattern = r".*[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12} (.*)"
+    match = re.search(pattern, error_text)
+
+    if match:
+        return match.group(1)
+    else:
+        return error_text
+
+
+
 class AWSErrors(generic.View):
 
     def get(self, request, *args, **kwargs):
@@ -73,14 +85,29 @@ class AWSErrors(generic.View):
         import json
         from datetime import datetime
         # from task.models import AsyncTask
-        print("HOLA POST")
-        print(request)
+        print("HOLA ERRORES")
+        # print(request)
         print("++++++++++++++++++++++++++++++++++++++++++++++")
         try:
             body = json.loads(request.body)
-            print("body: \n", body)
         except Exception as e:
-            print("ERROR: ", e)
+            print("ERROR AL LEER EL BODY: ", e)
+            print("request original: \n", request)
+        try:
+            message = body.get("MessageAttributes", {})
+            request_id = message.get("RequestID", {}).get("Value")
+            if request_id:
+                current_task = AsyncTask.objects.get(request_id=request_id)
+                # current_task.status_task_id = "not_executed"
+                current_task.date_arrive = datetime.now()
+                error = message.get("ErrorMessage", {}).get("Value")
+                error = extract_only_message(error)
+                # current_task.errors = extract_only_message(error)
+                current_task.traceback = request.body
+                comprobate_status(current_task, error, [])
+        except Exception as e:
+            print("ERROR AL GUARDAR: ", e)
+            print("body: \n", body)
         return HttpResponse()
 
 
@@ -106,12 +133,12 @@ class AWSSuccess(generic.View):
         print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
         try:
             body = json.loads(request.body)
-            print("body: \n", body)
-            response_payload = body.pop("responsePayload")
-            payload_body = response_payload.pop("body")
-            payload_body = json.loads(payload_body)
-            print("body: \n", body)
-            print("response_payload: \n", response_payload)
+            # print("body: \n", body)
+            message = body.pop("Message")
+            payload = json.loads(message)
+            print("payload: \n\n", payload, "\n\n")
+            # payload_body = payload.pop("body")
+            # print("payload_body: \n", payload_body)
         except Exception as e:
             print("ERROR: ", e)
         return HttpResponse()
@@ -156,9 +183,11 @@ def comprobate_status(
     if not current_task:
         return None
     if errors:
-        # print("FINAL ERRORS: ", errors)
         current_task.errors = errors
-        status_task_id = "with_errors"
+        if isinstance(errors, str):
+            status_task_id = "not_executed"
+        else:
+            status_task_id = "with_errors"
     elif new_tasks:
         status_task_id = "children_tasks"
     else:

@@ -199,7 +199,6 @@ class ExtractorsMix:
             all_sheets = {}
 
         sheet_names = self.sheet_names or []
-        print("sheet_names en get_data_from_excel", sheet_names)
         has_sheet_names = bool(sheet_names)
         # if not sheet_names:
         #     try:

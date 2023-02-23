@@ -28,10 +28,16 @@ class AsyncTaskSimpleSerializer(serializers.ModelSerializer):
 class AsyncTaskFullSerializer(serializers.ModelSerializer):
     from inai.api.serializers import DataFileSerializer
     data_file_full = DataFileSerializer(read_only=True, source="data_file")
+    # entity_id = serializers.IntegerField(source="data_file.petition_file_control.petition.entity.id")
+    petition_id = serializers.IntegerField(
+        source="data_file.petition_file_control.petition.id", read_only=True)
+    file_control_id = serializers.IntegerField(
+        source="data_file.petition_file_control.file_control.id", read_only=True)
 
     class Meta:
         model = AsyncTask
-        fields = "__all__"
+        # fields = "__all__"
+        #exclude = ["result", "petition_id", "file_control_id"]
         exclude = ["result"]
 
 

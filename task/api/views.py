@@ -10,11 +10,11 @@ from task.models import AsyncTask
 
 class AsyncTaskViewSet(ListRetrieveView):
     queryset = AsyncTask.objects.all()
-    serializer_class = serializers.AsyncTaskSerializer
+    serializer_class = serializers.AsyncTaskFullSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "list": serializers.AsyncTaskSerializer,
-        "retrieve": serializers.AsyncTaskSerializer,
+        "list": serializers.AsyncTaskFullSerializer,
+        "retrieve": serializers.AsyncTaskFullSerializer,
     }
 
     def get_queryset(self):
@@ -36,7 +36,7 @@ class AsyncTaskViewSet(ListRetrieveView):
         staff_users = User.objects.filter(is_staff=True)
         staff_data = UserDataSerializer(staff_users, many=True).data
         data = {
-            "tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
+            "tasks": serializers.AsyncTaskFullSerializer(all_tasks, many=True).data,
             "staff_users": staff_data,
             "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
         }
@@ -58,7 +58,7 @@ class AsyncTaskViewSet(ListRetrieveView):
             date_end__gte=last_request)
         all_tasks = task_by_start | task_by_end
         data = {
-            "new_tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
+            "new_tasks": serializers.AsyncTaskFullSerializer(all_tasks, many=True).data,
             "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
         }
         return Response(data, status=status.HTTP_200_OK)

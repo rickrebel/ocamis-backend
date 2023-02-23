@@ -127,6 +127,7 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
         queryset = FileControl.objects\
             .filter(petition_file_control__petition__entity=obj)\
             .distinct()\
+            .order_by("data_group", "id")\
             .prefetch_related(
                 "data_group",
                 "columns",

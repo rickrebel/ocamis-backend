@@ -48,9 +48,10 @@ class AsyncTask(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, blank=True, null=True)
     result = JSONField(blank=True, null=True)
-    error = models.TextField(blank=True, null=True)
+    # error = models.TextField(blank=True, null=True)
+    errors = JSONField(blank=True, null=True)
     is_current = models.BooleanField(
-        default=True, verbose_name="Es la última tarea")
+        default=True, verbose_name="last")
     traceback = models.TextField(blank=True, null=True)
     date_start = models.DateTimeField(blank=True, null=True)
     date_arrive = models.DateTimeField(blank=True, null=True)
@@ -67,6 +68,9 @@ class AsyncTask(models.Model):
     def __str__(self):
         return "%s -- %s" % (self.task_function.name, self.status_task)
 
+    def display_name(self):
+        return "%s -- %s" % (self.task_function.name, self.status_task)
+
     class Meta:
         ordering = ["-date_start"]
         verbose_name = "Tarea asincrónica"
@@ -78,7 +82,6 @@ def async_task_post_save(sender, instance, created, **kwargs):
     # print("kwargs", kwargs)
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
-    from task.api.serializers import AsyncTaskSerializer
     from task.api.serializers import AsyncTaskFullSerializer
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
@@ -87,7 +90,7 @@ def async_task_post_save(sender, instance, created, **kwargs):
             "result": {
                 "model": sender.__name__,
                 "created": created,
-                "task_data": AsyncTaskSerializer(instance).data,
+                "task_data": AsyncTaskFullSerializer(instance).data,
             }
         },
     )
