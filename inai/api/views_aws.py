@@ -32,7 +32,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     def retrieve(self, request, pk=None):
         from inai.models import FileControl, ProcessFile
         from data_param.models import DataGroup
-        from datetime import datetime
 
         petition = self.get_object()
         current_file_ctrl = request.query_params.get("file_ctrl", False)
@@ -56,7 +55,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             .get_or_create(file_control=file_control, petition=petition)
         all_tasks = []
         all_errors = []
-        key_task = None
         if file_id:
             key_task, task_params = build_task_params(
                 petition, "auto_explore", request)

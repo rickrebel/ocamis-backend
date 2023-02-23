@@ -49,6 +49,8 @@ class AsyncTaskViewSet(ListRetrieveView):
         now = datetime.now()
         last_request = request.query_params.get("last_request")
         if last_request:
+            #format_string = "%a %b %d %Y %H:%M:%S GMT%z (%Z)"
+            #last_request = datetime.strptime(last_request, format_string)
             last_request = datetime.strptime(last_request, "%Y-%m-%d %H:%M:%S")
         else:
             last_request = now - timedelta(hours=3)

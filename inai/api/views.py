@@ -285,10 +285,15 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             new_pet_file_ctrl = PetitionFileControl.objects.create(
                 petition_id=petition_id, file_control=file_control)
 
-        new_serializer = serializers.PetitionFileControlDeepSerializer(
-            new_pet_file_ctrl, context={ 'request': request })
-        return Response(
-            new_serializer.data, status=status.HTTP_201_CREATED)
+            new_serializer = serializers.PetitionFileControlDeepSerializer(
+                new_pet_file_ctrl, context={ 'request': request })
+            return Response(
+                new_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                {"errors": "No se ha podido crear el control de archivo"},
+                status=status.HTTP_400_BAD_REQUEST)
+
 
     def update(self, request, **kwargs):
         file_control = self.get_object()

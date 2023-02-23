@@ -136,7 +136,7 @@ class AWSSuccess(generic.View):
             # print("body: \n", body)
             message = body.pop("Message")
             payload = json.loads(message)
-            print("payload: \n\n", payload, "\n\n")
+            # print("payload: \n\n", payload, "\n\n")
             # payload_body = payload.pop("body")
             # print("payload_body: \n", payload_body)
         except Exception as e:
