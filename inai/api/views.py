@@ -430,7 +430,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 file_control, "massive_explore", request, subgroup=status_name)
             all_tasks = []
             all_errors = []
-            for data_file in all_data_files:
+            for data_file in all_data_files[:50]:
                 curr_kwargs = {
                     "after_if_empty": "find_coincidences_from_aws",
                     "all_tasks": all_tasks,

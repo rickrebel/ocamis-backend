@@ -48,12 +48,19 @@ class AsyncTaskViewSet(ListRetrieveView):
 
         now = datetime.now()
         last_request = request.query_params.get("last_request")
-        if last_request:
-            #format_string = "%a %b %d %Y %H:%M:%S GMT%z (%Z)"
-            #last_request = datetime.strptime(last_request, format_string)
+        #format_string = "%a %b %d %Y %H:%M:%S GMT%z (%Z)"
+        #last_request = datetime.strptime(last_request, format_string)
+
+        # convert unix timestamp to datetime
+        try:
+            # epoch_time = (int(last_request)/1000) + (3600 * 6)
             last_request = datetime.strptime(last_request, "%Y-%m-%d %H:%M:%S")
-        else:
+            last_request -= timedelta(seconds=120)
+            # last_request = datetime.fromtimestamp(epoch_time)
+        except Exception as e:
+            print("ERROR: ", e)
             last_request = now - timedelta(hours=3)
+
         task_by_start = AsyncTask.objects.filter(
             date_start__gte=last_request)
         task_by_end = AsyncTask.objects.filter(
@@ -62,5 +69,7 @@ class AsyncTaskViewSet(ListRetrieveView):
         data = {
             "new_tasks": serializers.AsyncTaskFullSerializer(all_tasks, many=True).data,
             "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "last_request_sent": last_request.strftime("%Y-%m-%d %H:%M:%S"),
+            "last_task": AsyncTask.objects.first().date_start.strftime("%Y-%m-%d %H:%M:%S"),
         }
         return Response(data, status=status.HTTP_200_OK)

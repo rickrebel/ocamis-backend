@@ -216,33 +216,34 @@ class DataFileViewSet(CreateRetrievView):
         if response_body:
             return Response(response_body, status=final_status)
         #RICK 14
-        if errors:
-            print("ANALIZAR")
         else:
-            if new_data_file:
-                new_data_file = new_data_file.change_status("success_exploration")
-                final_status = status.HTTP_200_OK
+            if errors:
+                print("ANALIZAR")
             else:
-                new_data_file = data_file.change_status("success_exploration")
-                final_status = status.HTTP_400_BAD_REQUEST
-        if new_data_file:
+                if new_data_file:
+                    new_data_file = new_data_file.change_status("success_exploration")
+                    final_status = status.HTTP_200_OK
+                else:
+                    new_data_file = data_file.change_status("success_exploration")
+                    final_status = status.HTTP_400_BAD_REQUEST
             if new_data_file:
-                data = DataFileSerializer(new_data_file).data
-            else:
-                data = DataFileSerializer(data_file).data
-            response_body["data_file"] = data
-        child_data_files = DataFile.objects.filter(
-            origin_file=data_file)
-        # print("child_data_files: ", child_data_files.count())
-        key_task = task_params["parent_task"]
-        key_task = comprobate_status(
-            key_task, errors=[], new_tasks=new_tasks)
-        if key_task:
-            response_body["new_task"] = key_task.id
-        if new_ch:
-            response_body["new_files"] = DataFileSerializer(
-                new_ch, many=True).data
-        return Response(response_body, status=final_status)
+                if new_data_file:
+                    data = DataFileSerializer(new_data_file).data
+                else:
+                    data = DataFileSerializer(data_file).data
+                response_body["data_file"] = data
+            child_data_files = DataFile.objects.filter(
+                origin_file=data_file)
+            # print("child_data_files: ", child_data_files.count())
+            key_task = task_params["parent_task"]
+            key_task = comprobate_status(
+                key_task, errors=[], new_tasks=new_tasks)
+            if key_task:
+                response_body["new_task"] = key_task.id
+            if new_ch:
+                response_body["new_files"] = DataFileSerializer(
+                    new_ch, many=True).data
+            return Response(response_body, status=final_status)
 
     @action(methods=["get"], detail=True, url_path="counting")
     def counting(self, request, **kwargs):
@@ -250,6 +251,25 @@ class DataFileViewSet(CreateRetrievView):
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
+        key_task, task_params = build_task_params(
+            data_file, "counting", request)
+        curr_kwargs = {
+            "after_if_empty": "find_coincidences_from_aws",
+        }
+        all_tasks, all_errors, data_file = data_file.get_sample_data(
+            task_params, **curr_kwargs)
+
+        resp = comprobate_status(
+            key_task, all_errors, all_tasks, want_http_response=True)
+        if resp:
+            return resp
+
+        all_tasks, all_errors, data_file = data_file.every_has_total_rows(
+            task_params)
+        data_file, saved, errors = data_file.find_coincidences()
+
+
+
         data_file, errors, new_ch = data_file.comprobate_coincidences()
         response_body = {}
         final_status = status.HTTP_200_OK

@@ -55,15 +55,11 @@ class ExtractorsMix:
             else:
                 self.save_errors(errors, 'explore_fail')
                 return [first_task], errors, None
-                # else:
-                #     all_results["ValidFormat"] = {
-                #         "success": False,
-                #         "errors": errors}
-                # return all_tasks, errors, None
         new_errors = []
+        forced_save = kwargs.get("forced_save", False)
         if not data_file:
             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-        elif not data_file.sample_data:
+        elif not data_file.sample_data or forced_save:
             print("NO HAY SAMPLE DATA")
             task_params["function_after"] = kwargs.get("after_if_empty")
             current_file_ctrl = kwargs.get("current_file_ctrl")
@@ -71,8 +67,9 @@ class ExtractorsMix:
             after_params_if_empty = kwargs.get("after_params_if_empty", {})
             params_after.update(after_params_if_empty)
             task_params["params_after"] = params_after
+            type_explor = 'forced_save' if forced_save else 'only_save'
             data_file, new_errors, new_task = data_file.transform_file_in_data(
-                'only_save', file_control=current_file_ctrl,
+                type_explor, file_control=current_file_ctrl,
                 task_params=task_params)
             if new_task:
                 all_tasks.append(new_task)
@@ -81,6 +78,36 @@ class ExtractorsMix:
             all_errors.extend(new_errors)
             return all_tasks, all_errors, None
         return all_tasks, all_errors, data_file
+
+    def every_has_total_rows(self, task_params=None, **kwargs):
+        data_file = self
+        sample_data = data_file.sample_data
+        need_recalculate = False
+        if not sample_data:
+            need_recalculate = True
+        if not need_recalculate:
+            for sheet_name, sheet_data in sample_data.items():
+                if not sheet_data.get("total_rows"):
+                    need_recalculate = True
+                    break
+        if need_recalculate:
+            curr_kwargs = {
+                "forced_save": True, "after_if_empty": "counting_from_aws"}
+            all_tasks, all_errors, data_file = data_file.get_sample_data(
+                task_params, **curr_kwargs)
+            return all_tasks, all_errors, data_file
+        return [], [], data_file
+
+    def counting_from_aws(self, task_params=None, **kwargs):
+        from inai.models import FileControl
+        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
+        data_file, saved, errors = data_file.find_coincidences()
+        if not saved and not errors:
+            errors = ["No coincide con el formato del archivo (counting)"]
+        if errors:
+            data_file.save_errors(errors, "explore_fail")
+        return [], errors, None
+
 
     def transform_file_in_data(
             self, type_explor, file_control=None, task_params=None):
@@ -125,8 +152,6 @@ class ExtractorsMix:
             data_file.save()
 
         if type_explor == 'only_save':
-            print("Estoy en only_save")
-            print("current_sheets", current_sheets)
             return data_file, errors, new_task
 
         row_headers = file_control.row_headers or 0
@@ -212,11 +237,12 @@ class ExtractorsMix:
         #         print("obteniendo sheets", error)
         #         error_ = traceback.format_exc()
         #         return (None, None, [error_]), None
-        if type_explor == 'only_save':
+        if type_explor == 'only_save' or type_explor == 'forced_save':
             # nrows = 220 if is_explore else None
             n_rows = 220 if len(sheet_names) < 10 else 40
             n_end = 30 if len(sheet_names) < 10 else 15
-            saved_sheet_names = all_sheets.keys()
+            saved_sheet_names = [name for [name, content] in all_sheets.keys()
+                                 if content.get("total_rows")]
             pending_sheets = list(set(sheet_names) - set(saved_sheet_names))
             if pending_sheets or not has_sheet_names:
                 params = {

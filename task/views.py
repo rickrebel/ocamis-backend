@@ -90,6 +90,7 @@ class AWSErrors(generic.View):
         print("++++++++++++++++++++++++++++++++++++++++++++++")
         try:
             body = json.loads(request.body)
+            print(body)
         except Exception as e:
             print("ERROR AL LEER EL BODY: ", e)
             print("request original: \n", request)
