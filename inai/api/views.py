@@ -431,7 +431,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             all_tasks = []
             all_errors = []
 
-            for data_file in all_data_files[:20]:
+            for data_file in all_data_files[:50]:
                 curr_kwargs = {
                     "after_if_empty": "find_coincidences_from_aws",
                     "all_tasks": all_tasks,
@@ -455,7 +455,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                         errors = data_rows.get("errors", [])
                 if errors:
                     all_errors.extend(errors)
-                    data_file.save_errors(errors, "explore_fail")
+                    data_file.save_errors(errors, process_error)
 
 
             data = {

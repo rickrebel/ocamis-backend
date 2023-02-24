@@ -233,6 +233,7 @@ class MatchesMix:
         first_iso = None
         all_prescriptions = { }
         all_prescriptions_list = []
+        provisional_list = []
         print("string_date: ", string_date)
         data_rows = data_rows[file_control.row_start_data:]
         for seq, row in enumerate(data_rows, start=file_control.row_start_data):
@@ -257,22 +258,12 @@ class MatchesMix:
             quantities_columns = name_columns.filter(
                 final_field__parameter_group__name='Cantidades en Recetas')
             quantities_fields = ["prescribed_amount", "delivered_amount"]
-            prescribed_amount = None
-            delivered_amount = None
             for field in quantities_fields:
                 field_column = quantities_columns.filter(
                     final_field__name=field).first()
                 locals()[field] = data_row[field_column.position_in_data-1]
-            if prescribed_amount and delivered_amount:
-                if prescribed_amount == delivered_amount:
-                    delivered = "complete"
-                elif prescribed_amount < delivered_amount:
-                    delivered = "partial"
-                elif not delivered_amount:
-                    delivered = "denied"
-            print("delivered:", delivered_amount, " | prescribed:", prescribed_amount)
             if seq == 4:
-                print("data_row", data_row, "\n")
+                print("\n", "data_row", data_row, "\n")
             for simple_field in existing_simple_fields:
                 current_column = locals()[f"{simple_field}_column"]
                 locals()[simple_field] = data_row[current_column.position_in_data-1]
@@ -280,15 +271,25 @@ class MatchesMix:
                     print(
                         f"({current_column.position_in_data - 1})",
                         simple_field, "-->", locals()[simple_field])
-
+                    print(f"-->{data_row[current_column.position_in_data-1]}<--")
+            delivered_amount_2 = locals().get("delivered_amount")
+            prescribed_amount_2 = locals().get("prescribed_amount")
+            if prescribed_amount_2 and delivered_amount_2:
+                if prescribed_amount_2 == delivered_amount_2:
+                    delivered = "complete"
+                elif prescribed_amount_2 < delivered_amount_2:
+                    delivered = "partial"
+                elif not delivered_amount_2:
+                    delivered = "denied"
 
             delegation = None
             clues = None
             area = None
-            type_document = None
+            # type_document = None
             doctor = None
 
             current_prescription_data = []
+            current_provisional_data = {}
             for field_name in field_names:
                 all_prescriptions[folio_ocamis] = True
                 if field_name == "uuid":
@@ -296,11 +297,13 @@ class MatchesMix:
                 else:
                     value = locals().get(field_name)
                 current_prescription_data.append(value)
+                current_provisional_data[field_name] = value
             all_prescriptions_list.append(current_prescription_data)
+            provisional_list.append(current_provisional_data)
             if len(all_prescriptions_list) > 20:
                 break
 
-        return [], [], all_prescriptions_list
+        return [], [], provisional_list
 
     def build_catalogs(self):
         from inai.models import NameColumn
