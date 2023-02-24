@@ -154,7 +154,7 @@ def create_file(file_obj, file_bytes, only_name, s3_client=None):
             final_file = File(BytesIO(file_bytes), name=only_name)
     except Exception as e:
         print(e)
-        all_errors += [u"Error leyendo los datos %s" % e]
+        all_errors += ["Error leyendo los datos %s" % e]
     return final_file, all_errors
 
 
@@ -207,7 +207,7 @@ def create_file_big(file_obj, zip_content, only_name, s3_client=None):
             all_errors += [f"No se pudo insertar el archivo {final_path}"]
     except Exception as e:
         print(e)
-        all_errors += [u"Error leyendo los datos %s" % e]
+        all_errors += ["Error leyendo los datos %s" % e]
     return final_file, all_errors
 
 

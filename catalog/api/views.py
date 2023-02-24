@@ -145,14 +145,14 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     file_ctrl["petition_file_control"][0])
             except:
                 file_ctrl["has_ent_clues"] = False
-            #clues, formula, droug = build_quality_simple(file_ctrl)
+            #clues, formula, drug = build_quality_simple(file_ctrl)
             file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
             file_ctrl["entity"] = file_ctrl["entities"][0]
             #file_ctrl["quality_names"] = {}
             #file_ctrl["quality_names"]["clues"] = clues
             #file_ctrl["quality_names"]["formula"] = formula
-            #file_ctrl["quality_names"]["droug"] = droug
-            #all_comps = [clues, formula, droug]
+            #file_ctrl["quality_names"]["drug"] = drug
+            #all_comps = [clues, formula, drug]
             final_qual = "not_enough"
             quality_levels = ["enough", "almost_enough", "not_enough"]
             for qual_level in quality_levels:
@@ -238,7 +238,7 @@ class SendEmailNewOrganizationView(views.APIView):
                 name="new_organization")
         except Exception as e:
             return Response(
-                {"errors": ["template no registrado", u"%s" % e]},
+                {"errors": ["template no registrado", "%s" % e]},
                 status=status.HTTP_400_BAD_REQUEST)
 
         email = "andres.castaneda@nosotrxs.org"

@@ -67,7 +67,7 @@ print(all_types)
 for type_pres in all_types.iteritems():
     print(type_pres)
 
-algo = u"Benzatina bencilpenicilina equivalente a 600 000 UI de bencilpenicilina."
+algo = "Benzatina bencilpenicilina equivalente a 600 000 UI de bencilpenicilina."
 end_digit = re.search(r"\s(\w+)[\.|\s|^]", algo)
 print(end_digit.start())
 

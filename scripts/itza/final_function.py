@@ -140,9 +140,9 @@ def import_newclues(tot_list):
             name = row[17],
             #municipality - se carga field municipality? en el modelo CLUES esta
             municipality_inegi_code = municipality,
-            tipology = row[11],
-            #tipology_obj =
-            tipology_cve=row[12],
+            typology = row[11],
+            #typology_obj =
+            typology_cve=row[12],
             id_clues=row[0],
             clues=row[1],
             status_operation = row[25],

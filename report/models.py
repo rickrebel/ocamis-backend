@@ -9,14 +9,14 @@ from django.db.models import JSONField
 
 
 class Responsable(models.Model):
-    name = models.CharField(max_length=255, verbose_name=u"Nombre")
+    name = models.CharField(max_length=255, verbose_name="Nombre")
     emails = models.CharField(
-        max_length=255, verbose_name=u"Correos electronicos",
+        max_length=255, verbose_name="Correos electronicos",
         help_text="Pueden agregarse varios, separar por comas")
     #responsible = models.CharField(
-    #    max_length=255, verbose_name=u"responsible", blank=True, null=True)
+    #    max_length=255, verbose_name="responsible", blank=True, null=True)
     position = models.CharField(
-        max_length=255, verbose_name=u"Cargo o posición")
+        max_length=255, verbose_name="Cargo o posición")
     institution = models.ForeignKey(
         Institution, related_name="responsables", verbose_name="Institución",
         blank=True, null=True, on_delete=models.CASCADE)
@@ -36,37 +36,37 @@ class Responsable(models.Model):
         verbose_name="Notas", null=True, blank=True)
     #clues = models.IntegerField(blank=True, null=True)
     is_covid = models.BooleanField(
-        default=False, verbose_name=u"Responsable COVID")
+        default=False, verbose_name="Responsable COVID")
 
     def __str__(self):
-        return u"%s - %s" % (self.name, self.institution)
+        return "%s - %s" % (self.name, self.institution)
 
     class Meta:
-        verbose_name = u"Responsable"
-        verbose_name_plural = u"6. Responsables"
+        verbose_name = "Responsable"
+        verbose_name_plural = "6. Responsables"
         db_table = u'desabasto_responsable'
 
 
 class Persona(models.Model):
 
     informer_name = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name=u"Nombre")
+        max_length=255, blank=True, null=True, verbose_name="Nombre")
     email = models.CharField(
         max_length=255, validators=[validate_email],
-        verbose_name=u"Correo de contacto", blank=True, null=True)
+        verbose_name="Correo de contacto", blank=True, null=True)
     phone = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"Número de contacto")
+        verbose_name="Número de contacto")
     want_litigation = models.BooleanField(
-        verbose_name=u"¿Permite contacto para asesoría legal?",
+        verbose_name="¿Permite contacto para asesoría legal?",
         blank=True, null=True)
     want_management = models.BooleanField(
-        verbose_name=u"¿Permite contacto para acompañar proceso?",
+        verbose_name="¿Permite contacto para acompañar proceso?",
         blank=True, null=True)
 
     class Meta:
-        verbose_name = u"Persona Reportante"
-        verbose_name_plural = u"4. Personas Reportantes"
+        verbose_name = "Persona Reportante"
+        verbose_name_plural = "4. Personas Reportantes"
 
     def __str__(self):
         return "%s - %s" % (
@@ -75,32 +75,32 @@ class Persona(models.Model):
 
 class Report(models.Model):
     TYPE = (
-        ("paciente", u"Paciente"),
-        ("profesional", u"Profesional"),
+        ("paciente", "Paciente"),
+        ("profesional", "Profesional"),
     )
     created = models.DateTimeField(
-        auto_now_add=True, verbose_name=u"Fecha de Registro")
+        auto_now_add=True, verbose_name="Fecha de Registro")
     persona = models.ForeignKey(
-        Persona, blank=True, null=True, verbose_name=u"Persona reportante",
+        Persona, blank=True, null=True, verbose_name="Persona reportante",
         on_delete=models.CASCADE)
     state = models.ForeignKey(
-        State, blank=True, null=True, verbose_name=u"Entidad",
+        State, blank=True, null=True, verbose_name="Entidad",
         on_delete=models.CASCADE)
     institution = models.ForeignKey(
-        Institution, blank=True, null=True, verbose_name=u"Institución",
+        Institution, blank=True, null=True, verbose_name="Institución",
         on_delete=models.CASCADE)
     institution_raw = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"Institución escrita")
+        verbose_name="Institución escrita")
     clues = models.ForeignKey(
         CLUES, blank=True, null=True, on_delete=models.CASCADE)
     is_other = models.BooleanField(
-        default=False, verbose_name=u"Es otra institución")
+        default=False, verbose_name="Es otra institución")
     hospital_name_raw = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"Nombre de hospital o clínica")
+        verbose_name="Nombre de hospital o clínica")
     disease_raw = models.TextField(
-        blank=True, null=True, verbose_name=u"Padecimiento")
+        blank=True, null=True, verbose_name="Padecimiento")
     age = models.IntegerField(
         verbose_name="Edad",
         blank=True, null=True
@@ -110,25 +110,25 @@ class Report(models.Model):
 
     informer_type = models.CharField(
         max_length=20, choices=TYPE,
-        verbose_name=u"Tipo de Informante")
+        verbose_name="Tipo de Informante")
 
     #Va a Persona:
     informer_name = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name=u"Nombre")
+        max_length=255, blank=True, null=True, verbose_name="Nombre")
     email = models.CharField(
         max_length=255, validators=[validate_email],
-        verbose_name=u"Correo de contacto", blank=True, null=True)
+        verbose_name="Correo de contacto", blank=True, null=True)
     phone = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"Número de contacto")
+        verbose_name="Número de contacto")
     want_litigation = models.BooleanField(
-        verbose_name=u"¿Permite contacto para litigio?",
+        verbose_name="¿Permite contacto para litigio?",
         blank=True, null=True)
 
     #Va a ComplementReport:
     origin_app = models.CharField(
         max_length=100, default="CD2",
-        verbose_name=u"Aplicacion")
+        verbose_name="Aplicacion")
     validated = models.BooleanField(default=None, blank=True, null=True)
     session_ga = models.CharField(max_length=255, blank=True, null=True)
     validator = models.IntegerField(blank=True, null=True)
@@ -138,20 +138,20 @@ class Report(models.Model):
     testimony = models.TextField(blank=True, null=True)
     public_testimony = models.BooleanField(blank=True, null=True)
     has_corruption = models.BooleanField(
-        verbose_name=u"¿Incluyó corrupción?", null=True, blank=True)
+        verbose_name="¿Incluyó corrupción?", null=True, blank=True)
     narration = models.TextField(
         blank=True, null=True,
-        verbose_name=u"Relato de la corrupción")
+        verbose_name="Relato de la corrupción")
 
     #DEBERÍAN ELIMINARSE:
     sent_email = models.BooleanField(blank=True, null=True)
     sent_responsible = models.BooleanField(blank=True, null=True)
     medicine_type = models.CharField(
         max_length=30, blank=True, null=True,
-        verbose_name=u"Tipo de medicina")
+        verbose_name="Tipo de medicina")
     medication_name = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"Nombre de medicamento / Insumo faltante")
+        verbose_name="Nombre de medicamento / Insumo faltante")
 
     @property
     def get_medicine_type(self):
@@ -212,11 +212,11 @@ class Report(models.Model):
         institution_obj = self.institution or getattr(
             self.clues, "institution", None)
         institution_name = (getattr(institution_obj, "name", None) or
-                            self.institution_raw or u"No identificado")
+                            self.institution_raw or "No identificado")
 
         state_obj = self.state or getattr(self.clues, "state", None)
         state_name = (getattr(state_obj, "short_name", None) or
-                      u"No identificado")
+                      "No identificado")
         if simple:
             return {
                 "institution": institution_name,
@@ -241,7 +241,7 @@ class Report(models.Model):
             if not supply_str.strip():
                 continue
             supplies_list.append(supply_str.strip())
-        supplies = u", ".join(supplies_list)
+        supplies = ", ".join(supplies_list)
         return {
             "institution": institution_name,
             "state": state_name,
@@ -339,23 +339,23 @@ class Report(models.Model):
         return "%s - %s -- %s" % (self.state, self.institution, my_date)
 
     class Meta:
-        verbose_name = u"Reporte"
-        verbose_name_plural = u"1. Reportes"
+        verbose_name = "Reporte"
+        verbose_name_plural = "1. Reportes"
         db_table = u'desabasto_report'
 
 
 class CovidReport(models.Model):
     created = models.DateTimeField(
-        auto_now_add=True, verbose_name=u"Fecha de Registro")
+        auto_now_add=True, verbose_name="Fecha de Registro")
     persona = models.ForeignKey(
-        Persona, blank=True, null=True, verbose_name=u"Persona reportante",
+        Persona, blank=True, null=True, verbose_name="Persona reportante",
         on_delete=models.CASCADE)
     state = models.ForeignKey(
-        State, blank=True, null=True, verbose_name=u"Entidad",
+        State, blank=True, null=True, verbose_name="Entidad",
         on_delete=models.CASCADE)
     municipality = models.ForeignKey(
         Municipality, blank=True, null=True,
-        verbose_name=u"Municipio residencia",
+        verbose_name="Municipio residencia",
         on_delete=models.CASCADE)
     other_location = models.CharField(max_length=255, null=True, blank=True)
     age = models.IntegerField(verbose_name="Edad", blank=True, null=True)
@@ -367,46 +367,46 @@ class CovidReport(models.Model):
         verbose_name="Comorbilidades", blank=True, null=True)
 
     def __str__(self):
-        return u"%s - %s" % (self.state, self.created)
+        return "%s - %s" % (self.state, self.created)
 
     class Meta:
-        verbose_name = u"Reporte COVID"
-        verbose_name_plural = u"3. Reportes COVID"
+        verbose_name = "Reporte COVID"
+        verbose_name_plural = "3. Reportes COVID"
 
 
 class DosisCovid(models.Model):
     covid_report = models.ForeignKey(
         CovidReport, blank=True, null=True,
-        verbose_name=u"Reporte Covid", related_name="dosis",
+        verbose_name="Reporte Covid", related_name="dosis",
         on_delete=models.CASCADE)
     is_success = models.BooleanField(
         default=False, verbose_name="Es dosis aplicada")
     state = models.ForeignKey(
-        State, blank=True, null=True, verbose_name=u"Entidad",
+        State, blank=True, null=True, verbose_name="Entidad",
         on_delete=models.CASCADE)
     municipality = models.ForeignKey(
-        Municipality, blank=True, null=True, verbose_name=u"Municipio",
+        Municipality, blank=True, null=True, verbose_name="Municipio",
         on_delete=models.CASCADE)
     other_location = models.CharField(max_length=255, null=True, blank=True)
     brand = models.CharField(max_length=255, null=True, blank=True)
     round_dosis = models.CharField(
-        max_length=60, blank=True, null=True, verbose_name=u"Número de dosis")
-    date = models.DateField(blank=True, null=True, verbose_name=u"Fecha")
+        max_length=60, blank=True, null=True, verbose_name="Número de dosis")
+    date = models.DateField(blank=True, null=True, verbose_name="Fecha")
     reason_negative = models.TextField(
-        blank=True, null=True, verbose_name=u"Razón de negativa")
+        blank=True, null=True, verbose_name="Razón de negativa")
 
     @property
     def get_type_success(self):
         return "Sí aplicada" if self.is_success else "No aplicada"
 
     def __str__(self):
-        return u"%s (%s) - %s" % (
+        return "%s (%s) - %s" % (
             self.brand or '?', self.round_dosis or '?',
             u'aplicada' if self.is_success else u'negada')
 
     class Meta:
-        verbose_name = u"Dosis"
-        verbose_name_plural = u"5. Dosis aplicadas y negadas"
+        verbose_name = "Dosis"
+        verbose_name_plural = "5. Dosis aplicadas y negadas"
 
 
 class ComplementReport(models.Model):
@@ -421,13 +421,13 @@ class ComplementReport(models.Model):
     testimony = models.TextField(blank=True, null=True)
     public_testimony = models.BooleanField(blank=True, null=True)
     has_corruption = models.BooleanField(
-        verbose_name=u"¿Incluyó corrupción?", blank=True, null=True)
+        verbose_name="¿Incluyó corrupción?", blank=True, null=True)
     narration = models.TextField(
         blank=True, null=True,
-        verbose_name=u"Relato de la corrupción")
+        verbose_name="Relato de la corrupción")
     notes = models.TextField(
         blank=True, null=True,
-        verbose_name=u"Notas (para corrección)")
+        verbose_name="Notas (para corrección)")
 
     validated = models.BooleanField(default=None, blank=True, null=True)
     validator = models.IntegerField(blank=True, null=True)
@@ -437,7 +437,7 @@ class ComplementReport(models.Model):
     session_ga = models.CharField(max_length=255, blank=True, null=True)
     origin_app = models.CharField(
         max_length=100, default="CD2",
-        verbose_name=u"Aplicación")
+        verbose_name="Aplicación")
 
     def save(self, *args, **kwargs):
         import random
@@ -454,13 +454,13 @@ class ComplementReport(models.Model):
         return "Report: %s" % self.report or self.covid_report
 
     class Meta:
-        verbose_name = u"Complemento de un reporte"
-        verbose_name_plural = u"Complementos de reportes"
+        verbose_name = "Complemento de un reporte"
+        verbose_name_plural = "Complementos de reportes"
 
 
 class TestimonyMedia(models.Model):
     report = models.ForeignKey(
-        Report, related_name=u"testimonies_media", on_delete=models.CASCADE)
+        Report, related_name="testimonies_media", on_delete=models.CASCADE)
     #report = models.IntegerField()
     media_file = models.FileField(
         upload_to="cero_desabasto",
@@ -468,8 +468,8 @@ class TestimonyMedia(models.Model):
     url = models.URLField(blank=True, null=True)
 
     class Meta:
-        verbose_name = u"Archivo de testimonio"
-        verbose_name_plural = u"8. Archivos de testimonio"
+        verbose_name = "Archivo de testimonio"
+        verbose_name_plural = "8. Archivos de testimonio"
         db_table = u'desabasto_testimonymedia'
 
     def __str__(self):
@@ -481,10 +481,10 @@ class TestimonyMedia(models.Model):
 
 class Supply(models.Model):
     MEDICINE_TYPE = (
-        ("medicamento", u"Medicamento"),
-        ("vacuna", u"Vacuna"),
-        ("material", u"Material de curación"),
-        ("otro", u"Otro"),
+        ("medicamento", "Medicamento"),
+        ("vacuna", "Vacuna"),
+        ("material", "Material de curación"),
+        ("otro", "Otro"),
     )
 
     report = models.ForeignKey(
@@ -499,17 +499,17 @@ class Supply(models.Model):
     #presentation = models.IntegerField(blank=True, null=True)
 
     medicine_type = models.CharField(
-        max_length=20, verbose_name=u"Tipo de Medicamento",
+        max_length=20, verbose_name="Tipo de Medicamento",
         blank=True, null=True,
     )
     medicine_name_raw = models.CharField(
-        max_length=255, verbose_name=u"Nombre reportado del medicamento",
+        max_length=255, verbose_name="Nombre reportado del medicamento",
         blank=True, null=True,
     )
 
     presentation_raw = models.CharField(max_length=255, blank=True, null=True)
     medicine_real_name = models.CharField(
-        max_length=255, verbose_name=u"Nombre real del medicamento",
+        max_length=255, verbose_name="Nombre real del medicamento",
         blank=True, null=True,
     )
     disease = models.ForeignKey(
@@ -518,11 +518,11 @@ class Supply(models.Model):
     #disease = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        return u"%s - %s" % (
+        return "%s - %s" % (
             self.component or self.medicine_real_name or
             self.medicine_name_raw, self.medicine_type)
 
     class Meta:
-        verbose_name = u"Medicamento o insumo"
-        verbose_name_plural = u"2. Medicamentos/Insumos de reportes"
+        verbose_name = "Medicamento o insumo"
+        verbose_name_plural = "2. Medicamentos/Insumos de reportes"
         db_table = u'desabasto_supply'

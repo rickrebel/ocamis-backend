@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='state',
             name='alternative_names',
-            field=models.JSONField(default=catalog.models.State.default_alternative_names, help_text='Ocupar para OCAMIS', verbose_name='Lista nombres alternativos'),
+            field=models.JSONField(help_text='Ocupar para OCAMIS', verbose_name='Lista nombres alternativos'),
         ),
         migrations.AlterField(
             model_name='tipology',

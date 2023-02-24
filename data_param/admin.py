@@ -100,6 +100,7 @@ class DataGroupAdmin(admin.ModelAdmin):
     list_editable = ["color"]
     inlines = [ CollectionInline ]
 
+
 ocamis_admin_site.register(DataGroup, DataGroupAdmin)
 
 
@@ -113,14 +114,16 @@ class DataTypeAdmin(admin.ModelAdmin):
     ]
     list_editable = ["public_name", "description", "is_common", "order"]
 
+
 ocamis_admin_site.register(DataType, DataTypeAdmin)
 
 
 class CleanFunctionAdmin(admin.ModelAdmin):
     list_display = [
         "name", "public_name", "for_all_data", 
-        "description", "priority", "addl_params", "restricted_field"]
+        "description", "priority", "addl_params", "column_type"]
     list_editable = ["public_name", "priority"]
     ordering = ["for_all_data", "priority", "public_name"]
+
 
 ocamis_admin_site.register(CleanFunction, CleanFunctionAdmin)

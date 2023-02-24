@@ -151,11 +151,11 @@ class ReportAdmin(admin.ModelAdmin):
             "fields": [
                 "created", "informer_type", "persona",
                 "disease_raw", "age", "gender"]}],
-        [u"Ubicación", {
+        ["Ubicación", {
             "fields": [
                 "institution", "institution_raw", "state",
                 "hospital_name_raw", "is_other", "clues"]}],
-        [u"Mails posteriores", {
+        ["Mails posteriores", {
             "classes": ["collapse"],
             "fields": [
                 "sent_email", "sent_responsible", "want_litigation"]}],
@@ -212,10 +212,10 @@ class CovidReportAdmin(admin.ModelAdmin):
         [None, {
             "fields": [
                 "created", "persona"]}],
-        [u"Datos de la persona", {
+        ["Datos de la persona", {
             "fields": [
                 "age", "gender", "special_group", "comorbilities"]}],
-        [u"Ubicación", {
+        ["Ubicación", {
             "fields": [
                 "state", "municipality", "other_location"]}],
     ]

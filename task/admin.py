@@ -36,7 +36,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     @staticmethod
     def request_short(obj):
         if obj.request_id:
-            return obj.request_id[:12]
+            return obj.request_id[-12:]
         return obj.id
 
     @staticmethod

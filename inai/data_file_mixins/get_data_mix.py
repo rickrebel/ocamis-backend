@@ -2,7 +2,7 @@ raws = {}
 
 
 def execute_matches(row, file):
-    from formula.models import MissingRow
+    # from formula.models import MissingRow
     delegation = None
     missing_row = None
     if not state:
@@ -15,8 +15,9 @@ def execute_matches(row, file):
         delegation = delegation_match(row, columns_state, 'Delegation')
         if not delegation:
             # missing_row = MissingRow.objects.get_or_create(file=file)
-            missing_row = MissingRow.objects.create(
-                file=file, row_seq=row[0], orinal_data=row)
+            # missing_row = MissingRow.objects.create(
+            #     file=file, row_seq=row[0], orinal_data=row)
+            pass
         if delegation and not state:
             state = delegation.state
     recipe_row = []
@@ -57,17 +58,26 @@ class ExtractorsMix:
                 return [first_task], errors, None
         new_errors = []
         forced_save = kwargs.get("forced_save", False)
+        if data_file and not data_file.sheet_names:
+            if data_file.petition_file_control.file_control.file_format.short_name == 'xls':
+                forced_save = True
+            else:
+                data_file.sheet_names = ['default']
+                data_file.save()
         if not data_file:
             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-        elif not data_file.sample_data or forced_save or not data_file.sheet_names:
-            print("NO HAY SAMPLE DATA")
+        elif not data_file.sample_data or forced_save:
+            print("NO HAY SAMPLE DATA O NO HAY SHEET NAMES")
             task_params["function_after"] = kwargs.get("after_if_empty")
             current_file_ctrl = kwargs.get("current_file_ctrl")
             params_after = task_params.get("params_after", {})
             after_params_if_empty = kwargs.get("after_params_if_empty", {})
             params_after.update(after_params_if_empty)
             task_params["params_after"] = params_after
-            type_explor = 'forced_save' if forced_save else 'only_save'
+            if forced_save or not data_file.sheet_names:
+                type_explor = 'forced_save'
+            else:
+                type_explor = 'only_save'
             data_file, new_errors, new_task = data_file.transform_file_in_data(
                 type_explor, file_control=current_file_ctrl,
                 task_params=task_params)
@@ -150,7 +160,7 @@ class ExtractorsMix:
             data_file.sample_data = validated_data
             data_file.save()
 
-        if type_explor == 'only_save':
+        if type_explor == 'only_save' or type_explor == 'forced_save':
             return data_file, errors, new_task
 
         row_headers = file_control.row_headers or 0
@@ -223,7 +233,6 @@ class ExtractorsMix:
             all_sheets = {}
 
         sheet_names = self.sheet_names or []
-        print("sheet_names 2", sheet_names)
         has_sheet_names = bool(sheet_names)
         # if not sheet_names:
         #     try:
@@ -329,10 +338,8 @@ class ExtractorsMix:
         errors = []
         is_explore = bool(type_explor)
 
-        if is_explore and isinstance(self.sample_data, dict):
-            if "all_data" in self.sample_data.get("default", {}):
-                return self.sample_data, errors, None
-        if type_explor == 'only_save':
+        # if type_explor == 'only_save':
+        if type_explor == 'only_save' or type_explor == 'forced_save':
             params = {
                 "file": self.file.name,
                 "s3": build_s3(),
@@ -348,6 +355,10 @@ class ExtractorsMix:
             async_task = async_in_lambda(
                 "explore_data_simple", params, task_params)
             return None, [], async_task
+
+        if is_explore and isinstance(self.sample_data, dict):
+            if "all_data" in self.sample_data.get("default", {}):
+                return self.sample_data, errors, None
 
         s3_client, dev_resource = start_session()
         data = get_file(self, dev_resource)

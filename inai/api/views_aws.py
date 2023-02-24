@@ -7,7 +7,6 @@ from rest_framework.decorators import action
 from inai.api.common import send_response
 from inai.models import (
     DataFile, Petition, PetitionFileControl)
-from task.models import AsyncTask
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -183,7 +182,6 @@ class DataFileViewSet(CreateRetrievView):
 
     @action(methods=["get"], detail=True, url_path="build_sample_data")
     def build_sample_data(self, request, **kwargs):
-        from inai.api.serializers import DataFileSerializer
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
@@ -194,7 +192,7 @@ class DataFileViewSet(CreateRetrievView):
         }
         all_tasks, all_errors, data_file = data_file.get_sample_data(
             task_params, **curr_kwargs)
-
+        # print("data_file", data_file)
         resp = comprobate_status(
             key_task, all_errors, all_tasks, want_http_response=True)
         if resp:
@@ -209,7 +207,7 @@ class DataFileViewSet(CreateRetrievView):
             response_body["errors"] = errors
             final_status = status.HTTP_400_BAD_REQUEST
         elif data_file:
-            data = DataFileSerializer(data_file).data
+            data = serializers.DataFileSerializer(data_file).data
             response_body["data_file"] = data
             final_status = status.HTTP_200_OK
 
@@ -228,9 +226,9 @@ class DataFileViewSet(CreateRetrievView):
                     final_status = status.HTTP_400_BAD_REQUEST
             if new_data_file:
                 if new_data_file:
-                    data = DataFileSerializer(new_data_file).data
+                    data = serializers.DataFileSerializer(new_data_file).data
                 else:
-                    data = DataFileSerializer(data_file).data
+                    data = serializers.DataFileSerializer(data_file).data
                 response_body["data_file"] = data
             child_data_files = DataFile.objects.filter(
                 origin_file=data_file)
@@ -241,13 +239,12 @@ class DataFileViewSet(CreateRetrievView):
             if key_task:
                 response_body["new_task"] = key_task.id
             if new_ch:
-                response_body["new_files"] = DataFileSerializer(
+                response_body["new_files"] = serializers.DataFileSerializer(
                     new_ch, many=True).data
             return Response(response_body, status=final_status)
 
     @action(methods=["get"], detail=True, url_path="counting")
     def counting(self, request, **kwargs):
-        from inai.api.serializers import DataFileSerializer
         if not request.user.is_staff:
             raise PermissionDenied()
         data_file = self.get_object()
@@ -263,24 +260,24 @@ class DataFileViewSet(CreateRetrievView):
             key_task, all_errors, all_tasks, want_http_response=True)
         if resp:
             return resp
-
         all_tasks, all_errors, data_file = data_file.every_has_total_rows(
             task_params)
-        data_file, saved, errors = data_file.find_coincidences()
+        resp = comprobate_status(
+            key_task, all_errors, all_tasks, want_http_response=True)
+        if resp:
+            return resp
+        # data_file, saved, errors = data_file.find_coincidences()
 
-
-
-        data_file, errors, new_ch = data_file.comprobate_coincidences()
         response_body = {}
         final_status = status.HTTP_200_OK
         if data_file:
             data_rows = data_file.count_file_rows()
-            data = DataFileSerializer(data_file).data
+            data = serializers.DataFileSerializer(data_file).data
             response_body["data_file"] = data
             if data_rows.get("errors", False):
                 response_body["errors"] = data_rows["errors"]
                 final_status = status.HTTP_400_BAD_REQUEST
-        if errors:
+        if all_errors:
             response_body["errors"] = response_body.get("errors", []) + errors
             final_status = status.HTTP_400_BAD_REQUEST
         print("response_body: ", response_body)
@@ -308,6 +305,25 @@ class DataFileViewSet(CreateRetrievView):
                 return Response(data, status=status.HTTP_201_CREATED)
         return Response(
             {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["get"], detail=True, url_path="insert_data")
+    def insert_data(self, request, **kwargs):
+        data_file = self.get_object()
+        key_task, task_params = build_task_params(
+            data_file, "insert_data", request)
+        all_tasks, all_errors, data = data_file.build_csv_converted(
+            task_params)
+        resp = comprobate_status(
+            key_task, all_errors, all_tasks, want_http_response=True)
+        if resp:
+            return resp
+        return Response(data, status=status.HTTP_200_OK)
+
+        # if data_file:
+        #     data = serializers.DataFileSerializer(data_file).data
+        #     return Response(data, status=status.HTTP_201_CREATED)
+        # return Response(
+        #     {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["get"], detail=True, url_path="auto_explore_all")
     def auto_explore_all(self, request, **kwargs):

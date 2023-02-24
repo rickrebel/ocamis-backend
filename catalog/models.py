@@ -5,16 +5,18 @@ from django.db import models
 from django.db.models import JSONField
 
 
+def default_alternative_names():
+    return []
+
+
 class State(models.Model):
-    def default_alternative_names():
-        return []
-    inegi_code = models.CharField(max_length=2, verbose_name=u"Clave INEGI")
-    name = models.CharField(max_length=50, verbose_name=u"Nombre")
+    inegi_code = models.CharField(max_length=2, verbose_name="Clave INEGI")
+    name = models.CharField(max_length=50, verbose_name="Nombre")
     short_name = models.CharField(
-        max_length=20, verbose_name=u"Nombre Corto",
+        max_length=20, verbose_name="Nombre Corto",
         blank=True, null=True)
     code_name = models.CharField(
-        max_length=6, verbose_name=u"Nombre Clave",
+        max_length=6, verbose_name="Nombre Clave",
         blank=True, null=True)
     other_names = models.CharField(
         verbose_name="Otros nombres",
@@ -31,51 +33,51 @@ class State(models.Model):
 
     class Meta:
         ordering = ["inegi_code"]
-        verbose_name = u"Estado"
-        verbose_name_plural = u"Estados"
+        verbose_name = "Estado"
+        verbose_name_plural = "Estados"
         db_table = u'desabasto_state'
 
 
 class Municipality(models.Model):
-    inegi_code = models.CharField(max_length=6, verbose_name=u"Clave INEGI")
-    name = models.CharField(max_length=120, verbose_name=u"Nombre")
+    inegi_code = models.CharField(max_length=6, verbose_name="Clave INEGI")
+    name = models.CharField(max_length=120, verbose_name="Nombre")
     state = models.ForeignKey(
         State, verbose_name="Entidad",
         null=True, on_delete=models.CASCADE,
         related_name="municipalities")
 
     def __str__(self):
-        return u"%s - %s" % (self.name, self.state)
+        return "%s - %s" % (self.name, self.state)
 
     class Meta:
-        verbose_name = u"Municipio"
-        verbose_name_plural = u"Municipios"
+        verbose_name = "Municipio"
+        verbose_name_plural = "Municipios"
 
 
 class Institution(models.Model):
     name = models.CharField(
-        max_length=255, verbose_name=u"NOMBRE DE LA INSTITUCION")
+        max_length=255, verbose_name="NOMBRE DE LA INSTITUCION")
     code = models.CharField(
-        max_length=20, verbose_name=u"CLAVE DE LA INSTITUCION")
+        max_length=20, verbose_name="CLAVE DE LA INSTITUCION")
     public_name = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"NOMBRE PUBLICO DE LA INSTITUCION")
+        verbose_name="NOMBRE PUBLICO DE LA INSTITUCION")
     public_code = models.CharField(
         max_length=20, blank=True, null=True,
-        verbose_name=u"CLAVE PUBLICA DE LA INSTITUCION")
+        verbose_name="CLAVE PUBLICA DE LA INSTITUCION")
     relevance = models.IntegerField(
-        default=2, verbose_name=u"Relevancia (Para filtros)")
+        default=2, verbose_name="Relevancia (Para filtros)")
 
     def __str__(self):
         return self.public_name or self.name
 
     class Meta:
-        verbose_name = u"Institución"
-        verbose_name_plural = u"Instituciones"
+        verbose_name = "Institución"
+        verbose_name_plural = "Instituciones"
         db_table = u'desabasto_institution'
 
 
-class Tipology(models.Model):
+class Typology(models.Model):
     clave = models.CharField(
         max_length=50, verbose_name="Clave oficial")
     name = models.CharField(
@@ -89,8 +91,8 @@ class Tipology(models.Model):
         return "%s (%s)" % (self.clave, self.name)
 
     class Meta:
-        verbose_name = u"Tipología"
-        verbose_name_plural = u"Tipologías"
+        verbose_name = "Tipología"
+        verbose_name_plural = "Tipologías"
 
 
 class CLUES(models.Model):
@@ -100,74 +102,81 @@ class CLUES(models.Model):
         Institution, on_delete=models.CASCADE)
     #institution = models.IntegerField()
     name = models.CharField(
-        max_length=255, verbose_name=u"NOMBRE DE LA UNIDAD")
+        max_length=255, verbose_name="NOMBRE DE LA UNIDAD")
+    key_issste = models.CharField(
+        max_length=12, verbose_name="CLAVE ISSSTE",
+        blank=True, null=True)
     is_searchable = models.BooleanField(
-        default=False, verbose_name=u"Activo",
+        default=False, verbose_name="Activo",
         help_text="Puede buscarse por el usuario")
     municipality = models.CharField(
-        max_length=255, verbose_name=u"NOMBRE DEL MUNICIPIO")
+        max_length=255, verbose_name="NOMBRE DEL MUNICIPIO")
     municipality_inegi_code = models.ForeignKey(
         Municipality, on_delete=models.CASCADE)
-    tipology = models.CharField(
-        max_length=255, verbose_name=u"NOMBRE DE TIPOLOGIA")
-    tipology_obj = models.ForeignKey(
-        Tipology, verbose_name=u"Tipología (Catálogo)",
+    typology = models.CharField(
+        max_length=255, verbose_name="NOMBRE DE TIPOLOGIA")
+    typology_obj = models.ForeignKey(
+        Typology, verbose_name="Tipología (Catálogo)",
         blank=True, null=True, on_delete=models.CASCADE)
-    tipology_cve = models.CharField(
-        max_length=12, verbose_name=u"CLAVE DE TIPOLOGIA")
-    id_clues = models.CharField(max_length=10, verbose_name=u"ID_CLUES")
-    clues = models.CharField(max_length=20, verbose_name=u"CLUES")
+    typology_cve = models.CharField(
+        max_length=12, verbose_name="CLAVE DE TIPOLOGÍA")
+    id_clues = models.CharField(max_length=10, verbose_name="ID_CLUES")
+    clues = models.CharField(max_length=20, verbose_name="CLUES")
     status_operation = models.CharField(
-        max_length=80, verbose_name=u"ESTATUS DE OPERACION")
-    longitude = models.CharField(max_length=20, verbose_name=u"LONGITUD")
-    latitude = models.CharField(max_length=20, verbose_name=u"LATITUD")
+        max_length=80, verbose_name="ESTATUS DE OPERACIÓN")
+    longitude = models.CharField(max_length=20, verbose_name="LONGITUD")
+    latitude = models.CharField(max_length=20, verbose_name="LATITUD")
     locality = models.CharField(
-        max_length=80, verbose_name=u"NOMBRE DE LA LOCALIDAD")
+        max_length=80, verbose_name="NOMBRE DE LA LOCALIDAD")
     locality_inegi_code = models.CharField(
-        max_length=5, verbose_name=u"CLAVE DE LA LOCALIDAD")
+        max_length=5, verbose_name="CLAVE DE LA LOCALIDAD")
     jurisdiction = models.CharField(
-        max_length=80, verbose_name=u"NOMBRE DE LA JURISDICCION")
+        max_length=80, verbose_name="NOMBRE DE LA JURISDICCIÓN")
     jurisdiction_clave = models.CharField(
-        max_length=5, verbose_name=u"CLAVE DE LA JURISDICCION")
+        max_length=5, verbose_name="CLAVE DE LA JURISDICCIÓN")
+    jurisdiction_obj = models.ForeignKey(
+        "Jurisdiction", verbose_name="Jurisdicción Sanitaria",
+        blank=True, null=True, on_delete=models.CASCADE,
+        related_name="jurisdictions")
     establishment_type = models.CharField(
-        max_length=80, verbose_name=u"NOMBRE TIPO ESTABLECIMIENTO")
+        max_length=80, verbose_name="NOMBRE TIPO ESTABLECIMIENTO")
     consultings_general = models.IntegerField(
-        verbose_name=u"CONSULTORIOS DE MED GRAL")
+        verbose_name="CONSULTORIOS DE MED GRAL")
     consultings_other = models.IntegerField(
-        verbose_name=u"CONSULTORIOS EN OTRAS AREAS")
+        verbose_name="CONSULTORIOS EN OTRAS AREAS")
     beds_hopital = models.IntegerField(
-        verbose_name=u"CAMAS EN AREA DE HOS")
+        verbose_name="CAMAS EN AREA DE HOS")
     beds_other = models.IntegerField(
-        verbose_name=u"CAMAS EN OTRAS AREAS")
+        verbose_name="CAMAS EN OTRAS AREAS")
     total_unities = models.IntegerField(
-        verbose_name=u"UNIDADES TOTALES (SUMA)")
+        verbose_name="UNIDADES TOTALES (SUMA)")
     admin_institution = models.CharField(
-        max_length=80, verbose_name=u"NOMBRE DE LA INS ADM")
+        max_length=80, verbose_name="NOMBRE DE LA INS ADM")
     atention_level = models.CharField(
-        max_length=80, verbose_name=u"NIVEL ATENCION")
+        max_length=80, verbose_name="NIVEL ATENCIÓN")
     stratum = models.CharField(
-        max_length=80, verbose_name=u"ESTRATO UNIDAD")
+        max_length=80, verbose_name="ESTRATO UNIDAD")
     real_name = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"Nombre Limpiado")
+        verbose_name="Nombre Limpiado")
     alter_clasifs = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"clasificaciones alternativas")
+        verbose_name="clasificaciones alternativas")
     clasif_name = models.CharField(
         max_length=120, blank=True, null=True,
-        verbose_name=u"Nombre completo tipo")
+        verbose_name="Nombre completo tipo")
     prev_clasif_name = models.CharField(
         max_length=30, blank=True, null=True,
-        verbose_name=u"Nombre corto tipo")
+        verbose_name="Nombre corto tipo")
     number_unity = models.CharField(
-        max_length=6, verbose_name=u"Número de unidad",
+        max_length=6, verbose_name="Número de unidad",
         blank=True, null=True,
     )
 
     is_national = models.BooleanField(default=False)
 
     name_in_issten = models.CharField(
-        max_length=255, verbose_name=u"NOMBRE DE LA UNIDAD",
+        max_length=255, verbose_name="NOMBRE DE LA UNIDAD",
         blank=True, null=True,
     )
 
@@ -177,37 +186,37 @@ class CLUES(models.Model):
     #Nuevos fields
     type_street = models.CharField(
         max_length=80, blank=True, null=True, 
-        verbose_name=u"TIPO DE VIALIDAD")
+        verbose_name="TIPO DE VIALIDAD")
     street = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"VIALIDAD")    
+        verbose_name="VIALIDAD")    
     streat_number = models.CharField(
         max_length=80, blank=True, null=True, 
-        verbose_name=u"NÚMERO CALLE")
+        verbose_name="NÚMERO CALLE")
     suburb = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"SUBURBIO")
+        verbose_name="SUBURBIO")
     postal_code = models.CharField(
         max_length=6, blank=True, null=True,
-        verbose_name=u"CODIGO POSTAL")
+        verbose_name="CODIGO POSTAL")
     rfc = models.CharField(
         max_length=6, blank=True, null=True,
-        verbose_name=u"RFC")
+        verbose_name="RFC")
     last_change = models.DateTimeField(
         blank=True, null=True,
-         verbose_name=u"FECHA ULTIMO MOVIMIENTO")
+         verbose_name="FECHA ULTIMO MOVIMIENTO")
 
     def __str__(self):
         return self.clues
 
     class Meta:
-        verbose_name = u"Hospital o clínica CLUES"
-        verbose_name_plural = u"Catálogo CLUES"
+        verbose_name = "Hospital o clínica CLUES"
+        verbose_name_plural = "Catálogo CLUES"
         db_table = u'desabasto_clues'
 
 
 class Delegation(models.Model):
-    name = models.CharField(max_length=255, verbose_name=u"Nombre")
+    name = models.CharField(max_length=255, verbose_name="Nombre")
     institution = models.ForeignKey(
         Institution, verbose_name="Institución",
         on_delete=models.CASCADE)
@@ -224,8 +233,27 @@ class Delegation(models.Model):
             self.name, self.state, self.institution)
 
     class Meta:
-        verbose_name = u"Delegación"
-        verbose_name_plural = u"Delegaciones"
+        verbose_name = "Delegación"
+        verbose_name_plural = "Delegaciones"
+
+
+class Jurisdiction(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Nombre")
+    key = models.CharField(max_length=50, verbose_name="Clave")
+    institution = models.ForeignKey(
+        Institution, verbose_name="Institución",
+        on_delete=models.CASCADE)
+    state = models.ForeignKey(
+        State, verbose_name="Entidad",
+        on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "%s -- %s --%s" % (
+            self.name, self.state, self.institution)
+
+    class Meta:
+        verbose_name = "Jurisdicción"
+        verbose_name_plural = "Jurisdicciones"
 
 
 class Disease(models.Model):
@@ -263,11 +291,11 @@ class Alliances(models.Model):
         blank=True, null=True)
     phone = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name=u"Número de contacto")
+        verbose_name="Número de contacto")
 
     class Meta:
-        verbose_name = u"Alianza"
-        verbose_name_plural = u"Alianzas"
+        verbose_name = "Alianza"
+        verbose_name_plural = "Alianzas"
         db_table = u'desabasto_alliances'
 
     def __str__(self):
@@ -281,7 +309,7 @@ class Entity(models.Model):
         help_text="Solo cuando sea distinta al nombre de la institución/CLUES"
         )
     acronym = models.CharField(
-        max_length=20, verbose_name=u"Siglas del Sujeto Obligado",
+        max_length=20, verbose_name="Siglas del Sujeto Obligado",
         blank=True, null=True)
     idSujetoObligado = models.IntegerField(
         verbose_name="idSujetoObligado",
@@ -330,7 +358,7 @@ class Entity(models.Model):
                     MonthEntity.objects.get_or_create(entity=self, year_month=ye_mo)
 
     def __str__(self):
-        return self.name or u"%s -%s -%s" % (
+        return self.name or "%s -%s -%s" % (
             self.institution, self.state, self.clues)
 
     @property
@@ -344,5 +372,25 @@ class Entity(models.Model):
 
     class Meta:
         ordering = ["state__name"]
-        verbose_name = u"Sujeto Obligado"
-        verbose_name_plural = u"Sujetos Obligados"
+        verbose_name = "Sujeto Obligado"
+        verbose_name_plural = "Sujetos Obligados"
+
+
+class Area(models.Model):
+
+    key = models.CharField(
+        max_length=255, verbose_name="Clave del área",
+        blank=True, null=True)
+    name = models.TextField(
+        verbose_name="Nombre del área",
+        blank=True, null=True)
+    description = models.TextField(
+        verbose_name="Descripción del área",
+        blank=True, null=True)
+
+    def __str__(self):
+        return self.key or self.name
+
+    class Meta:
+        verbose_name = "Área"
+        verbose_name_plural = "Áreas"

@@ -86,7 +86,7 @@ def clean_special(data):
     fabian = 'FABIAN ZARATE GALINDO|'
     fabian2 = 'FABIAN ZARATE GALINDO||'
     if fabian2 in data:
-        print(u"caso FABIAN")
+        print("caso FABIAN")
         data = data.replace(fabian2, fabian)
     return data
 

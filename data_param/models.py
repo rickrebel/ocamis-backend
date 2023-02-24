@@ -20,8 +20,8 @@ class DataGroup(models.Model):
         return self.public_name
 
     class Meta:
-        verbose_name = u"Grupo de datos solicitados"
-        verbose_name_plural = u"Grupos de datos solicitados"
+        verbose_name = "Grupo de datos solicitados"
+        verbose_name_plural = "Grupos de datos solicitados"
 
 
 class Collection(models.Model):
@@ -38,11 +38,11 @@ class Collection(models.Model):
         verbose_name="Conjunto de datos")
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.model_name})"
 
     class Meta:
-        verbose_name = u"Modelo (Tabla)"
-        verbose_name_plural = u"Modelos o Tablas"
+        verbose_name = "Modelo (Tabla)"
+        verbose_name_plural = "Modelos o Tablas"
 
 
 def default_params_data_type():
@@ -63,8 +63,8 @@ class DataType(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = u"Tipo de dato"
-        verbose_name_plural = u"Tipos de datos"
+        verbose_name = "Tipo de dato"
+        verbose_name_plural = "Tipos de datos"
 
 
 class ParameterGroup(models.Model):
@@ -77,8 +77,8 @@ class ParameterGroup(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = u"Agrupación de campos finales"
-        verbose_name_plural = u"Agrupaciones de campos finales"
+        verbose_name = "Agrupación de campos finales"
+        verbose_name_plural = "Agrupaciones de campos finales"
 
 
 class FinalField(models.Model):
@@ -97,8 +97,8 @@ class FinalField(models.Model):
     addl_params = JSONField(
         blank=True, null=True, 
         verbose_name="Otras configuraciones", 
-        help_text="Por ejemplo, max_length, null, blank, help_text,"
-            " así como otras configuraciones que se nos vayan ocurriendo")
+        help_text="Por ejemplo, max_length, null, blank, help_text, "
+                     "django_field, así como otras que aparezcan")
     variations = JSONField(
         blank=True, null=True, 
         verbose_name="Otros posibles nombres (variaciones)",
@@ -130,8 +130,8 @@ class FinalField(models.Model):
 
     class Meta:
         ordering = ["parameter_group", "-is_common", "verbose_name"]
-        verbose_name = u"Campo final"
-        verbose_name_plural = u"Campos finales (en DB)"
+        verbose_name = "Campo final"
+        verbose_name_plural = "Campos finales (en DB)"
 
 
 class CleanFunction(models.Model):
@@ -164,8 +164,8 @@ class CleanFunction(models.Model):
 
     class Meta:
         ordering = ["priority", "public_name"]
-        verbose_name = u"Función de limpieza y transformación"
-        verbose_name_plural = u"Funciones de limpieza y transformación"
+        verbose_name = "Función de limpieza y transformación"
+        verbose_name_plural = "Funciones de limpieza y transformación"
 
 
 """ class Parameter(models.Model):
@@ -192,5 +192,5 @@ class CleanFunction(models.Model):
         return "%s, %s" % (self.name, self.group_parameter)
 
     class Meta:
-        verbose_name = u"Parametro"
-        verbose_name_plural = u"Parametros" """
+        verbose_name = "Parametro"
+        verbose_name_plural = "Parametros" """

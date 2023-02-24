@@ -54,7 +54,7 @@ def insert_clean_data(limit=None):
                     print(e)
                     print(supp_id)
                     print(comp)
-                    supply.medicine_name_raw = u"!! %s" % comp
+                    supply.medicine_name_raw = "!! %s" % comp
                     if comp not in diseases_not_found:
                         diseases_not_found.append(comp)
             if not same_report and clu:

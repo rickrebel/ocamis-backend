@@ -11,7 +11,9 @@ from data_param.models import (
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
 from .data_file_mixins.get_data_mix import ExtractorsMix
+from .data_file_mixins.matches_mix import MatchesMix
 from .process_file_mixins.process_mix import ProcessFileMix
+
 from .petition_mixins.petition_mix import PetitionMix, PetitionTransformsMix
 
 
@@ -110,8 +112,8 @@ class Petition(models.Model, PetitionTransformsMix):
         return "%s -- %s" % (self.entity, self.folio_petition or self.id)
 
     class Meta:
-        verbose_name = u"Solicitud - Petición"
-        verbose_name_plural = u"Solicitudes (Peticiones)"
+        verbose_name = "Solicitud - Petición"
+        verbose_name_plural = "Solicitudes (Peticiones)"
 
 
 class PetitionBreak(models.Model):
@@ -226,8 +228,8 @@ class PetitionFileControl(models.Model):
         return "%s - %s" % (self.petition, self.file_control)
 
     class Meta:
-        verbose_name = u"Relacional: petición -- Grupo de Control"
-        verbose_name_plural = u"Relacional: Petición -- Grupos de Control"
+        verbose_name = "Relacional: petición -- Grupo de Control"
+        verbose_name_plural = "Relacional: Petición -- Grupos de Control"
 
 
 class MonthEntity(models.Model):
@@ -251,8 +253,8 @@ class MonthEntity(models.Model):
 
     class Meta:
         get_latest_by = "year_month"
-        verbose_name = u"Mes de entidad"
-        verbose_name_plural = u"Meses de entidad"
+        verbose_name = "Mes de entidad"
+        verbose_name_plural = "Meses de entidad"
 
 
 class PetitionMonth(models.Model):
@@ -269,15 +271,16 @@ class PetitionMonth(models.Model):
 
     class Meta:
         get_latest_by = "month_entity__year_month"
-        verbose_name = u"Mes de peticion"
-        verbose_name_plural = u"Meses de peticion"
+        verbose_name = "Mes de peticion"
+        verbose_name_plural = "Meses de peticion"
 
 
 def default_explore_data():
     return {}
 
 
-class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
+class DataFile(
+        models.Model, ExploreMix, DataUtilsMix, ExtractorsMix, MatchesMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
     zip_path = models.TextField(blank=True, null=True)
@@ -339,8 +342,8 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     class Meta:
         ordering = ["file"]
-        verbose_name = u"Archivo con datos"
-        verbose_name_plural = u"Archivos con datos"
+        verbose_name = "Archivo con datos"
+        verbose_name_plural = "Archivos con datos"
 
 
 class ProcessFile(models.Model, ProcessFileMix):
@@ -379,8 +382,8 @@ class ProcessFile(models.Model, ProcessFileMix):
         return "%s -- %s" % (first, self.petition)
 
     class Meta:
-        verbose_name = u"Archivo sin datos finales"
-        verbose_name_plural = u"Archivos sin datos finales"
+        verbose_name = "Archivo sin datos finales"
+        verbose_name_plural = "Archivos sin datos finales"
 
 
 class NameColumn (models.Model):
@@ -450,7 +453,7 @@ class Transformation(models.Model):
         FileControl, 
         related_name="file_transformations",
         on_delete=models.CASCADE, blank=True, null=True,
-        verbose_name="Grupo de archivos")
+        verbose_name="Grupo de control")
     name_column = models.ForeignKey(
         NameColumn, 
         related_name="column_transformations",

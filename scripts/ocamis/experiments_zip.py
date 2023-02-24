@@ -20,7 +20,7 @@ def create_file_lmd(file_bytes, upload_path, only_name, s3_vars):
             all_errors += [f"No se pudo insertar el archivo {final_path}"]
     except Exception as e:
         print(e)
-        all_errors += [u"Error leyendo los datos %s" % e]
+        all_errors += ["Error leyendo los datos %s" % e]
     return final_file, all_errors
 
 

@@ -37,8 +37,8 @@ class StatusControl(models.Model):
 
     class Meta:
         ordering = ["group", "order"]
-        verbose_name = u"Status de control"
-        verbose_name_plural = u"Status de control (TODOS)"
+        verbose_name = "Status de control"
+        verbose_name_plural = "Status de control (TODOS)"
 
 
 class FileType(models.Model):
@@ -63,8 +63,8 @@ class FileType(models.Model):
 
     class Meta:
         ordering = ["order"]
-        verbose_name = u"Tipo de archivo"
-        verbose_name_plural = u"Tipos de archivos"
+        verbose_name = "Tipo de archivo"
+        verbose_name_plural = "Tipos de archivos"
 
 
 class FileFormat(models.Model):
@@ -82,8 +82,8 @@ class FileFormat(models.Model):
         return self.public_name
 
     class Meta:
-        verbose_name = u"Formato de archivos"
-        verbose_name_plural = u"Formatos de archivos"
+        verbose_name = "Formato de archivos"
+        verbose_name_plural = "Formatos de archivos"
 
 
 class ColumnType(models.Model):
@@ -97,8 +97,8 @@ class ColumnType(models.Model):
 
     class Meta:
         ordering = ['order']
-        verbose_name = u"Tipo de Columna"
-        verbose_name_plural = u"Tipos de columnas"
+        verbose_name = "Tipo de Columna"
+        verbose_name_plural = "Tipos de columnas"
 
 
 class NegativeReason(models.Model):
@@ -109,8 +109,8 @@ class NegativeReason(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = u"Razón de negación de datos"
-        verbose_name_plural = u"Razones de negación de datos"
+        verbose_name = "Razón de negación de datos"
+        verbose_name_plural = "Razones de negación de datos"
 
 
 class InvalidReason(models.Model):
@@ -121,8 +121,8 @@ class InvalidReason(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = u"Razón de invalidez de datos"
-        verbose_name_plural = u"Razones de invalidez de datos"
+        verbose_name = "Razón de invalidez de datos"
+        verbose_name_plural = "Razones de invalidez de datos"
 
 
 class DateBreak(models.Model):
@@ -139,31 +139,31 @@ class DateBreak(models.Model):
 
     class Meta:
         ordering = ["order"]
-        verbose_name = u"Fecha de corte"
-        verbose_name_plural = u"Fechas de corte"
+        verbose_name = "Fecha de corte"
+        verbose_name_plural = "Fechas de corte"
 
 
 class Anomaly(models.Model):
     public_name = models.CharField(max_length=255, 
-        verbose_name=u"Nombre público")
+        verbose_name="Nombre público")
     name = models.CharField(
-        max_length=25, verbose_name=u"Nombre (devs)")
+        max_length=25, verbose_name="Nombre (devs)")
     is_public = models.BooleanField(default=True)
     description = models.TextField(
-        blank=True, null=True, verbose_name=u"Descripción")
+        blank=True, null=True, verbose_name="Descripción")
     icon = models.CharField(max_length=20, blank=True, null=True)
     is_calculated = models.BooleanField(default=False)
     order = models.IntegerField(default=5)
     color = models.CharField(
         max_length=30, blank=True, null=True,
-        verbose_name=u"Color")
+        verbose_name="Color")
 
     def __str__(self):
         return self.public_name
 
     class Meta:
-        verbose_name = u"Anomalía en los datos"
-        verbose_name_plural = u"Anomalías en los datos"
+        verbose_name = "Anomalía en los datos"
+        verbose_name_plural = "Anomalías en los datos"
 
 
 class TransparencyIndex(models.Model):
@@ -181,8 +181,8 @@ class TransparencyIndex(models.Model):
 
     class Meta:
         ordering = ["order_viz"]
-        verbose_name = u"Transparencia: Indicador"
-        verbose_name_plural = u"Transparencia: Indicadores"
+        verbose_name = "Transparencia: Indicador"
+        verbose_name_plural = "Transparencia: Indicadores"
 
 
 class TransparencyLevel(models.Model):
@@ -226,6 +226,6 @@ class TransparencyLevel(models.Model):
 
     class Meta:
         ordering = ["transparency_index__order_viz", "-order_viz"]
-        verbose_name = u"Transparencia: Nivel"
-        verbose_name_plural = u"Transparencia: Niveles"
+        verbose_name = "Transparencia: Nivel"
+        verbose_name_plural = "Transparencia: Niveles"
 

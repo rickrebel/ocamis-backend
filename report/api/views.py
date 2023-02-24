@@ -862,14 +862,14 @@ class ReportExportView(views.APIView):
         from wsgiref.util import FileWrapper
         from django.http import HttpResponse
 
-        file_name = u"Exportación de Insumos y reportes %s" % timezone.now()\
+        file_name = "Exportación de Insumos y reportes %s" % timezone.now()\
             .strftime("%d-%m-%Y")
-        slug_file_name = slugify(u"Exportación de Insumos y reportes")
+        slug_file_name = slugify("Exportación de Insumos y reportes")
 
         try:
             users_xlsx = open("%s.xlsx" % slug_file_name, 'rb')
         except Exception as e:
-            return Response({"errors": [u"%s" % e]},
+            return Response({"errors": ["%s" % e]},
                             status=status.HTTP_400_BAD_REQUEST)
         response = HttpResponse(FileWrapper(users_xlsx),
                                 content_type='application/vnd.ms-excel')
@@ -894,45 +894,45 @@ class ReportExportView2(GenericModelExport):
         .order_by("report__created", "id")
     permission_classes = [permissions.IsAdminUser]
     columns_width_pixel = True
-    xlsx_name = u"Exportación de Insumos y reportes"
-    tab_name = u"Listado"
+    xlsx_name = "Exportación de Insumos y reportes"
+    tab_name = "Listado"
     header_format = {'bold': True, "font_size": 13}
     data_config = [
-        [u"id del Insumo", "id", 28],
-        [u"Tipo de Medicina", "medicine_type", 134],
-        [u"Grupo", "component.group.name", 160],
-        [u"Componente", "component.name", 160],
-        [u"Insumo faltante", "medicine_name_raw", 160],
-        [u"Insumo (nombre real)", "medicine_real_name", 160],
-        [u"Presentacion", "presentation.description", 160],
-        [u"Presentacion escrita", "presentation_raw", 160],
-        [u"id del Reporte", "report.id", 28],
-        [u"Fecha de Registro", "report.created", 86],
-        [u"Tipo de informante", "report.informer_type", 86],
-        [u"Padecimiento (escrito)", "report.disease_raw", 154],
-        [u"Padecimiento", "disease.name", 154],
-        [u"Nombre de contacto", "report.persona.informer_name", 140],
-        [u"Correo de contacto", "report.persona.email", 140],
-        [u"Número de contacto", "report.persona.phone", 85],
-        [u"Apoyo Litig", "report.persona.want_litigation", 40],
-        [u"Apoyo Acomp", "report.persona.want_management", 40],
-        [u"Edad", "report.age", 30],
-        [u"Género", "report.gender", 30],
-        [u"Entidad", "report.state.short_name", 120],
-        [u"Institución (raw)", "report.institution_raw", 80],
-        [u"Institución (s/CLUES)", "report.institution.public_name", 60],
-        [u"Es otra institución", "report.is_other", 30],
-        [u"CLUES", "report.clues.clues", 106],
-        [u"Hospital o clínica", "report.get_clues_hospital_name", 240],
-        [u"¿Hubo corrupción?", "report.complement.has_corruption", 40],
-        [u"Relato de la corrupción", "report.complement.narration", 300],
-        [u"Validado (por Nosotrxs)", "report.complement.validated", 30],
-        [u"App", "report.complement.origin_app", 40],
-        [u"Testimonio", "report.complement.testimony", 300],
+        ["id del Insumo", "id", 28],
+        ["Tipo de Medicina", "medicine_type", 134],
+        ["Grupo", "component.group.name", 160],
+        ["Componente", "component.name", 160],
+        ["Insumo faltante", "medicine_name_raw", 160],
+        ["Insumo (nombre real)", "medicine_real_name", 160],
+        ["Presentacion", "presentation.description", 160],
+        ["Presentacion escrita", "presentation_raw", 160],
+        ["id del Reporte", "report.id", 28],
+        ["Fecha de Registro", "report.created", 86],
+        ["Tipo de informante", "report.informer_type", 86],
+        ["Padecimiento (escrito)", "report.disease_raw", 154],
+        ["Padecimiento", "disease.name", 154],
+        ["Nombre de contacto", "report.persona.informer_name", 140],
+        ["Correo de contacto", "report.persona.email", 140],
+        ["Número de contacto", "report.persona.phone", 85],
+        ["Apoyo Litig", "report.persona.want_litigation", 40],
+        ["Apoyo Acomp", "report.persona.want_management", 40],
+        ["Edad", "report.age", 30],
+        ["Género", "report.gender", 30],
+        ["Entidad", "report.state.short_name", 120],
+        ["Institución (raw)", "report.institution_raw", 80],
+        ["Institución (s/CLUES)", "report.institution.public_name", 60],
+        ["Es otra institución", "report.is_other", 30],
+        ["CLUES", "report.clues.clues", 106],
+        ["Hospital o clínica", "report.get_clues_hospital_name", 240],
+        ["¿Hubo corrupción?", "report.complement.has_corruption", 40],
+        ["Relato de la corrupción", "report.complement.narration", 300],
+        ["Validado (por Nosotrxs)", "report.complement.validated", 30],
+        ["App", "report.complement.origin_app", 40],
+        ["Testimonio", "report.complement.testimony", 300],
     ]
 
     def get_file_name(self, request, **kwargs):
-        return u"Exportación de Insumos y reportes"
+        return "Exportación de Insumos y reportes"
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
@@ -946,14 +946,14 @@ class CovidReportExportView(views.APIView):
         from wsgiref.util import FileWrapper
         from django.http import HttpResponse
 
-        file_name = u"Exportación de Dosis y Reportes Covid %s" % timezone.now()\
+        file_name = "Exportación de Dosis y Reportes Covid %s" % timezone.now()\
             .strftime("%d-%m-%Y")
-        slug_file_name = slugify(u"Exportación de Dosis y Reportes Covid")
+        slug_file_name = slugify("Exportación de Dosis y Reportes Covid")
 
         try:
             users_xlsx = open("%s.xlsx" % slug_file_name, 'rb')
         except Exception as e:
-            return Response({"errors": [u"%s" % e]},
+            return Response({"errors": ["%s" % e]},
                             status=status.HTTP_400_BAD_REQUEST)
         response = HttpResponse(FileWrapper(users_xlsx),
                                 content_type='application/vnd.ms-excel')
@@ -975,41 +975,41 @@ class CovidReportExportView2(GenericModelExport):
         .order_by("covid_report__created", "id")
     permission_classes = [permissions.IsAdminUser]
     columns_width_pixel = True
-    xlsx_name = u"Exportación de Dosis y Reportes Covid"
-    tab_name = u"Listado"
+    xlsx_name = "Exportación de Dosis y Reportes Covid"
+    tab_name = "Listado"
     header_format = {'bold': True, "font_size": 13}
     data_config = [
-        [u"id de la Dosis", "id", 28],
-        [u"Tipo de dosis", "get_type_success", 28],
-        [u"Marca de la vacuna", "brand", 100],
-        [u"Número de dosis", "round_dosis", 28],
-        [u"Fecha de evento", "date", 35],
-        [u"Razón de negativa", "reason_negative", 120],
-        [u"Entidad negativa", "state.name", 120],
-        [u"Municipio negativa", "state.short_name", 120],
-        [u"Otra ubicación (neg)", "other_location", 40],
-        [u"id del Reporte Covid", "covid_report.id", 28],
-        [u"Fecha de Registro", "covid_report.created", 86],
-        [u"Edad", "covid_report.age", 30],
-        [u"Grupo Especial", "covid_report.special_group", 85],
-        [u"Género", "covid_report.gender", 30],
-        [u"Comorbilidades", "covid_report.comorbilities", 30],
-        [u"Entidad residencia", "covid_report.state.short_name", 120],
-        [u"Municipio residencia", "covid_report.municipality.name", 120],
-        [u"Otra ubicación (residencia)", "covid_report.other_location", 120],
-        [u"Nombre de contacto", "covid_report.persona.informer_name", 140],
-        [u"Correo de contacto", "covid_report.persona.email", 140],
-        [u"Número de contacto", "covid_report.persona.phone", 85],
-        [u"Apoyo Litig", "report.persona.want_litigation", 40],        
-        [u"¿Hubo corrupción?", "covid_report.complement.has_corruption", 40],
-        [u"Relato de la corrupción", "covid_report.complement.narration", 300],
-        [u"Validado (por Nosotrxs)", "covid_report.complement.validated", 30],
-        [u"App", "covid_report.complement.origin_app", 40],
-        [u"Testimonio", "covid_report.complement.testimony", 300],
+        ["id de la Dosis", "id", 28],
+        ["Tipo de dosis", "get_type_success", 28],
+        ["Marca de la vacuna", "brand", 100],
+        ["Número de dosis", "round_dosis", 28],
+        ["Fecha de evento", "date", 35],
+        ["Razón de negativa", "reason_negative", 120],
+        ["Entidad negativa", "state.name", 120],
+        ["Municipio negativa", "state.short_name", 120],
+        ["Otra ubicación (neg)", "other_location", 40],
+        ["id del Reporte Covid", "covid_report.id", 28],
+        ["Fecha de Registro", "covid_report.created", 86],
+        ["Edad", "covid_report.age", 30],
+        ["Grupo Especial", "covid_report.special_group", 85],
+        ["Género", "covid_report.gender", 30],
+        ["Comorbilidades", "covid_report.comorbilities", 30],
+        ["Entidad residencia", "covid_report.state.short_name", 120],
+        ["Municipio residencia", "covid_report.municipality.name", 120],
+        ["Otra ubicación (residencia)", "covid_report.other_location", 120],
+        ["Nombre de contacto", "covid_report.persona.informer_name", 140],
+        ["Correo de contacto", "covid_report.persona.email", 140],
+        ["Número de contacto", "covid_report.persona.phone", 85],
+        ["Apoyo Litig", "report.persona.want_litigation", 40],        
+        ["¿Hubo corrupción?", "covid_report.complement.has_corruption", 40],
+        ["Relato de la corrupción", "covid_report.complement.narration", 300],
+        ["Validado (por Nosotrxs)", "covid_report.complement.validated", 30],
+        ["App", "covid_report.complement.origin_app", 40],
+        ["Testimonio", "covid_report.complement.testimony", 300],
     ]
 
     def get_file_name(self, request, **kwargs):
-        return u"Exportación de Dosis y Reportes Covid"
+        return "Exportación de Dosis y Reportes Covid"
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
@@ -1023,14 +1023,14 @@ class PublicReportExportView(views.APIView):
         from wsgiref.util import FileWrapper
         from django.http import HttpResponse
 
-        file_name = u"Exportación pública de reportes %s" % timezone.now()\
+        file_name = "Exportación pública de reportes %s" % timezone.now()\
             .strftime("%d-%m-%Y")
-        slug_file_name = slugify(u"Exportación de Insumos y reportes público")
+        slug_file_name = slugify("Exportación de Insumos y reportes público")
 
         try:
             users_xlsx = open("%s.xlsx" % slug_file_name, 'rb')
         except Exception as e:
-            return Response({"errors": [u"%s" % e]},
+            return Response({"errors": ["%s" % e]},
                             status=status.HTTP_400_BAD_REQUEST)
         response = HttpResponse(FileWrapper(users_xlsx),
                                 content_type='application/vnd.ms-excel')
@@ -1056,28 +1056,28 @@ class PublicReportExportView2(GenericModelExport):
 
     permission_classes = [permissions.AllowAny]
     columns_width_pixel = True
-    xlsx_name = u"Exportación de Insumos y reportes"
-    tab_name = u"Registros históricos"
+    xlsx_name = "Exportación de Insumos y reportes"
+    tab_name = "Registros históricos"
     header_format = {'bold': True, "font_size": 13}
     data_config = [
-        [u"id del Insumo", "id", 28],
-        [u"Tipo de Medicina", "medicine_type", 134],
-        [u"Grupo", "component.group.name", 160],
-        [u"Componente", "component.name", 160],
-        [u"Presentacion", "presentation.description", 160],
-        [u"id del Reporte", "report.id", 28],
-        [u"Fecha de Registro", "report.created", 86],
-        [u"Tipo de informante", "report.informer_type", 86],
-        [u"Padecimiento", "disease.name", 154],
-        [u"Entidad", "report.state.short_name", 120],
-        [u"Institución", "report.institution.public_name", 60],
-        [u"Institución 2", "report.hospital_name_raw", 80],
-        [u"CLUES", "report.clues.clues", 106],
-        [u"Hospital o clínica", "report.get_clues_hospital_name", 240],
+        ["id del Insumo", "id", 28],
+        ["Tipo de Medicina", "medicine_type", 134],
+        ["Grupo", "component.group.name", 160],
+        ["Componente", "component.name", 160],
+        ["Presentacion", "presentation.description", 160],
+        ["id del Reporte", "report.id", 28],
+        ["Fecha de Registro", "report.created", 86],
+        ["Tipo de informante", "report.informer_type", 86],
+        ["Padecimiento", "disease.name", 154],
+        ["Entidad", "report.state.short_name", 120],
+        ["Institución", "report.institution.public_name", 60],
+        ["Institución 2", "report.hospital_name_raw", 80],
+        ["CLUES", "report.clues.clues", 106],
+        ["Hospital o clínica", "report.get_clues_hospital_name", 240],
     ]
 
     def get_file_name(self, request, **kwargs):
-        return u"Exportación pública de Insumos y reportes"
+        return "Exportación pública de Insumos y reportes"
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 

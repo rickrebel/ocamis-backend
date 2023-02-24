@@ -58,7 +58,7 @@ def fetch_entities(include_groups):
 def build_quality_simple(file_ctrl):          
     clues = None
     formula = None
-    droug = None
+    drug = None
     final_fields = file_ctrl["columns"]
     
     has_clues = ("CLUES", "clues") in final_fields or file_ctrl["has_ent_clues"]
@@ -69,10 +69,10 @@ def build_quality_simple(file_ctrl):
         clues = "almost_enough"
     else:
         clues = "not_enough"
-    emision = (("Prescription", "fecha_emision") in final_fields or
+    emision = (("Prescription", "date_release") in final_fields or
         ("Prescription", "fecha_consulta") in final_fields)
     entrega = ("Prescription", "fecha_entrega") in final_fields
-    folio = ("Prescription", "folio_documento") in final_fields
+    folio = ("Prescription", "folio_document") in final_fields
     if folio and emision and entrega:
         formula = "enough"
     elif folio and (emision or entrega):
@@ -80,29 +80,29 @@ def build_quality_simple(file_ctrl):
     else:
         formula = "not_enough"
     official_key = ("Container", "key2") in final_fields
-    prescrita = ("Droug", "cantidad_prescrita") in final_fields
-    entregada = ("Droug", "cantidad_entregada") in final_fields
-    no_entregada = ("Droug", "no_entregada") in final_fields
-    assortment = ("Droug", "clasif_assortment") in final_fields
+    prescrita = ("Drug", "prescribed_amount") in final_fields
+    entregada = ("Drug", "delivered_amount") in final_fields
+    no_entregada = ("Drug", "no_entregada") in final_fields
+    assortment = ("Drug", "clasif_assortment") in final_fields
     own_key = ("Container", "_own_key") in final_fields
-    other_names = (("Droug", "droug_name") in final_fields or
+    other_names = (("Drug", "drug_name") in final_fields or
         ("Presentation", "description") in final_fields or
         ("Container", "name") in final_fields)
     if prescrita and (entregada or assortment or no_entregada):
         if official_key and (entregada or no_entregada):
-            droug = "enough"
+            drug = "enough"
         elif official_key or other_names or own_key:
-            droug = "almost_enough"
-    if not droug:
-        droug = "not_enough"
-    return {"clues": clues, "formula": formula, "droug": droug}
+            drug = "almost_enough"
+    if not drug:
+        drug = "not_enough"
+    return {"clues": clues, "formula": formula, "drug": drug}
 
 
 
 def build_quality(entity, file_ctrls):
     clues = 0
     formula = 0
-    droug = 0
+    drug = 0
     for file_ctrl in file_ctrls:
         final_fields = file_ctrl["columns"]
         has_clues = (("CLUES", "clues") in final_fields or 
@@ -114,10 +114,10 @@ def build_quality(entity, file_ctrls):
             clues = 2
         else:
             clues = 3
-        emision = (("Prescription", "fecha_emision") in final_fields or
+        emision = (("Prescription", "date_release") in final_fields or
             ("Prescription", "fecha_consulta") in final_fields)
         entrega = ("Prescription", "fecha_entrega") in final_fields
-        folio = ("Prescription", "folio_documento") in final_fields
+        folio = ("Prescription", "folio_document") in final_fields
         if folio and emision and entrega and formula < 2:
             formula = 1
         elif folio and (emision or entrega) and formula < 3:
@@ -125,17 +125,17 @@ def build_quality(entity, file_ctrls):
         else:
             formula = 3
         official_key = ("Container", "key2") in final_fields
-        prescrita = ("Droug", "cantidad_prescrita") in final_fields
-        entregada = ("Droug", "cantidad_entregada") in final_fields
+        prescrita = ("Drug", "prescribed_amount") in final_fields
+        entregada = ("Drug", "delivered_amount") in final_fields
         own_key = ("Container", "_own_key") in final_fields
-        other_names = (("Droug", "droug_name") in final_fields or
+        other_names = (("Drug", "drug_name") in final_fields or
             ("Presentation", "description") in final_fields or
             ("Container", "name") in final_fields)
         if prescrita and entregada:
-            if official_key and droug < 2:
-                droug = 1
-            elif (official_key or other_names or own_key) and droug < 3:
-                droug = 2
-        if not droug:
-            droug = 3
-    return clues, formula, droug
+            if official_key and drug < 2:
+                drug = 1
+            elif (official_key or other_names or own_key) and drug < 3:
+                drug = 2
+        if not drug:
+            drug = 3
+    return clues, formula, drug

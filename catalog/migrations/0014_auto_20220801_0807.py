@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='state',
             name='alternative_names',
-            field=django.contrib.postgres.fields.jsonb.JSONField(default=catalog.models.State.default_alternative_names, help_text='Ocupar para OCAMIS', verbose_name='Lista nombres alternativos'),
+            field=django.contrib.postgres.fields.jsonb.JSONField(help_text='Ocupar para OCAMIS', verbose_name='Lista nombres alternativos'),
         ),
         migrations.AlterField(
             model_name='state',

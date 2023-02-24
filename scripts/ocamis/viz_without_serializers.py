@@ -91,7 +91,7 @@
                         continue
                     clues = 0
                     formula = 0
-                    droug = 0
+                    drug = 0
                     for file_ctrl in file_ctrls:
                         final_fields = file_ctrl.columns\
                             .filter(final_field__need_for_viz=True)\
@@ -108,10 +108,10 @@
                             clues = 2
                         else:
                             clues = 3
-                        emision = (("Prescription", "fecha_emision") in final_fields or
+                        emision = (("Prescription", "date_release") in final_fields or
                             ("Prescription", "fecha_consulta") in final_fields)
                         entrega = ("Prescription", "fecha_entrega") in final_fields
-                        folio = ("Prescription", "folio_documento") in final_fields
+                        folio = ("Prescription", "folio_document") in final_fields
                         if folio and emision and entrega and formula < 2:
                             formula = 1
                         elif folio and (emision or entrega) and formula < 3:
@@ -119,30 +119,30 @@
                         else:
                             formula = 3
                         official_key = ("Container", "key2") in final_fields
-                        prescrita = ("Droug", "cantidad_prescrita") in final_fields
-                        entregada = ("Droug", "cantidad_entregada") in final_fields
+                        prescrita = ("Drug", "prescribed_amount") in final_fields
+                        entregada = ("Drug", "delivered_amount") in final_fields
                         own_key = ("Container", "_own_key") in final_fields
-                        other_names = (("Droug", "droug_name") in final_fields or
+                        other_names = (("Drug", "drug_name") in final_fields or
                             ("Presentation", "description") in final_fields or
                             ("Container", "name") in final_fields)
                         if prescrita and entregada:
-                            if official_key and droug < 2:
-                                droug = 1
-                            elif (official_key or other_names or own_key) and droug < 3:
-                                droug = 2
-                        if not droug:
-                            droug = 3
+                            if official_key and drug < 2:
+                                drug = 1
+                            elif (official_key or other_names or own_key) and drug < 3:
+                                drug = 2
+                        if not drug:
+                            drug = 3
                     pet_dg = setattr(petition, data_group, {})
                     if not status_data or status_data.name in status_no_data:
                         pet_dg.clues = "no_data"
                         pet_dg.formula = "no_data"
-                        pet_dg.droug = "no_data"
+                        pet_dg.drug = "no_data"
                         pet_dg.qual_detailed = "no_data"
                     else:
                         pet_dg.clues = enoughs[clues]
                         pet_dg.formula = enoughs[formula]
-                        pet_dg.droug = enoughs[droug]
-                        max_value = max([clues, formula, droug])
+                        pet_dg.drug = enoughs[drug]
+                        max_value = max([clues, formula, drug])
                         pet_dg.qual_detailed = enoughs[max_value]
 
             final_data.append(entity)

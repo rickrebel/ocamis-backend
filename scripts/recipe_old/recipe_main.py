@@ -7,8 +7,8 @@ from category.models import StatusControl
 
 recipe_fields = FinalField.objects.filter(
     collection__model_name='Prescription').values()
-droug_fields = FinalField.objects.filter(
-    collection__model_name='Droug').values()
+drug_fields = FinalField.objects.filter(
+    collection__model_name='Drug').values()
 catalog_clues = {}
 catalog_state = {}
 catalog_delegation = {}
@@ -79,7 +79,7 @@ def transform_files_in_data(file, file_control, is_explore, suffix)
     #RICK: Pendiente este tema
     #meta_columns = 
     if is_explore:
-        for idx, row in enumerate(data_rows[:50]):
+        for idx, row in enumerate(data_rows[:200]):
             data_divided = divide_recipe_report_data(row, file, idx)
             if data_divided:
                 structured_data.append(data_divided)
@@ -176,7 +176,7 @@ def build_catalog_clues():
         clues_data_query.filter(state=state)
     clues_data_query = list(
         clues_data_query.values_list(
-            "state__name", "name", "tipology_cve",
+            "state__name", "name", "typology_cve",
             "id", "alternative_names", "state__short_name"
         )
     )
@@ -188,7 +188,7 @@ def build_catalog_clues():
                 clues_name = unidecode.unidecode(clues_data[1])
             except Exception:
                 clues_name = clues_data[1]
-            prov_name = u"%s %s" % (cve, clues_name)
+            prov_name = "%s %s" % (cve, clues_name)
             real_name = unidecode.unidecode(prov_name).upper()
             if not state:
                 real_name = "%s$%s" % (real_name, state_short_name)
@@ -298,7 +298,7 @@ def split_and_decompress(file):
             " podemos reconocer: %s" suffixes)]
         return None, None, errors, None
     if not set(['txt', 'csv', 'xls', 'xlsx']).issubset(suffixes):
-        errors = ["Formato no válido", u"%s" % suffixes]
+        errors = ["Formato no válido", "%s" % suffixes]
         return None, None, errors, None
     file_size = os.path.getsize(file.file_name)
     if file_size > 400000000:
@@ -381,7 +381,7 @@ def get_data_from_file_simple(file):
             file_open.close()
     except Exception as e:
         print(e)
-        return False, [u"%s" % e]
+        return False, ["%s" % e]
     is_issste = file.petition.entity.institution.code == 'ISSSTE'
     file_control = file.file_control
     if "|" in data[:5000]:

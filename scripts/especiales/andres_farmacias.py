@@ -51,7 +51,7 @@ def import_campaigns2():
             file.close()
     except Exception as e:
         print(e)
-        return False, [u"%s" % (e)], False
+        return False, ["%s" % (e)], False
     rr_data_rows = data.split("\n")
     last_botica = False
     final_data = []

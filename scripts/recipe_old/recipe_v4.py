@@ -122,12 +122,12 @@ def get_data_from_file(reporte_recetas_path, clean_data=True):
                 data = clean_special(data)
             file.close()
     except Exception as e:
-        return False, [u"%s" % (e)], False
+        return False, ["%s" % (e)], False
 
     rr_data_rows = data.split('\n')
     if not with_coma:
         headers = rr_data_rows.pop(0)
-        print(u"se quitó headers del procesado: ", headers)
+        print("se quitó headers del procesado: ", headers)
 
     return rr_data_rows, [], with_coma
 
@@ -173,7 +173,7 @@ def get_state(state_name):
     return catalog_state[state_name]
 
 
-def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
+def get_clues_id(delegation, unidad_medica, tipo_unidad_med, institution):
     from scripts.common import similar
     """
     cargar los datos basicos de todos los Clues pertenecientes a
@@ -190,7 +190,7 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
             CLUES.objects.filter(
                 institution__code=institution_upper)
             .values_list(
-                "state__name", "name", "tipology_cve",
+                "state__name", "name", "typology_cve",
                 "id", "alternative_names"
             )
         )
@@ -201,7 +201,7 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
                     clues_name = unidecode.unidecode(clues_data[1])
                 except Exception:
                     clues_name = clues_data[1]
-                prov_name = u"%s %s" % (cve, clues_name)
+                prov_name = "%s %s" % (cve, clues_name)
                 real_name = unidecode.unidecode(prov_name).upper()
                 if real_name not in catalog_clues:
                     catalog_clues[real_name] = [clues_data]
@@ -246,13 +246,13 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
                 if alt_names:
                     alt_names.append(unidad_medica)
                     clues_obj.alternative_names = alt_names
-                    print(u"más de una alternativa:")
+                    print("más de una alternativa:")
                     print(clues[0][3])
                 else:
                     clues_obj.alternative_names = [unidad_medica]
                 clues_obj.save()
             except:
-                print(u"no se contempló el artificial_id:")
+                print("no se contempló el artificial_id:")
                 print(clues[0][3])
 
     if not clues:
@@ -266,7 +266,7 @@ def get_clues_id(delegacion, unidad_medica, tipo_unidad_med, institution):
         else:
             last_clues_id = data_file_clues[-1][0]
         artificial_id = last_clues_id + 1
-        state = get_state(delegacion)
+        state = get_state(delegation)
         data_file_clues.append([
             artificial_id,
             state.id,
@@ -360,13 +360,13 @@ def check_clave_doctor(clave_doctor, nombre_medico, especialidad_medico):
 
 
 def get_recipe_report_data(recipe_report_data, institution="issste"):
-    delegacion = recipe_report_data[0]
+    delegation = recipe_report_data[0]
     unidad_medica = recipe_report_data[2]
     tipo_unidad_med = recipe_report_data[3]
     nivel_atencion = recipe_report_data[4]
 
     clues_id = get_clues_id(
-        delegacion, unidad_medica, tipo_unidad_med, institution)
+        delegation, unidad_medica, tipo_unidad_med, institution)
     if not clues_id or clues_id == "":
         print(recipe_report_data)
     #clues_id = 0
@@ -403,29 +403,29 @@ def get_recipe_medicine_data(recipe_report_data):
 
     # ###revicion de existencia de clave_medicamento
 
-    cantidad_prescrita = recipe_report_data[11]
-    cantidad_entregada = recipe_report_data[12]
-    precio_medicamento = recipe_report_data[16]
+    prescribed_amount = recipe_report_data[11]
+    delivered_amount = recipe_report_data[12]
+    price = recipe_report_data[16]
     rn = recipe_report_data[17]
     # convertir datos a enteros
     calculate_delivered = True
-    if (cantidad_prescrita or "").isdigit():
-        cantidad_prescrita = int(cantidad_prescrita)
+    if (prescribed_amount or "").isdigit():
+        prescribed_amount = int(prescribed_amount)
     else:
         calculate_delivered = False
-        cantidad_prescrita = "NULL"
+        prescribed_amount = "NULL"
 
     #
-    if (cantidad_entregada or "").isdigit():
-        cantidad_entregada = int(cantidad_entregada)
+    if (delivered_amount or "").isdigit():
+        delivered_amount = int(delivered_amount)
     else:
         calculate_delivered = False
-        cantidad_entregada = "NULL"
+        delivered_amount = "NULL"
     # ---------------------------
     if calculate_delivered:
         # calculo de delivered
-        if cantidad_entregada:
-            if cantidad_prescrita == cantidad_entregada:
+        if delivered_amount:
+            if prescribed_amount == delivered_amount:
                 delivered_type = "all"
             else:
                 delivered_type = "ptl"
@@ -436,9 +436,9 @@ def get_recipe_medicine_data(recipe_report_data):
 
     return [
         clave_medicamento,
-        cantidad_prescrita,
-        cantidad_entregada,
-        precio_medicamento,
+        prescribed_amount,
+        delivered_amount,
+        price,
         delivered_type,
         rn,
     ]
@@ -478,7 +478,7 @@ def converter_file_in_related_files(
     if len(recipe_first) >= 17:
         first_folio = recipe_first[6]
         previus_recipe = Prescription.objects\
-            .filter(folio_documento=first_folio).first()
+            .filter(folio_document=first_folio).first()
         if previus_recipe:
             recipes_data[first_folio] = {
                 "id": first_folio,
@@ -511,18 +511,18 @@ def converter_file_in_related_files(
         if not recipe_report_prev_data:
             continue
 
-        folio_documento = recipe_report_prev_data[6]
-        fecha_emision = recipe_report_prev_data[7]
+        folio_document = recipe_report_prev_data[6]
+        date_release = recipe_report_prev_data[7]
 
-        if last_date != fecha_emision[:10]:
-            last_date = fecha_emision[:10]
+        if last_date != date_release[:10]:
+            last_date = date_release[:10]
             #Cálculo de la semana epidemiológica:
             curr_date = datetime.strptime(last_date, '%Y-%m-%d')
             iso_date = curr_date.isocalendar()
             if not first_iso:
                 first_iso = iso_date
 
-        folio_ocamis = "%s-%s-%s" % (iso_date[0], iso_date[1], folio_documento)
+        folio_ocamis = "%s-%s-%s" % (iso_date[0], iso_date[1], folio_document)
 
         if folio_ocamis not in recipes_data:
             recipe_report_data = get_recipe_report_data(
@@ -537,11 +537,11 @@ def converter_file_in_related_files(
                 "clues_id": clues_id,
                 "folio_ocamis": folio_ocamis,
                 "tipo_documento_id": tipo_documento_id,
-                "folio_documento": folio_documento,
+                "folio_document": folio_document,
                 "iso_year": iso_date[0],
                 "iso_week": iso_date[1],
                 "iso_day": iso_date[2],
-                "fecha_emision": fecha_emision,
+                "date_release": date_release,
                 "fecha_entrega": fecha_entrega,
                 "nivel_atencion": nivel_atencion,
                 "clave_doctor": clave_doctor,
@@ -553,9 +553,9 @@ def converter_file_in_related_files(
             recipe_report_prev_data)
 
         (clave_medicamento,
-         cantidad_prescrita,
-         cantidad_entregada,
-         precio_medicamento,
+         prescribed_amount,
+         delivered_amount,
+         price,
          delivered_type,
          rn) = recipe_medicine_data
 
@@ -565,9 +565,9 @@ def converter_file_in_related_files(
         data_file_medicine.append([
             folio_ocamis,
             clave_medicamento,
-            cantidad_prescrita,
-            cantidad_entregada,
-            precio_medicamento,
+            prescribed_amount,
+            delivered_amount,
+            price,
             rn,
             delivered_type
         ])
@@ -615,17 +615,17 @@ def converter_file_in_related_files(
             recipe_data.get("clues_id"),
             folio_ocamis,
             recipe_data.get("tipo_documento_id"),
-            recipe_data.get("folio_documento"),
+            recipe_data.get("folio_document"),
             recipe_data.get("iso_year"),
             recipe_data.get("iso_week"),
             recipe_data.get("iso_day"),
-            recipe_data.get("fecha_emision"),
+            recipe_data.get("date_release"),
             recipe_data.get("fecha_entrega"),
             recipe_data.get("nivel_atencion"),
             recipe_data.get("clave_doctor"),
             recipe_delivered,
             year_month])
-    # ordenado por folio_documento
+    # ordenado por folio_document
     print("start sort:", timezone.now())
     data_file_recipe.sort(key=lambda x: x[1])
 
@@ -640,8 +640,8 @@ def converter_file_in_related_files(
             "path": clues_path,
             "fields": [
                 "id", "state_id", "institution_id", "name", "is_searchable",
-                "municipality_inegi_code", "municipality", "tipology",
-                "tipology_cve", "id_clues", "clues", "status_operation",
+                "municipality_inegi_code", "municipality", "typology",
+                "typology_cve", "id_clues", "clues", "status_operation",
                 "longitude", "latitude", "locality", "locality_inegi_code",
                 "jurisdiction", "jurisdiction_clave", "establishment_type",
                 "consultings_general", "consultings_other", "beds_hopital",
@@ -671,11 +671,11 @@ def converter_file_in_related_files(
                 "clues_id",
                 "folio_ocamis",
                 "tipo_documento_id",
-                "folio_documento",
+                "folio_document",
                 "iso_year",
                 "iso_week",
                 "iso_day",
-                "fecha_emision",
+                "date_release",
                 "fecha_entrega",
                 "nivel_atencion",
                 "medico_id",
@@ -690,9 +690,9 @@ def converter_file_in_related_files(
             "fields": [
                 "recipe_id",
                 "clave_medicamento",
-                "cantidad_prescrita",
-                "cantidad_entregada",
-                "precio_medicamento",
+                "prescribed_amount",
+                "delivered_amount",
+                "price",
                 "rn",
                 "delivered"
             ],
@@ -818,7 +818,7 @@ def clean_special(data):
     fabian = 'FABIAN ZARATE GALINDO|'
     fabian2 = 'FABIAN ZARATE GALINDO||'
     if fabian2 in data:
-        print(u"caso FABIAN")
+        print("caso FABIAN")
         data = data.replace(fabian2, fabian)
     return data
 

@@ -26,7 +26,7 @@ class UserRegistrationAPIView(views.APIView):
 
         # if not checkCondiction:
         #     return Response(
-        #         {"errors": [u"no acepto los términos y condiciones"]},
+        #         {"errors": ["no acepto los términos y condiciones"]},
         #         status=status.HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.create_user(
@@ -36,7 +36,7 @@ class UserRegistrationAPIView(views.APIView):
                 first_name=name)
         except Exception as e:
             return Response(
-                {"errors": ["El username/email no es valido", u"%s" % e]},
+                {"errors": ["El username/email no es valido", "%s" % e]},
                 status=status.HTTP_400_BAD_REQUEST)
 
         data = serializers.UserDataSerializer(
@@ -69,16 +69,16 @@ class UserLoginAPIView(views.APIView):
             user_query = User.objects.filter(username=username)
         else:
             raise ParseError(
-                detail=u"Please enter username or email to login.")
+                detail="Please enter username or email to login.")
 
         if user_query.count() == 1:
             user_obj = user_query.first()
         else:
-            raise ParseError(detail=u"This username/email is not valid.")
+            raise ParseError(detail="This username/email is not valid.")
         if not user_obj.check_password(password):
-            raise ParseError(detail=u"Invalid credentials.")
+            raise ParseError(detail="Invalid credentials.")
         if not user_obj.is_active:
-            raise ParseError(detail=u"User not active.")
+            raise ParseError(detail="User not active.")
 
         auth_token = getattr(user_obj, "auth_token", None)
         if not auth_token:

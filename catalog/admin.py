@@ -69,7 +69,7 @@ class CLUESAdmin(admin.ModelAdmin):
         "name",
         "clues",
         "is_searchable",
-        "tipology",
+        "typology",
         "state",
         "jurisdiction",
         "municipality",
@@ -90,7 +90,7 @@ class CLUESAdmin(admin.ModelAdmin):
         "state__name",
         "state__short_name",
         "clues",
-        "tipology_cve",
+        "typology_cve",
         "jurisdiction"
     ]
 

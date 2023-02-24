@@ -63,8 +63,8 @@ class SendGridProfile(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = u"Perfil de correo por SendGrid"
-        verbose_name_plural = u"Perfiles de correo por SendGrid"
+        verbose_name = "Perfil de correo por SendGrid"
+        verbose_name_plural = "Perfiles de correo por SendGrid"
 
 
 class TemplateBase(models.Model):
@@ -82,8 +82,8 @@ class TemplateBase(models.Model):
         return self.from_name + ": " + self.subject
 
     class Meta:
-        verbose_name = u"Plantilla Base"
-        verbose_name_plural = u"Plantillas Base"
+        verbose_name = "Plantilla Base"
+        verbose_name_plural = "Plantillas Base"
         db_table = u'perfil_templatebase'
 
 
@@ -96,7 +96,7 @@ class MassMailing(models.Model):
     order_by_args = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return u"%s - %s" % (self.created, self.template_base)
+        return "%s - %s" % (self.created, self.template_base)
 
     class Meta:
         db_table = u'perfil_massmailing'
@@ -112,7 +112,7 @@ def email_body_tags(user, body):
         reemplazos_dict["username"] = user.username or ""
     elif isinstance(user, dict):
         for key, value in user.items():
-            reemplazos_dict[key] = u"%s" % (value or "")
+            reemplazos_dict[key] = "%s" % (value or "")
 
     template = Template(body)
     context = Context(reemplazos_dict)
@@ -152,8 +152,8 @@ class EmailRecord(models.Model):
                 from_name = self.template_base.from_name
                 body = self.template_base.body
             else:
-                subject = getattr(settings, "EMAIL_SUBJECT", u"email yeeko")
-                from_name = getattr(settings, "EMAIL_FROM", u"Yeeko")
+                subject = getattr(settings, "EMAIL_SUBJECT", "email yeeko")
+                from_name = getattr(settings, "EMAIL_FROM", "Yeeko")
                 body = getattr(settings, "EMAIL_BODY", None)
             if not body:
                 return

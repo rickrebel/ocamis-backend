@@ -24,7 +24,7 @@ def get_data_from_file_txt(
             file.close()
     except Exception as e:
         print(e)
-        return False, [u"%s" % (e)], False
+        return False, ["%s" % (e)], False
     data_rows = data.replace("\r\n","\n")
     #data_rows = data.split("\n")
     final_data = []

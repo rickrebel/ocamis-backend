@@ -21,7 +21,7 @@ with io.open(file, "r", encoding='utf-8') as File:
     # reader = csv.reader(File)
     x = 0
     prev_cut = 0
-    current_doc = u""
+    current_doc = ""
     # for row in reader:
     for row in all_lines:
         # data = row[0].decode('latin-1').encode("utf-8")
@@ -33,7 +33,7 @@ with io.open(file, "r", encoding='utf-8') as File:
             prev_cut += 1
         else:
             prev_cut = 0
-            current_doc = u"%s\n%s" % (current_doc, data)
+            current_doc = "%s\n%s" % (current_doc, data)
             # current_doc = data
         if prev_cut == 1:
             # print( current_doc)
@@ -80,10 +80,10 @@ for purchase in PurchaseRaw.objects.all()[:1]:
             if line == 'ORDEN DE SUMINISTRO':
                 purchase.descripcion = ' '.join(description_text)
                 purchase.clues = ' '.join(clues_text)
-                print(u".......description y clues")
+                print(".......description y clues")
                 print(' '.join(description_text))
                 print(' '.join(clues_text))
-                print(u"%s: %s" % ('prev_complex', prev_complex))
+                print("%s: %s" % ('prev_complex', prev_complex))
                 prev_complex = 0
             elif (bool(re.search(re_has_cve, line))):
                 prev_complex += 1

@@ -285,9 +285,9 @@ for ret in returns:
                     name=ejmdta["NOMBRE DE LA UNIDAD"],
                     municipality - se carga field municipality? en el modelo CLUES esta
                     municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
-                    tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
-                    tipology_obj =
-                    tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
+                    typology=ejmdta['NOMBRE DE TIPOLOGIA'],
+                    typology_obj =
+                    typology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
                     id_clues=ejmdta['ID'],
                     clues=ejmdta['CLUES'],
                     status_operation = ejmdta['ESTATUS DE OPERACION'],
@@ -334,9 +334,9 @@ for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
                     name=ejmdta["NOMBRE DE LA UNIDAD"],x
                     #municipality - se carga field municipality? en el modelo CLUES esta
                     #municipality_inegi_code=ejmdta['CLAVE DEL MUNICIPIO'],
-                    tipology=ejmdta['NOMBRE DE TIPOLOGIA'],
-                    #tipology_obj =
-                    tipology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
+                    typology=ejmdta['NOMBRE DE TIPOLOGIA'],
+                    #typology_obj =
+                    typology_cve=ejmdta['CLAVE DE TIPOLOGIA'],
                     id_clues=ejmdta['ID'],
                     clues=ejmdta['CLUES'],
                     status_operation = ejmdta['ESTATUS DE OPERACION'],
@@ -403,9 +403,9 @@ for i in dtaclues['FECHA ULTIMO MOVIMIENTO']:
                 name=dtaclues["NOMBRE DE LA UNIDAD"],
                 #municipality - se carga field municipality? en el modelo CLUES esta
                 #municipality_inegi_code=dtaclues['CLAVE DEL MUNICIPIO'],
-                tipology=dtaclues['NOMBRE DE TIPOLOGIA'],
-                #tipology_obj =
-                tipology_cve=dtaclues['CLAVE DE TIPOLOGIA'],
+                typology=dtaclues['NOMBRE DE TIPOLOGIA'],
+                #typology_obj =
+                typology_cve=dtaclues['CLAVE DE TIPOLOGIA'],
                 id_clues=dtaclues['ID'],
                 clues=dtaclues['CLUES'],
                 status_operation = dtaclues['ESTATUS DE OPERACION'],
@@ -527,7 +527,7 @@ def get_data_from_file_txt(
             file.close()
     except Exception as e:
         print(e)
-        return False, [u"%s" % (e)], False
+        return False, ["%s" % (e)], False
     data_rows = data.split("\n")
     final_data = []
     headers = None
@@ -586,7 +586,7 @@ def get_data_from_excel(file, is_explore,empty_row: int= 0):
                 dtype = dtype)
     except Exception as e:
         print(e)
-        return False, [u"%s" % (e)], False
+        return False, ["%s" % (e)], False
 
 ###DUDAS DE FUNCION:
 ## Quien use la función asignara el parametro como path o como nombre del documento
@@ -716,9 +716,9 @@ IteratorWrapperarray
                     #is_searchable 
                     #municipality - se carga field municipality? en el modelo CLUES esta
                     municipality_inegi_code=prueba_clues['CLAVE DEL MUNICIPIO'],
-                    tipology=prueba_clues['NOMBRE DE TIPOLOGIA'],
-                    #tipology_obj - field en modelo clues que no esta en la base
-                    tipology_cve=prueba_clues['CLAVE DE TIPOLOGIA'],
+                    typology=prueba_clues['NOMBRE DE TIPOLOGIA'],
+                    #typology_obj - field en modelo clues que no esta en la base
+                    typology_cve=prueba_clues['CLAVE DE TIPOLOGIA'],
                     id_clues=prueba_clues['ID'],
                     clues=prueba_clues['CLUES'],
                     #status operation -
@@ -945,7 +945,7 @@ def get_data_from_excel(
             file.close()
     except Exception as e:
         print(e)
-        return False, [u"%s" % (e)], False
+        return False, ["%s" % (e)], False
 
 ###Prueba de la primera parte de la funcion 
 get_data_from_excel(reporte,20)
@@ -1097,7 +1097,7 @@ modelo2 = Collection (name = 'Recipe',
 modelo2.save()   
 
 modelo3 = Collection (name = 'Medicamentos',
-                    model_name ='Droug',
+                    model_name ='Drug',
                     description = 'Contiene total de medicamentos recetados', 
                     #data_group ='Recetas')
 modelo3.save() 

@@ -136,6 +136,7 @@ class ProcessFileAdmin(admin.ModelAdmin):
     raw_id_fields = ["petition"]
     list_filter = ["petition__entity"]
 
+
 ocamis_admin_site.register(ProcessFile, ProcessFileAdmin)
 
 
@@ -146,5 +147,7 @@ class TransformationAdmin(admin.ModelAdmin):
         "name_column",
         "addl_params",
     ]
+    raw_id_fields = ["name_column", "file_control"]
+
 
 ocamis_admin_site.register(Transformation, TransformationAdmin)

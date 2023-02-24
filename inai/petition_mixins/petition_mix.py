@@ -12,7 +12,7 @@ class PetitionMix:
         start = self.petition_months.earliest().month_entity.human_name
         end = self.petition_months.latest().month_entity.human_name
         return " ".join(list(set([start, end])))
-    months.short_description = u"Meses"
+    months.short_description = "Meses"
 
     def months_in_description(self):
         from django.utils.html import format_html
@@ -31,7 +31,7 @@ class PetitionMix:
             return format_html(html_list)
         else:
             return "Sin descripción"
-    months_in_description.short_description = u"Meses escritos"
+    months_in_description.short_description = "Meses escritos"
 
 
 class PetitionTransformsMix(PetitionMix):

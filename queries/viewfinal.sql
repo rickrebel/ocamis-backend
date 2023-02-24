@@ -15,7 +15,7 @@ SELECT concat(rec.week, '-', rec.year, '-', med_cat.key2, '-', clues.state_id, '
             desabasto_recipereport2.clues_id
            FROM desabasto_recipereport2) rec
      JOIN ( SELECT desabasto_recipemedicine2.clave_medicamento AS med_key,
-            desabasto_recipemedicine2.cantidad_prescrita AS prescrita,
+            desabasto_recipemedicine2.prescribed_amount AS prescrita,
             desabasto_recipemedicine2.delivered,
             desabasto_recipemedicine2.recipe_id
            FROM desabasto_recipemedicine2) med ON med.recipe_id::text = rec.folio_ocamis::text

@@ -425,12 +425,13 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             petition_file_control__file_control=file_control,
             status_process_id=status_id)
         method = status_req.get("addl_params", { }).get("next_step", { }).get("method", False)
-        if method == "buildExploreDataFile":
+        if method == "buildExploreDataFile" or method == "countFile":
             key_task, task_params = build_task_params(
                 file_control, "massive_explore", request, subgroup=status_name)
             all_tasks = []
             all_errors = []
-            for data_file in all_data_files[:50]:
+
+            for data_file in all_data_files[:20]:
                 curr_kwargs = {
                     "after_if_empty": "find_coincidences_from_aws",
                     "all_tasks": all_tasks,
@@ -440,12 +441,23 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 if not data_file:
                     continue
                 task_params["models"] = [data_file]
-                data_file, saved, errors = data_file.find_coincidences()
-                if not saved and not errors:
-                    errors = ["No coincide con el formato del archivo 1"]
+                if method == "buildExploreDataFile":
+                    process_error = "explore_fail"
+                    data_file, saved, errors = data_file.find_coincidences()
+                    if not saved and not errors:
+                        errors = ["No coincide con el formato del archivo 1"]
+                else:
+                    process_error = "counting_failed"
+                    all_tasks, errors, data_file = data_file.every_has_total_rows(
+                        task_params)
+                    if data_file:
+                        data_rows = data_file.count_file_rows()
+                        errors = data_rows.get("errors", [])
                 if errors:
                     all_errors.extend(errors)
                     data_file.save_errors(errors, "explore_fail")
+
+
             data = {
                 "errors": all_errors,
                 "file_control": serializers.FileControlFullSerializer(
@@ -454,6 +466,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
             data["new_task"] = key_task.id
             return Response(data, status=status.HTTP_200_OK)
+            # elif method == 'countFile':
 
         # print("STATUS", status_req)
 

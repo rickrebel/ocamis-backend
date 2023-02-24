@@ -10,17 +10,13 @@ class ExploreMix:
     final_path: str
     petition_file_control: None
 
-    def get_table_ref(self):
-        print(self)
-        return 2
-
     def count_file_rows(self):
         file_control = self.petition_file_control.file_control
         file_format = file_control.file_format
         total_count = 0
         minus_headers = file_control.row_start_data - 1
         if file_format.short_name == 'csv' or file_format.short_name == 'txt':
-            total_count = self.count_csv_rows()
+            total_count = self.sample_data["default"]["total_rows"]
         elif file_format.short_name == 'xls':
             total_count = self.count_xls_rows()
             minus_headers = len(self.sample_data.keys()) * minus_headers
@@ -108,16 +104,34 @@ class ExploreMix:
         all_pet_file_ctrl = []
         validated_data = data_file.sample_data or {}
         for sheet_name in current_sheets:
-            if "headers" not in structured_data[sheet_name]:
-                continue
-            headers = structured_data[sheet_name]["headers"]
-            headers = [head.strip() for head in headers]
+            no_headers_in_ctrl = not file_ctrl.row_headers
             # headers = validated_rows[row_headers-1] if row_headers else []
             # validated_rows = validated_rows[file_ctrl.row_start_data-1:]
-            name_columns = NameColumn.objects.filter(
-                file_control=file_ctrl, name_in_data__isnull=False) \
-                .values_list("name_in_data", flat=True)
-            if headers and list(name_columns) == headers:
+            same_headers = False
+            if not structured_data[sheet_name].get("headers"):
+                if no_headers_in_ctrl:
+                    name_columns_simple = NameColumn.objects.filter(
+                        file_control=file_ctrl, position_in_data__isnull=False)
+                    try:
+                        total_cols = len(structured_data[sheet_name]["all_data"][0])
+                        if total_cols == len(name_columns_simple):
+                            same_headers = True
+                        else:
+                            continue
+                    except Exception as e:
+                        print("error intentando obtener headers", e)
+                        continue
+                else:
+                    continue
+            else:
+                name_columns = NameColumn.objects.filter(
+                    file_control=file_ctrl, name_in_data__isnull=False) \
+                    .values_list("name_in_data", flat=True)
+                headers = structured_data[sheet_name]["headers"]
+                headers = [head.strip() for head in headers]
+                same_headers = list(name_columns) == headers
+
+            if same_headers:
                 try:
                     succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
                         .get_or_create(
@@ -198,7 +212,7 @@ class ExploreMix:
         # final_readeable = [suffix for suffix in list(readable_suffixes)]
 
         if not real_suffixes.issubset(final_readeable):
-            errors = ["Formato no legible", u"%s" % suffixes]
+            errors = ["Formato no legible", "%s" % suffixes]
             return (None, errors, None), None
         # print("Parece que todo está bien")
         return (self, [], list(real_suffixes)[0]), None

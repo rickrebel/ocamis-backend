@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.db import models
+
 from inai.models import NameColumn, DataFile
 from django.db.models import JSONField
+import uuid
 
 
 class MedicalSpeciality(models.Model):
@@ -30,8 +29,9 @@ class DocumentType(models.Model):
 
 class Delivered(models.Model):
     short_name = models.CharField(
-        max_length=3, primary_key=True)
-    name = models.CharField(max_length=50)
+        max_length=20, primary_key=True)
+    name = models.CharField(max_length=80)
+    description = models.TextField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Clasificación de entrega"
@@ -43,12 +43,15 @@ class Delivered(models.Model):
 
 class Doctor(models.Model):
     from catalog.models import Institution
-    clave_doctor = models.CharField(primary_key=True, max_length=30)
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False)
+    clave_doctor = models.CharField(max_length=30, blank=True, null=True)
     institution = models.ForeignKey(
         Institution, null=True, blank=True, on_delete=models.CASCADE)
     nombre_medico = models.CharField(max_length=255)
     especialidad_medico = models.ForeignKey(
         MedicalSpeciality, on_delete=models.CASCADE, blank=True, null=True)
+    professional_license = models.CharField(max_length=20, blank=True, null=True)
     #especialidad_medico = models.IntegerField()
 
     class Meta:
@@ -60,15 +63,21 @@ class Doctor(models.Model):
 
 
 class Prescription(models.Model):
-    from catalog.models import CLUES, Delegation
+    from catalog.models import CLUES, Delegation, Area
     from inai.models import DataFile
     #Nueva versión del modelo Prescription con atomizado de datos
-    folio_ocamis = models.CharField(max_length=48, primary_key=True)
-    iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
-    iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
-    #delegacion = models.IntegerField(blank=True, null=True)
-    delegacion = models.ForeignKey(
-        Delegation, blank=True, null=True, on_delete=models.CASCADE)
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False)
+    folio_ocamis = models.CharField(max_length=60)
+    # folio_document = models.CharField(max_length=40)
+    folio_document = models.CharField(max_length=40)
+    iso_year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    iso_week = models.PositiveSmallIntegerField()
+    iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
+    #delegation = models.IntegerField(blank=True, null=True)
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE)
     clues = models.ForeignKey(
         CLUES, blank=True, null=True, on_delete=models.CASCADE)
     #clues = models.IntegerField(blank=True, null=True)
@@ -78,20 +87,24 @@ class Prescription(models.Model):
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     #anomaly = models.TextField(blank=True, null=True)
-    
+    area = models.ForeignKey(
+        Area, on_delete=models.CASCADE, blank=True, null=True)
     #EXTENSION: COSAS NO TAN RELEVANTES:
-    folio_documento = models.CharField(max_length=40)
     #tipo_documento = models.IntegerField()
     type_document = models.ForeignKey(
         DocumentType, on_delete=models.CASCADE, blank=True, null=True)
-    iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
-    fecha_emision = models.DateTimeField(blank=True, null=True)
-    fecha_entrega = models.DateTimeField(blank=True, null=True)
+
+    # fecha_emision = models.DateTimeField(blank=True, null=True)
+    date_release = models.DateTimeField(blank=True, null=True)
+    # fecha_entrega = models.DateTimeField(blank=True, null=True)
+    date_delivery = models.DateTimeField(blank=True, null=True)
+    date_visit = models.DateTimeField(blank=True, null=True)
     doctor = models.ForeignKey(
         Doctor, blank=True, null=True, on_delete=models.CASCADE)
-    clave_presupuestal = models.CharField(
+    # clave_presupuestal = models.CharField(
+    #     max_length=20, blank=True, null=True)
+    budget_key = models.CharField(
         max_length=20, blank=True, null=True)
-    #nivel_atencion = models.IntegerField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Receta"
@@ -101,25 +114,42 @@ class Prescription(models.Model):
         return self.folio_ocamis
 
 
-class Droug(models.Model):
+class Drug(models.Model):
     from medicine.models import Container
-    recipe_prescr = models.ForeignKey(Prescription, on_delete=models.CASCADE)
-    #recipe = models.CharField(max_length=48)
-    #clave_medicamento = models.CharField(max_length=20, blank=True, null=True)
+
+    TRAINING_CHOICES = (
+        ('medicine', 'Medicamentos'),
+        ('clues', 'CLUES'),
+        ('jurisdiction', 'Jurisdicción'),
+        ('delivered', 'Clasificación Entrega'),
+        ('diagnosis', 'Diagnóstico'),
+    )
+
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE)
     container = models.ForeignKey(
         Container, blank=True, null=True, on_delete=models.CASCADE)
-    cantidad_prescrita = models.PositiveSmallIntegerField(
+    # cantidad_prescrita = models.PositiveSmallIntegerField(
+    #     blank=True, null=True)
+    prescribed_amount = models.PositiveSmallIntegerField(
         blank=True, null=True)
-    cantidad_entregada = models.PositiveSmallIntegerField(
+    # cantidad_entregada = models.PositiveSmallIntegerField(
+    #     blank=True, null=True)
+    delivered_amount = models.PositiveSmallIntegerField(
+        blank=True, null=True)
+    not_delivered_amount = models.PositiveSmallIntegerField(
         blank=True, null=True)
     #delivered = models.CharField(max_length=3, blank=True, null=True)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     #OTROS DATOS NO TAN RELEVANTES:
-    precio_medicamento = models.FloatField(blank=True, null=True)
+    # precio_medicamento = models.FloatField(blank=True, null=True)
+    price = models.FloatField(blank=True, null=True)
     data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
-    #rn = models.IntegerField(blank=True, null=True)
+    rn = models.CharField(max_length=80, blank=True, null=True)
+    for_training = models.CharField(
+        max_length=20, choices=TRAINING_CHOICES, blank=True, null=True)
 
     class Meta:
         verbose_name = "Insumos"
@@ -128,15 +158,18 @@ class Droug(models.Model):
     def __str__(self):
         return str(self.rn)
 
+
 class MissingRow(models.Model):
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False)
     file = models.ForeignKey(
         DataFile, on_delete=models.CASCADE)
     prescription = models.ForeignKey(
         Prescription, 
         blank=True, null=True,
         on_delete=models.CASCADE)
-    droug = models.ForeignKey(
-        Droug, 
+    drug = models.ForeignKey(
+        Drug,
         blank=True, null=True,
         on_delete=models.CASCADE)
     original_data = JSONField(
@@ -150,11 +183,13 @@ class MissingRow(models.Model):
         return self.file
 
     class Meta:
-        verbose_name = u"Renglón faltante"
-        verbose_name_plural = u"Renglones faltantes"
+        verbose_name = "Renglón faltante"
+        verbose_name_plural = "Renglones faltantes"
 
 
 class MissingField(models.Model):
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False)
     missing_row = models.ForeignKey(
         MissingRow,
         on_delete=models.CASCADE)
@@ -171,5 +206,19 @@ class MissingField(models.Model):
         return "%s -- %s" % (self.missing_row, self.column)
 
     class Meta:
-        verbose_name = u"Documento Faltante"
-        verbose_name_plural = u"Documentos Faltantes"
+        verbose_name = "Documento Faltante"
+        verbose_name_plural = "Documentos Faltantes"
+
+
+class Diagnosis(models.Model):
+
+    cie10 = models.CharField(max_length=255, blank=True, null=True)
+    text = models.TextField(blank=True, null=True)
+    motive = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Diagnóstico"
+        verbose_name_plural = "Diagnósticos"
+
+    def __str__(self):
+        return self.cie10 or self.text or self.reason

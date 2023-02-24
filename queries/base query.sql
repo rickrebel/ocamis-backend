@@ -24,7 +24,7 @@ FROM (
   INNER JOIN (
     SELECT
       clave_medicamento AS med_key,
-      cantidad_prescrita AS prescrita,
+      prescribed_amount AS prescrita,
       delivered,
       recipe_id
     FROM desabasto_recipemedicine2

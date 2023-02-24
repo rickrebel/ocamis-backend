@@ -1,4 +1,4 @@
-from .models import AsyncTask
+from .models import AsyncTask, TaskFunction
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
@@ -170,8 +170,13 @@ def build_task_params(
 
     if subgroup:
         kwargs["subgroup"] = subgroup
+    task_function, created = TaskFunction.objects.get_or_create(
+        name=function_name)
+    if created:
+        task_function.public_name = function_name
+        task_function.save()
     key_task = AsyncTask.objects.create(
-        user=request.user, task_function_id=function_name,
+        user=request.user, task_function=task_function,
         date_start=datetime.now(), status_task_id="created", **kwargs
     )
     return key_task, {"parent_task": key_task}

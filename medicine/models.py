@@ -23,7 +23,7 @@ class Component(models.Model):
     short_name = models.CharField(max_length=255, blank=True, null=True)
     alias = models.CharField(
         max_length=255,
-        verbose_name=u"Nombres alternativos y comerciales",
+        verbose_name="Nombres alternativos y comerciales",
         blank=True, null=True)
     presentation_count = models.IntegerField(default=1)
     frequency = models.IntegerField(default=0, blank=True, null=True)
@@ -95,7 +95,7 @@ class PresentationType(models.Model):
 
 class Presentation(models.Model):
     component = models.ForeignKey(
-        Component, related_name=u"presentations", on_delete=models.CASCADE)
+        Component, related_name="presentations", on_delete=models.CASCADE)
     #component = models.IntegerField()
     presentation_type = models.ForeignKey(
         PresentationType, blank=True, null=True, on_delete=models.CASCADE)
@@ -116,7 +116,7 @@ class Presentation(models.Model):
     #group = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        return u" ".join([self.component.name, self.short_attributes or ""])
+        return " ".join([self.component.name, self.short_attributes or ""])
 
     class Meta:
         verbose_name = "Presentación del componente"
@@ -126,13 +126,13 @@ class Presentation(models.Model):
 
 class Container(models.Model):
     presentation = models.ForeignKey(
-        Presentation, related_name=u"containers", blank=True, null=True,
+        Presentation, related_name="containers", blank=True, null=True,
         on_delete=models.CASCADE)
     #presentation = models.IntegerField(blank=True, null=True)
     name = models.TextField()
-    key = models.CharField(verbose_name=u"Clave", max_length=20)
+    key = models.CharField(verbose_name="Clave", max_length=20)
     key2 = models.CharField(
-        max_length=20, verbose_name=u"Clave sin puntos",
+        max_length=20, verbose_name="Clave sin puntos",
         blank=True, null=True,
     )
     is_current = models.BooleanField(default=True)
@@ -141,7 +141,7 @@ class Container(models.Model):
     origen_cvmei = models.BooleanField(default=False)
 
     def __str__(self):
-        return u"%s - %s - %s" % (
+        return "%s - %s - %s" % (
             self.presentation.component.name,
             self.presentation.presentation_type_raw,
             self.name)

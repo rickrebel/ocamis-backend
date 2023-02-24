@@ -79,7 +79,7 @@ class ComponentAdmin(admin.ModelAdmin):
 
     def len_short_name_display(self, obj):
         return obj.len_short_name
-    len_short_name_display.short_display = u"Largo del nombre"
+    len_short_name_display.short_display = "Largo del nombre"
 
 
 admin.site.register(Component, ComponentAdmin)

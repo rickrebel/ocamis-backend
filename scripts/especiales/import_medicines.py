@@ -75,7 +75,7 @@ def to_work(selected_rows=None, exp=True):
                 continue
         except Exception as e:
             print(e)
-            print(u"Llegamos al final")
+            print("Llegamos al final")
         if exp:
             if len(components):
                 current_comp = components[-1]
@@ -88,7 +88,7 @@ def to_work(selected_rows=None, exp=True):
         sample_numbers = not len(re.findall(r'\d{3}', row[1]))
         if (has_minusc or some_alterative) and has_chars and sample_numbers:
             if idx_subt + 1 == idx:
-                current_presents[-1]["name"] += u" %s" % row[1]
+                current_presents[-1]["name"] += " %s" % row[1]
             else:
                 current_presents.append({
                     'name': row[1],

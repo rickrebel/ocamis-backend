@@ -141,6 +141,6 @@ def set_searcheable_clues():
             Q(institution__code='CIJ') | Q(institution__code='CRO') |
             Q(establishment_type='DE APOYO') |
             Q(establishment_type='DE ASISTENCIA SOCIAL') |
-            Q(tipology_cve='BS') | Q(tipology_cve='X') |
-            Q(tipology_cve='P') | Q(tipology_cve='UMM'))
+            Q(typology_cve='BS') | Q(typology_cve='X') |
+            Q(typology_cve='P') | Q(typology_cve='UMM'))
     is_seach.update(is_searchable=True)

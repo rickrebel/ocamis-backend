@@ -9,7 +9,7 @@ from desabasto.models import (
     DocumentType,
     Doctor,
     MedicalSpeciality,
-    droug,
+    drug,
     Prescription,
 )
 
@@ -43,17 +43,17 @@ first_null = (
     "|-------------------|------------------|----")
 year = '2019'
 base_sql = (
-    "COPY desabasto_recipereportraw(delegacion,clave_presupuestal,"
+    "COPY desabasto_recipereportraw(delegation,budget_key,"
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
-    "folio_documento,fecha_emision,fecha_entrega,clave_medicamento,"
-    "descripcion_medicamento,cantidad_prescrita,cantidad_entregada,"
-    "clave_doctor,nombre_medico,especialidad_medico,precio_medicamento,rn)")
+    "folio_document,date_release,fecha_entrega,clave_medicamento,"
+    "descripcion_medicamento,prescribed_amount,delivered_amount,"
+    "clave_doctor,nombre_medico,especialidad_medico,price,rn)")
 base_sql2 = (
-    "COPY desabasto_recipereportraw(delegacion,clave_presupuestal,"
+    "COPY desabasto_recipereportraw(delegation,budget_key,"
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
-    "folio_documento,fecha_emision,fecha_entrega,clave_medicamento,"
-    "descripcion_medicamento,cantidad_prescrita,cantidad_entregada,"
-    "clave_doctor,nombre_medico,especialidad_medico,precio_medicamento)")
+    "folio_document,date_release,fecha_entrega,clave_medicamento,"
+    "descripcion_medicamento,prescribed_amount,delivered_amount,"
+    "clave_doctor,nombre_medico,especialidad_medico,price)")
 options = "csv DELIMITER '|' NULL 'NULL' HEADER ENCODING 'LATIN1'"
 options2 = "csv DELIMITER '|' NULL 'NULL' ENCODING 'LATIN1'"
 
@@ -88,43 +88,43 @@ def get_data(file="reporte_recetas_202011_4.csv", start_index=3, base_print=1):
             if len(data) != 18:
                 error_len_data.append(x)
                 continue
-            delegacion = data[0].decode('latin-1').encode("utf-8")
-            clave_presupuestal = data[1].decode('latin-1').encode("utf-8")
+            delegation = data[0].decode('latin-1').encode("utf-8")
+            budget_key = data[1].decode('latin-1').encode("utf-8")
             unidad_medica = data[2].decode('latin-1').encode("utf-8")
             tipo_unidad_med = data[3].decode('latin-1').encode("utf-8")
             nivel_atencion = data[4].decode('latin-1').encode("utf-8")
             tipo_documento = data[5].decode('latin-1').encode("utf-8")
-            folio_documento = data[6].decode('latin-1').encode("utf-8")
-            fecha_emision = data[7].decode('latin-1').encode("utf-8")
+            folio_document = data[6].decode('latin-1').encode("utf-8")
+            date_release = data[7].decode('latin-1').encode("utf-8")
             fecha_entrega = data[8].decode('latin-1').encode("utf-8")
             clave_medicamento = data[9].decode('latin-1').encode("utf-8")
             descripcion_medicamento = data[
                 10].decode('latin-1').encode("utf-8")
-            cantidad_prescrita = data[11].decode('latin-1').encode("utf-8")
-            cantidad_entregada = data[12].decode('latin-1').encode("utf-8")
+            prescribed_amount = data[11].decode('latin-1').encode("utf-8")
+            delivered_amount = data[12].decode('latin-1').encode("utf-8")
             clave_doctor = data[13].decode('latin-1').encode("utf-8")
             nombre_medico = data[14].decode('latin-1').encode("utf-8")
             especialidad_medico = data[15].decode('latin-1').encode("utf-8")
-            precio_medicamento = data[16].decode('latin-1').encode("utf-8")
+            price = data[16].decode('latin-1').encode("utf-8")
             rn = data[17].decode('latin-1').encode("utf-8")
             try:
                 recipe_report = Prescription.objects\
-                    .filter(folio_documento=folio_documento).first()
+                    .filter(folio_document=folio_document).first()
                 if not recipe_report:
                     recipe_report = Prescription()
                     recipe_report.year_month = date_name
                     clues, lost_ref = get_clues(
-                        delegacion=delegacion,
-                        clave_presupuestal=clave_presupuestal,
+                        delegation=delegation,
+                        budget_key=budget_key,
                         unidad_medica=unidad_medica,
                         tipo_unidad_med=tipo_unidad_med,)
                     recipe_report.clues = clues
                     recipe_report.lost_ref = lost_ref
                     recipe_report.tipo_documento = get_tipo_documento(
                         tipo_documento)
-                    recipe_report.folio_documento = folio_documento
-                    # recipe_report.fecha_emision = datetime_format(
-                    #     fecha_emision)
+                    recipe_report.folio_document = folio_document
+                    # recipe_report.date_release = datetime_format(
+                    #     date_release)
                     # recipe_report.fecha_entrega = datetime_format(
                     #     fecha_entrega)
                     recipe_report.doctor = get_doctor(
@@ -135,81 +135,81 @@ def get_data(file="reporte_recetas_202011_4.csv", start_index=3, base_print=1):
                         recipe_report.especialidad_medico = recipe_report\
                             .doctor.especialidad_medico
                     recipe_report.save()
-                droug = Droug()
-                droug.recipereport = recipe_report
-                # droug.fecha_emision = datetime_format(fecha_emision)
-                # droug.fecha_entrega = datetime_format(fecha_entrega)
-                droug.cantidad_prescrita = cantidad_prescrita
-                droug.cantidad_entregada = cantidad_entregada
-                droug.precio_medicamento = precio_medicamento
-                droug.rn = rn
+                drug = Drug()
+                drug.recipereport = recipe_report
+                # drug.date_release = datetime_format(date_release)
+                # drug.fecha_entrega = datetime_format(fecha_entrega)
+                drug.prescribed_amount = prescribed_amount
+                drug.delivered_amount = delivered_amount
+                drug.price = price
+                drug.rn = rn
                 container = Container.objects.filter(
                     Q(key2=clave_medicamento) |
                     Q(key=clave_medicamento)
                 ).first()
                 if container:
-                    droug.container = container
+                    drug.container = container
                 else:
-                    droug.lost_ref = json.dumps({
+                    drug.lost_ref = json.dumps({
                         "clave_medicamento": clave_medicamento,
                         "descripcion_medicamento": descripcion_medicamento,
                     })
-                droug.save()
+                drug.save()
                 # if x == 5:
                 #     break
             except Exception as e:
-                print(u"delegacion")
-                print(delegacion)
+                print("delegation")
+                print(delegation)
                 print
-                print(u"clave_presupuestal")
-                print(clave_presupuestal)
+                print("budget_key")
+                print(budget_key)
                 print
-                print(u"unidad_medica")
+                print("unidad_medica")
                 print(unidad_medica)
                 print
-                print(u"tipo_unidad_med")
+                print("tipo_unidad_med")
                 print(tipo_unidad_med)
                 print
-                print(u"nivel_atencion")
+                print("nivel_atencion")
                 print(nivel_atencion)
                 print
-                print(u"tipo_documento")
+                print("tipo_documento")
                 print(tipo_documento)
                 print
-                print(u"folio_documento")
-                print(folio_documento)
+                print("folio_document")
+                print(folio_document)
                 print
-                print(u"fecha_emision")
-                print(fecha_emision)
+                print("date_release")
+                print(date_release)
                 print
-                print(u"fecha_entrega")
+                print("fecha_entrega")
                 print(fecha_entrega)
                 print
-                print(u"clave_medicamento")
+                print("clave_medicamento")
                 print(clave_medicamento)
                 print
-                print(u"descripcion_medicamento")
+                print("descripcion_medicamento")
                 print(descripcion_medicamento)
                 print
-                print(u"cantidad_prescrita")
-                print(cantidad_prescrita)
+                print("prescribed_amount")
+                print(prescribed_amount)
                 print
-                print(u"cantidad_entregada")
-                print(cantidad_entregada)
+                print("delivered_amount")
+                print(delivered_amount)
                 print
-                print(u"clave_doctor")
+                print("clave_doctor")
                 print(clave_doctor)
                 print
-                print(u"nombre_medico")
+                print("nombre_medico")
                 print(nombre_medico)
                 print
-                print(u"especialidad_medico")
+                print("especialidad_medico")
                 print(especialidad_medico)
                 print
-                print(u"precio_medicamento")
-                print(precio_medicamento)
+                print("price")
+                print(price)
                 print
-                print(u"rn")
+                print("rn")
                 print(rn)
                 print
                 print
@@ -217,7 +217,7 @@ def get_data(file="reporte_recetas_202011_4.csv", start_index=3, base_print=1):
 
 
 def get_clues(**kwargs):
-    # delegacion = kwargs.get("delegacion")
+    # delegation = kwargs.get("delegation")
     unidad_medica = kwargs.get("unidad_medica")
     clues_name = unidad_medica[unidad_medica.index(" "):].strip()
     clues_query = CLUES.objects.filter(
@@ -302,7 +302,7 @@ def clean_special(data):
     fabian = 'FABIAN ZARATE GALINDO|'
     fabian2 = 'FABIAN ZARATE GALINDO||'
     if fabian2 in data:
-        print(u"caso FABIAN")
+        print("caso FABIAN")
         data = data.replace(fabian2, fabian)
     return data
 
@@ -396,7 +396,7 @@ def converter_file_in_related_files(
     if len(recipe_first) >= 17:
         first_folio = recipe_first[6]
         previus_recipe = Prescription.objects\
-            .filter(folio_documento=first_folio).first()
+            .filter(folio_document=first_folio).first()
         if previus_recipe:
             recipes_data[first_folio] = {
                 "id": previus_recipe.id,
@@ -416,38 +416,38 @@ def converter_file_in_related_files(
             print(x)
             print("esta fila no tiene los datos suficientes")
             continue
-        delegacion = recipe_report_data[0]
-        clave_presupuestal = recipe_report_data[1]
+        delegation = recipe_report_data[0]
+        budget_key = recipe_report_data[1]
         unidad_medica = recipe_report_data[2]
         tipo_unidad_med = recipe_report_data[3]
         nivel_atencion = recipe_report_data[4]
         tipo_documento = recipe_report_data[5]
-        folio_documento = recipe_report_data[6]
-        fecha_emision = recipe_report_data[7]
+        folio_document = recipe_report_data[6]
+        date_release = recipe_report_data[7]
         fecha_entrega = recipe_report_data[8]
         clave_medicamento = recipe_report_data[9]
         # descripcion_medicamento = recipe_report_data[10]
-        cantidad_prescrita = recipe_report_data[11]
-        cantidad_entregada = recipe_report_data[12]
+        prescribed_amount = recipe_report_data[11]
+        delivered_amount = recipe_report_data[12]
         clave_doctor = recipe_report_data[13]
         nombre_medico = recipe_report_data[14]
         especialidad_medico = recipe_report_data[15]
-        precio_medicamento = recipe_report_data[16]
+        price = recipe_report_data[16]
         if with_coma:
             rn = "NULL"
         else:
             rn = recipe_report_data[17]
 
-        if folio_documento not in recipes_data:
-            recipes_data[folio_documento] = {
+        if folio_document not in recipes_data:
+            recipes_data[folio_document] = {
                 "id": artificial_id,
-                "delegacion": delegacion,
-                "clave_presupuestal": clave_presupuestal,
+                "delegation": delegation,
+                "budget_key": budget_key,
                 "unidad_medica": unidad_medica,
                 "tipo_unidad_med": tipo_unidad_med,
                 "nivel_atencion": nivel_atencion,
                 "tipo_documento": tipo_documento,
-                "folio_documento": folio_documento,
+                "folio_document": folio_document,
                 "clave_doctor": clave_doctor,
                 "nombre_medico": nombre_medico,
                 "especialidad_medico": especialidad_medico,
@@ -457,23 +457,23 @@ def converter_file_in_related_files(
 
         # convertir datos a enteros
         calculate_delivered = True
-        if (cantidad_prescrita or "").isdigit():
-            cantidad_prescrita = int(cantidad_prescrita)
+        if (prescribed_amount or "").isdigit():
+            prescribed_amount = int(prescribed_amount)
         else:
             calculate_delivered = False
-            cantidad_prescrita = "NULL"
+            prescribed_amount = "NULL"
 
         #
-        if (cantidad_entregada or "").isdigit():
-            cantidad_entregada = int(cantidad_entregada)
+        if (delivered_amount or "").isdigit():
+            delivered_amount = int(delivered_amount)
         else:
             calculate_delivered = False
-            cantidad_entregada = "NULL"
+            delivered_amount = "NULL"
         # ---------------------------
         if calculate_delivered:
             # calculo de delivered
-            if cantidad_entregada:
-                if cantidad_prescrita == cantidad_entregada:
+            if delivered_amount:
+                if prescribed_amount == delivered_amount:
                     delivered_type = "all"
                 else:
                     delivered_type = "ptl"
@@ -483,19 +483,19 @@ def converter_file_in_related_files(
             delivered_type = "NULL"
 
         medicine_row = [
-            recipes_data[folio_documento]["id"],
-            fecha_emision,
+            recipes_data[folio_document]["id"],
+            date_release,
             fecha_entrega,
             clave_medicamento,
-            cantidad_prescrita,
-            cantidad_entregada,
-            precio_medicamento,
+            prescribed_amount,
+            delivered_amount,
+            price,
             rn,
             delivered_type
         ]
 
         data_file_medicine.append(medicine_row)
-        recipes_data[folio_documento]["delivered_medicine"]\
+        recipes_data[folio_document]["delivered_medicine"]\
             .append(delivered_type)
 
     print("se termino de leer todas las lineas")
@@ -518,13 +518,13 @@ def converter_file_in_related_files(
             recipe_data.get("id"),
             year_month,
             recipe_data.get("id"),
-            recipe_data.get("delegacion"),
-            recipe_data.get("clave_presupuestal"),
+            recipe_data.get("delegation"),
+            recipe_data.get("budget_key"),
             recipe_data.get("unidad_medica"),
             recipe_data.get("tipo_unidad_med"),
             recipe_data.get("nivel_atencion"),
             recipe_data.get("tipo_documento"),
-            recipe_data.get("folio_documento"),
+            recipe_data.get("folio_document"),
             recipe_data.get("clave_doctor"),
             recipe_data.get("nombre_medico"),
             recipe_data.get("especialidad_medico"),
@@ -548,17 +548,17 @@ def converter_file_in_related_files(
     if update_files:
         upload_csv_to_database(
             recipe_path, "desabasto_recipereport",
-            ("id", "year_month", "calculate_id", "delegacion",
-                "clave_presupuestal", "unidad_medica", "tipo_unidad_med",
-                "nivel_atencion", "tipo_documento", "folio_documento",
+            ("id", "year_month", "calculate_id", "delegation",
+                "budget_key", "unidad_medica", "tipo_unidad_med",
+                "nivel_atencion", "tipo_documento", "folio_document",
                 "clave_doctor", "nombre_medico", "especialidad_medico",
                 "delivered", ))
 
         upload_csv_to_database(
             medicine_path, "desabasto_recipemedicine",
-            ("recipe_id", "fecha_emision", "fecha_entrega",
-                "clave_medicamento", "cantidad_prescrita",
-                "cantidad_entregada", "precio_medicamento", "rn", "delivered",
+            ("recipe_id", "date_release", "fecha_entrega",
+                "clave_medicamento", "prescribed_amount",
+                "delivered_amount", "price", "rn", "delivered",
              ))
 
 
