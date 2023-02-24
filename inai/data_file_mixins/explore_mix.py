@@ -46,7 +46,6 @@ class ExploreMix:
 
         if isinstance(sample_data, dict):
             current_sheets = sample_data.keys()
-            #print("current_sheets: ", current_sheets)
             sheets_for_count = []
             for sheet_name in current_sheets:
                 if "total_rows" in sample_data[sheet_name]:
@@ -396,7 +395,6 @@ class ExploreMix:
             "final_field__parameter_group", "data_type"]
         validated_data = data["structured_data"]
         current_sheets = data["current_sheets"]
-        print("current_sheets", current_sheets)
         first_valid_sheet = None
         for sheet_name in current_sheets:
             sheet_data = validated_data[sheet_name]

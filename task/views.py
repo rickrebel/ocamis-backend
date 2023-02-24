@@ -37,6 +37,7 @@ class AWSMessage(generic.View):
         function_after = current_task.function_after
         final_errors = []
         new_tasks = []
+        new_result = result.copy()
         for model in models:
             current_obj = getattr(current_task, model)
             if current_obj:
@@ -46,9 +47,9 @@ class AWSMessage(generic.View):
                 method = getattr(current_obj, function_after)
                 # print("METHOD: ", method)
                 task_params = {"parent_task": current_task}
-                result["from_aws"] = True
+                new_result["from_aws"] = True
                 new_tasks, final_errors, data = method(
-                    **result, task_params=task_params)
+                    **new_result, task_params=task_params)
                 break
         errors += (final_errors or [])
         current_task.date_end = datetime.now()

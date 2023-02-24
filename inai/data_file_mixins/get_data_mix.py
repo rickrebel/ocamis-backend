@@ -37,11 +37,11 @@ class ExtractorsMix:
         task_params = task_params or {}
         data_file.error_process = []
         parent_task = task_params.get("parent_task")
-        # previos_tasks
-        previos_tasks = AsyncTask.objects.filter(data_file=data_file)\
+        # previous_tasks
+        previous_tasks = AsyncTask.objects.filter(data_file=data_file)\
             .exclude(parent_task=parent_task)\
             .exclude(id=parent_task.id)
-        for task in previos_tasks:
+        for task in previous_tasks:
             task.is_current = False
             task.save()
         data_file.save()
@@ -59,7 +59,7 @@ class ExtractorsMix:
         forced_save = kwargs.get("forced_save", False)
         if not data_file:
             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-        elif not data_file.sample_data or forced_save:
+        elif not data_file.sample_data or forced_save or not data_file.sheet_names:
             print("NO HAY SAMPLE DATA")
             task_params["function_after"] = kwargs.get("after_if_empty")
             current_file_ctrl = kwargs.get("current_file_ctrl")
@@ -107,7 +107,6 @@ class ExtractorsMix:
         if errors:
             data_file.save_errors(errors, "explore_fail")
         return [], errors, None
-
 
     def transform_file_in_data(
             self, type_explor, file_control=None, task_params=None):
@@ -224,6 +223,7 @@ class ExtractorsMix:
             all_sheets = {}
 
         sheet_names = self.sheet_names or []
+        print("sheet_names 2", sheet_names)
         has_sheet_names = bool(sheet_names)
         # if not sheet_names:
         #     try:
@@ -241,7 +241,7 @@ class ExtractorsMix:
             # nrows = 220 if is_explore else None
             n_rows = 220 if len(sheet_names) < 10 else 40
             n_end = 30 if len(sheet_names) < 10 else 15
-            saved_sheet_names = [name for [name, content] in all_sheets.keys()
+            saved_sheet_names = [name for [name, content] in all_sheets.items()
                                  if content.get("total_rows")]
             pending_sheets = list(set(sheet_names) - set(saved_sheet_names))
             if pending_sheets or not has_sheet_names:

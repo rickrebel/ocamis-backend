@@ -64,6 +64,7 @@ def async_in_lambda(function_name, params, task_params):
         Payload=dumb_params
     )
     # print("response", response, "\n")
+
     request_id = response["ResponseMetadata"]["RequestId"]
     current_task.request_id = request_id
     current_task.status_task_id = "running"
