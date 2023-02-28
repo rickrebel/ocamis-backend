@@ -68,7 +68,6 @@ def extract_only_message(error_text):
         return error_text
 
 
-
 class AWSErrors(generic.View):
 
     def get(self, request, *args, **kwargs):

@@ -90,6 +90,7 @@ def clean_special(data):
         data = data.replace(fabian2, fabian)
     return data
 
+
 def special_excel(all_data):
     import re
     rows = all_data.split("\n")
@@ -99,3 +100,21 @@ def special_excel(all_data):
         final_rows.append(new_row)
     all_data = sep_rows.join(final_rows)
     return all_data
+
+
+def special_issste(data, file_control, is_issste):
+    if "|" in data[:5000]:
+        file_control.delimiter = '|'
+    elif "," in data[:5000]:
+        file_control.delimiter = ','
+        if is_issste:
+            data = special_coma(data)
+            if ",,," in data[:5000]:
+                data = special_excel(data)
+    #elif not set([',', '|']).issubset(data[:5000]):
+    else:
+        return [], ['El documento está vacío'], None
+    file_control.save()
+    if is_issste:
+        data = clean_special(data)
+    return [], [], data

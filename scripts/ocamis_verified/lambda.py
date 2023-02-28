@@ -153,12 +153,12 @@ def definitive_lambda(layer_name="my_layer1", packages=[]):
     create_lambda_layer(layer_name, layer_path)
 
 
-#definitive_function()
-#definitive_function_real()
-definitive_lambda("pandas_with_complements",
-                  ["XlsxWriter", "xlrd", "lxml", "wheel", "pandas",
-                   "numpy", "pyxlsb"])
-
-definitive_lambda("pandas_complements",
-                  ["XlsxWriter", "xlrd", "lxml", "wheel", "pyxlsb"])
-#definitive_lambda("request_package", ["requests"])
+# definitive_function()
+# definitive_function_real()
+# definitive_lambda("pandas_with_complements",
+#                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pandas",
+#                    "numpy", "pyxlsb"])
+#
+# definitive_lambda("pandas_complements",
+#                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pyxlsb"])
+# definitive_lambda("request_package", ["requests"])

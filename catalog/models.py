@@ -223,9 +223,10 @@ class Delegation(models.Model):
     state = models.ForeignKey(
         State, verbose_name="Entidad",
         on_delete=models.CASCADE)
-    clues = models.ForeignKey(
+    clues = models.OneToOneField(
         CLUES, blank=True, null=True,
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE,
+        related_name="related_delegation")
     other_names = JSONField(blank=True, null=True)
 
     def __str__(self):
@@ -394,3 +395,4 @@ class Area(models.Model):
     class Meta:
         verbose_name = "Área"
         verbose_name_plural = "Áreas"
+

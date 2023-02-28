@@ -11,7 +11,7 @@ from data_param.models import (
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
 from .data_file_mixins.get_data_mix import ExtractorsMix
-from .data_file_mixins.matches_mix import MatchesMix
+# from .data_file_mixins.matches_mix import MatchesMix
 from .process_file_mixins.process_mix import ProcessFileMix
 
 from .petition_mixins.petition_mix import PetitionMix, PetitionTransformsMix
@@ -194,6 +194,8 @@ class FileControl(models.Model):
     delimiter = models.CharField(
         max_length=3, blank=True, null=True, 
         verbose_name="Delimitador de columnas")
+    decode = models.CharField(
+        max_length=10, blank=True, null=True, verbose_name="Codificación")
     status_register = models.ForeignKey(
         StatusControl, null=True, blank=True, 
         verbose_name="Status de los registro de variables",
@@ -279,8 +281,7 @@ def default_explore_data():
     return {}
 
 
-class DataFile(
-        models.Model, ExploreMix, DataUtilsMix, ExtractorsMix, MatchesMix):
+class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
     zip_path = models.TextField(blank=True, null=True)
@@ -409,7 +410,8 @@ class NameColumn (models.Model):
     final_field = models.ForeignKey(
         FinalField, 
         blank=True, null=True,
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE,
+        related_name="name_columns")
     #parameter_group = models.ForeignKey(
     #    ParameterGroup, 
     #    blank=True, null=True,
@@ -436,7 +438,7 @@ class NameColumn (models.Model):
     class Meta:
         ordering = ["seq"]
         verbose_name = "Nombre de Columna"
-        verbose_name_plural = "Nombres de Columnas"   
+        verbose_name_plural = "Nombres de Columnas"
 
 
 def default_params():

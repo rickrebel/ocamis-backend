@@ -23,16 +23,17 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "is_common",
         "verified",
         "need_for_viz",
+        "is_unique",
     ]
     list_filter = ["collection", "parameter_group", "data_type"]
     inlines = [CleanFunctionInLine]
     list_editable = [
-        "parameter_group",
         "verified",
         "verbose_name",
         "in_data_base",
         "is_common",
         "need_for_viz",
+        "is_unique",
     ]
     ordering = [
         "parameter_group", "collection", "-is_common", "verbose_name"]        
@@ -53,7 +54,7 @@ class FinalFieldInLine(admin.StackedInline):
         }),
         ("Más configuraciones:", {
             #"classes": ("collapse",),
-            "fields": ("variations", "requiered", "is_common", "dashboard_hide", "in_data_base", "verified")
+            "fields": ("variations", "is_required", "is_common", "dashboard_hide", "in_data_base", "verified")
         }),
         )
 

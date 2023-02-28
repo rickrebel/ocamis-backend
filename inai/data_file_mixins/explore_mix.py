@@ -1,14 +1,67 @@
-def build_query_filter(row, columns):
-    query_filter = {}
-    for column in columns:
-        name_column = column.final_field
-        query_filter[name_column] = row[column.position_in_data]
-    return query_filter
-
 
 class ExploreMix:
     final_path: str
     petition_file_control: None
+
+    def get_sample_data(self, task_params=None, **kwargs):
+        from task.models import AsyncTask
+        data_file = self
+        all_tasks = kwargs.get("all_tasks", [])
+        all_errors = kwargs.get("all_errors", [])
+        task_params = task_params or {}
+        data_file.error_process = []
+        parent_task = task_params.get("parent_task")
+        # previous_tasks
+        previous_tasks = AsyncTask.objects.filter(data_file=data_file)\
+            .exclude(parent_task=parent_task)\
+            .exclude(id=parent_task.id)
+        for task in previous_tasks:
+            task.is_current = False
+            task.save()
+        data_file.save()
+        task_params["models"] = [data_file]
+        if not data_file.suffix:
+            (data_file, errors, suffix), first_task = data_file.decompress_file(
+                task_params=task_params)
+            if data_file and suffix:
+                data_file.suffix = suffix
+                data_file.save()
+            else:
+                self.save_errors(errors, 'explore_fail')
+                return [first_task], errors, None
+        new_errors = []
+        forced_save = kwargs.get("forced_save", False)
+        if data_file and not data_file.sheet_names:
+            if data_file.petition_file_control.file_control.file_format.short_name == 'xls':
+                forced_save = True
+            else:
+                data_file.sheet_names = ['default']
+                data_file.save()
+        if not data_file:
+            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
+        elif not data_file.sample_data or forced_save:
+            print("NO HAY SAMPLE DATA O NO HAY SHEET NAMES")
+            task_params["function_after"] = kwargs.get("after_if_empty")
+            current_file_ctrl = kwargs.get("current_file_ctrl")
+            params_after = task_params.get("params_after", {})
+            after_params_if_empty = kwargs.get("after_params_if_empty", {})
+            params_after.update(after_params_if_empty)
+            task_params["params_after"] = params_after
+            if forced_save or not data_file.sheet_names:
+                type_explor = 'forced_save'
+            else:
+                type_explor = 'only_save'
+            data_file, new_errors, new_task = data_file.transform_file_in_data(
+                type_explor, file_control=current_file_ctrl,
+                task_params=task_params)
+            if new_task:
+                all_tasks.append(new_task)
+                return all_tasks, all_errors, None
+        if new_errors:
+            all_errors.extend(new_errors)
+            return all_tasks, all_errors, None
+        return all_tasks, all_errors, data_file
+
 
     def count_file_rows(self):
         file_control = self.petition_file_control.file_control

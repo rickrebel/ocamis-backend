@@ -87,21 +87,21 @@ def sincronize_entities(app_name, model_name, field_id="id"):
             except Exception as e:
                 print(e)
 
-#from scripts.ocamis.sincro import *
+# from scripts.ocamis_verified.sincro import *
 
-#generate_file('category', 'TransparencyLevel')
-#sincronize_entities('category', 'TransparencyLevel')
-#generate_file('category', 'StatusTask')
+# generate_file('category', 'TransparencyLevel')
+# sincronize_entities('category', 'TransparencyLevel')
+# generate_file('category', 'StatusTask')
 # generate_file('task', 'StatusTask')
 # generate_file('task', 'TaskFunction')
-sincronize_entities('task', 'StatusTask', field_id='name')
-sincronize_entities('task', 'TaskFunction', field_id='name')
+# sincronize_entities('task', 'StatusTask', field_id='name')
+# sincronize_entities('task', 'TaskFunction', field_id='name')
 
-#generate_file('catalog', 'Entity')
-#sincronize_entities('catalog', 'Entity')
+# generate_file('catalog', 'Entity')
+# sincronize_entities('catalog', 'Entity')
 
-#generate_file('category', 'DateBreak')
-#sincronize_entities('category', 'DateBreak')
+# generate_file('category', 'DateBreak')
+# sincronize_entities('category', 'DateBreak')
 
-#generate_file('category', 'FileType')
-#sincronize_entities('category', 'FileType')
+# generate_file('category', 'FileType')
+# sincronize_entities('category', 'FileType')

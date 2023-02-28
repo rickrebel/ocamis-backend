@@ -17,7 +17,7 @@ class MedicalSpeciality(models.Model):
 
 
 class DocumentType(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, primary_key=True)
 
     class Meta:
         verbose_name = "Tipo de Documento"
@@ -66,7 +66,7 @@ class Prescription(models.Model):
     from catalog.models import CLUES, Delegation, Area
     from inai.models import DataFile
     #Nueva versión del modelo Prescription con atomizado de datos
-    uuid = models.UUIDField(
+    uuid_folio = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False)
     folio_ocamis = models.CharField(max_length=60)
     # folio_document = models.CharField(max_length=40)
@@ -84,16 +84,16 @@ class Prescription(models.Model):
     #medico = models.CharField(max_length=48, blank=True, null=True)
     #year_month = models.IntegerField(blank=True, null=True)
     #delivered = models.CharField(max_length=3, blank=True, null=True)
-    delivered = models.ForeignKey(
+    delivered_final = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     #anomaly = models.TextField(blank=True, null=True)
     area = models.ForeignKey(
         Area, on_delete=models.CASCADE, blank=True, null=True)
     #EXTENSION: COSAS NO TAN RELEVANTES:
     #tipo_documento = models.IntegerField()
-    type_document = models.ForeignKey(
-        DocumentType, on_delete=models.CASCADE, blank=True, null=True)
-
+    # document_type = models.ForeignKey(
+    #     DocumentType, on_delete=models.CASCADE, blank=True, null=True)
+    document_type = models.CharField(max_length=50, blank=True, null=True)
     # fecha_emision = models.DateTimeField(blank=True, null=True)
     date_release = models.DateTimeField(blank=True, null=True)
     # fecha_entrega = models.DateTimeField(blank=True, null=True)
@@ -126,7 +126,9 @@ class Drug(models.Model):
     )
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE)
+    prescription = models.ForeignKey(
+        Prescription, on_delete=models.CASCADE,
+        related_name='drugs')
     container = models.ForeignKey(
         Container, blank=True, null=True, on_delete=models.CASCADE)
     # cantidad_prescrita = models.PositiveSmallIntegerField(
@@ -137,8 +139,8 @@ class Drug(models.Model):
     #     blank=True, null=True)
     delivered_amount = models.PositiveSmallIntegerField(
         blank=True, null=True)
-    not_delivered_amount = models.PositiveSmallIntegerField(
-        blank=True, null=True)
+    # not_delivered_amount = models.PositiveSmallIntegerField(
+    #     blank=True, null=True)
     #delivered = models.CharField(max_length=3, blank=True, null=True)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
@@ -162,12 +164,12 @@ class Drug(models.Model):
 class MissingRow(models.Model):
     uuid = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False)
-    file = models.ForeignKey(
+    data_file = models.ForeignKey(
         DataFile, on_delete=models.CASCADE)
     prescription = models.ForeignKey(
         Prescription, 
         blank=True, null=True,
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE, related_name='missing_rows')
     drug = models.ForeignKey(
         Drug,
         blank=True, null=True,
@@ -175,8 +177,10 @@ class MissingRow(models.Model):
     original_data = JSONField(
         blank=True, null=True)
     row_seq = models.IntegerField(default=1)
-    #tab = models.CharField(max_length=255, blank=True, null=True)
-    errors = JSONField(blank=True, null=True)
+    # tab = models.CharField(max_length=255, blank=True, null=True)
+    # errors = JSONField(blank=True, null=True)
+    error = models.TextField(blank=True, null=True)
+    # !!! Por nada del mundo, poner más campos debajo de este comentario
 
     def __str__(self):
         #return "%s -- %s" % (self.file, self.recipe_report or self.recipe_medicine)
@@ -200,7 +204,9 @@ class MissingField(models.Model):
     final_value = models.TextField(blank=True, null=True)
     other_values = JSONField(
         blank=True, null=True)
-    errors = JSONField(blank=True, null=True)
+    # errors = JSONField(blank=True, null=True)
+    error = models.TextField(blank=True, null=True)
+    # !!! Por nada del mundo, poner más campos debajo de este comentario
 
     def __str__(self):
         return "%s -- %s" % (self.missing_row, self.column)

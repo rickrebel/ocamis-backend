@@ -1,93 +1,10 @@
 raws = {}
 
 
-def execute_matches(row, file):
-    # from formula.models import MissingRow
-    delegation = None
-    missing_row = None
-    if not state:
-        columns_state = columns.filter(final_field__collection='State')
-        if columns_state.exists():
-            state = state_match(row, columns_state, 'State')
-    # Delegación
-    columns_deleg = columns.filter(final_field__collection='Delegation')
-    if columns_deleg.exists():
-        delegation = delegation_match(row, columns_state, 'Delegation')
-        if not delegation:
-            # missing_row = MissingRow.objects.get_or_create(file=file)
-            # missing_row = MissingRow.objects.create(
-            #     file=file, row_seq=row[0], orinal_data=row)
-            pass
-        if delegation and not state:
-            state = delegation.state
-    recipe_row = []
-    if not state:
-        pass
-
-
 class ExtractorsMix:
     petition_file_control: None
     save_errors: classmethod
     final_path: str
-
-    def get_sample_data(self, task_params=None, **kwargs):
-        from task.models import AsyncTask
-        data_file = self
-        all_tasks = kwargs.get("all_tasks", [])
-        all_errors = kwargs.get("all_errors", [])
-        task_params = task_params or {}
-        data_file.error_process = []
-        parent_task = task_params.get("parent_task")
-        # previous_tasks
-        previous_tasks = AsyncTask.objects.filter(data_file=data_file)\
-            .exclude(parent_task=parent_task)\
-            .exclude(id=parent_task.id)
-        for task in previous_tasks:
-            task.is_current = False
-            task.save()
-        data_file.save()
-        task_params["models"] = [data_file]
-        if not data_file.suffix:
-            (data_file, errors, suffix), first_task = data_file.decompress_file(
-                task_params=task_params)
-            if data_file and suffix:
-                data_file.suffix = suffix
-                data_file.save()
-            else:
-                self.save_errors(errors, 'explore_fail')
-                return [first_task], errors, None
-        new_errors = []
-        forced_save = kwargs.get("forced_save", False)
-        if data_file and not data_file.sheet_names:
-            if data_file.petition_file_control.file_control.file_format.short_name == 'xls':
-                forced_save = True
-            else:
-                data_file.sheet_names = ['default']
-                data_file.save()
-        if not data_file:
-            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-        elif not data_file.sample_data or forced_save:
-            print("NO HAY SAMPLE DATA O NO HAY SHEET NAMES")
-            task_params["function_after"] = kwargs.get("after_if_empty")
-            current_file_ctrl = kwargs.get("current_file_ctrl")
-            params_after = task_params.get("params_after", {})
-            after_params_if_empty = kwargs.get("after_params_if_empty", {})
-            params_after.update(after_params_if_empty)
-            task_params["params_after"] = params_after
-            if forced_save or not data_file.sheet_names:
-                type_explor = 'forced_save'
-            else:
-                type_explor = 'only_save'
-            data_file, new_errors, new_task = data_file.transform_file_in_data(
-                type_explor, file_control=current_file_ctrl,
-                task_params=task_params)
-            if new_task:
-                all_tasks.append(new_task)
-                return all_tasks, all_errors, None
-        if new_errors:
-            all_errors.extend(new_errors)
-            return all_tasks, all_errors, None
-        return all_tasks, all_errors, data_file
 
     def every_has_total_rows(self, task_params=None, **kwargs):
         data_file = self
@@ -334,6 +251,7 @@ class ExtractorsMix:
         from scripts.common import get_file, start_session
         from task.serverless import async_in_lambda
         from scripts.common import build_s3
+        from scripts.recipe_specials import special_issste
 
         errors = []
         is_explore = bool(type_explor)
@@ -378,23 +296,10 @@ class ExtractorsMix:
             }
         }
 
-        # is_issste = self.petition_file_control.petition.entity.institution.code == 'ISSSTE'
-        # file_control = self.petition_file_control.file_control
-        # if "|" in data[:5000]:
-        #     file_control.delimiter = '|'
-        # elif "," in data[:5000]:
-        #     file_control.delimiter = ','
-        #     if is_issste:
-        #         data = special_coma(data)
-        #         if ",,," in data[:5000]:
-        #             data = special_excel(data)
-        # #elif not set([',', '|']).issubset(data[:5000]):
-        # else:
-        #     return False, ['El documento está vacío']
-        # file_control.save()
-        # if is_issste:
-        #     data = clean_special(data)
-        # return data, [], None
+        is_issste = file_control.petition.entity.institution.code == 'ISSSTE'
+        if is_issste:
+            new_tasks, errors, data = special_issste(data, file_control, is_issste)
+
         return validated_data, None, None
 
     def divide_rows(self, data_rows, file_control, is_explore=False):

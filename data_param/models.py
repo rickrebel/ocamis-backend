@@ -38,7 +38,7 @@ class Collection(models.Model):
         verbose_name="Conjunto de datos")
 
     def __str__(self):
-        return f"{self.name} ({self.model_name})"
+        return f"{self.name} \n ({self.model_name})"
 
     class Meta:
         verbose_name = "Modelo (Tabla)"
@@ -104,8 +104,11 @@ class FinalField(models.Model):
         verbose_name="Otros posibles nombres (variaciones)",
         help_text="Nombres como pueden venir en las tablas de INAI",
         )
-    requiered = models.BooleanField(
+    is_required = models.BooleanField(
         default=False, verbose_name="Es indispensable para registrar fila")
+    is_unique = models.BooleanField(
+        default=False, help_text="Puede ser una llave única",
+        verbose_name="Único")
     is_common = models.BooleanField(
         default=False, verbose_name="Es común")
     dashboard_hide = models.BooleanField(

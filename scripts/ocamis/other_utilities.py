@@ -1,6 +1,7 @@
 from inai.models import NameColumn
 from data_param.models import FinalField
 
+
 def join_fields():
     all_names = NameColumn.objects.filter(final_field__verbose_name__startswith="!")
 
@@ -15,8 +16,6 @@ def join_fields():
         name_col.final_field = correct_final_field
         name_col.save()
         print(name_col)
-
-
 
 
 def re_suffixes():

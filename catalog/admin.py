@@ -12,7 +12,8 @@ from .models import (
     State,
     Municipality,
     Disease,
-    Entity
+    Entity,
+    Delegation,
 )
 
 
@@ -143,3 +144,22 @@ class EntityAdmin(admin.ModelAdmin):
 
 #admin.site.register(Entity, EntityAdmin)
 ocamis_admin_site.register(Entity, EntityAdmin)
+
+
+class DelegationAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "state",
+        "institution",
+        "clues",
+    ]
+    raw_id_fields = ["clues"]
+    search_fields = [
+        "name",
+        "institution__code",
+        "institution__name",
+        "state__short_name"
+    ]
+
+
+ocamis_admin_site.register(Delegation, DelegationAdmin)

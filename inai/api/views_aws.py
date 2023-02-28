@@ -278,7 +278,7 @@ class DataFileViewSet(CreateRetrievView):
                 response_body["errors"] = data_rows["errors"]
                 final_status = status.HTTP_400_BAD_REQUEST
         if all_errors:
-            response_body["errors"] = response_body.get("errors", []) + errors
+            response_body["errors"] = response_body.get("errors", [])
             final_status = status.HTTP_400_BAD_REQUEST
         print("response_body: ", response_body)
         return Response(response_body, status=final_status)
@@ -308,15 +308,19 @@ class DataFileViewSet(CreateRetrievView):
 
     @action(methods=["get"], detail=True, url_path="insert_data")
     def insert_data(self, request, **kwargs):
+        from inai.data_file_mixins.matches_mix import Match
         data_file = self.get_object()
         key_task, task_params = build_task_params(
             data_file, "insert_data", request)
-        all_tasks, all_errors, data = data_file.build_csv_converted(
-            task_params)
+        my_match = Match(data_file, task_params)
+        all_tasks, all_errors, data = my_match.build_csv_converted()
+        # Match.build_csv_converted(data_file, task_params)
         resp = comprobate_status(
             key_task, all_errors, all_tasks, want_http_response=True)
-        if resp:
-            return resp
+        if all_errors:
+            data["errors"] = all_errors
+        # if resp:
+        #     return resp
         return Response(data, status=status.HTTP_200_OK)
 
         # if data_file:

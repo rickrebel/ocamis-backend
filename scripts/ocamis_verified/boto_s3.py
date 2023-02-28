@@ -42,10 +42,8 @@ def obtain_names_from_s3(path, folio_petition, is_process_file=False):
         print("------------------------------")
 
 
-
-
-obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
-#obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)
-#obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
+# obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
+# obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)
+# obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
 
 

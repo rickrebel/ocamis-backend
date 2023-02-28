@@ -48,14 +48,14 @@ class PrescriptionAdmin(admin.ModelAdmin):
     list_display = [
         #"year_month",
         "clues",
-        "type_document",
+        "document_type",
         "folio_document",
     ]
     inlines = [
         DrugInline,
     ]
     raw_id_fields = ["clues"]
-    search_fields = ["type_document", ]
+    search_fields = ["document_type", ]
 
 
 ocamis_admin_site.register(Prescription, PrescriptionAdmin)
