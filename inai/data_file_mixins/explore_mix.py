@@ -154,13 +154,12 @@ class ExploreMix:
         # headers = data["headers"]
         current_sheets = data["current_sheets"]
         structured_data = data["structured_data"]
-        all_pet_file_ctrl = []
         validated_data = data_file.sample_data or {}
+        all_data_files = {}
         for sheet_name in current_sheets:
             no_headers_in_ctrl = not file_ctrl.row_headers
             # headers = validated_rows[row_headers-1] if row_headers else []
             # validated_rows = validated_rows[file_ctrl.row_start_data-1:]
-            same_headers = False
             if not structured_data[sheet_name].get("headers"):
                 if no_headers_in_ctrl:
                     name_columns_simple = NameColumn.objects.filter(
@@ -177,40 +176,52 @@ class ExploreMix:
                 else:
                     continue
             else:
+
                 name_columns = NameColumn.objects.filter(
                     file_control=file_ctrl, name_in_data__isnull=False) \
                     .values_list("name_in_data", flat=True)
                 headers = structured_data[sheet_name]["headers"]
-                headers = [head.strip() for head in headers]
+                headers = [head.strip().upper() for head in headers]
                 same_headers = list(name_columns) == headers
 
-            if same_headers:
-                try:
-                    succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
-                        .get_or_create(
-                            file_control=file_ctrl, petition=petition)
-                except PetitionFileControl.MultipleObjectsReturned:
-                    errors = ["El grupos de control está duplicado en la solicitud"]
-                    return data_file, saved, errors
-                validated_data[sheet_name] = structured_data[sheet_name]
-                if succ_pet_file_ctrl.id in all_pet_file_ctrl:
-                    continue
-                if saved:
-                    info_text = "El archivo está en varios grupos de control"
-                    data_file.add_result(("info", info_text))
-                    new_data_file = data_file
-                    new_data_file.pk = None
-                    new_data_file.petition_file_control = succ_pet_file_ctrl
-                    new_data_file.sample_data = validated_data
-                    new_data_file.save()
-                    new_data_file.add_result(("info", info_text))
+            if not same_headers:
+                continue
+            try:
+                succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
+                    .get_or_create(
+                        file_control=file_ctrl, petition=petition)
+            except PetitionFileControl.MultipleObjectsReturned:
+                errors = ["El grupos de control está duplicado en la solicitud"]
+                return data_file, saved, errors
+            validated_data[sheet_name] = structured_data[sheet_name]
+            current_pfc = succ_pet_file_ctrl.id
+            already_in_pfc = current_pfc in all_data_files
+            # if pet_file_saved:
+            #     continue
+            if not already_in_pfc and all_data_files:
+                info_text = "El archivo está en varios grupos de control"
+                data_file.add_result(("info", info_text))
+                new_data_file = data_file
+                new_data_file.pk = None
+                new_data_file.petition_file_control = succ_pet_file_ctrl
+                new_data_file.sample_data = validated_data
+                new_data_file.save()
+                new_data_file.add_result(("info", info_text))
+                all_data_files[current_pfc] = new_data_file
+            else:
+                current_file = all_data_files.get(current_pfc)
+                current_file.sample_data = validated_data
+                saved = True
+                if not already_in_pfc:
+                    current_file.petition_file_control = succ_pet_file_ctrl
+                    current_file.change_status("success_exploration")
                 else:
-                    data_file.petition_file_control = succ_pet_file_ctrl
-                    data_file.sample_data = validated_data
-                    data_file.change_status("success_exploration")
-                    saved = True
-                all_pet_file_ctrl.append(succ_pet_file_ctrl.id)
+                    current_file.save()
+                all_data_files[current_pfc] = current_file
+        if all_data_files:
+            return all_data_files[data_file.petition_file_control.id], saved, []
         return data_file, saved, []
+        #return all_data_files, saved, []
 
     def decompress_file(self, task_params=None):
         import pathlib

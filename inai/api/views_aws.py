@@ -313,15 +313,21 @@ class DataFileViewSet(CreateRetrievView):
         key_task, task_params = build_task_params(
             data_file, "insert_data", request)
         my_match = Match(data_file, task_params)
-        all_tasks, all_errors, data = my_match.build_csv_converted()
+        all_tasks, all_errors, new_files = my_match.build_csv_converted()
         # Match.build_csv_converted(data_file, task_params)
-        resp = comprobate_status(
+        comprobate_status(
             key_task, all_errors, all_tasks, want_http_response=True)
+        data = {}
         if all_errors:
             data["errors"] = all_errors
-        # if resp:
-        #     return resp
-        return Response(data, status=status.HTTP_200_OK)
+        if new_files:
+            data["new_files"] = serializers.DataFileSerializer(new_files, many=True).data
+            # if resp:
+            #     return resp
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            data["new_task"] = key_task.id
+            return Response(data, status=status.HTTP_200_OK)
 
         # if data_file:
         #     data = serializers.DataFileSerializer(data_file).data

@@ -4,6 +4,45 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 
 
+def calculate_special_function(special_function):
+    import json
+    print("SPECIAL FUNCTION", special_function)
+    delegation_value_list = [
+        'name', 'other_names', 'id', 'clues_id']
+
+    #def create_delegation(self, ):
+    delegation_name = special_function.get("delegation_name")
+    clues_id = special_function.get("clues_id")
+    institution_id = special_function.get("institution_id")
+    from catalog.models import Delegation, CLUES
+    try:
+        clues_obj = CLUES.objects.get(id=clues_id)
+        del_obj, created = Delegation.objects.get_or_create(
+            institution_id=institution_id,
+            name=delegation_name,
+            clues=clues_obj,
+            state=clues_obj.state,
+        )
+        delegation_id = del_obj.id
+        final_delegation = {}
+        for field in delegation_value_list:
+            final_delegation[field] = getattr(del_obj, field)
+        # self.catalog_delegation[delegation_name] = final_delegation
+        # return delegation_id, None
+        response = final_delegation
+        response = json.dumps(response)
+        return HttpResponse(response)
+    except Exception as e:
+        response = [None, "No se pudo crear la delegación, ERROR: %s" % e, None]
+        # return None, "No se pudo crear la delegación, ERROR: %s" % e
+        raise e
+        return HttpResponse(response)
+
+    # error = "Por alguna razón, no es ISSSTE o IMSS y no tiene delegación"
+    # return None, error
+
+
+
 class AWSMessage(generic.View):
 
     def get(self, request, *args, **kwargs):
@@ -23,8 +62,16 @@ class AWSMessage(generic.View):
         from task.models import AsyncTask
         print("HOLA POST")
         # print(request)
-        body = json.loads(request.body)
+        try:
+            body = json.loads(request.body)
+        except Exception as e:
+            print("ERROR AL LEER EL BODY: ", e)
+            print("request original: \n", request)
+            return HttpResponse()
         # print("body: \n", body)
+        special_function = body.get("special_function", {})
+        if special_function:
+            return calculate_special_function(special_function)
         request_id = body.get("request_id")
         result = body.get("result", {})
         errors = result.get("errors", [])

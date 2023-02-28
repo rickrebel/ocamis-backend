@@ -153,6 +153,7 @@ def definitive_lambda(layer_name="my_layer1", packages=[]):
     create_lambda_layer(layer_name, layer_path)
 
 
+# from scripts.ocamis_verified.lambda import definitive_lambda
 # definitive_function()
 # definitive_function_real()
 # definitive_lambda("pandas_with_complements",
@@ -161,4 +162,5 @@ def definitive_lambda(layer_name="my_layer1", packages=[]):
 #
 # definitive_lambda("pandas_complements",
 #                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pyxlsb"])
+# definitive_lambda("csv_complements", ["csv", "uuid"])
 # definitive_lambda("request_package", ["requests"])

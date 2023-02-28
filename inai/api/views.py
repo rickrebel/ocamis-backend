@@ -344,6 +344,9 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             transformations = column_item.pop('transformations', [])
             print("TRANSFORMATIONS", transformations)
             column_item["seq"] = order
+            if column_item.get("name_in_data"):
+                column_item["name_in_data"] = column_item["name_in_data"]\
+                    .strip().upper()
             if column_id:
                 # print("sí tenngo column", column_item["id"])
                 column = NameColumn.objects.filter(

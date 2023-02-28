@@ -59,7 +59,13 @@ def restructurate_reasons():
     #for PetitionNegativeReason in NegativeReason:
 
 
-
+def name_columns_to_upper():
+    from inai.models import NameColumn
+    all_names = NameColumn.objects.all()
+    for name in all_names:
+        if name.name_in_data:
+            name.name_in_data = name.name_in_data.strip().upper()
+            name.save()
 
 
 

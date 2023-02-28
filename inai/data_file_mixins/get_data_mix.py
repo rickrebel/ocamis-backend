@@ -354,3 +354,17 @@ class ExtractorsMix:
 
         raws["missing_r"] = missing_data
         return structured_data
+
+    def finish_build_csv_data(self, task_params=None, **kwargs):
+        print("finish_build_csv_data")
+        from inai.data_file_mixins.matches_mix import Match
+        match = Match(self, task_params=task_params)
+        final_paths = kwargs.get("final_paths", {})
+        print("final_paths", final_paths)
+        if not self.petition_file_control.file_control.decode:
+            decode = kwargs.get("decode", None)
+            if decode:
+                self.petition_file_control.file_control.decode = decode
+                self.petition_file_control.file_control.save()
+        match.save_result_csv(final_paths)
+        return [], [], None

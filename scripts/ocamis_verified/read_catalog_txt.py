@@ -90,7 +90,8 @@ def import_delegations():
         except State.MultipleObjectsReturned:
             print("Multiple states found: ", delegation)
             state = State.objects.get(short_name__iexact=delegation)
-        Delegation.objects.get_or_create(
+        #Delegation.objects.get_or_create(
+        Delegation.objects.create(
             name=delegation, state=state, institution=issste)
 
 
