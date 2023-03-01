@@ -78,7 +78,7 @@ ISSSTE_DELEGATIONS = [
 def import_delegations():
     from catalog.models import Delegation, State, Institution
     issste = Institution.objects.get(code="ISSSTE")
-    # Delegation.objects.filter(institution=issste).delete()
+    Delegation.objects.filter(institution=issste).delete()
     for delegation in ISSSTE_DELEGATIONS:
         try:
             if "CD.MX." in delegation[0] or "ZONA " in delegation[0]:

@@ -162,5 +162,7 @@ def definitive_lambda(layer_name="my_layer1", packages=[]):
 #
 # definitive_lambda("pandas_complements",
 #                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pyxlsb"])
+definitive_lambda("other_complements_psycopg2_and_unidecode",
+                  ["psycopg2", "unidecode"])
 # definitive_lambda("csv_complements", ["csv", "uuid"])
 # definitive_lambda("request_package", ["requests"])
