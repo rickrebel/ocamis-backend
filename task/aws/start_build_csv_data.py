@@ -2,22 +2,9 @@ import io
 import boto3
 import csv
 import uuid as uuid_lib
-import json
-import requests
-
-# import unidecode
-
 
 delegation_value_list = [
     'name', 'other_names', 'state__short_name', 'id', 'clues']
-
-
-def text_normalizer(text):
-    import re
-    text = text.upper().strip()
-    # text = unidecode.unidecode(text)
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
-    return text
 
 
 def calculate_delivered(available_data):
@@ -64,8 +51,7 @@ def calculate_delivered_final(all_delivered):
     return "partial"
 
 
-# def start_build_csv_data(event, context):
-def lambda_handler(event, context):
+def start_build_csv_data(event, context):
 
     aws_access_key_id = event["s3"]["aws_access_key_id"]
     aws_secret_access_key = event["s3"]["aws_secret_access_key"]
@@ -85,34 +71,23 @@ def lambda_handler(event, context):
     object_final = io.BytesIO(streaming_body_1.read())
     init_data = event["init_data"]
     init_data["s3"] = event["s3"]
-    init_data["webhook_url"] = event.get("webhook_url")
-    match_aws = MatchAws(init_data, context)
-
+    match_aws = MatchAws(init_data)
     s3_client = boto3.client(
         's3', aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key)
-    final_result = match_aws.build_csv_to_data(object_final, s3_client)
-    print("final_result", final_result)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        response_status = requests.post(webhook_url, data=final_result,
-                                        headers={ "Content-Type": "application/json" })
-    return {
-        'statusCode': 200,
-        'body': final_result
-    }
+
+    return match_aws.build_csv_to_data(object_final, s3_client)
 
 
 class MatchAws:
 
-    def __init__(self, init_data: dict, context):
+    def __init__(self, init_data: dict):
         for key, value in init_data.items():
             setattr(self, key, value)
         self.data_file_id = init_data["data_file_id"]
         # self.file_control_id = init_data["file_control_id"]
         self.global_clues_id = init_data["global_clues_id"]
         self.entity_id = init_data["entity_id"]
-        self.institution_id = init_data["institution_id"]
         # self.global_state_id = init_data["global_state_id"]
         self.global_delegation_id = init_data["global_delegation_id"]
         self.decode = init_data["decode"]
@@ -126,22 +101,18 @@ class MatchAws:
         self.catalog_clues_by_id = init_data["catalog_clues_by_id"]
         self.catalog_delegation = init_data["catalog_delegation"]
         self.catalog_container = init_data["catalog_container"]
-        self.webhook_url = init_data.get("webhook_url")
 
         self.string_date = init_data["string_date"]
         self.unique_clues = init_data["unique_clues"]
-        self.failed_delegations = []
 
         self.last_missing_row = None
         self.all_missing_rows = []
         self.all_missing_fields = []
         self.s3 = init_data["s3"]
-        self.context = context
-        self.total_tries = 1
 
     def build_csv_to_data(self, complete_file, s3_client):
-        csv_buffer = { }
-        csv_files = { }
+        csv_buffer = {}
+        csv_files = {}
         for elem in self.final_lists:
             csv_files[elem["name"]] = io.StringIO()
             csv_buffer[elem["name"]] = csv.writer(
@@ -256,27 +227,22 @@ class MatchAws:
             only_name = self.final_path.replace("NEW_ELEM_NAME", elem_list['name'])
             all_final_paths.append({
                 "name": elem_list["name"],
-                "path": only_name,
-
+                "path": self.final_path,
             })
-            print("only_name", only_name)
+            print(self.final_path)
             s3_client.put_object(
                 Body=csv_files[elem_list["name"]].getvalue(),
                 Bucket=bucket_name,
-                Key=f"{aws_location}/{only_name}",
+                Key=f"{aws_location}/{self.final_path}",
                 ContentType="text/csv",
                 ACL="public-read",
             )
             # self.send_csv_to_db(final_path, elem_list)
-
         result_data = {
-            "result": {
-                "decode": self.decode,
-                "final_paths": all_final_paths,
-            },
-            "request_id": self.context.aws_request_id
+            "decode": self.decode,
+            "final_paths": all_final_paths,
         }
-        return json.dumps(result_data)
+        return result_data
 
     def divide_rows(self, data_rows):
         structured_data = []
@@ -291,7 +257,7 @@ class MatchAws:
 
         begin = self.row_start_data
 
-        for row_seq, row in enumerate(data_rows[begin - 1:], start=begin):
+        for row_seq, row in enumerate(data_rows[begin-1:], start=begin):
             # print("Row: %s" % row_seq)
             self.last_missing_row = None
             row_decode = row.decode(self.decode) if self.decode != "str" else str(row)
@@ -418,55 +384,19 @@ class MatchAws:
 
     def delegation_match(self, available_data, clues_id):
         delegation_name = available_data.pop("delegation_name", None)
-        if not delegation_name == "AGUASCALIENTES":
-            return None, "No es AGUASCALIENTES"
         delegation = None
         delegation_error = None
         if self.global_delegation_id:
             delegation = self.global_delegation_id
         elif delegation_name:
-            delegation_name = text_normalizer(delegation_name)
+            delegation_name = delegation_name.strip().upper()
             try:
                 delegation_cat = self.catalog_delegation[delegation_name]
                 delegation = delegation_cat["id"]
             except Exception as e:
                 delegation_error = f"No se encontró la delegación" \
                                    f" {delegation_name} ({e})"
-            is_failed = delegation_name in self.failed_delegations
-            if not is_failed and not delegation and clues_id and self.total_tries < 10:
-
-                content = json.dumps({
-                    "special_function": {
-                        "delegation_name": delegation_name,
-                        "clues_id": clues_id,
-                        "institution_id": self.institution_id
-                    }
-                })
-                response_create = requests.post(self.webhook_url, data=content,
-                                                headers={ "Content-Type": "application/json" })
-                print(response_create)
-                print("decode:", self.decode)
-                try:
-                    content = response_create.content
-                    if self.decode == 'str':
-                        content = str(content)
-                        print(type(content))
-                    else:
-                        content = content.decode(self.decode)
-                        print("latin?", type(content))
-                    content = json.loads(content)
-                    print("content", content)
-                    [data_result, delegation_error] = content
-                    if data_result:
-                        deleg_name = data_result["name"]
-                        self.catalog_delegation[deleg_name] = data_result
-                        delegation = content["id"]
-                    else:
-                        self.failed_delegations.append(delegation_name)
-                except Exception as e:
-                    self.total_tries += 1
-                    print("NO SE PUDO LEER", e)
-                    delegation_error = "ESTAMOS EXPERIMENTANDO CREAR"
-                # delegation, delegation_error = self.create_delegation(
-                #     delegation_name, clues_id)
+            if not delegation and clues_id:
+                delegation, delegation_error = self.create_delegation(
+                    delegation_name, clues_id)
         return delegation, delegation_error
