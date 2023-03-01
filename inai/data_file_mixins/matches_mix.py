@@ -9,6 +9,14 @@ delegation_value_list = [
     'name', 'other_names', 'state__short_name', 'id', 'clues']
 
 
+def text_normalizer(text):
+    import re
+    # import unidecode
+    text = text.upper().strip()
+    # text = unidecode.unidecode(text)
+    return re.sub(r'[^a-zA-Z\s]', '', text)
+
+
 def field_of_models(model_name):
     from django.apps import apps
     my_model = apps.get_model('formula', model_name)
@@ -138,7 +146,6 @@ class Match:
             "start_build_csv_data", params, self.task_params)
         return async_task, [], None
 
-
     def save_result_csv(self, result_files):
         from category.models import FileType
         all_new_files = []
@@ -153,7 +160,7 @@ class Match:
             )
             new_file.change_status('initial')
             all_new_files.append(new_file)
-            # self.send_csv_to_db(result_file["path"], model_name)
+            self.send_csv_to_db(result_file["path"], model_name)
         return [], [], all_new_files
 
     def build_existing_fields(self):
@@ -260,14 +267,12 @@ class Match:
             curr_delegations = curr_delegations.filter(state=self.global_state)
         delegations_query = list(curr_delegations.values(*delegation_value_list))
         for delegation in delegations_query:
-            try:
-                delegation_name = delegation["name"].upper()
-            except Exception:
-                delegation_name = delegation["name"].upper()
+            delegation_name = text_normalizer(delegation["name"])
             if delegation_name not in self.catalog_delegation:
                 self.catalog_delegation[delegation_name] = delegation
             alt_names = delegation["other_names"] or []
             for alt_name in alt_names:
+                alt_name = text_normalizer(alt_name)
                 if alt_name not in self.catalog_delegation:
                     self.catalog_delegation[alt_name] = delegation
         # print("DELEGATIONS: \n", self.catalog_delegation)

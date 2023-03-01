@@ -37,63 +37,64 @@ def find_lines_with_regex(file_path="fixture/catalogo_clues_issste.txt"):
 # missing_clues = find_lines_with_regex()
 
 ISSSTE_DELEGATIONS = [
-    "AGUASCALIENTES",
-    "BAJA CALIFORNIA",
-    "BAJA CALIFORNIA SUR",
-    "CAMPECHE",
-    "COAHUILA",
-    "COLIMA",
-    "CHIAPAS",
-    "CHIHUAHUA",
-    "DURANGO",
-    "GUANAJUATO",
-    "GUERRERO",
-    "HIDALGO",
-    "JALISCO",
-    "ESTADO DE MÉXICO",
-    "MICHOACÁN",
-    "MORELOS",
-    "NAYARIT",
-    "NUEVO LEÓN",
-    "OAXACA",
-    "PUEBLA",
-    "QUERÉTARO",
-    "QUINTANA ROO",
-    "SAN LUIS POTOSÍ",
-    "SINALOA",
-    "SONORA",
-    "TABASCO",
-    "TAMAULIPAS",
-    "TLAXCALA",
-    "VERACRUZ",
-    "YUCATÁN",
-    "ZACATECAS",
-    "CD.MX. ZONA NORTE",
-    "CD.MX. ZONA ORIENTE",
-    "CD.MX. ZONA PONIENTE",
-    "CD.MX. ZONA SUR",
+    ["AGUASCALIENTES", []],
+    ["BAJA CALIFORNIA", []],
+    ["BAJA CALIFORNIA SUR", []],
+    ["CAMPECHE", []],
+    ["COAHUILA", []],
+    ["COLIMA", []],
+    ["CHIAPAS", []],
+    ["CHIHUAHUA", []],
+    ["DURANGO", []],
+    ["GUANAJUATO", []],
+    ["GUERRERO", []],
+    ["HIDALGO", []],
+    ["JALISCO", []],
+    ["ESTADO DE MÉXICO", ["MÉXICO"]],
+    ["MICHOACÁN", []],
+    ["MORELOS", []],
+    ["NAYARIT", []],
+    ["NUEVO LEÓN", []],
+    ["OAXACA", []],
+    ["PUEBLA", []],
+    ["QUERÉTARO", []],
+    ["QUINTANA ROO", []],
+    ["SAN LUIS POTOSÍ", ["SAN LUIS POTOSI"]],
+    ["SINALOA", []],
+    ["SONORA", []],
+    ["TABASCO", []],
+    ["TAMAULIPAS", []],
+    ["TLAXCALA", []],
+    ["VERACRUZ", []],
+    ["YUCATÁN", []],
+    ["ZACATECAS", []],
+    ["CD.MX. ZONA NORTE", ["ZONA NORTE"]],
+    ["CD.MX. ZONA ORIENTE", ["ZONA ORIENTE"]],
+    ["CD.MX. ZONA PONIENTE", ["ZONA PONIENTE"]],
+    ["CD.MX. ZONA SUR", ["ZONA SUR"]],
 ]
 
 
 def import_delegations():
     from catalog.models import Delegation, State, Institution
     issste = Institution.objects.get(code="ISSSTE")
+    # Delegation.objects.filter(institution=issste).delete()
     for delegation in ISSSTE_DELEGATIONS:
         try:
-            if "CD.MX." in delegation:
+            if "CD.MX." in delegation[0] or "ZONA " in delegation[0]:
                 state = State.objects.get(code_name="CDMX")
             else:
-                state = State.objects.get(short_name__icontains=delegation)
+                state = State.objects.get(short_name__icontains=delegation[0])
         except State.DoesNotExist:
             print("State not found: ", delegation)
             continue
         except State.MultipleObjectsReturned:
             print("Multiple states found: ", delegation)
-            state = State.objects.get(short_name__iexact=delegation)
+            state = State.objects.get(short_name__iexact=delegation[0])
         #Delegation.objects.get_or_create(
         Delegation.objects.create(
-            name=delegation, state=state, institution=issste)
-
+            name=delegation[0], state=state, institution=issste,
+            other_names=delegation[1])
 
 # import_delegations()
 

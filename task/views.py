@@ -4,9 +4,18 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 
 
+def text_normalizer(text):
+    import re
+    # import unidecode
+    text = text.upper().strip()
+    # text = unidecode.unidecode(text)
+    return re.sub(r'[^a-zA-Z\s]', '', text)
+
+
 def calculate_special_function(special_function):
     import json
-    print("SPECIAL FUNCTION", special_function)
+    from catalog.models import Delegation
+    # print("SPECIAL FUNCTION", special_function)
     delegation_value_list = [
         'name', 'other_names', 'id', 'clues_id']
 
@@ -14,6 +23,31 @@ def calculate_special_function(special_function):
     delegation_name = special_function.get("delegation_name")
     clues_id = special_function.get("clues_id")
     institution_id = special_function.get("institution_id")
+    valid_strings = ["H.R.", "HAE ", "C.M.N."]
+    is_valid_name = any(
+        [valid_string in delegation_name for valid_string in valid_strings])
+    if not is_valid_name:
+        standard_name = text_normalizer(delegation_name)
+        error = "No es un nombre válido"
+        try:
+            curr_delegation = Delegation.objects.get(
+                name__icontains=standard_name)
+            final_delegation = {}
+            for field in delegation_value_list:
+                final_delegation[field] = getattr(curr_delegation, field)
+            response = [final_delegation, None]
+            response = json.dumps(response)
+            return HttpResponse(response)
+        except Delegation.DoesNotExist:
+            error = "No existe la delegación"
+        except Delegation.MultipleObjectsReturned:
+            error = "Hay más de una delegación"
+        except Exception:
+            pass
+
+        response = json.dumps([None, error])
+        print("delegation_name", delegation_name)
+        return HttpResponse(response)
     from catalog.models import Delegation, CLUES
     try:
         clues_obj = CLUES.objects.get(id=clues_id)
@@ -23,19 +57,18 @@ def calculate_special_function(special_function):
             clues=clues_obj,
             state=clues_obj.state,
         )
-        delegation_id = del_obj.id
         final_delegation = {}
         for field in delegation_value_list:
             final_delegation[field] = getattr(del_obj, field)
         # self.catalog_delegation[delegation_name] = final_delegation
         # return delegation_id, None
-        response = final_delegation
+        response = [final_delegation, None]
         response = json.dumps(response)
         return HttpResponse(response)
     except Exception as e:
-        response = [None, "No se pudo crear la delegación, ERROR: %s" % e, None]
+        response = [None, "No se pudo crear la delegación, ERROR: %s" % e]
+        response = json.dumps(response)
         # return None, "No se pudo crear la delegación, ERROR: %s" % e
-        raise e
         return HttpResponse(response)
 
     # error = "Por alguna razón, no es ISSSTE o IMSS y no tiene delegación"
