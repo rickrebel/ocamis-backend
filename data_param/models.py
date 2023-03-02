@@ -274,3 +274,62 @@ class Transformation(models.Model):
     class Meta:
         verbose_name = "Transformación a aplicar"
         verbose_name_plural = "Transformaciones a aplicar"
+
+
+class NameColumn (models.Model):
+    name_in_data = models.TextField(
+        verbose_name="Nombre de la columna real", blank=True, null=True)
+    position_in_data = models.IntegerField(
+        blank=True, null=True, verbose_name="idx")
+    column_type = models.IntegerField(blank=True, null=True)
+    # column_type = models.ForeignKey(
+    #     ColumnType, on_delete=models.CASCADE)
+    file_control = models.IntegerField(blank=True, null=True)
+    # file_control = models.ForeignKey(
+    #     FileControl,
+    #     related_name="columns",
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE)
+    data_type = models.IntegerField(blank=True, null=True)
+    # data_type = models.ForeignKey(
+    #     DataType,
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE)
+    collection = models.IntegerField(blank=True, null=True)
+    # collection = models.ForeignKey(
+    #     Collection,
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE)
+    final_field = models.IntegerField(blank=True, null=True)
+    # final_field = models.ForeignKey(
+    #     FinalField,
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE,
+    #     related_name="name_columns")
+    #parameter_group = models.ForeignKey(
+    #    ParameterGroup,
+    #    blank=True, null=True,
+    #    on_delete=models.CASCADE)
+    clean_params = JSONField(blank=True, null=True,
+        verbose_name="Parámetros de limpieza")
+    requiered_row = models.BooleanField(default=False)
+    parent_column = models.ForeignKey(
+        "NameColumn", related_name="parents",
+        verbose_name="Columna padre de la que derivó",
+        blank=True, null=True, on_delete=models.CASCADE)
+    children_column = models.ForeignKey(
+        "NameColumn", related_name="childrens",
+        verbose_name="Hijo resultado (junto a otras columnas)",
+        blank=True, null=True, on_delete=models.CASCADE)
+    seq = models.IntegerField(
+        blank=True, null=True, verbose_name="order",
+        help_text="Número consecutivo para ordenación en dashboard")
+
+    def __str__(self):
+        return "%s-%s | %s" % (
+            self.name_in_data, self.position_in_data, self.final_field or '?')
+
+    class Meta:
+        ordering = ["seq"]
+        verbose_name = "Nombre de Columna"
+        verbose_name_plural = "Nombres de Columnas"

@@ -1,6 +1,7 @@
 from django.db import models
 
-from inai.models import NameColumn, DataFile
+from inai.models import DataFile
+from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid
 

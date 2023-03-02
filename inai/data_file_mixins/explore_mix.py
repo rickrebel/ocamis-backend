@@ -132,7 +132,8 @@ class ExploreMix:
     def find_coincidences(
             self, saved=False, petition=None, file_ctrl=None,
             parent=None, task_params=None, **kwargs):
-        from inai.models import NameColumn, PetitionFileControl
+        from inai.models import PetitionFileControl
+        from data_param.models import NameColumn
         data_file = self
         if not parent:
             parent = data_file
@@ -447,7 +448,7 @@ class ExploreMix:
         return None, all_errors, None
 
     def build_complex_headers(self, task_params=None, **kwargs):
-        from inai.models import NameColumn
+        from data_param.models import NameColumn
 
         data_file = self
         all_errors = []

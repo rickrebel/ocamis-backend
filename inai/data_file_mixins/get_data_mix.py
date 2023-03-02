@@ -304,7 +304,7 @@ class ExtractorsMix:
 
     def divide_rows(self, data_rows, file_control, is_explore=False):
         global raws
-        from inai.models import NameColumn
+        from data_param.models import NameColumn
         current_columns = NameColumn.objects.filter(
             file_control=file_control)
         columns_count = current_columns.filter(

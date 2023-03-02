@@ -37,7 +37,7 @@ class Match:
         from inai.models import set_upload_path
 
         from catalog.models import Delegation
-        from inai.models import NameColumn
+        from data_param.models import NameColumn
         self.data_file = data_file
         petition = data_file.petition_file_control.petition
         self.file_control = data_file.petition_file_control.file_control

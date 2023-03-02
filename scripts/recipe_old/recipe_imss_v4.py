@@ -477,7 +477,7 @@ def divide_recipe_report_data(
     recipe_report_data = text_data.split("|")
     rr_data_count = len(recipe_report_data)
     #Comprobación del número de columnas
-    from inai.models import NameColumn
+    from data_param.models import NameColumn
     #from formula.models import MissingRow
     current_columns = NameColumn.objects.filter(
         file_control__controlparameters=control_parameter)

@@ -1,5 +1,4 @@
-from inai.models import NameColumn
-from data_param.models import FinalField
+from data_param.models import FinalField, NameColumn
 
 
 def join_fields():

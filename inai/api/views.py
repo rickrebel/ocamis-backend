@@ -9,7 +9,7 @@ from task.views import build_task_params, comprobate_status
 from inai.models import (
     Petition, MonthEntity, PetitionMonth, PetitionBreak,
     ProcessFile, PetitionFileControl, DataFile)
-from data_param.models import FileControl, Transformation
+from data_param.models import FileControl, Transformation, NameColumn
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -331,7 +331,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
     @action(methods=["post"], detail=True, url_path='columns')
     def columns(self, request, **kwargs):
-        from inai.models import NameColumn, FileControl
+        from inai.models import FileControl
         import json
         if not request.user.is_staff:
             raise PermissionDenied()

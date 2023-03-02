@@ -34,6 +34,7 @@ class Anomaly(models.Model):
     class Meta:
         verbose_name = "Anomalía en los datos"
         verbose_name_plural = "Anomalías en los datos"
+        db_table = "category_anomaly"
 
 
 class TransparencyIndex(models.Model):
@@ -53,6 +54,7 @@ class TransparencyIndex(models.Model):
         ordering = ["order_viz"]
         verbose_name = "Transparencia: Indicador"
         verbose_name_plural = "Transparencia: Indicadores"
+        db_table = "category_transparencyindex"
 
 
 class TransparencyLevel(models.Model):
@@ -100,3 +102,4 @@ class TransparencyLevel(models.Model):
         # ordering = ["transparency_index__order_viz", "-order_viz"]
         verbose_name = "Transparencia: Nivel"
         verbose_name_plural = "Transparencia: Niveles"
+        db_table = "category_transparencylevel"
