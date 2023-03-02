@@ -85,7 +85,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
         from category.api.serializers import (
             TransparencyIndexSerializer, TransparencyLevelSimpleSerializer)
         from data_param.models import FileControl
-        from inai.api.serializers import FileControlSimpleSerializer
+        from data_param.api.serializers import FileControlSimpleSerializer
         from inai.api.serializers_viz import (
             FileControlViz2Serializer)
         indices_query = TransparencyIndex.objects.all()\
