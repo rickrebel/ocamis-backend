@@ -40,6 +40,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Nombre de Columna',
                 'verbose_name_plural': 'Nombres de Columnas',
                 'ordering': ['seq'],
+                'db_table': 'inai_name_column',
             },
         ),
     ]

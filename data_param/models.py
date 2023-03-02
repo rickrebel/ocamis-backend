@@ -153,6 +153,7 @@ class FileControl(models.Model):
         #unique_together = ["data_group", "name"]
         verbose_name = "Grupo de control de archivos"
         verbose_name_plural = "Grupos de control de archivos"
+        db_table = "inai_file_control"
 
 
 class FinalField(models.Model):
@@ -274,6 +275,7 @@ class Transformation(models.Model):
     class Meta:
         verbose_name = "Transformación a aplicar"
         verbose_name_plural = "Transformaciones a aplicar"
+        db_table = "inai_transformation"
 
 
 class NameColumn (models.Model):
@@ -333,3 +335,4 @@ class NameColumn (models.Model):
         ordering = ["seq"]
         verbose_name = "Nombre de Columna"
         verbose_name_plural = "Nombres de Columnas"
+        db_table = "inai_name_column"
