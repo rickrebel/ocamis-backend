@@ -28,22 +28,22 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserDataSerializer(serializers.ModelSerializer):
-    #fullname = serializers.ReadOnlyField(source="full_name")
-    token = serializers.ReadOnlyField(source="auth_token.key")
-    #user_type = serializers.ReadOnlyField(default='normal')
-    #slug = serializers.ReadOnlyField(source="profile.slug")
-    #profile_image = serializers.ReadOnlyField(
+    # fullname = serializers.ReadOnlyField(source="full_name")
+    # token = serializers.ReadOnlyField(source="auth_token.key")
+    # user_type = serializers.ReadOnlyField(default='normal')
+    # slug = serializers.ReadOnlyField(source="profile.slug")
+    # profile_image = serializers.ReadOnlyField(
     #    source="profile.profile_image_url")
-    #cover_image = serializers.ReadOnlyField(source="profile.get_cover_image")
+    # cover_image = serializers.ReadOnlyField(source="profile.get_cover_image")
 
     class Meta(object):
         model = User
         fields = [
-            "id", 'email', 'username', "first_name", "last_name", 'token']
+            "id", 'email', 'username', "first_name", "last_name"]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    token = serializers.ReadOnlyField(source="auth_token.key")
+    # token = serializers.ReadOnlyField(source="auth_token.key")
 
     class Meta:
         model = User
@@ -52,5 +52,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_staff",
             "first_name",
             "last_name",
-            "token",
         ]

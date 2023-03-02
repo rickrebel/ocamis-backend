@@ -10,4 +10,4 @@ from django.dispatch import receiver
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     from rest_framework.authtoken.models import Token
     if created:
-        token, is_created = Token.objects.get_or_create(user=instance)
+        Token.objects.get_or_create(user=instance)

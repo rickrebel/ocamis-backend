@@ -68,6 +68,7 @@ class Prescription(models.Model):
     #Nueva versión del modelo Prescription con atomizado de datos
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False)
+    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
     folio_ocamis = models.CharField(max_length=60)
     # folio_document = models.CharField(max_length=40)
     folio_document = models.CharField(max_length=40)
@@ -147,7 +148,7 @@ class Drug(models.Model):
     #OTROS DATOS NO TAN RELEVANTES:
     # precio_medicamento = models.FloatField(blank=True, null=True)
     price = models.FloatField(blank=True, null=True)
-    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+
     row_seq = models.PositiveIntegerField(blank=True, null=True)
     rn = models.CharField(max_length=80, blank=True, null=True)
     for_training = models.CharField(
@@ -197,9 +198,10 @@ class MissingField(models.Model):
     missing_row = models.ForeignKey(
         MissingRow,
         on_delete=models.CASCADE)
-    name_column = models.ForeignKey(
-        NameColumn,
-        on_delete=models.CASCADE)
+    name_column = models.IntegerField(blank=True, null=True)
+    # name_column = models.ForeignKey(
+    #     NameColumn,
+    #     on_delete=models.CASCADE)
     original_value = models.TextField(blank=True, null=True)
     final_value = models.TextField(blank=True, null=True)
     other_values = JSONField(

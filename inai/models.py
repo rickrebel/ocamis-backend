@@ -170,15 +170,17 @@ class FileControl(models.Model):
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE,
     #     blank=True, null=True,)
-    data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE)
+    # data_group = models.ForeignKey(
+    #     DataGroup, on_delete=models.CASCADE)
+    data_group = models.IntegerField()
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,
         null=True, blank=True)
-    file_format = models.ForeignKey(
-        FileFormat, verbose_name="formato del archivo",
-        blank=True, null=True, on_delete=models.CASCADE)
+    file_format = models.IntegerField(blank=True, null=True)
+    # file_format = models.ForeignKey(
+    #     FileFormat, verbose_name="formato del archivo",
+    #     blank=True, null=True, on_delete=models.CASCADE)
     other_format = models.CharField(max_length=80, blank=True, null=True)
     final_data = models.BooleanField(
         verbose_name="Es información final", blank=True, null=True)
@@ -196,11 +198,13 @@ class FileControl(models.Model):
         verbose_name="Delimitador de columnas")
     decode = models.CharField(
         max_length=10, blank=True, null=True, verbose_name="Codificación")
-    status_register = models.ForeignKey(
-        StatusControl, null=True, blank=True, 
-        verbose_name="Status de los registro de variables",
-        on_delete=models.CASCADE)
+    status_register = models.IntegerField(blank=True, null=True)
+    # status_register = models.ForeignKey(
+    #     StatusControl, null=True, blank=True,
+    #     verbose_name="Status de los registro de variables",
+    #     on_delete=models.CASCADE)
     all_results = JSONField(blank=True, null=True)
+    # RICK 17 No sé qué diablos hacer con estooo
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
 
@@ -222,9 +226,10 @@ class PetitionFileControl(models.Model):
         Petition,
         related_name="file_controls",
         on_delete=models.CASCADE)
-    file_control = models.ForeignKey(
-        FileControl, on_delete=models.CASCADE,
-        related_name="petition_file_control",)
+    file_control = models.IntegerField(blank=True, null=True)
+    # file_control = models.ForeignKey(
+    #     FileControl, on_delete=models.CASCADE,
+    #     related_name="petition_file_control",)
 
     def __str__(self):
         return "%s - %s" % (self.petition, self.file_control)
@@ -392,26 +397,31 @@ class NameColumn (models.Model):
         verbose_name="Nombre de la columna real", blank=True, null=True)
     position_in_data = models.IntegerField(
         blank=True, null=True, verbose_name="idx")
-    column_type = models.ForeignKey(
-        ColumnType, on_delete=models.CASCADE)
-    file_control = models.ForeignKey(
-        FileControl,
-        related_name="columns",
-        blank=True, null=True,
-        on_delete=models.CASCADE)
-    data_type = models.ForeignKey(
-        DataType, 
-        blank=True, null=True,
-        on_delete=models.CASCADE)
-    collection = models.ForeignKey(
-        Collection, 
-        blank=True, null=True,
-        on_delete=models.CASCADE)
-    final_field = models.ForeignKey(
-        FinalField, 
-        blank=True, null=True,
-        on_delete=models.CASCADE,
-        related_name="name_columns")
+    column_type = models.IntegerField(blank=True, null=True)
+    # column_type = models.ForeignKey(
+    #     ColumnType, on_delete=models.CASCADE)
+    file_control = models.IntegerField(blank=True, null=True)
+    # file_control = models.ForeignKey(
+    #     FileControl,
+    #     related_name="columns",
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE)
+    data_type = models.IntegerField(blank=True, null=True)
+    # data_type = models.ForeignKey(
+    #     DataType,
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE)
+    collection = models.IntegerField(blank=True, null=True)
+    # collection = models.ForeignKey(
+    #     Collection,
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE)
+    final_field = models.IntegerField(blank=True, null=True)
+    # final_field = models.ForeignKey(
+    #     FinalField,
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE,
+    #     related_name="name_columns")
     #parameter_group = models.ForeignKey(
     #    ParameterGroup, 
     #    blank=True, null=True,
@@ -447,20 +457,23 @@ def default_params():
 
 class Transformation(models.Model):
 
-    clean_function = models.ForeignKey(
-        CleanFunction, 
-        on_delete=models.CASCADE,
-        verbose_name="Función de limpieza o transformación")
-    file_control = models.ForeignKey(
-        FileControl, 
-        related_name="file_transformations",
-        on_delete=models.CASCADE, blank=True, null=True,
-        verbose_name="Grupo de control")
-    name_column = models.ForeignKey(
-        NameColumn, 
-        related_name="column_transformations",
-        on_delete=models.CASCADE, blank=True, null=True,
-        verbose_name="Columna")
+    clean_function = models.IntegerField(blank=True, null=True)
+    # clean_function = models.ForeignKey(
+    #     CleanFunction,
+    #     on_delete=models.CASCADE,
+    #     verbose_name="Función de limpieza o transformación")
+    file_control = models.IntegerField(blank=True, null=True)
+    # file_control = models.ForeignKey(
+    #     FileControl,
+    #     related_name="file_transformations",
+    #     on_delete=models.CASCADE, blank=True, null=True,
+    #     verbose_name="Grupo de control")
+    name_column = models.IntegerField(blank=True, null=True)
+    # name_column = models.ForeignKey(
+    #     NameColumn,
+    #     related_name="column_transformations",
+    #     on_delete=models.CASCADE, blank=True, null=True,
+    #     verbose_name="Columna")
     addl_params = JSONField(
         blank=True, null=True, default=default_params)
 

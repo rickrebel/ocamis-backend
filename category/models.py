@@ -20,7 +20,7 @@ def default_dict():
 
 class StatusControl(models.Model):
     group = models.CharField(
-        max_length=10, choices=GROUP_CHOICES, 
+        max_length=10, choices=GROUP_CHOICES,
         verbose_name="grupo de status", default="petition")
     name = models.CharField(max_length=120)
     public_name = models.CharField(max_length=255)
@@ -52,7 +52,7 @@ class FileType(models.Model):
     order = models.IntegerField(default=15)
     color = models.CharField(max_length=20, blank=True, null=True)
     group = models.CharField(
-        max_length=10, choices=GROUP_CHOICES, 
+        max_length=10, choices=GROUP_CHOICES,
         verbose_name="grupo", default="petition")
     #default_format = models.ForeignKey(
     #    FormatFile, on_delete=models.CASCADE, blank=True, null=True)
@@ -128,7 +128,7 @@ class InvalidReason(models.Model):
 class DateBreak(models.Model):
     name = models.CharField(max_length=50)
     group = models.CharField(
-        max_length=10, choices=GROUP_CHOICES, 
+        max_length=10, choices=GROUP_CHOICES,
         verbose_name="grupo", default="petition")
     public_name = models.CharField(max_length=120)
     order = models.IntegerField(default=5)
@@ -144,7 +144,7 @@ class DateBreak(models.Model):
 
 
 class Anomaly(models.Model):
-    public_name = models.CharField(max_length=255, 
+    public_name = models.CharField(max_length=255,
         verbose_name="Nombre público")
     name = models.CharField(
         max_length=25, verbose_name="Nombre (devs)")
@@ -187,11 +187,12 @@ class TransparencyIndex(models.Model):
 
 class TransparencyLevel(models.Model):
 
-    transparency_index = models.ForeignKey(
-        TransparencyIndex, 
-        verbose_name="Indicador de Transparencia",
-        related_name="levels",
-        on_delete=models.CASCADE)
+    transparency_index = models.IntegerField(blank=True, null=True)
+    # transparency_index = models.ForeignKey(
+    #     TransparencyIndex,
+    #     verbose_name="Indicador de Transparencia",
+    #     related_name="levels",
+    #     on_delete=models.CASCADE)
     short_name = models.CharField(max_length=20)
     public_name = models.CharField(max_length=80)
     value = models.IntegerField(default=0,
@@ -206,7 +207,7 @@ class TransparencyLevel(models.Model):
     is_default = models.BooleanField(default=False)
     final_level = models.ForeignKey(
         "TransparencyLevel",
-        verbose_name="Concentrado destino", 
+        verbose_name="Concentrado destino",
         help_text="Si existe, se va a ese nivel de indicador principal",
         blank=True, null=True, on_delete=models.CASCADE)
     color = models.CharField(max_length=20, blank=True, null=True)
@@ -225,7 +226,7 @@ class TransparencyLevel(models.Model):
         return f"{self.transparency_index} - {self.public_name}"
 
     class Meta:
-        ordering = ["transparency_index__order_viz", "-order_viz"]
+        # ordering = ["transparency_index__order_viz", "-order_viz"]
         verbose_name = "Transparencia: Nivel"
         verbose_name_plural = "Transparencia: Niveles"
 
