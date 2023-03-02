@@ -4,8 +4,8 @@ from rest_framework import (permissions, status, views)
 from rest_framework.response import Response
 
 from data_param.models import (
-    DataGroup, Collection, FinalField, DataType, CleanFunction, 
-    ParameterGroup)
+    DataGroup, Collection, FinalField, DataType, CleanFunction,
+    ParameterGroup, FileControl)
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
@@ -13,8 +13,8 @@ from data_param.api.serializers import (
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
-    DateBreak, Anomaly, InvalidReason, FileFormat,
-    TransparencyIndex)
+    DateBreak, InvalidReason, FileFormat)
+from transparency.models import Anomaly, TransparencyIndex
 from task.models import StatusTask, TaskFunction
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
@@ -28,7 +28,6 @@ from task.api.serializers import StatusTaskSimpleSerializer, TaskFunctionSeriali
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
 
-from inai.models import FileControl
 from inai.api.serializers import (
     FileControlFullSerializer)
 

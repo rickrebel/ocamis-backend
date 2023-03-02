@@ -3,6 +3,8 @@
 import category.models
 from django.db import migrations, models
 
+import transparency.models
+
 
 class Migration(migrations.Migration):
 
@@ -19,12 +21,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='fileformat',
             name='addl_params',
-            field=models.JSONField(blank=True, default=category.models.default_dict),
+            field=models.JSONField(blank=True, default=transparency.models.default_dict),
         ),
         migrations.AlterField(
             model_name='fileformat',
             name='suffixes',
-            field=models.JSONField(blank=True, default=category.models.default_list, null=True, verbose_name='extensiones'),
+            field=models.JSONField(blank=True, default=transparency.models.default_list, null=True, verbose_name='extensiones'),
         ),
         migrations.AlterField(
             model_name='filetype',
@@ -39,16 +41,16 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='transparencyindex',
             name='viz_params',
-            field=models.JSONField(blank=True, default=category.models.default_dict),
+            field=models.JSONField(blank=True, default=transparency.models.default_dict),
         ),
         migrations.AlterField(
             model_name='transparencylevel',
             name='other_conditions',
-            field=models.JSONField(blank=True, default=category.models.default_list),
+            field=models.JSONField(blank=True, default=transparency.models.default_list),
         ),
         migrations.AlterField(
             model_name='transparencylevel',
             name='viz_params',
-            field=models.JSONField(blank=True, default=category.models.default_dict),
+            field=models.JSONField(blank=True, default=transparency.models.default_dict),
         ),
     ]

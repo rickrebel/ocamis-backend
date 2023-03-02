@@ -3,6 +3,8 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
+
+import data_param.models
 import inai.models
 
 
@@ -28,12 +30,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='filecontrol',
             name='addl_params',
-            field=models.JSONField(default=inai.models.default_addl_params),
+            field=models.JSONField(default=data_param.models.default_addl_params),
         ),
         migrations.AlterField(
             model_name='transformation',
             name='addl_params',
-            field=models.JSONField(blank=True, default=inai.models.default_params, null=True),
+            field=models.JSONField(blank=True, default=data_param.models.default_params, null=True),
         ),
         migrations.CreateModel(
             name='AsyncTask',

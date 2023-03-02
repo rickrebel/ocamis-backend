@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "formula.apps.FormulaConfig",
     "data_param.apps.DataParamConfig",
     "inai.apps.InaiConfig",
+    "transparency.apps.TransparencyConfig",
     "category.apps.CategoryConfig",
     "task.apps.TaskConfig",
 ]

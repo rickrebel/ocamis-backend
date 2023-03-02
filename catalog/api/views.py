@@ -80,10 +80,11 @@ class EntityViewSet(ListRetrieveUpdateMix):
         #import json
         from catalog.api.final_viz import (
             fetch_entities, build_quality_simple)
-        from category.models import TransparencyIndex, TransparencyLevel
+        from transparency.models import TransparencyLevel
+        from transparency.models import TransparencyIndex
         from category.api.serializers import (
             TransparencyIndexSerializer, TransparencyLevelSimpleSerializer)
-        from inai.models import FileControl
+        from data_param.models import FileControl
         from inai.api.serializers import FileControlSimpleSerializer
         from inai.api.serializers_viz import (
             FileControlViz2Serializer)

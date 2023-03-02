@@ -5,6 +5,8 @@ import django.contrib.postgres.fields.jsonb
 from django.db import migrations, models
 import django.db.models.deletion
 
+import transparency.models
+
 
 class Migration(migrations.Migration):
 
@@ -41,7 +43,7 @@ class Migration(migrations.Migration):
                 ('public_name', models.CharField(max_length=80)),
                 ('description', models.TextField(blank=True, null=True)),
                 ('scheme_color', models.CharField(blank=True, max_length=90, null=True, verbose_name='Esquema de color')),
-                ('viz_params', django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=category.models.default_dict)),
+                ('viz_params', django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=transparency.models.default_dict)),
             ],
             options={
                 'verbose_name': 'Indicador de Transparencia',
@@ -56,7 +58,7 @@ class Migration(migrations.Migration):
                 ('public_name', models.CharField(max_length=80)),
                 ('value', models.IntegerField(default=0, help_text='Para ordenar y decidier según menor')),
                 ('description', models.TextField(blank=True, null=True)),
-                ('other_conditions', django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=category.models.default_list)),
+                ('other_conditions', django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=transparency.models.default_list)),
                 ('color', models.CharField(blank=True, max_length=20, null=True)),
                 ('anomalies', models.ManyToManyField(blank=True, to='category.Anomaly', verbose_name='Anomalías relacionadas')),
                 ('file_formats', models.ManyToManyField(blank=True, to='category.FileFormat', verbose_name='Formatos de archivo')),

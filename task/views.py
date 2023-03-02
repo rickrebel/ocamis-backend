@@ -6,73 +6,61 @@ from django.http import HttpResponse
 
 def text_normalizer(text):
     import re
-    # import unidecode
+    import unidecode
     text = text.upper().strip()
-    # text = unidecode.unidecode(text)
+    text = unidecode.unidecode(text)
     return re.sub(r'[^a-zA-Z\s]', '', text)
 
 
 def calculate_special_function(special_function):
     import json
-    from catalog.models import Delegation
+    from catalog.models import Delegation, CLUES
+
     # print("SPECIAL FUNCTION", special_function)
     delegation_value_list = [
         'name', 'other_names', 'id', 'clues_id']
 
-    #def create_delegation(self, ):
     delegation_name = special_function.get("delegation_name")
     clues_id = special_function.get("clues_id")
     institution_id = special_function.get("institution_id")
     valid_strings = ["H.R.", "HAE ", "C.M.N."]
-    is_valid_name = any(
-        [valid_string in delegation_name for valid_string in valid_strings])
-    if not is_valid_name:
-        standard_name = text_normalizer(delegation_name)
-        error = "No es un nombre válido"
-        try:
-            curr_delegation = Delegation.objects.get(
-                name__icontains=standard_name)
-            final_delegation = {}
-            for field in delegation_value_list:
-                final_delegation[field] = getattr(curr_delegation, field)
-            response = [final_delegation, None]
-            response = json.dumps(response)
-            return HttpResponse(response)
-        except Delegation.DoesNotExist:
-            error = "No existe la delegación"
-        except Delegation.MultipleObjectsReturned:
-            error = "Hay más de una delegación"
-        except Exception:
-            pass
-
-        response = json.dumps([None, error])
-        print("delegation_name", delegation_name)
-        return HttpResponse(response)
-    from catalog.models import Delegation, CLUES
+    final_delegation = None
+    standard_name = text_normalizer(delegation_name)
     try:
-        clues_obj = CLUES.objects.get(id=clues_id)
-        del_obj, created = Delegation.objects.get_or_create(
-            institution_id=institution_id,
-            name=delegation_name,
-            clues=clues_obj,
-            state=clues_obj.state,
-        )
+        curr_delegation = Delegation.objects.get(
+            name__icontains=standard_name)
         final_delegation = {}
         for field in delegation_value_list:
-            final_delegation[field] = getattr(del_obj, field)
-        # self.catalog_delegation[delegation_name] = final_delegation
-        # return delegation_id, None
-        response = [final_delegation, None]
-        response = json.dumps(response)
-        return HttpResponse(response)
-    except Exception as e:
-        response = [None, "No se pudo crear la delegación, ERROR: %s" % e]
-        response = json.dumps(response)
-        # return None, "No se pudo crear la delegación, ERROR: %s" % e
-        return HttpResponse(response)
+            final_delegation[field] = getattr(curr_delegation, field)
+        error = None
+    except Delegation.DoesNotExist:
+        error = "No existe la delegación"
+    except Delegation.MultipleObjectsReturned:
+        error = "Hay más de una delegación"
 
-    # error = "Por alguna razón, no es ISSSTE o IMSS y no tiene delegación"
-    # return None, error
+    is_valid_name = any(
+        [valid_string in delegation_name for valid_string in valid_strings])
+
+    if not final_delegation and is_valid_name:
+        try:
+            clues_obj = CLUES.objects.get(id=clues_id)
+            del_obj, created = Delegation.objects.get_or_create(
+                institution_id=institution_id,
+                name=delegation_name,
+                clues=clues_obj,
+                state=clues_obj.state,
+            )
+            final_delegation = {}
+            for field in delegation_value_list:
+                final_delegation[field] = getattr(del_obj, field)
+            # self.catalog_delegation[delegation_name] = final_delegation
+            # return delegation_id, None
+        except Exception as e:
+            error = "No se pudo crear la delegación, ERROR: %s" % e
+    if not final_delegation and not error:
+        error = "No es un nombre válido, razón desconocida"
+    response = json.dumps([final_delegation, error])
+    return HttpResponse(response)
 
 
 

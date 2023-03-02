@@ -3,8 +3,9 @@ from django.db.models import JSONField
 
 from catalog.models import Entity
 from category.models import (
-    StatusControl, FileType, ColumnType, NegativeReason, 
-    DateBreak, Anomaly, InvalidReason, FileFormat)
+    StatusControl, FileType, ColumnType, NegativeReason,
+    DateBreak, InvalidReason, FileFormat)
+from transparency.models import Anomaly
 from data_param.models import (
     DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup)
 
@@ -14,7 +15,7 @@ from .data_file_mixins.get_data_mix import ExtractorsMix
 # from .data_file_mixins.matches_mix import MatchesMix
 from .process_file_mixins.process_mix import ProcessFileMix
 
-from .petition_mixins.petition_mix import PetitionMix, PetitionTransformsMix
+from .petition_mixins.petition_mix import PetitionTransformsMix
 
 
 def set_upload_path(instance, filename):
@@ -148,77 +149,6 @@ class PetitionNegativeReason(models.Model):
     class Meta:
         verbose_name = "Petición - razón negativa (m2m)"
         verbose_name_plural = "Peticiones - razones negativas (m2m)"
-
-
-def default_addl_params():
-    return {"need_partition": True, "need_transform": False}
-
-
-class FileControl(models.Model):
-
-    FORMAT_CHOICES = (
-        ("pdf", "PDF"),
-        ("word", "Word"),
-        ("xls", "Excel"),
-        ("txt", "Texto"),
-        ("csv", "CSV"),
-        ("email", "Correo electrónico"),
-        ("other", "Otro"),
-    )
-
-    name = models.CharField(max_length=255)
-    # file_type = models.ForeignKey(
-    #     FileType, on_delete=models.CASCADE,
-    #     blank=True, null=True,)
-    # data_group = models.ForeignKey(
-    #     DataGroup, on_delete=models.CASCADE)
-    data_group = models.IntegerField()
-    format_file = models.CharField(
-        max_length=5,
-        choices=FORMAT_CHOICES,
-        null=True, blank=True)
-    file_format = models.IntegerField(blank=True, null=True)
-    # file_format = models.ForeignKey(
-    #     FileFormat, verbose_name="formato del archivo",
-    #     blank=True, null=True, on_delete=models.CASCADE)
-    other_format = models.CharField(max_length=80, blank=True, null=True)
-    final_data = models.BooleanField(
-        verbose_name="Es información final", blank=True, null=True)
-    notes = models.TextField(blank=True, null=True)
-    row_start_data = models.IntegerField(
-        default=1, verbose_name='# de fila donde inician los datos',
-        blank=True, null=True)
-    row_headers = models.IntegerField(
-        blank=True, null=True,
-        verbose_name='# de fila donde se encuentran los encabezados')
-    in_percent = models.BooleanField(default= False)
-    addl_params = JSONField(default=default_addl_params)
-    delimiter = models.CharField(
-        max_length=3, blank=True, null=True, 
-        verbose_name="Delimitador de columnas")
-    decode = models.CharField(
-        max_length=10, blank=True, null=True, verbose_name="Codificación")
-    status_register = models.IntegerField(blank=True, null=True)
-    # status_register = models.ForeignKey(
-    #     StatusControl, null=True, blank=True,
-    #     verbose_name="Status de los registro de variables",
-    #     on_delete=models.CASCADE)
-    all_results = JSONField(blank=True, null=True)
-    # RICK 17 No sé qué diablos hacer con estooo
-    anomalies = models.ManyToManyField(
-        Anomaly, verbose_name="Anomalías de los datos", blank=True)
-
-    def __str__(self):
-        #all_entities = Entity.objects.filter(
-        #    petitions__file_controls__petition__entity=self).distinct()\
-        #        .value_list("acronym", flat=True)
-        return f"{self.id}. {self.name}"
-        #return self.name
-
-    class Meta:
-        #unique_together = ["data_group", "name"]
-        verbose_name = "Grupo de control de archivos"
-        verbose_name_plural = "Grupos de control de archivos"
 
 
 class PetitionFileControl(models.Model):
@@ -423,7 +353,7 @@ class NameColumn (models.Model):
     #     on_delete=models.CASCADE,
     #     related_name="name_columns")
     #parameter_group = models.ForeignKey(
-    #    ParameterGroup, 
+    #    ParameterGroup,
     #    blank=True, null=True,
     #    on_delete=models.CASCADE)
     clean_params = JSONField(blank=True, null=True,
@@ -431,7 +361,7 @@ class NameColumn (models.Model):
     requiered_row = models.BooleanField(default=False)
     parent_column = models.ForeignKey(
         "NameColumn", related_name="parents",
-        verbose_name="Columna padre de la que derivó", 
+        verbose_name="Columna padre de la que derivó",
         blank=True, null=True, on_delete=models.CASCADE)
     children_column = models.ForeignKey(
         "NameColumn", related_name="childrens",
@@ -451,32 +381,3 @@ class NameColumn (models.Model):
         verbose_name_plural = "Nombres de Columnas"
 
 
-def default_params():
-    return {}
-
-
-class Transformation(models.Model):
-
-    clean_function = models.IntegerField(blank=True, null=True)
-    # clean_function = models.ForeignKey(
-    #     CleanFunction,
-    #     on_delete=models.CASCADE,
-    #     verbose_name="Función de limpieza o transformación")
-    file_control = models.IntegerField(blank=True, null=True)
-    # file_control = models.ForeignKey(
-    #     FileControl,
-    #     related_name="file_transformations",
-    #     on_delete=models.CASCADE, blank=True, null=True,
-    #     verbose_name="Grupo de control")
-    name_column = models.IntegerField(blank=True, null=True)
-    # name_column = models.ForeignKey(
-    #     NameColumn,
-    #     related_name="column_transformations",
-    #     on_delete=models.CASCADE, blank=True, null=True,
-    #     verbose_name="Columna")
-    addl_params = JSONField(
-        blank=True, null=True, default=default_params)
-
-    class Meta:
-        verbose_name = "Transformación a aplicar"
-        verbose_name_plural = "Transformaciones a aplicar"   

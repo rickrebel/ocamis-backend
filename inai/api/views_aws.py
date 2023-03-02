@@ -29,7 +29,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     }
 
     def retrieve(self, request, pk=None):
-        from inai.models import FileControl, ProcessFile
+        from inai.models import ProcessFile
+        from data_param.models import FileControl
         from data_param.models import DataGroup
 
         petition = self.get_object()
@@ -99,7 +100,8 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
 def move_and_duplicate(data_files, petition, request):
     from rest_framework.exceptions import ParseError
-    from inai.models import ProcessFile, FileControl
+    from inai.models import ProcessFile
+    from data_param.models import FileControl
     from category.models import FileType #, StatusControl
 
     destination = request.data.get("destination")

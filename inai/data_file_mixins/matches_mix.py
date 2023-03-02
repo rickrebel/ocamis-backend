@@ -11,9 +11,9 @@ delegation_value_list = [
 
 def text_normalizer(text):
     import re
-    # import unidecode
+    import unidecode
     text = text.upper().strip()
-    # text = unidecode.unidecode(text)
+    text = unidecode.unidecode(text)
     return re.sub(r'[^a-zA-Z\s]', '', text)
 
 
@@ -149,6 +149,7 @@ class Match:
     def save_result_csv(self, result_files):
         from category.models import FileType
         all_new_files = []
+        new_tasks = []
         for result_file in result_files:
             model_name = result_file["name"]
             file_type = FileType.objects.get(name=model_name)
@@ -160,8 +161,9 @@ class Match:
             )
             new_file.change_status('initial')
             all_new_files.append(new_file)
-            self.send_csv_to_db(result_file["path"], model_name)
-        return [], [], all_new_files
+            new_tasks = self.send_csv_to_db(result_file["path"], model_name)
+            new_tasks.append(new_tasks)
+        return new_tasks, [], all_new_files
 
     def build_existing_fields(self):
 
@@ -296,7 +298,7 @@ class Match:
             self.catalog_container[container["key2"]] = container["id"]
 
     def get_date_format(self):
-        from inai.models import Transformation
+        from data_param.models import Transformation
         transformation = Transformation.objects.filter(
             clean_function__name="format_date",
             file_control=self.file_control).first()
@@ -305,7 +307,8 @@ class Match:
 
     # ########## FUNCIONES AUXILIARES #############
     def send_csv_to_db(self, path, model_name):
-        import psycopg2
+        from task.serverless import async_in_lambda
+
         columns = self.model_fields[model_name]
         columns_join = ",".join(columns)
         model_in_db = f"formula_{model_name.lower()}"
@@ -327,17 +330,14 @@ class Match:
             )
         """
         desabasto_db = getattr(settings, "DATABASES", {}).get("default")
-        connection = psycopg2.connect(
-            database=desabasto_db.get("NAME"),
-            user=desabasto_db.get("USER"),
-            password=desabasto_db.get("PASSWORD"),
-            host=desabasto_db.get("HOST"),
-            port=desabasto_db.get("PORT"))
-        cursor = connection.cursor()
-        cursor.execute(sql_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
+        # save_csv_in_db(sql_query, desabasto_db)
+        params = {
+            "sql_query": sql_query,
+            "db_config": desabasto_db,
+        }
+        self.task_params["models"] = [self.data_file]
+        self.task_params["function_after"] = "check_success_insert"
+        return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def create_delegation(self, delegation_name, clues_id):
         from catalog.models import Delegation, CLUES
@@ -361,4 +361,39 @@ class Match:
         else:
             error = "Por alguna razón, no es ISSSTE o IMSS y no tiene delegación"
             return None, error
+
+
+#def save_csv_in_db(event, context):
+def lambda_handler(event, context):
+    import psycopg2
+    db_config = event.get("db_config")
+    sql_query = event.get("sql_query")
+    connection = psycopg2.connect(
+        database=db_config.get("NAME"),
+        user=db_config.get("USER"),
+        password=db_config.get("PASSWORD"),
+        host=db_config.get("HOST"),
+        port=db_config.get("PORT"))
+    cursor = connection.cursor()
+    cursor.execute(sql_query)
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+# https://apidesabasto.yeeko.org/api/inai/data_file/3862/insert_data/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -3,8 +3,8 @@ from rest_framework import serializers
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
-    DateBreak, Anomaly, InvalidReason, FileFormat,
-    TransparencyIndex, TransparencyLevel)
+    DateBreak, InvalidReason, FileFormat)
+from transparency.models import Anomaly, TransparencyIndex, TransparencyLevel
 
 
 class FileTypeSimpleSerializer(serializers.ModelSerializer):

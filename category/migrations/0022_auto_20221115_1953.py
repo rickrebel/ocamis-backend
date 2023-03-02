@@ -5,6 +5,8 @@ import django.contrib.postgres.fields.jsonb
 from django.db import migrations, models
 import django.db.models.deletion
 
+import transparency.models
+
 
 class Migration(migrations.Migration):
 
@@ -24,7 +26,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='transparencylevel',
             name='viz_params',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=category.models.default_dict),
+            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=transparency.models.default_dict),
         ),
         migrations.AlterField(
             model_name='transparencylevel',

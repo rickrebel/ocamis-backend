@@ -7,8 +7,9 @@ from rest_framework.decorators import action
 from task.views import build_task_params, comprobate_status
 
 from inai.models import (
-    FileControl, Petition, MonthEntity, PetitionMonth, PetitionBreak,
-    ProcessFile, PetitionFileControl, DataFile, Transformation)
+    Petition, MonthEntity, PetitionMonth, PetitionBreak,
+    ProcessFile, PetitionFileControl, DataFile)
+from data_param.models import FileControl, Transformation
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -236,11 +237,11 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     queryset = FileControl.objects.all().prefetch_related(
         "data_group",
         "columns",
-        "file_transformations",
         "columns__column_transformations",
+        "file_transformations",
         "petition_file_control",
         "petition_file_control__data_files",
-        "petition_file_control__data_files__origin_file",
+        # "petition_file_control__data_files__origin_file",
     )
 
     def get_serializer_context(self):

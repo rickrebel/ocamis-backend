@@ -3,7 +3,8 @@ def fetch_entities(include_groups):
     from django.db.models import Prefetch
     from catalog.models import Entity
     from inai.models import (
-        NameColumn, Petition, FileControl, PetitionMonth, MonthEntity)
+        NameColumn, Petition, PetitionMonth, MonthEntity)
+    from data_param.models import FileControl
 
     filter_columns = NameColumn.objects.filter(
         final_field__isnull=False, final_field__need_for_viz=True)

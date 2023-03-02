@@ -2,9 +2,9 @@
 from rest_framework import serializers
 
 from inai.models import (
-    FileControl, Petition, PetitionFileControl, Transformation,
-    DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
+    Petition, PetitionFileControl, DataFile, MonthEntity, PetitionMonth, ProcessFile, NameColumn,
     PetitionBreak, PetitionNegativeReason)
+from data_param.models import FileControl, Transformation
 
 from category.models import StatusControl, FileType
 from category.api.serializers import (
@@ -22,11 +22,23 @@ class ProcessFileSerializer(serializers.ModelSerializer):
     # url = serializers.ReadOnlyField(source="file.url", required=False)
     name = serializers.SerializerMethodField(read_only=True)
     url = serializers.SerializerMethodField(read_only=True)
+    real_name = serializers.SerializerMethodField(read_only=True)
+    short_name = serializers.SerializerMethodField(read_only=True)
 
     def get_name(self, obj):
         return obj.file.name if obj.file else None
+
     def get_url(self, obj):
         return obj.file.url if obj.file else None
+
+    def get_real_name(self, obj):
+        return obj.file.name.split("/")[-1]
+
+    def get_short_name(self, obj):
+        real_name = obj.file.name.split("/")[-1]
+        return f"{real_name[:25]}...{real_name[-15:]}" \
+            if len(real_name) > 42 else real_name
+
 
     class Meta:
         model = ProcessFile
@@ -118,22 +130,32 @@ class DataFileSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
     #origin_file = DataFileSimpleSerializer(read_only=True)
-    origin_file_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="origin_file",
-        queryset=DataFile.objects.all(), required=False)
-    petition_file_control_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="petition_file_control",
-        queryset=PetitionFileControl.objects.all())
+    # origin_file_id = serializers.PrimaryKeyRelatedField(
+    #     write_only=True, source="origin_file",
+    #     queryset=DataFile.objects.all(), required=False)
+    # petition_file_control_id = serializers.PrimaryKeyRelatedField(
+    #     write_only=True, source="petition_file_control",
+    #     queryset=PetitionFileControl.objects.all())
     #child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     has_sample_data = serializers.SerializerMethodField(read_only=True)
+    short_name = serializers.SerializerMethodField(read_only=True)
+    real_name = serializers.SerializerMethodField(read_only=True)
 
     def get_has_sample_data(self, obj):
         return bool(obj.sample_data)
 
+    def get_real_name(self, obj):
+        return obj.file.name.split("/")[-1]
+
+    def get_short_name(self, obj):
+        real_name = obj.file.name.split("/")[-1]
+        return f"{real_name[:25]}...{real_name[-15:]}" \
+            if len(real_name) > 42 else real_name
+
     class Meta:
         model = DataFile
         #fields = "__all__"
-        read_only_fields = ["petition_file_control", "has_sample_data"]
+        read_only_fields = ["has_sample_data"]
         exclude = ('sample_data', )
 
 

@@ -1,7 +1,8 @@
 
 
 from category.models import NegativeReason
-from inai.models import PetitionNegativeReason, FileControl
+from inai.models import PetitionNegativeReason
+from data_param.models import FileControl
 from catalog.models import Entity
 from django.db.models import Q, Count
 

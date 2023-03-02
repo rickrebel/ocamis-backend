@@ -3,8 +3,9 @@ from django.contrib.admin import AdminSite
 
 # Register your models here.
 from .models import (
-    Petition, FileControl, NameColumn, PetitionFileControl, DataFile, 
-    PetitionMonth, ProcessFile, Transformation)
+    Petition, NameColumn, PetitionFileControl, DataFile,
+    PetitionMonth, ProcessFile)
+from data_param.models import FileControl, Transformation
 
 
 class OcamisAdminSite(AdminSite):

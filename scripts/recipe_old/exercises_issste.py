@@ -29,13 +29,6 @@ def clean_old_imports():
             especialidad_medico=med_spec.id)
 
 
-TRUNCATE
-    desabasto_recipemedicine2,
-    desabasto_recipereport2,
-    desabasto_medic,
-    desabasto_medicalspeciality,
-    desabasto_recipereportlog RESTART IDENTITY
-
 constant_path = "C:\\git\\rick_\\Desktop\\nosotrxs\\issste\\"
 
 

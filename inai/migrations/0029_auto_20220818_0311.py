@@ -2,6 +2,8 @@
 
 import django.contrib.postgres.fields.jsonb
 from django.db import migrations
+
+import data_param.models
 import inai.models
 
 
@@ -15,6 +17,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='transformation',
             name='addl_params',
-            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=inai.models.default_addl_params, null=True),
+            field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=data_param.models.default_addl_params, null=True),
         ),
     ]

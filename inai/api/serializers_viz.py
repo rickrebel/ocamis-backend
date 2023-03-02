@@ -2,8 +2,9 @@
 from rest_framework import serializers
 
 from inai.models import (
-    FileControl, Petition, PetitionFileControl, PetitionMonth, NameColumn,
+    Petition, PetitionFileControl, PetitionMonth, NameColumn,
     MonthEntity)
+from data_param.models import FileControl
 
 from category.models import StatusControl, FileType
 from category.api.serializers import (

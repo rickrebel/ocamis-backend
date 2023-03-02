@@ -26,7 +26,7 @@ class ExtractorsMix:
         return [], [], data_file
 
     def counting_from_aws(self, task_params=None, **kwargs):
-        from inai.models import FileControl
+        from data_param.models import FileControl
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
         data_file, saved, errors = data_file.find_coincidences()
         if not saved and not errors:
@@ -140,7 +140,7 @@ class ExtractorsMix:
 
     def get_data_from_excel(
             self, type_explor, file_control=None, task_params=None):
-        from inai.models import Transformation
+        from data_param.models import Transformation
         from task.serverless import async_in_lambda
         from scripts.common import get_excel_file
         is_explore = bool(type_explor)
@@ -366,5 +366,5 @@ class ExtractorsMix:
             if decode:
                 self.petition_file_control.file_control.decode = decode
                 self.petition_file_control.file_control.save()
-        match.save_result_csv(final_paths)
-        return [], [], None
+        new_task, errors, data = match.save_result_csv(final_paths)
+        return new_task, errors, data

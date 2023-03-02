@@ -425,7 +425,7 @@ class ExploreMix:
         return data_file, kwargs
 
     def find_matches_in_file_controls(self, task_params=None, **kwargs):
-        from inai.models import FileControl
+        from data_param.models import FileControl
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
         saved = False
         all_errors = []
