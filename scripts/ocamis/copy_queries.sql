@@ -142,7 +142,7 @@ alter table public.formula_missingfield
             deferrable initially deferred,
 
     add constraint formula_missingfield_name_column_id_d2bc6a65_fk_inai_name
-        foreign key (name_column_id) references public.inai_namecolumn
+        foreign key (name_column_id) references public.data_param_namecolumn
             deferrable initially deferred;
 
 alter table public.formula_missingfield

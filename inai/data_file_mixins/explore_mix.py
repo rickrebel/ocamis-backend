@@ -210,7 +210,7 @@ class ExploreMix:
                 new_data_file.add_result(("info", info_text))
                 all_data_files[current_pfc] = new_data_file
             else:
-                current_file = all_data_files.get(current_pfc)
+                current_file = all_data_files.get(current_pfc, data_file)
                 current_file.sample_data = validated_data
                 saved = True
                 if not already_in_pfc:

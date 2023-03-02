@@ -1,19 +1,13 @@
-# -*- coding: utf-8 -*-
 from rest_framework import serializers
 
+from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
-    Petition, PetitionFileControl, DataFile, MonthEntity, PetitionMonth, ProcessFile, PetitionBreak, PetitionNegativeReason)
-from data_param.models import FileControl, Transformation, NameColumn
+    Petition, PetitionFileControl, DataFile, MonthEntity, PetitionMonth,
+    ProcessFile, PetitionBreak, PetitionNegativeReason)
+from data_param.models import Transformation, NameColumn, FileControl
 
-from category.models import StatusControl, FileType
 from category.api.serializers import (
     NegativeReasonSimpleSerializer)
-
-from catalog.api.serializers import EntitySerializer
-
-from data_param.api.serializers import (
-    CleanFunctionSimpleSerializer, DataGroupSimpleSerializer,
-    DataTypeSimpleSerializer, FinalFieldSimpleSerializer)
 
 
 class ProcessFileSerializer(serializers.ModelSerializer):
@@ -64,30 +58,10 @@ class AscertainableSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "url"]
 
 
-class TransformationSerializer(serializers.ModelSerializer):
-    #clean_function = CleanFunctionSimpleSerializer()
-
-    class Meta:
-        model = Transformation
-        fields = "__all__"
-
-
 class TransformationEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transformation
-        fields = "__all__"
-
-
-class NameColumnSerializer(serializers.ModelSerializer):
-    #data_type = DataTypeSimpleSerializer()
-    #column_type = ColumnTypeSimpleSerializer()
-    transformations = TransformationSerializer(
-        many=True, source="column_transformations")
-    #final_field = FinalFieldSimpleSerializer()
-
-    class Meta:
-        model = NameColumn
         fields = "__all__"
 
 
@@ -217,44 +191,9 @@ class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
         fields = "__all__"
 
 
-class FileControlSimpleSerializer(serializers.ModelSerializer):
-    data_group = DataGroupSimpleSerializer(read_only=True)
-    #file_type = FileTypeSimpleSerializer(read_only=True)
-    #status_register = StatusControlSimpleSerializer(read_only=True)
-
-    class Meta:
-        model = FileControl
-        fields = "__all__"
-
-
-class FileControlSerializer(FileControlSimpleSerializer):
-    # from category.models import FileType
-    from data_param.models import DataGroup
-    name = serializers.CharField(required=False)
-    transformations = TransformationSerializer(
-        many=True, source="file_transformations", read_only=True)
-    data_group_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="data_group",
-        queryset=DataGroup.objects.all(), required=False)
-    """file_type_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="file_type",
-        queryset=FileType.objects.all())
-    status_register_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="status_register",
-        queryset=StatusControl.objects.all())"""
-
-
 class FileControlFullSerializer(FileControlSerializer):
     petition_file_control = PetitionFileControlFullSerializer(
         many=True, read_only=True)
-    columns = NameColumnSerializer(many=True)
-
-    class Meta:
-        model = FileControl
-        fields = "__all__"
-
-
-class FileControlSemiFullSerializer(FileControlSerializer):
     columns = NameColumnSerializer(many=True)
 
     class Meta:

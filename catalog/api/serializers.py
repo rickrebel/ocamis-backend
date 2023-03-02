@@ -123,7 +123,7 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
     
     def get_file_controls(self, obj):
         from data_param.models import FileControl
-        from inai.api.serializers import FileControlSemiFullSerializer
+        from data_param.api.serializers import FileControlSemiFullSerializer
         queryset = FileControl.objects\
             .filter(petition_file_control__petition__entity=obj)\
             .distinct()\

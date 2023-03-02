@@ -9,7 +9,8 @@ from data_param.models import (
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
-    CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer,)
+    CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer, )
+from inai.api.serializers import FileControlFullSerializer
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
@@ -27,9 +28,6 @@ from task.api.serializers import StatusTaskSimpleSerializer, TaskFunctionSeriali
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
-
-from inai.api.serializers import (
-    FileControlFullSerializer)
 
 
 class CatalogView(views.APIView):
