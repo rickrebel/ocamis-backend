@@ -59,12 +59,12 @@ class TransparencyIndex(models.Model):
 
 class TransparencyLevel(models.Model):
 
-    transparency_index = models.IntegerField(blank=True, null=True)
-    # transparency_index = models.ForeignKey(
-    #     TransparencyIndex,
-    #     verbose_name="Indicador de Transparencia",
-    #     related_name="levels",
-    #     on_delete=models.CASCADE)
+    # transparency_index = models.IntegerField(blank=True, null=True)
+    transparency_index = models.ForeignKey(
+        TransparencyIndex,
+        verbose_name="Indicador de Transparencia",
+        related_name="levels",
+        on_delete=models.CASCADE)
     short_name = models.CharField(max_length=20)
     public_name = models.CharField(max_length=80)
     value = models.IntegerField(default=0,
@@ -72,7 +72,6 @@ class TransparencyLevel(models.Model):
     description = models.TextField(blank=True, null=True)
     anomalies = models.ManyToManyField(
         Anomaly, blank=True, verbose_name="Anomalías relacionadas")
-    # RICK 17 No sé qué hacer con esto
     file_formats = models.ManyToManyField(
         FileFormat, blank=True, verbose_name="Formatos de archivo")
     other_conditions = JSONField(default=default_list, blank=True)
@@ -91,15 +90,15 @@ class TransparencyLevel(models.Model):
     value_pets = models.IntegerField(
         default=-3, verbose_name="Priorización entre solicitudes")
 
-    # @property
-    # def index_short_name(self):
-    #     return self.transparency_index.short_name
+    @property
+    def index_short_name(self):
+        return self.transparency_index.short_name
 
     def __str__(self):
         return f"{self.transparency_index} - {self.public_name}"
 
     class Meta:
-        # ordering = ["transparency_index__order_viz", "-order_viz"]
+        ordering = ["transparency_index__order_viz", "-order_viz"]
         verbose_name = "Transparencia: Nivel"
         verbose_name_plural = "Transparencia: Niveles"
         db_table = "transparency_transparencylevel"

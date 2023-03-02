@@ -14,10 +14,10 @@ class AsyncTask(models.Model):
     parent_task = models.ForeignKey(
         "self", related_name="child_tasks",
         blank=True, null=True, on_delete=models.CASCADE)
-    # file_control = models.ForeignKey(
-    #     FileControl, related_name="async_tasks",
-    #     on_delete=models.CASCADE, blank=True, null=True)
-    file_control = models.IntegerField(blank=True, null=True)
+    file_control = models.ForeignKey(
+        FileControl, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    # file_control = models.IntegerField(blank=True, null=True)
     petition = models.ForeignKey(
         Petition, blank=True, null=True,
         related_name="async_tasks",

@@ -138,7 +138,6 @@ class FileControl(models.Model):
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
     all_results = JSONField(blank=True, null=True)
-    # RICK 17 No sé qué diablos hacer con estooo
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
 
