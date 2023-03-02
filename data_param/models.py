@@ -5,6 +5,7 @@ from django.db.models import JSONField
 
 from category.models import ColumnType, FileFormat, StatusControl
 from transparency.models import Anomaly
+from catalog.models import Entity
 
 
 ##Otros catalogos
@@ -107,6 +108,9 @@ class FileControl(models.Model):
     data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE)
     # data_group = models.IntegerField()
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE,
+        verbose_name="Entidad", blank=True, null=True)
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,

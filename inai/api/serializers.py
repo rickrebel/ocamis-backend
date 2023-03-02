@@ -113,6 +113,8 @@ class DataFileSerializer(serializers.ModelSerializer):
     has_sample_data = serializers.SerializerMethodField(read_only=True)
     short_name = serializers.SerializerMethodField(read_only=True)
     real_name = serializers.SerializerMethodField(read_only=True)
+    petition = serializers.IntegerField(
+        source="petition_file_control.petition_id", read_only=True)
 
     def get_has_sample_data(self, obj):
         return bool(obj.sample_data)

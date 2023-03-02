@@ -57,3 +57,13 @@ def refact_file_format():
             order=values["order"],
         )
         all_controls.filter(format_file=key).update(file_format=curr_format_obj)
+
+
+def refact_entity_in_file_control():
+    from data_param.models import FileControl
+    all_controls = FileControl.objects.all()
+    for control in all_controls:
+        pfc = control.petition_file_control.first()
+        if pfc:
+            control.entity = pfc.petition.entity
+            control.save()

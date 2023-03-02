@@ -18,7 +18,13 @@ class AsyncTaskViewSet(ListRetrieveView):
     }
 
     def get_queryset(self):
-        return AsyncTask.objects.all()
+        return AsyncTask.objects.all().prefetch_related(
+            "data_file",
+            "data_file__petition_file_control",
+            "process_file",
+            "file_control",
+            "file_control__petition_file_control",
+        )
 
     @action(methods=["get"], detail=False, url_path='last_hours')
     def last_hours(self, request, **kwargs):
@@ -28,11 +34,16 @@ class AsyncTaskViewSet(ListRetrieveView):
         total_hours = request.query_params.get("hours", 3)
         now = datetime.now()
         last_hours = now - timedelta(hours=int(total_hours))
-        task_by_start = AsyncTask.objects.filter(
-            date_start__gte=last_hours)
-        task_by_end = AsyncTask.objects.filter(
-            date_end__gte=last_hours)
-        all_tasks = task_by_start | task_by_end
+        task_by_start = AsyncTask.objects\
+            .filter(date_start__gte=last_hours)\
+            .prefetch_related(
+                "data_file",
+                "data_file__petition_file_control",
+                "process_file",
+                "file_control",
+                "file_control__petition_file_control",
+            )
+        all_tasks = task_by_start
         staff_users = User.objects.filter(is_staff=True)
         staff_data = UserDataSerializer(staff_users, many=True).data
         data = {
@@ -61,11 +72,16 @@ class AsyncTaskViewSet(ListRetrieveView):
             print("ERROR: ", e)
             last_request = now - timedelta(hours=3)
 
-        task_by_start = AsyncTask.objects.filter(
-            date_start__gte=last_request)
-        task_by_end = AsyncTask.objects.filter(
-            date_end__gte=last_request)
-        all_tasks = task_by_start | task_by_end
+        task_by_start = AsyncTask.objects\
+            .filter(date_start__gte=last_request)\
+            .prefetch_related(
+                "data_file",
+                "data_file__petition_file_control",
+                "process_file",
+                "file_control",
+                "file_control__petition_file_control",
+            )
+        all_tasks = task_by_start
         data = {
             "new_tasks": serializers.AsyncTaskFullSerializer(all_tasks, many=True).data,
             "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),

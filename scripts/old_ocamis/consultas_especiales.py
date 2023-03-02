@@ -3,8 +3,8 @@
 from category.models import NegativeReason
 from inai.models import PetitionNegativeReason
 from data_param.models import FileControl
-from catalog.models import Entity
-from django.db.models import Q, Count
+from catalog.models import Entity, CLUES
+from django.db.models import Count
 
 NegativeReason.objects.all()\
     .values('petitionnegativereason')\
@@ -31,10 +31,10 @@ for entity in ordered_freq_by_id:
 
 entities = Entity.objects\
     .filter(petitions__negative_reasons__negative_reason_id=2)\
-    .values('acronym', 'name')
+    .values('acronym', 'name')\
     .distinct()\
 
-ordered_negatives[:5]
+# ordered_negatives[:5]
 
 
 totalclu = CLUES.objects.all()\
@@ -43,7 +43,7 @@ totalclu = CLUES.objects.all()\
     .order_by('-total_clues')
 
 
-PetitionNegativeReason.objects.all(petititon__ negative_reason__name=)
+# PetitionNegativeReason.objects.all(petititon__ negative_reason__name=)
 
 
 entities = FileControl.objects\

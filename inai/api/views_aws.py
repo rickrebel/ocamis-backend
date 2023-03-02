@@ -50,6 +50,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 name=name_control,
                 data_group=orphan_group,
                 final_data=False,
+                entity=petition.entity,
             )
         pet_file_ctrl, created_pfc = PetitionFileControl.objects \
             .get_or_create(file_control=file_control, petition=petition)

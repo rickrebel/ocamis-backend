@@ -29,16 +29,31 @@ class AsyncTaskFullSerializer(serializers.ModelSerializer):
     from inai.api.serializers import DataFileSerializer
     data_file_full = DataFileSerializer(read_only=True, source="data_file")
     # entity_id = serializers.IntegerField(source="data_file.petition_file_control.petition.entity.id")
-    petition_id = serializers.IntegerField(
-        source="data_file.petition_file_control.petition.id", read_only=True)
+    # prev_petition_id = serializers.IntegerField(
+    #     source="data_file.petition_file_control.petition_id", read_only=True)
+    petition_id = serializers.SerializerMethodField(read_only=True)
     file_control_id = serializers.IntegerField(
-        source="data_file.petition_file_control.file_control.id", read_only=True)
+        source="data_file.petition_file_control.file_control_id", read_only=True)
+    data_file_id = serializers.IntegerField(
+        source="data_file.origin_file_id", read_only=True)
+    petition_file_control_id = serializers.IntegerField(
+        source="data_file.petition_file_control_id", read_only=True)
+
+    def get_petition_id(self, obj):
+        if obj.data_file:
+            return obj.data_file.petition_file_control.petition_id
+        elif obj.process_file:
+            return obj.process_file.petition_id
+        elif obj.file_control:
+            pfc = obj.file_control.petition_file_control.first()
+            if pfc:
+                return pfc.petition_id
+        return None
 
     class Meta:
         model = AsyncTask
         # fields = "__all__"
-        #exclude = ["result", "petition_id", "file_control_id"]
-        exclude = ["result"]
+        exclude = ["result", "original_request"]
 
 
 class TaskFunctionSerializer(serializers.ModelSerializer):
