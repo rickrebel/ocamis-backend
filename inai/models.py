@@ -7,7 +7,7 @@ from category.models import (
     DateBreak, InvalidReason, FileFormat)
 from transparency.models import Anomaly
 from data_param.models import (
-    DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup)
+    DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup, FileControl)
 
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
@@ -156,10 +156,10 @@ class PetitionFileControl(models.Model):
         Petition,
         related_name="file_controls",
         on_delete=models.CASCADE)
-    file_control = models.IntegerField(blank=True, null=True)
-    # file_control = models.ForeignKey(
-    #     FileControl, on_delete=models.CASCADE,
-    #     related_name="petition_file_control",)
+    # file_control = models.IntegerField(blank=True, null=True)
+    file_control = models.ForeignKey(
+        FileControl, on_delete=models.CASCADE,
+        related_name="petition_file_control",)
 
     def __str__(self):
         return "%s - %s" % (self.petition, self.file_control)

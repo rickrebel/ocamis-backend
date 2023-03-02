@@ -93,9 +93,9 @@ class Prescription(models.Model):
         Area, on_delete=models.CASCADE, blank=True, null=True)
     #EXTENSION: COSAS NO TAN RELEVANTES:
     #tipo_documento = models.IntegerField()
-    # document_type = models.ForeignKey(
-    #     DocumentType, on_delete=models.CASCADE, blank=True, null=True)
-    document_type = models.CharField(max_length=50, blank=True, null=True)
+    document_type = models.ForeignKey(
+        DocumentType, on_delete=models.CASCADE, blank=True, null=True)
+    # document_type = models.CharField(max_length=50, blank=True, null=True)
     # fecha_emision = models.DateTimeField(blank=True, null=True)
     date_release = models.DateTimeField(blank=True, null=True)
     # fecha_entrega = models.DateTimeField(blank=True, null=True)
@@ -186,7 +186,7 @@ class MissingRow(models.Model):
 
     def __str__(self):
         #return "%s -- %s" % (self.file, self.recipe_report or self.recipe_medicine)
-        return self.file
+        return self.data_file
 
     class Meta:
         verbose_name = "Renglón faltante"
@@ -199,10 +199,10 @@ class MissingField(models.Model):
     missing_row = models.ForeignKey(
         MissingRow,
         on_delete=models.CASCADE)
-    name_column = models.IntegerField(blank=True, null=True)
-    # name_column = models.ForeignKey(
-    #     NameColumn,
-    #     on_delete=models.CASCADE)
+    # name_column = models.IntegerField(blank=True, null=True)
+    name_column = models.ForeignKey(
+        NameColumn,
+        on_delete=models.CASCADE)
     original_value = models.TextField(blank=True, null=True)
     final_value = models.TextField(blank=True, null=True)
     other_values = JSONField(
@@ -212,7 +212,7 @@ class MissingField(models.Model):
     # !!! Por nada del mundo, poner más campos debajo de este comentario
 
     def __str__(self):
-        return "%s -- %s" % (self.missing_row, self.column)
+        return "%s -- %s" % (self.missing_row, self.name_column)
 
     class Meta:
         verbose_name = "Documento Faltante"
@@ -230,4 +230,4 @@ class Diagnosis(models.Model):
         verbose_name_plural = "Diagnósticos"
 
     def __str__(self):
-        return self.cie10 or self.text or self.reason
+        return self.cie10 or self.text or self.motive

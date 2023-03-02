@@ -11,14 +11,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelTable(
-            name='filecontrol',
-            table=None,
-        ),
-        migrations.AlterModelTable(
-            name='transformation',
-            table=None,
-        ),
+        # migrations.AlterModelTable(
+        #     name='filecontrol',
+        #     table=None,
+        # ),
+        # migrations.AlterModelTable(
+        #     name='transformation',
+        #     table=None,
+        # ),
         migrations.CreateModel(
             name='NameColumn',
             fields=[
@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Nombre de Columna',
                 'verbose_name_plural': 'Nombres de Columnas',
                 'ordering': ['seq'],
-                'db_table': 'inai_name_column',
+                'db_table': 'inai_namecolumn',
             },
         ),
     ]

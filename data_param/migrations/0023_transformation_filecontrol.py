@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Grupo de control de archivos',
                 'verbose_name_plural': 'Grupos de control de archivos',
-                'db_table': 'inai_file_control',
+                'db_table': 'inai_filecontrol',
             },
         ),
     ]

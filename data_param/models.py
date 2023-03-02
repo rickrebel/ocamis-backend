@@ -3,7 +3,7 @@ from unicodedata import name
 from django.db import models
 from django.db.models import JSONField
 
-from category.models import ColumnType
+from category.models import ColumnType, FileFormat, StatusControl
 from transparency.models import Anomaly
 
 
@@ -104,17 +104,17 @@ class FileControl(models.Model):
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE,
     #     blank=True, null=True,)
-    # data_group = models.ForeignKey(
-    #     DataGroup, on_delete=models.CASCADE)
-    data_group = models.IntegerField()
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE)
+    # data_group = models.IntegerField()
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,
         null=True, blank=True)
-    file_format = models.IntegerField(blank=True, null=True)
-    # file_format = models.ForeignKey(
-    #     FileFormat, verbose_name="formato del archivo",
-    #     blank=True, null=True, on_delete=models.CASCADE)
+    # file_format = models.IntegerField(blank=True, null=True)
+    file_format = models.ForeignKey(
+        FileFormat, verbose_name="formato del archivo",
+        blank=True, null=True, on_delete=models.CASCADE)
     other_format = models.CharField(max_length=80, blank=True, null=True)
     final_data = models.BooleanField(
         verbose_name="Es información final", blank=True, null=True)
@@ -132,11 +132,11 @@ class FileControl(models.Model):
         verbose_name="Delimitador de columnas")
     decode = models.CharField(
         max_length=10, blank=True, null=True, verbose_name="Codificación")
-    status_register = models.IntegerField(blank=True, null=True)
-    # status_register = models.ForeignKey(
-    #     StatusControl, null=True, blank=True,
-    #     verbose_name="Status de los registro de variables",
-    #     on_delete=models.CASCADE)
+    # status_register = models.IntegerField(blank=True, null=True)
+    status_register = models.ForeignKey(
+        StatusControl, null=True, blank=True,
+        verbose_name="Status de los registro de variables",
+        on_delete=models.CASCADE)
     all_results = JSONField(blank=True, null=True)
     # RICK 17 No sé qué diablos hacer con estooo
     anomalies = models.ManyToManyField(
@@ -153,7 +153,7 @@ class FileControl(models.Model):
         #unique_together = ["data_group", "name"]
         verbose_name = "Grupo de control de archivos"
         verbose_name_plural = "Grupos de control de archivos"
-        db_table = "inai_file_control"
+        db_table = "inai_filecontrol"
 
 
 class FinalField(models.Model):
@@ -250,64 +250,36 @@ def default_params():
     return {}
 
 
-class Transformation(models.Model):
-
-    clean_function = models.IntegerField(blank=True, null=True)
-    # clean_function = models.ForeignKey(
-    #     CleanFunction,
-    #     on_delete=models.CASCADE,
-    #     verbose_name="Función de limpieza o transformación")
-    file_control = models.IntegerField(blank=True, null=True)
-    # file_control = models.ForeignKey(
-    #     FileControl,
-    #     related_name="file_transformations",
-    #     on_delete=models.CASCADE, blank=True, null=True,
-    #     verbose_name="Grupo de control")
-    name_column = models.IntegerField(blank=True, null=True)
-    # name_column = models.ForeignKey(
-    #     NameColumn,
-    #     related_name="column_transformations",
-    #     on_delete=models.CASCADE, blank=True, null=True,
-    #     verbose_name="Columna")
-    addl_params = JSONField(
-        blank=True, null=True, default=default_params)
-
-    class Meta:
-        verbose_name = "Transformación a aplicar"
-        verbose_name_plural = "Transformaciones a aplicar"
-        db_table = "inai_transformation"
-
-
 class NameColumn (models.Model):
     name_in_data = models.TextField(
         verbose_name="Nombre de la columna real", blank=True, null=True)
     position_in_data = models.IntegerField(
         blank=True, null=True, verbose_name="idx")
-    column_type = models.IntegerField(blank=True, null=True)
-    # column_type = models.ForeignKey(
-    #     ColumnType, on_delete=models.CASCADE)
-    file_control = models.IntegerField(blank=True, null=True)
-    # file_control = models.ForeignKey(
-    #     FileControl,
-    #     related_name="columns",
-    #     blank=True, null=True,
-    #     on_delete=models.CASCADE)
-    data_type = models.IntegerField(blank=True, null=True)
-    # data_type = models.ForeignKey(
-    #     DataType,
-    #     blank=True, null=True,
-    #     on_delete=models.CASCADE)
-    collection = models.IntegerField(blank=True, null=True)
-    # collection = models.ForeignKey(
-    #     Collection,
-    #     blank=True, null=True,
-    #     on_delete=models.CASCADE)
-    final_field = models.IntegerField(blank=True, null=True)
-    # final_field = models.ForeignKey(
-    #     FinalField,
-    #     blank=True, null=True,
-    #     on_delete=models.CASCADE,
-    #     related_name="name_columns")
+    # column_type = models.IntegerField(blank=True, null=True)
+    column_type = models.ForeignKey(
+        ColumnType, on_delete=models.CASCADE)
+    # file_control = models.IntegerField(blank=True, null=True)
+    file_control = models.ForeignKey(
+        FileControl,
+        related_name="columns",
+        blank=True, null=True,
+        on_delete=models.CASCADE)
+    # data_type = models.IntegerField(blank=True, null=True)
+    data_type = models.ForeignKey(
+        DataType,
+        blank=True, null=True,
+        on_delete=models.CASCADE)
+    # collection = models.IntegerField(blank=True, null=True)
+    collection = models.ForeignKey(
+        Collection,
+        blank=True, null=True,
+        on_delete=models.CASCADE)
+    # final_field = models.IntegerField(blank=True, null=True)
+    final_field = models.ForeignKey(
+        FinalField,
+        blank=True, null=True,
+        on_delete=models.CASCADE,
+        related_name="name_columns")
     #parameter_group = models.ForeignKey(
     #    ParameterGroup,
     #    blank=True, null=True,
@@ -335,4 +307,33 @@ class NameColumn (models.Model):
         ordering = ["seq"]
         verbose_name = "Nombre de Columna"
         verbose_name_plural = "Nombres de Columnas"
-        db_table = "inai_name_column"
+        db_table = "inai_namecolumn"
+
+
+class Transformation(models.Model):
+
+    # clean_function = models.IntegerField(blank=True, null=True)
+    clean_function = models.ForeignKey(
+        CleanFunction,
+        on_delete=models.CASCADE,
+        verbose_name="Función de limpieza o transformación")
+    # file_control = models.IntegerField(blank=True, null=True)
+    file_control = models.ForeignKey(
+        FileControl,
+        related_name="file_transformations",
+        on_delete=models.CASCADE, blank=True, null=True,
+        verbose_name="Grupo de control")
+    # name_column = models.IntegerField(blank=True, null=True)
+    name_column = models.ForeignKey(
+        NameColumn,
+        related_name="column_transformations",
+        on_delete=models.CASCADE, blank=True, null=True,
+        verbose_name="Columna")
+    addl_params = JSONField(
+        blank=True, null=True, default=default_params)
+
+    class Meta:
+        verbose_name = "Transformación a aplicar"
+        verbose_name_plural = "Transformaciones a aplicar"
+        db_table = "inai_transformation"
+
