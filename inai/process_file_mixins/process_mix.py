@@ -1,4 +1,4 @@
-class ProcessFileMix:
+class ReplyFileMix:
     final_path: str
     file: None
     id: int

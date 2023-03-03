@@ -48,7 +48,7 @@ def get_status_obj(val, petition):
 
 
 def join_url(row, main):
-    from inai.models import ProcessFile
+    from inai.models import ReplyFile
     from category.models import FileType
     default_url = "https://descarga.plataformadetransparencia.org.mx/buscador-ws/descargaArchivo/SISAI/"
     compl_hash = row.get("archivoAdjuntoRespuesta", False)
@@ -61,7 +61,7 @@ def join_url(row, main):
             return
         final_url = "%s%s" % (default_url, row["archivoAdjuntoRespuesta"])
         try:
-            ProcessFile.objects.get_or_create(
+            ReplyFile.objects.get_or_create(
                 petition=main, file_type=default_type, url_download=final_url)
         except Exception as e:
             print("No se pudo crear el archivo")
@@ -70,7 +70,7 @@ def join_url(row, main):
 
 
 def add_limit_complain(row, main):
-    from inai.models import ProcessFile, PetitionBreak
+    from inai.models import ReplyFile, PetitionBreak
     from category.models import DateBreak
 
     try:
@@ -145,7 +145,7 @@ def insert_from_json(
         special_functions=[]):
     from django.apps import apps
     for row in all_array:
-        #from inai.models import Petition, ProcessFile
+        #from inai.models import Petition, ReplyFile
         from catalog.models import Entity
         MainModel = apps.get_model(main_app, main_model)
         related_elem = None

@@ -1,10 +1,11 @@
 import boto3
 from django.conf import settings
 
+
 #obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821")
 def obtain_names_from_s3(path, folio_petition, is_process_file=False):
     from inai.models import (
-        DataFile, PetitionFileControl, Petition, ProcessFile, FileType)
+        DataFile, PetitionFileControl, Petition, ReplyFile, FileType)
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
@@ -30,7 +31,7 @@ def obtain_names_from_s3(path, folio_petition, is_process_file=False):
             try:
                 default_type = FileType.objects.get(name="no_final_info")
                 petition = Petition.objects.get(folio_petition=folio_petition)
-                pf, created = ProcessFile.objects.get_or_create(
+                pf, created = ReplyFile.objects.get_or_create(
                     petition=petition,
                     file=final_name,
                     file_type=default_type,

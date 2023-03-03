@@ -66,4 +66,9 @@ def refact_entity_in_file_control():
         pfc = control.petition_file_control.first()
         if pfc:
             control.entity = pfc.petition.entity
+            #print(pfc.petition.entity)
             control.save()
+        # else:
+        #     control.delete()
+
+refact_entity_in_file_control()

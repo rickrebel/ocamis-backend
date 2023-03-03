@@ -3,14 +3,14 @@ from rest_framework import serializers
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
     Petition, PetitionFileControl, DataFile, MonthEntity, PetitionMonth,
-    ProcessFile, PetitionBreak, PetitionNegativeReason)
+    ReplyFile, PetitionBreak, PetitionNegativeReason)
 from data_param.models import Transformation, NameColumn, FileControl
 
 from category.api.serializers import (
     NegativeReasonSimpleSerializer)
 
 
-class ProcessFileSerializer(serializers.ModelSerializer):
+class ReplyFileSerializer(serializers.ModelSerializer):
     # name = serializers.ReadOnlyField(source="file.name", required=False)
     # url = serializers.ReadOnlyField(source="file.url", required=False)
     name = serializers.SerializerMethodField(read_only=True)
@@ -32,19 +32,18 @@ class ProcessFileSerializer(serializers.ModelSerializer):
         return f"{real_name[:25]}...{real_name[-15:]}" \
             if len(real_name) > 42 else real_name
 
-
     class Meta:
-        model = ProcessFile
+        model = ReplyFile
         fields = "__all__"
         read_only_fields = ["petition"]
 
 
-class ProcessFileEditSerializer(serializers.ModelSerializer):
+class ReplyFileEditSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
 
     class Meta:
-        model = ProcessFile
+        model = ReplyFile
         fields = "__all__"
         read_only_fields = ["petition"]
 
@@ -54,7 +53,7 @@ class AscertainableSerializer(serializers.ModelSerializer):
     url = serializers.ReadOnlyField(source="file.url")
 
     class Meta:
-        model = ProcessFile
+        model = ReplyFile
         fields = ["id", "name", "url"]
 
 
@@ -258,7 +257,7 @@ class PetitionSemiFullSerializer(PetitionSmallSerializer):
 
 
 class PetitionFullSerializer(PetitionSemiFullSerializer):
-    process_files = ProcessFileSerializer(many=True)
+    process_files = ReplyFileSerializer(many=True)
     petition_file_controls = PetitionFileControlFullSerializer(
         many=True, source="file_controls")
 

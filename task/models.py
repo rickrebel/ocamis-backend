@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
-from inai.models import Petition, DataFile, ProcessFile
+from inai.models import Petition, DataFile, ReplyFile
 from data_param.models import FileControl
 
 
@@ -26,7 +26,7 @@ class AsyncTask(models.Model):
         DataFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     process_file = models.ForeignKey(
-        ProcessFile, related_name="async_tasks",
+        ReplyFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     status_task = models.ForeignKey(
         "StatusTask", on_delete=models.CASCADE, blank=True, null=True,
@@ -75,7 +75,7 @@ class AsyncTask(models.Model):
 
     class Meta:
         ordering = ["-date_start"]
-        verbose_name = "Tarea asincrónica"
+        verbose_name = "Tarea solicitada"
         verbose_name_plural = "1. Tareas solicitadas"
 
 
@@ -140,7 +140,7 @@ class TaskFunction(models.Model):
         ("petition", "Solicitud (Petición)"),
         ("file_control", "Grupo de Control"),
         ("data_file", "DataFile (archivo de datos)"),
-        ("process_file", "ProcessFile (.zip)"),
+        ("process_file", "ReplyFile (.zip)"),
     )
 
     name = models.CharField(max_length=100, primary_key=True)

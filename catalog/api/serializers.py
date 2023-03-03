@@ -125,7 +125,7 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
         from data_param.models import FileControl
         from data_param.api.serializers import FileControlSemiFullSerializer
         queryset = FileControl.objects\
-            .filter(petition_file_control__petition__entity=obj)\
+            .filter(entity=obj)\
             .distinct()\
             .order_by("data_group", "id")\
             .prefetch_related(

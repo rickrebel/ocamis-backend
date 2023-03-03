@@ -3,7 +3,7 @@ from django.db import models
 from inai.models import DataFile
 from data_param.models import NameColumn
 from django.db.models import JSONField
-import uuid
+import uuid as uuid_lib
 
 
 class MedicalSpeciality(models.Model):
@@ -45,7 +45,7 @@ class Delivered(models.Model):
 class Doctor(models.Model):
     from catalog.models import Institution
     uuid = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False)
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
     clave_doctor = models.CharField(max_length=30, blank=True, null=True)
     institution = models.ForeignKey(
         Institution, null=True, blank=True, on_delete=models.CASCADE)
@@ -65,10 +65,10 @@ class Doctor(models.Model):
 
 class Prescription(models.Model):
     from catalog.models import CLUES, Delegation, Area
-    from inai.models import DataFile
+    # from inai.models import DataFile
     #Nueva versión del modelo Prescription con atomizado de datos
     uuid_folio = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False)
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
     data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
     folio_ocamis = models.CharField(max_length=60)
     # folio_document = models.CharField(max_length=40)
@@ -127,7 +127,7 @@ class Drug(models.Model):
         ('diagnosis', 'Diagnóstico'),
     )
 
-    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
     prescription = models.ForeignKey(
         Prescription, on_delete=models.CASCADE,
         related_name='drugs')
@@ -165,7 +165,7 @@ class Drug(models.Model):
 
 class MissingRow(models.Model):
     uuid = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False)
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
     data_file = models.ForeignKey(
         DataFile, on_delete=models.CASCADE)
     prescription = models.ForeignKey(
@@ -195,7 +195,7 @@ class MissingRow(models.Model):
 
 class MissingField(models.Model):
     uuid = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False)
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
     missing_row = models.ForeignKey(
         MissingRow,
         on_delete=models.CASCADE)

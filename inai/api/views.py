@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 
 from inai.models import (
     Petition, MonthEntity, PetitionMonth, PetitionBreak,
-    ProcessFile, PetitionFileControl, DataFile)
+    ReplyFile, PetitionFileControl, DataFile)
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -177,30 +177,30 @@ class PetitionList(views.APIView):
         serial = serializers.PetitionFilterSerializer()
 
 
-class ProcessFileViewSet(MultiSerializerModelViewSet):
-    queryset = ProcessFile.objects.all()
-    serializer_class = serializers.ProcessFileSerializer
+class ReplyFileViewSet(MultiSerializerModelViewSet):
+    queryset = ReplyFile.objects.all()
+    serializer_class = serializers.ReplyFileSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "list": serializers.ProcessFileSerializer,
-        "retrieve": serializers.ProcessFileSerializer,
-        "create": serializers.ProcessFileSerializer,
-        "delete": serializers.ProcessFileEditSerializer,
+        "list": serializers.ReplyFileSerializer,
+        "retrieve": serializers.ReplyFileSerializer,
+        "create": serializers.ReplyFileSerializer,
+        "delete": serializers.ReplyFileEditSerializer,
     }
 
     def get_queryset(self):
         if "petition_id" in self.kwargs:
-            return ProcessFile.objects.filter(
+            return ReplyFile.objects.filter(
                 petition=self.kwargs["petition_id"])
-        return ProcessFile.objects.all()
+        return ReplyFile.objects.all()
 
     def create(self, request, petition_id=False):
 
         process_file = request.data
-        new_process_file = ProcessFile()
+        new_process_file = ReplyFile()
         new_process_file.petition_id = petition_id
 
-        # serializer = serializers.ProcessFileEditSerializer(data=request.data)
+        # serializer = serializers.ReplyFileEditSerializer(data=request.data)
         serializer_proc_file = self.get_serializer_class()(
             new_process_file, data=process_file)
 

@@ -438,7 +438,7 @@ class MatchAws:
         return delegation, delegation_error
 
     def create_delegation(self, clues_id, delegation, delegation_error, delegation_name):
-        content = json.dumps({
+        data_query = json.dumps({
             "special_function": {
                 "delegation_name": delegation_name,
                 "clues_id": clues_id,
@@ -446,8 +446,9 @@ class MatchAws:
             }
         })
         response_create = requests.post(
-            self.webhook_url, data=content, headers=request_headers)
+            self.webhook_url, data=data_query, headers=request_headers)
         try:
+            # RICK 18: No entiendo por qué se decodifica el contenido de la respuesta
             content = response_create.content
             if self.decode == 'str':
                 content = str(content)

@@ -13,7 +13,7 @@ from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
 from .data_file_mixins.get_data_mix import ExtractorsMix
 # from .data_file_mixins.matches_mix import MatchesMix
-from .process_file_mixins.process_mix import ProcessFileMix
+from .process_file_mixins.process_mix import ReplyFileMix
 
 from .petition_mixins.petition_mix import PetitionTransformsMix
 
@@ -216,6 +216,47 @@ def default_explore_data():
     return {}
 
 
+class ReplyFile(models.Model, ReplyFileMix):
+
+    petition = models.ForeignKey(
+        Petition,
+        related_name="process_files",
+        on_delete=models.CASCADE)
+    file = models.FileField(
+        verbose_name="arhivo",
+        max_length=150, upload_to=set_upload_path,
+        blank=True, null=True)
+    date = models.DateTimeField(auto_now_add=True)
+    file_type = models.ForeignKey(
+        FileType, on_delete=models.CASCADE, blank=True, null=True)
+    text = models.TextField(
+        blank=True, null=True,
+        verbose_name="Texto (en caso de no haber archivo)")
+    url_download = models.URLField(
+        max_length=400, blank=True, null=True,
+        verbose_name="Url donde se puede descargar el archivo")
+    notes = models.TextField(blank=True, null=True, verbose_name="Notas")
+    addl_params = JSONField(
+        blank=True, null=True, verbose_name="Otras configuraciones")
+    has_data = models.BooleanField(
+        default=False, verbose_name="Contiene los datos")
+
+    @property
+    def final_path(self):
+        from django.conf import settings
+        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        return self.file.url if is_prod else self.file.path
+
+    def __str__(self):
+        first = (self.file or (self.text and self.text[:80])
+            or self.url_download or 'None')
+        return "%s -- %s" % (first, self.petition)
+
+    class Meta:
+        verbose_name = "Archivo sin datos finales"
+        verbose_name_plural = "Archivos sin datos finales"
+
+
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
@@ -230,7 +271,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         "DataFile", blank=True, null=True, related_name="child_files",
         verbose_name="archivo origen", on_delete=models.CASCADE)
     process_file = models.ForeignKey(
-        "ProcessFile", blank=True, null=True, on_delete=models.CASCADE,
+        ReplyFile, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="archivo base", related_name="data_file_childs")
     petition_file_control = models.ForeignKey(
         PetitionFileControl, related_name="data_files", blank=True, null=True,
@@ -280,45 +321,4 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         ordering = ["file"]
         verbose_name = "Archivo con datos"
         verbose_name_plural = "Archivos con datos"
-
-
-class ProcessFile(models.Model, ProcessFileMix):
-
-    petition = models.ForeignKey(
-        Petition,
-        related_name="process_files",
-        on_delete=models.CASCADE)
-    file = models.FileField(
-        verbose_name="arhivo",
-        max_length=150, upload_to=set_upload_path,
-        blank=True, null=True)
-    date = models.DateTimeField(auto_now_add=True)
-    file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE, blank=True, null=True)
-    text = models.TextField(blank=True, null=True, 
-        verbose_name="Texto (en caso de no haber archivo)")
-    url_download = models.URLField(
-        max_length=400, blank=True, null=True, 
-        verbose_name="Url donde se puede descargar el archivo")
-    notes = models.TextField(blank=True, null=True, verbose_name="Notas")
-    addl_params = JSONField(
-        blank=True, null=True, verbose_name="Otras configuraciones")
-    has_data = models.BooleanField(
-        default=False, verbose_name="Contiene los datos")
-
-    @property
-    def final_path(self):
-        from django.conf import settings
-        is_prod = getattr(settings, "IS_PRODUCTION", False)
-        return self.file.url if is_prod else self.file.path
-
-    def __str__(self):
-        first = (self.file or (self.text and self.text[:80]) 
-            or self.url_download or 'None')
-        return "%s -- %s" % (first, self.petition)
-
-    class Meta:
-        verbose_name = "Archivo sin datos finales"
-        verbose_name_plural = "Archivos sin datos finales"
-
 

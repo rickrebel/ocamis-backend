@@ -49,7 +49,7 @@ inai_fiels = [
     },
     {
         "inai_open_search": "archivoAdjuntoRespuesta",
-        "model_name": "ProcessFile",
+        "model_name": "ReplyFile",
         "final_field": "url_download",
         "transform": "join_url",
     },

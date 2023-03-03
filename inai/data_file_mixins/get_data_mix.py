@@ -237,6 +237,13 @@ class ExtractorsMix:
         #     params_after = parent_task.params_after
         new_sheets = kwargs.get("new_sheets", {})
         all_sheet_names = kwargs.get("all_sheet_names", [])
+        # delimiter = kwargs.get("delimiter")
+        decode = kwargs.get("decode")
+        if decode:
+            file_control = self.petition_file_control.file_control
+            if not file_control.decode and file_control.data_group.name is not 'orphan':
+                file_control.decode = decode
+                file_control.save()
         self.sheet_names = all_sheet_names
         # current_sheets = params_after.get("current_sheets", [])
         # print(current_sheets)
@@ -261,7 +268,7 @@ class ExtractorsMix:
             params = {
                 "file": self.file.name,
                 "s3": build_s3(),
-                "delimiter": file_control.delimiter or "|",
+                "delimiter": file_control.delimiter,
             }
             task_params = task_params or {}
             # params_after = task_params.get("params_after", {})

@@ -29,7 +29,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     }
 
     def retrieve(self, request, pk=None):
-        from inai.models import ProcessFile
+        from inai.models import ReplyFile
         from data_param.models import FileControl
         from data_param.models import DataGroup
 
@@ -68,14 +68,14 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         else:
             key_task, task_params = build_task_params(
                 petition, "auto_explore", request)
-            process_files = ProcessFile.objects.filter(
+            process_files = ReplyFile.objects.filter(
                 petition=petition, has_data=True)
             for process_file in process_files:
                 children_files = DataFile.objects. \
                     filter(process_file=process_file)
                 if children_files.exists():
                     if not children_files.filter(
-                            petition_file_control__file_control__data_group__name='orphan'
+                        petition_file_control__file_control__data_group__name='orphan'
                     ).exists():
                         continue
                     new_tasks, new_errors = petition.find_matches_in_children(
@@ -101,7 +101,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
 def move_and_duplicate(data_files, petition, request):
     from rest_framework.exceptions import ParseError
-    from inai.models import ProcessFile
+    from inai.models import ReplyFile
     from data_param.models import FileControl
     from category.models import FileType #, StatusControl
 
@@ -113,7 +113,7 @@ def move_and_duplicate(data_files, petition, request):
     if destination == "process_file":
         file_type_no_final = FileType.objects.get(name="no_final_info")
         for data_file in data_files:
-            ProcessFile.objects.create(
+            ReplyFile.objects.create(
                 petition=petition,
                 file=data_file.file,
                 file_type=file_type_no_final)
@@ -182,6 +182,10 @@ class DataFileViewSet(CreateRetrievView):
         data_file = self.get_object()
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
+
+    @action(methods=["get"], detail=True, url_path="start_process_file")
+    def start_process_file(self, request, **kwargs):
+        return 1
 
     @action(methods=["get"], detail=True, url_path="build_sample_data")
     def build_sample_data(self, request, **kwargs):
@@ -337,11 +341,6 @@ class DataFileViewSet(CreateRetrievView):
         #     return Response(data, status=status.HTTP_201_CREATED)
         # return Response(
         #     {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(methods=["get"], detail=True, url_path="auto_explore_all")
-    def auto_explore_all(self, request, **kwargs):
-        return True
-
 
 class OpenDataInaiViewSet(ListRetrieveView):
     queryset = DataFile.objects.all()
@@ -571,4 +570,6 @@ class OpenDataInaiViewSet(ListRetrieveView):
 
         return Response(
             data, status=status.HTTP_201_CREATED)
+
+
 

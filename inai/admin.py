@@ -5,7 +5,7 @@ from django.contrib.admin import AdminSite
 # Register your models here.
 from .models import (
     Petition, PetitionFileControl, DataFile,
-    PetitionMonth, ProcessFile)
+    PetitionMonth, ReplyFile)
 
 
 class OcamisAdminSite(AdminSite):
@@ -80,7 +80,7 @@ class DataFileAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(DataFile, DataFileAdmin)
 
 
-class ProcessFileAdmin(admin.ModelAdmin):
+class ReplyFileAdmin(admin.ModelAdmin):
     list_display = [
         "petition",
         "file",
@@ -91,4 +91,4 @@ class ProcessFileAdmin(admin.ModelAdmin):
     list_filter = ["petition__entity"]
 
 
-ocamis_admin_site.register(ProcessFile, ProcessFileAdmin)
+ocamis_admin_site.register(ReplyFile, ReplyFileAdmin)

@@ -88,8 +88,8 @@ ocamis_admin_site.register(AsyncTask, AsyncTaskAdmin)
 class TaskFunctionAdmin(admin.ModelAdmin):
     list_display = [
         "name",
-        "model_name",
         "public_name",
+        "model_name",
     ]
 
 
