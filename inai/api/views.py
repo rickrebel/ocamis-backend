@@ -159,7 +159,6 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         ).order_by("entity__acronym", "folio_petition")
         total_count = 0
         available_filters = [
-            {"name": "entity_type", "field": "entity__entity_type_id"},
             {"name": "status_petition", "field": "status_petition_id"},
             {"name": "status_data", "field": "status_data_id"},
             {"name": "status_complain", "field": "status_complain_id"},

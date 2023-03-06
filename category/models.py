@@ -14,8 +14,8 @@ GROUP_CHOICES = (
     ("petition", "de Solicitud"),
     ("data", "Datos entregados"),
     ("complain", "Quejas - Revisiones"),
+    ("register", "Registro de variables"),
     ("process", "Procesamiento de archivos (solo devs)"),
-    ("register", "Registro de variables (solo devs)"),
 )
 
 
