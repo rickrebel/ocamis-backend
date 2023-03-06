@@ -142,6 +142,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         from data_param.models import FileControl
         from inai.models import Petition
         from data_param.api.serializers import FileControlSemiFullSerializer
+        from data_param.api.views import build_common_filters
 
         import json
         limiters = request.query_params.get("limiters", None)
@@ -155,22 +156,16 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             "negative_reasons__negative_reason",
             "file_controls",
             "entity",
-        )
+        ).order_by("entity__acronym", "folio_petition")
         total_count = 0
+        available_filters = [
+            {"name": "entity_type", "field": "entity__entity_type_id"},
+            {"name": "status_petition", "field": "status_petition_id"},
+            {"name": "status_data", "field": "status_data_id"},
+            {"name": "status_complain", "field": "status_complain_id"},
+        ]
         if limiters:
-            all_filters = {}
-            available_filters = [
-                {"name": "entity_type", "field": "entity__entity_type_id"},
-                {"name": "status_petition", "field": "status_petition_id"},
-                {"name": "status_data", "field": "status_data_id"},
-                {"name": "status_compain", "field": "status_compain_id"},
-            ]
-            for filter_item in available_filters:
-                if limiters.get(filter_item["name"]):
-                    all_filters[filter_item["field"]] = \
-                        limiters.get(filter_item["name"])
-            if limiters.get("has_notes"):
-                all_filters["notes__isnull"] = not limiters.get("has_notes")
+            all_filters = build_common_filters(limiters, available_filters)
             if limiters.get("selected_year"):
                 if limiters.get("selected_month"):
                     all_filters["petition_months__month_entity__year_month"] =\

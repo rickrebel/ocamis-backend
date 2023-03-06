@@ -30,7 +30,7 @@ class AsyncTaskViewSet(ListRetrieveView):
     def last_hours(self, request, **kwargs):
         from datetime import datetime, timedelta
         from django.contrib.auth.models import User
-        from auth.api.serializers import UserDataSerializer
+        from auth.api.serializers import UserProfileSerializer
         total_hours = request.query_params.get("hours", 3)
         now = datetime.now()
         last_hours = now - timedelta(hours=int(total_hours))
@@ -45,7 +45,7 @@ class AsyncTaskViewSet(ListRetrieveView):
             )
         all_tasks = task_by_start
         staff_users = User.objects.filter(is_staff=True)
-        staff_data = UserDataSerializer(staff_users, many=True).data
+        staff_data = UserProfileSerializer(staff_users, many=True).data
         data = {
             "tasks": serializers.AsyncTaskFullSerializer(all_tasks, many=True).data,
             "staff_users": staff_data,
