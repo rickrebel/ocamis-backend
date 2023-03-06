@@ -19,6 +19,7 @@ class DataGroup(models.Model):
     color = models.CharField(max_length=20, default="lime")
     can_has_percent = models.BooleanField(
         default=False, verbose_name="Puede tener porcentajes")
+    order = models.IntegerField(default=5)
 
     def __str__(self):
         return self.public_name
@@ -26,6 +27,7 @@ class DataGroup(models.Model):
     class Meta:
         verbose_name = "Grupo de datos solicitados"
         verbose_name_plural = "Grupos de datos solicitados"
+        ordering = ['order']
 
 
 class Collection(models.Model):

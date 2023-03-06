@@ -109,6 +109,20 @@ class FileControlSerializer(FileControlSimpleSerializer):
     status_register_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="status_register",
         queryset=StatusControl.objects.all())"""
+    failed_files = serializers.SerializerMethodField(read_only=True)
+
+    def get_failed_files(self, obj):
+        from inai.models import DataFile
+        from django.db.models import Count, F
+        files = DataFile.objects\
+            .filter(
+                petition_file_control__file_control=obj,
+                origin_file__isnull=True,
+                status_process__name__icontains="fail"
+            )\
+            .values("status_process_id")\
+            .annotate(total=Count("id"))
+        return files
 
 
 class FileControlSemiFullSerializer(FileControlSerializer):

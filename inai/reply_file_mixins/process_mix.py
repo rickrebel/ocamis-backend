@@ -12,7 +12,7 @@ class ReplyFileMix:
         from task.serverless import async_in_lambda
 
         base_s3 = build_s3()
-        if DataFile.objects.filter(process_file=self).exists():
+        if DataFile.objects.filter(reply_file=self).exists():
             return None
         suffixes = pathlib.Path(self.final_path).suffixes
         suffixes = set([suffix.lower() for suffix in suffixes])
@@ -24,6 +24,7 @@ class ReplyFileMix:
             "file": self.file.name,
             "s3": base_s3,
             "suffixes": list(suffixes),
+            # RICK 18: Falta cambiar en el lambda
             "process_file_id": self.id,
             "upload_path": set_upload_path(self, "NEW_FILE_NAME")
         }
@@ -59,7 +60,7 @@ class ReplyFileMix:
         for data_file in all_files:
             new_file = DataFile.objects.create(
                 file=data_file["file"],
-                process_file=self,
+                reply_file=self,
                 directory=data_file["directory"],
                 petition_file_control=pet_file_ctrl,
             )

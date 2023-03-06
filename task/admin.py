@@ -28,7 +28,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         "start_simple",
         # "date_end",
     ]
-    raw_id_fields = ["petition", "file_control", "data_file", "process_file"]
+    raw_id_fields = ["petition", "file_control", "data_file", "reply_file"]
     list_filter = ["status_task", "task_function", "is_current"]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
 

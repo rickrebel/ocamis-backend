@@ -3,7 +3,7 @@ from django.conf import settings
 
 
 #obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821")
-def obtain_names_from_s3(path, folio_petition, is_process_file=False):
+def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
     from inai.models import (
         DataFile, PetitionFileControl, Petition, ReplyFile, FileType)
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
@@ -16,7 +16,7 @@ def obtain_names_from_s3(path, folio_petition, is_process_file=False):
     for object_summary in my_bucket.objects.filter(Prefix=path):
         print(object_summary.key)
         final_name = object_summary.key.replace(f"{settings.AWS_LOCATION}/", '')
-        if not is_process_file:
+        if not is_reply_file:
             try:
                 pet_file_ctrl = PetitionFileControl.objects.get(
                     petition__folio_petition=folio_petition)

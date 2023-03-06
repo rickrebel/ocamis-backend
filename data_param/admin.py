@@ -99,9 +99,10 @@ class DataGroupAdmin(admin.ModelAdmin):
         "public_name",
         "name",
         "is_default",
+        "order",
         "color",
     ]
-    list_editable = ["color"]
+    list_editable = ["color", "order"]
     inlines = [ CollectionInline ]
 
 

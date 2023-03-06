@@ -101,7 +101,7 @@ class AWSMessage(generic.View):
         current_task.date_arrive = datetime.now()
         current_task.result = result
         current_task.save()
-        models = ["petition", "file_control", "process_file", "data_file"]
+        models = ["petition", "file_control", "reply_file", "data_file"]
         function_after = current_task.function_after
         final_errors = []
         new_tasks = []

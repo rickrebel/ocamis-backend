@@ -13,7 +13,7 @@ from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
 from .data_file_mixins.get_data_mix import ExtractorsMix
 # from .data_file_mixins.matches_mix import MatchesMix
-from .process_file_mixins.process_mix import ReplyFileMix
+from .reply_file_mixins.process_mix import ReplyFileMix
 
 from .petition_mixins.petition_mix import PetitionTransformsMix
 
@@ -220,7 +220,7 @@ class ReplyFile(models.Model, ReplyFileMix):
 
     petition = models.ForeignKey(
         Petition,
-        related_name="process_files",
+        related_name="reply_files",
         on_delete=models.CASCADE)
     file = models.FileField(
         verbose_name="arhivo",
@@ -270,7 +270,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     origin_file = models.ForeignKey(
         "DataFile", blank=True, null=True, related_name="child_files",
         verbose_name="archivo origen", on_delete=models.CASCADE)
-    process_file = models.ForeignKey(
+    reply_file = models.ForeignKey(
         ReplyFile, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="archivo base", related_name="data_file_childs")
     petition_file_control = models.ForeignKey(

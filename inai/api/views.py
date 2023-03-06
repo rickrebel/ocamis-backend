@@ -137,6 +137,71 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         # return Response(
         #    serializer_petition.data, status=status.HTTP_201_CREATED)
 
+    @action(methods=["get"], detail=False, url_path='filter')
+    def filter(self, request, **kwargs):
+        from data_param.models import FileControl
+        from inai.models import Petition
+        from data_param.api.serializers import FileControlSemiFullSerializer
+
+        import json
+        limiters = request.query_params.get("limiters", None)
+        limiters = json.loads(limiters)
+
+        petitions = Petition.objects.all().prefetch_related(
+            "petition_months",
+            "file_controls",
+            "break_dates",
+            "negative_reasons",
+            "negative_reasons__negative_reason",
+            "file_controls",
+            "entity",
+        )
+        total_count = 0
+        if limiters:
+            all_filters = {}
+            available_filters = [
+                {"name": "entity_type", "field": "entity__entity_type_id"},
+                {"name": "status_petition", "field": "status_petition_id"},
+                {"name": "status_data", "field": "status_data_id"},
+                {"name": "status_compain", "field": "status_compain_id"},
+            ]
+            for filter_item in available_filters:
+                if limiters.get(filter_item["name"]):
+                    all_filters[filter_item["field"]] = \
+                        limiters.get(filter_item["name"])
+            if limiters.get("has_notes"):
+                all_filters["notes__isnull"] = not limiters.get("has_notes")
+            if limiters.get("selected_year"):
+                if limiters.get("selected_month"):
+                    all_filters["petition_months__month_entity__year_month"] =\
+                        f"{limiters.get('selected_year')}{limiters.get('selected_month')}"
+                else:
+                    all_filters["petition_months__month_entity__year_month__icontains"] =\
+                        limiters.get("selected_year")
+            if all_filters:
+                petitions = petitions.filter(**all_filters).distinct()
+            total_count = petitions.count()
+            page_size = limiters.get("page_size", 40)
+            page = limiters.get("page", 1) - 1
+            petitions = petitions[page * page_size:(page + 1) * page_size]
+
+        if not total_count:
+            total_count = petitions.count()
+        # serializer =
+        serializer = serializers.PetitionSemiFullSerializer(
+            petitions, many=True, context={'request': request})
+        related_controls = FileControl.objects.filter(
+            petition_file_control__petition__in=petitions).distinct()
+        serializer_controls = FileControlSemiFullSerializer(
+            related_controls, many=True, context={'request': request})
+        data = {
+            "petitions": serializer.data,
+            "file_controls": serializer_controls.data,
+            "total_count": total_count,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+
     @action(methods=["post"], detail=True)
     def change_months(self, request, **kwargs):
         if not request.user.is_staff:
@@ -196,13 +261,13 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
 
     def create(self, request, petition_id=False):
 
-        process_file = request.data
-        new_process_file = ReplyFile()
-        new_process_file.petition_id = petition_id
+        reply_file = request.data
+        new_reply_file = ReplyFile()
+        new_reply_file.petition_id = petition_id
 
         # serializer = serializers.ReplyFileEditSerializer(data=request.data)
         serializer_proc_file = self.get_serializer_class()(
-            new_process_file, data=process_file)
+            new_reply_file, data=reply_file)
 
         if serializer_proc_file.is_valid():
             serializer_proc_file.save()
@@ -218,8 +283,8 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
             petition = Petition.objects.get(id=petition_id)
         except Exception:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        process_file = self.get_object()
-        self.perform_destroy(process_file)
+        reply_file = self.get_object()
+        self.perform_destroy(reply_file)
         return Response(status=status.HTTP_200_OK)
 
 

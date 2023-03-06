@@ -22,7 +22,7 @@ router.register(r'data_file', DataFileViewSet)
 router.register(r'open_data_inai', OpenDataInaiViewSet)
 router.register(r'auto_explore', AutoExplorePetitionViewSet)
 router.register(
-    r'^petition/(?P<petition_id>[-\d]+)/process_file', ReplyFileViewSet)
+    r'^petition/(?P<petition_id>[-\d]+)/reply_file', ReplyFileViewSet)
 
 urlpatterns = (
     path('', include(router.urls)),

@@ -42,8 +42,8 @@ class AsyncTaskFullSerializer(serializers.ModelSerializer):
     def get_petition_id(self, obj):
         if obj.data_file:
             return obj.data_file.petition_file_control.petition_id
-        elif obj.process_file:
-            return obj.process_file.petition_id
+        elif obj.reply_file:
+            return obj.reply_file.petition_id
         elif obj.file_control:
             pfc = obj.file_control.petition_file_control.first()
             if pfc:

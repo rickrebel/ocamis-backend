@@ -257,7 +257,7 @@ class PetitionSemiFullSerializer(PetitionSmallSerializer):
 
 
 class PetitionFullSerializer(PetitionSemiFullSerializer):
-    process_files = ReplyFileSerializer(many=True)
+    reply_files = ReplyFileSerializer(many=True)
     petition_file_controls = PetitionFileControlFullSerializer(
         many=True, source="file_controls")
 

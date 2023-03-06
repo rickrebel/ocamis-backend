@@ -25,7 +25,7 @@ class AsyncTask(models.Model):
     data_file = models.ForeignKey(
         DataFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    process_file = models.ForeignKey(
+    reply_file = models.ForeignKey(
         ReplyFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     status_task = models.ForeignKey(
@@ -140,7 +140,8 @@ class TaskFunction(models.Model):
         ("petition", "Solicitud (Petición)"),
         ("file_control", "Grupo de Control"),
         ("data_file", "DataFile (archivo de datos)"),
-        ("process_file", "ReplyFile (.zip)"),
+        # RICK 18, ahora hay que borrar process_file
+        ("reply_file", "ReplyFile (.zip)"),
     )
 
     name = models.CharField(max_length=100, primary_key=True)

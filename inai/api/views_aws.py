@@ -38,7 +38,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         file_id = request.query_params.get("file_id", False)
 
         orphan_group = DataGroup.objects.get(name="orphan")
-        name_control = "Archivos por agrupar. Petición %s" % (
+        name_control = "Archivos por agrupar. Solicitud %s" % (
             petition.folio_petition)
         prev_file_controls = FileControl.objects.filter(
             data_group=orphan_group,
@@ -68,11 +68,11 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         else:
             key_task, task_params = build_task_params(
                 petition, "auto_explore", request)
-            process_files = ReplyFile.objects.filter(
+            reply_files = ReplyFile.objects.filter(
                 petition=petition, has_data=True)
-            for process_file in process_files:
+            for reply_file in reply_files:
                 children_files = DataFile.objects. \
-                    filter(process_file=process_file)
+                    filter(reply_file=reply_file)
                 if children_files.exists():
                     if not children_files.filter(
                         petition_file_control__file_control__data_group__name='orphan'
@@ -85,7 +85,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     all_tasks.extend(new_tasks)
                     all_errors.extend(new_errors)
                 else:
-                    async_task = process_file.decompress(
+                    async_task = reply_file.decompress(
                         pet_file_ctrl, task_params=task_params)
                     all_tasks.append(async_task)
         key_task = comprobate_status(
@@ -110,7 +110,7 @@ def move_and_duplicate(data_files, petition, request):
     #initial_status = StatusControl.objects.get(
     #    name="initial", group="process")
     errors = []
-    if destination == "process_file":
+    if destination == "reply_file":
         file_type_no_final = FileType.objects.get(name="no_final_info")
         for data_file in data_files:
             ReplyFile.objects.create(
@@ -183,8 +183,8 @@ class DataFileViewSet(CreateRetrievView):
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
 
-    @action(methods=["get"], detail=True, url_path="start_process_file")
-    def start_process_file(self, request, **kwargs):
+    @action(methods=["get"], detail=True, url_path="start_reply_file")
+    def start_reply_file(self, request, **kwargs):
         return 1
 
     @action(methods=["get"], detail=True, url_path="build_sample_data")

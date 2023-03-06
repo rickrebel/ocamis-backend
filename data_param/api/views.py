@@ -153,28 +153,43 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         ).order_by("data_group__name", "entity__acronym", "name")
         total_count = 0
         if limiters:
-            if limiters.get("status_register"):
-                controls = controls.filter(
-                    status_register_id=limiters.get("status_register"))
-            if limiters.get("data_group"):
-                controls = controls.filter(
-                    data_group_id=limiters.get("data_group"))
+            all_filters = {}
+            available_filters = [
+                {"name": "status_register", "field": "status_register_id"},
+                {"name": "data_group", "field": "data_group_id"},
+                # {"name": "entity_type", "field": "entity__entity_type_id"},
+                {"name": "file_format", "field": "file_format_id"},
+            ]
+            for filter_item in available_filters:
+                if limiters.get(filter_item["name"]):
+                    all_filters[filter_item["field"]] = \
+                        limiters.get(filter_item["name"])
             if limiters.get("has_notes"):
-                controls = controls.filter(
-                    notes__isnull=not limiters.get("has_notes"))
+                all_filters["notes__isnull"] = not limiters.get("has_notes")
+            if all_filters:
+                controls = controls.filter(**all_filters).distinct()
             total_count = controls.count()
             page_size = limiters.get("page_size", 40)
             page = limiters.get("page", 1) - 1
             controls = controls[page * page_size:(page + 1) * page_size]
+
         if not total_count:
             total_count = controls.count()
         # serializer =
         serializer = serializers.FileControlSemiFullSerializer(
-            controls, many=True, context={ 'request': request })
+            controls, many=True, context={'request': request})
         related_petitions = Petition.objects.filter(
-            file_controls__file_control__in=controls).distinct()
+            file_controls__file_control__in=controls)\
+            .prefetch_related(
+                "petition_months",
+                "file_controls",
+                "break_dates",
+                "negative_reasons",
+                "negative_reasons__negative_reason",
+                "file_controls"
+            ).distinct()
         serializer_petitions = PetitionSemiFullSerializer(
-            related_petitions, many=True, context={ 'request': request })
+            related_petitions, many=True, context={'request': request})
         data = {
             "file_controls": serializer.data,
             "petitions": serializer_petitions.data,

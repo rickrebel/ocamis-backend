@@ -21,7 +21,7 @@ class AsyncTaskViewSet(ListRetrieveView):
         return AsyncTask.objects.all().prefetch_related(
             "data_file",
             "data_file__petition_file_control",
-            "process_file",
+            "reply_file",
             "file_control",
             "file_control__petition_file_control",
         )
@@ -39,7 +39,7 @@ class AsyncTaskViewSet(ListRetrieveView):
             .prefetch_related(
                 "data_file",
                 "data_file__petition_file_control",
-                "process_file",
+                "reply_file",
                 "file_control",
                 "file_control__petition_file_control",
             )
@@ -77,7 +77,7 @@ class AsyncTaskViewSet(ListRetrieveView):
             .prefetch_related(
                 "data_file",
                 "data_file__petition_file_control",
-                "process_file",
+                "reply_file",
                 "file_control",
                 "file_control__petition_file_control",
             )
