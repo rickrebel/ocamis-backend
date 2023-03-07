@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "inai.apps.InaiConfig",
     "transparency.apps.TransparencyConfig",
     "category.apps.CategoryConfig",
+    "classify_task.apps.ClassifyTaskConfig",
     "task.apps.TaskConfig",
 ]
 
