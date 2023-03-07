@@ -6,6 +6,7 @@ from django.db.models.signals import post_save, post_delete
 from django.contrib.auth.models import User
 from inai.models import Petition, DataFile, ReplyFile
 from data_param.models import FileControl
+from classify_task.models import StatusTask, TaskFunction
 
 
 class AsyncTask(models.Model):
@@ -28,21 +29,21 @@ class AsyncTask(models.Model):
     reply_file = models.ForeignKey(
         ReplyFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    # status_task = models.ForeignKey(
-    #     "StatusTask", on_delete=models.CASCADE, blank=True, null=True,
-    #     verbose_name="Estado de la tarea")
-    status_task = models.CharField(
-        max_length=100, blank=True, null=True,
+    status_task = models.ForeignKey(
+        StatusTask, on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Estado de la tarea")
+    # status_task = models.CharField(
+    #     max_length=100, blank=True, null=True,
+    #     verbose_name="Estado de la tarea")
     function_name = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Nombre de la función")
-    # task_function = models.ForeignKey(
-    #     "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
-    #     related_name="functions")
-    task_function = models.CharField(
-        max_length=100, blank=True, null=True,
-        verbose_name="Nombre de la función")
+    task_function = models.ForeignKey(
+        TaskFunction, blank=True, null=True, on_delete=models.CASCADE,
+        related_name="functions")
+    # task_function = models.CharField(
+    #     max_length=100, blank=True, null=True,
+    #     verbose_name="Nombre de la función")
     subgroup = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Subtipo de la función")
