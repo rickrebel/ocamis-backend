@@ -450,10 +450,10 @@ class MatchAws:
         try:
             # RICK 18: No entiendo por qué se decodifica el contenido de la respuesta
             content = response_create.content
-            if self.decode == 'str':
-                content = str(content)
-            else:
-                content = content.decode(self.decode)
+            # if self.decode == 'str':
+            content = str(content)
+            # else:
+            #     content = content.decode(self.decode)
             content = json.loads(content)
             [data_result, delegation_error] = content
             if data_result:

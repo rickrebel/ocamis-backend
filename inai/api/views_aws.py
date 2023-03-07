@@ -265,12 +265,11 @@ class DataFileViewSet(CreateRetrievView):
 
         resp = comprobate_status(
             key_task, all_errors, all_tasks, want_http_response=True)
-        if resp:
-            return resp
-        all_tasks, all_errors, data_file = data_file.every_has_total_rows(
-            task_params)
-        resp = comprobate_status(
-            key_task, all_errors, all_tasks, want_http_response=True)
+        if not resp:
+            all_tasks, all_errors, data_file = data_file.every_has_total_rows(
+                task_params)
+            resp = comprobate_status(
+                key_task, all_errors, all_tasks, want_http_response=True)
         if resp:
             return resp
         # data_file, saved, errors = data_file.find_coincidences()

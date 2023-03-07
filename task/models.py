@@ -28,15 +28,21 @@ class AsyncTask(models.Model):
     reply_file = models.ForeignKey(
         ReplyFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    status_task = models.ForeignKey(
-        "StatusTask", on_delete=models.CASCADE, blank=True, null=True,
+    # status_task = models.ForeignKey(
+    #     "StatusTask", on_delete=models.CASCADE, blank=True, null=True,
+    #     verbose_name="Estado de la tarea")
+    status_task = models.CharField(
+        max_length=100, blank=True, null=True,
         verbose_name="Estado de la tarea")
     function_name = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Nombre de la función")
-    task_function = models.ForeignKey(
-        "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
-        related_name="functions")
+    # task_function = models.ForeignKey(
+    #     "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
+    #     related_name="functions")
+    task_function = models.CharField(
+        max_length=100, blank=True, null=True,
+        verbose_name="Nombre de la función")
     subgroup = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Subtipo de la función")
@@ -66,6 +72,16 @@ class AsyncTask(models.Model):
             self.status_task_id = self.status_task_id
         self.save()
         return self
+
+    @property
+    def can_repeat(self):
+        from datetime import datetime, timedelta
+        failed = self.status_task_id in ['with_errors', 'not_executed']
+        if failed or self.status_task.is_completed:
+            return True
+        more_than_15_minutes = (
+            datetime.now() - self.date_start) > timedelta(minutes=15)
+        return more_than_15_minutes
 
     def __str__(self):
         return "%s -- %s" % (self.task_function.name, self.status_task)
@@ -158,4 +174,3 @@ class TaskFunction(models.Model):
     class Meta:
         verbose_name = "Función (tarea)"
         verbose_name_plural = "2. Funciones (tareas)"
-

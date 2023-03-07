@@ -177,13 +177,13 @@ class ExploreMix:
                 else:
                     continue
             else:
-
                 name_columns = NameColumn.objects.filter(
                     file_control=file_ctrl, name_in_data__isnull=False) \
                     .values_list("name_in_data", flat=True)
                 headers = structured_data[sheet_name]["headers"]
                 headers = [head.strip().upper() for head in headers]
-                same_headers = list(name_columns) == headers
+                name_columns_list = [name.strip().upper() for name in list(name_columns)]
+                same_headers = name_columns_list == headers
 
             if not same_headers:
                 continue

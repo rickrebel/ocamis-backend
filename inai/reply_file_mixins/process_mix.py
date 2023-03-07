@@ -24,8 +24,6 @@ class ReplyFileMix:
             "file": self.file.name,
             "s3": base_s3,
             "suffixes": list(suffixes),
-            # RICK 18: Falta cambiar en el lambda
-            "process_file_id": self.id,
             "upload_path": set_upload_path(self, "NEW_FILE_NAME")
         }
         task_params = task_params or {}

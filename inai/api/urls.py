@@ -16,7 +16,6 @@ router.register(
     r'^petition_file_control/(?P<petition_file_control_id>[-\d]+)/data_file',
     AscertainableViewSet)
 router.register(r'petition_file_control', PetitionFileControlViewSet)
-# RICK 17: Mover de lugar
 router.register(r'data_file', DataFileViewSet)
 
 router.register(r'open_data_inai', OpenDataInaiViewSet)

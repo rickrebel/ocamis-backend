@@ -40,15 +40,3 @@ class DataUtilsMix:
             curr_result[new_result[0]] += f", {new_result[1]}"
         self.all_results = curr_result
         self.save()
-
-    # RICK 14
-    def massive_insert_copy(self, errors, error_name):
-        #guardo esto para considerarlo en "missing_rows":
-        """
-        MissingRow.objects.create(
-            file=file,
-            original_data=row_data,
-            row_seq=row_seq,
-            errors=["Conteo distinto de Columnas %s" % len(row_data)],
-        )"""
-        return 2
