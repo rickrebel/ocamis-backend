@@ -1,4 +1,5 @@
-from .models import AsyncTask, TaskFunction
+from .models import AsyncTask
+from classify_task.models import TaskFunction
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse

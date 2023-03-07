@@ -2,7 +2,8 @@ from django.contrib import admin
 from inai.admin import ocamis_admin_site
 from django.utils.html import format_html
 
-from .models import (StatusTask, AsyncTask, TaskFunction)
+from .models import (AsyncTask)
+from classify_task.models import StatusTask, TaskFunction
 
 
 class StatusTaskAdmin(admin.ModelAdmin):

@@ -16,7 +16,7 @@ from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
 from transparency.models import Anomaly, TransparencyIndex
-from task.models import StatusTask, TaskFunction
+from classify_task.models import StatusTask, TaskFunction
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,

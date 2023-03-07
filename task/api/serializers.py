@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from task.models import StatusTask, AsyncTask, TaskFunction
+from task.models import AsyncTask
+from classify_task.models import StatusTask, TaskFunction
 
 
 class StatusTaskSimpleSerializer(serializers.ModelSerializer):
