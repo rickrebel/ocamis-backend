@@ -1,6 +1,6 @@
 import io
 from django.conf import settings
-
+from scripts.common import start_session, create_file
 import csv
 import uuid as uuid_lib
 
@@ -35,7 +35,6 @@ class Match:
 
     def __init__(self, data_file: DataFile, task_params=None):
         from inai.models import set_upload_path
-
         from catalog.models import Delegation
         from data_param.models import NameColumn
         self.data_file = data_file
@@ -79,10 +78,14 @@ class Match:
                              for curr_list in self.final_lists}
 
         self.existing_fields = []
-        self.catalog_clues_by_id = {}
-        self.catalog_delegation = {}
-        self.catalog_container = {}
+        self.catalogs = []
+        # self.catalog_clues_by_id = None
+        # self.catalog_delegation_by_id = {}
+        # self.catalog_container = {}
         self.task_params = task_params
+
+        s3_client, dev_resource = start_session()
+        self.s3_client = s3_client
 
         # self.claves_medico_dict = {}
         # self.catalog_clues = {}
@@ -90,10 +93,22 @@ class Match:
 
     def build_csv_converted(self):
         from scripts.common import build_s3
-        from task.serverless import start_build_csv_data, async_in_lambda
+        from task.serverless import async_in_lambda
         # print("prescription_fields", prescription_fields, "\n\n")
-        self.build_catalogs()
-        self.build_catalog_container()
+        # if not self.global_clues:
+        #     file_clues = self.build_catalog_clues()
+        #     self.catalogs.append({"name": "clues", "file": file_clues})
+        # if not self.global_delegation:
+        #     file_delegation = self.build_catalog_delegation()
+        #     self.catalogs.append({"name": "delegation", "file": file_delegation})
+        # container_file = self.build_catalog_container()
+        # if container_file:
+        #     self.catalogs.append({"name": "container", "file": container_file})
+        # diagnosis_file = self.build_catalog_diagnosis()
+        # if diagnosis_file:
+        #     self.catalogs.append({"name": "diagnosis", "file": diagnosis_file})
+        # area_file = self.build_catalog_area()
+        self.build_all_catalogs()
 
         self.build_existing_fields()
         has_minimals_criteria, detailed_criteria = \
@@ -128,9 +143,10 @@ class Match:
             "final_lists": self.final_lists,
             "model_fields": self.model_fields,
             "existing_fields": self.existing_fields,
-            "catalog_delegation": self.catalog_delegation,
-            "catalog_clues_by_id": self.catalog_clues_by_id,
-            "catalog_container": self.catalog_container,
+            "catalogs": self.catalogs,
+            # "catalog_delegation": self.catalog_delegation_by_id,
+            # "catalog_clues_by_id": self.catalog_clues_by_id,
+            # "catalog_container": self.catalog_container,
             "string_date": string_date,
             "unique_clues": unique_clues,
         }
@@ -161,8 +177,8 @@ class Match:
             )
             new_file.change_status('initial')
             all_new_files.append(new_file)
-            new_tasks = self.send_csv_to_db(result_file["path"], model_name)
-            new_tasks.append(new_tasks)
+            # new_tasks = self.send_csv_to_db(result_file["path"], model_name)
+            # new_tasks.append(new_tasks)
         return new_tasks, [], all_new_files
 
     def build_existing_fields(self):
@@ -178,7 +194,6 @@ class Match:
             ["name:DocumentType", "document_type"],
             ["prescribed_amount"],
             ["delivered_amount"],
-            ["budget_key"],
             ["key2:Container", "key2"],
             ["rn"],
             ["price:Drug", "price"],
@@ -248,62 +263,314 @@ class Match:
                 break
         return every_criteria, detailed_criteria
 
-    def build_catalogs(self):
+    # def build_catalog_clues(self):
+    #     from data_param.models import DictionaryFile
+    #     clues_unique = self.name_columns.filter(
+    #         final_field__collection__model_name='CLUES',
+    #         final_field__is_unique=True).first()
+    #     if not clues_unique:
+    #         raise Exception("No se encontró un campo único para CLUES")
+    #     dict_file = DictionaryFile.objects.filter(
+    #         collection__model_name='CLUES',
+    #         entity=self.entity,
+    #         unique_field=clues_unique.final_field).first()
+    #     if not dict_file:
+    #         file_clues, errors = self.build_catalog_clues_by_id(
+    #             clues_unique.final_field.name)
+    #         if errors:
+    #             raise Exception(f"Error al crear el catálogo de CLUES:"
+    #                             f" {errors}")
+    #         dict_file = DictionaryFile.objects.create(
+    #             collection=clues_unique.final_field.collection,
+    #             entity=self.entity,
+    #             unique_field=clues_unique.final_field,
+    #             file=file_clues,
+    #         )
+    #     return dict_file.file.name
+    #
+    # def build_catalog_delegation(self):
+    #     from data_param.models import DictionaryFile
+    #     has_delegation_fields = self.name_columns.filter(
+    #         final_field__collection__model_name='Delegation').exists()
+    #     if not has_delegation_fields:
+    #         raise Exception("No se encontró un campo para construir delegación")
+    #     delegation_unique = self.name_columns.filter(
+    #         final_field__collection__model_name='Delegation',
+    #         final_field__is_unique=True).first()
+    #     if not delegation_unique:
+    #         raise Exception("No se encontró un campo único para Delegación")
+    #     dict_file = DictionaryFile.objects.filter(
+    #         collection__model_name='Delegation',
+    #         entity=self.entity,
+    #         unique_field=delegation_unique.final_field).first()
+    #     if not dict_file:
+    #         file_delegation, errors = self.build_catalog_delegation_by_id(
+    #             delegation_unique.final_field.name)
+    #         if errors:
+    #             raise Exception(f"Error al crear el catálogo de Delegación:"
+    #                             f" {errors}")
+    #         dict_file = DictionaryFile.objects.create(
+    #             collection=delegation_unique.final_field.collection,
+    #             entity=self.entity,
+    #             unique_field=delegation_unique.final_field,
+    #             file=file_delegation,
+    #         )
+    #     return dict_file.file.name
+    #
+    # def build_catalog_delegation_by_id(self, key_field='name'):
+    #     from catalog.models import Delegation
+    #     curr_delegations = Delegation.objects.filter(institution=self.institution)
+    #     if self.global_state:
+    #         curr_delegations = curr_delegations.filter(state=self.global_state)
+    #     delegations_query = list(curr_delegations.values(*delegation_value_list))
+    #     catalog_delegation = {}
+    #     for delegation in delegations_query:
+    #         delegation_name = text_normalizer(delegation[key_field])
+    #         if delegation_name not in catalog_delegation:
+    #             catalog_delegation[delegation_name] = delegation
+    #         alt_names = delegation["other_names"] or []
+    #         for alt_name in alt_names:
+    #             alt_name = text_normalizer(alt_name)
+    #             if alt_name not in catalog_delegation:
+    #                 catalog_delegation[alt_name] = delegation
+    #     final_path = f"{self.entity.acronym}/catalogs/delegation_by_{key_field}.json"
+    #     file_name, errors = create_file(
+    #         catalog_delegation, self.s3_client, final_path=final_path)
+    #     return file_name, errors
+    #
+    # def build_catalog_clues_by_id(self, key_field):
+    #     from catalog.models import CLUES
+    #     clues_data_query = CLUES.objects.filter(institution=self.institution)
+    #     if self.global_state:
+    #         clues_data_query.filter(state=self.global_state)
+    #     value_list = ["id", key_field]
+    #     clues_data_list = list(clues_data_query.values(*value_list))
+    #     catalog_clues = {}
+    #     for clues_data in clues_data_list:
+    #         clues_key = clues_data[key_field]
+    #         catalog_clues[clues_key] = clues_data["id"]
+    #     final_path = f"{self.entity.acronym}/catalogs/clues_by_{key_field}.json"
+    #     file_name, errors = create_file(
+    #         catalog_clues, self.s3_client, final_path=final_path)
+    #     return file_name, errors
+    #
+    # def build_catalog_container(self):
+    #     from data_param.models import DictionaryFile
+    #     container_unique = self.name_columns.filter(
+    #         final_field__collection__model_name='Container',
+    #         final_field__is_unique=True).first()
+    #     if not container_unique:
+    #         return None
+    #     dict_file = DictionaryFile.objects.filter(
+    #         collection__model_name='Container',
+    #         unique_field=container_unique.final_field).first()
+    #     if not dict_file:
+    #         file_container, errors = self.build_catalog_container_by_id(
+    #             container_unique.final_field.name)
+    #         if errors:
+    #             raise Exception(f"Error al crear el catálogo de Medicamentos aceptable:"
+    #                             f" {errors}")
+    #         dict_file = DictionaryFile.objects.create(
+    #             collection=container_unique.final_field.collection,
+    #             unique_field=container_unique.final_field,
+    #             file=file_container,
+    #         )
+    #     return dict_file.file.name
+    #
+    # def build_catalog_container_by_id(self, key_field):
+    #     from medicine.models import Container
+    #     query_filter = {f"{key_field}__isnull": False}
+    #     containers_query = Container.objects.filter(**query_filter)
+    #     containers_list = list(containers_query.values("id", key_field))
+    #     catalog_container = {}
+    #     for container in containers_list:
+    #         catalog_container[container[key_field]] = container["id"]
+    #     final_path = f"catalogs/container_by_{key_field}.json"
+    #     # return file_name, errors
+    #     return create_file(
+    #         catalog_container, self.s3_client, final_path=final_path)
+    #
+    # def build_catalog_diagnosis(self):
+    #     from data_param.models import DictionaryFile
+    #     diagnosis_unique = self.name_columns.filter(
+    #         final_field__collection__model_name='Diagnosis',
+    #         final_field__is_unique=True).first()
+    #     if not diagnosis_unique:
+    #         diagnosis_unique = self.name_columns.filter(
+    #             final_field__collection__model_name='Diagnosis').first()
+    #     if not diagnosis_unique:
+    #         return False
+    #     dict_file = DictionaryFile.objects.filter(
+    #         collection__model_name='Diagnosis',
+    #         unique_field=diagnosis_unique.final_field).first()
+    #     if not dict_file:
+    #         file_diagnosis, errors = self.build_catalog_diagnosis_by_id(
+    #             diagnosis_unique.final_field.name)
+    #         if errors:
+    #             raise Exception(f"Error al crear el catálogo de Diagnóstico:"
+    #                             f" {errors}")
+    #         dict_file = DictionaryFile.objects.create(
+    #             collection=diagnosis_unique.final_field.collection,
+    #             unique_field=diagnosis_unique.final_field,
+    #             file=file_diagnosis,
+    #         )
+    #     return dict_file.file.name
+    #
+    # def build_catalog_diagnosis_by_id(self, key_field):
+    #     from formula.models import Diagnosis
+    #     query_filter = {f"{key_field}__isnull": False}
+    #     diagnosis_query = Diagnosis.objects.filter(**query_filter)
+    #     diagnosis_list = list(diagnosis_query.values("id", key_field))
+    #     catalog_diagnosis = {diagnosis[key_field]: diagnosis["id"]
+    #                          for diagnosis in diagnosis_list}
+    #     final_path = f"catalogs/diagnosis_by_{key_field}.json"
+    #     return create_file(
+    #         catalog_diagnosis, self.s3_client, final_path=final_path)
+    #
+    # def build_catalog_area(self):
+    #     from data_param.models import DictionaryFile
+    #     area_unique = self.name_columns.filter(
+    #         final_field__collection__model_name='Area')\
+    #         .order_by('-final_field__is_unique').first()
+    #     if not area_unique:
+    #         return None
+    #     dict_file = DictionaryFile.objects.filter(
+    #         collection__model_name='Area',
+    #         entity=self.entity,
+    #         unique_field=area_unique.final_field).first()
+    #     if not dict_file:
+    #         file_area, errors = self.build_catalog_area_by_id(
+    #             area_unique.final_field.name)
+    #         if errors:
+    #             raise Exception(f"Error al crear el catálogo de Áreas:"
+    #                             f" {errors}")
+    #         dict_file = DictionaryFile.objects.create(
+    #             collection=area_unique.final_field.collection,
+    #             unique_field=area_unique.final_field,
+    #             entity=self.entity,
+    #             file=file_area,
+    #         )
+    #     return dict_file.file.name
+    #
+    # def build_catalog_area_by_id(self, key_field):
+    #     from catalog.models import Area
+    #     query_filter = {f"{key_field}__isnull": False, "entity": self.entity}
+    #     areas_query = Area.objects.filter(**query_filter)
+    #     areas_list = list(areas_query.values("id", key_field))
+    #     catalog_area = {area[key_field]: area["id"]
+    #                     for area in areas_list}
+    #     final_path = f"{self.entity.acronym}/catalogs/area_by_{key_field}.json"
+    #     return create_file(
+    #         catalog_area, self.s3_client, final_path=final_path)
 
-        columns = {"all": self.name_columns.values()}
-        clues_unique = self.name_columns.filter(
-            final_field__collection__model_name='CLUES',
-            final_field__is_unique=True).first()
-        if clues_unique:
-            self.build_catalog_clues_by_id(clues_unique.final_field.name)
-        columns["delegation"] = self.name_columns.filter(
-            final_field__collection__model_name='Delegation').values()
-        if not self.global_delegation and columns["delegation"]:
-            self.build_catalog_delegation()
+    def build_all_catalogs(self):
+        catalogs = {
+            "container": {
+                "model2": "medicine:Container",
+                "only_unique": True,
+                "required": False,
+                "by_entity": False,
+            },
+            "diagnosis": {
+                "model2": "formula:Diagnosis",
+                "only_unique": False,
+                "required": False,
+                "by_entity": False,
+            },
+            "area": {
+                "model2": "catalog:Area",
+                "only_unique": False,
+                "required": False,
+                "by_entity": True,
+            },
+        }
+        if not self.global_clues:
+            catalogs["clues"] = {
+                "model2": "catalog:CLUES",
+                "only_unique": True,
+                "required": True,
+                "by_entity": True,
+            }
+        if not self.global_delegation:
+            catalogs["delegation"] = {
+                "model2": "catalog:Delegation",
+                "only_unique": True,
+                "required": True,
+                "by_entity": True,
+                "complement_field": "other_names",
+            }
+        for [catalog_name, catalog] in catalogs.items():
+            if catalog["by_entity"]:
+                catalog["entity"] = self.entity
+            file_name = self.build_catalog(catalog_name, **catalog)
+            if file_name:
+                self.catalogs.append({ "name": catalog_name, "file": file_name })
+            elif catalog["required"]:
+                raise Exception(f"Error al crear el catálogo de {catalog_name}")
 
-    def build_catalog_delegation(self):
-        from catalog.models import Delegation
+    def build_catalog(self, catalog_name, model2, only_unique,
+                        entity=None, complement_field=None):
+        from data_param.models import DictionaryFile
+        from django.apps import apps
+        [app_name, model_name] = model2.split(":", 1)
+        model = apps.get_model(app_name, model_name)
+        query_unique = {"final_field__collection__model_name": model_name}
+        if only_unique:
+            query_unique["final_field__is_unique"] = True
+        model_unique = self.name_columns.filter(**query_unique)\
+            .order_by('-final_field__is_unique').first()
+        if not model_unique:
+            return None
+        query_dict_file = {"collection": model_unique.final_field.collection,
+                           "unique_field": model_unique.final_field}
+        if entity:
+            query_dict_file["entity"] = entity
+        dict_file = DictionaryFile.objects.filter(**query_dict_file).first()
+        if not dict_file:
+            query_dict_file["file"] = self.build_catalog_by_id(
+                model, model_unique.final_field.name, entity, catalog_name,
+                complement_field)
+            dict_file = DictionaryFile.objects.create(**query_dict_file)
+        return dict_file.file.name
 
-        curr_delegations = Delegation.objects.filter(institution=self.institution)
-        if self.global_state:
-            curr_delegations = curr_delegations.filter(state=self.global_state)
-        delegations_query = list(curr_delegations.values(*delegation_value_list))
-        for delegation in delegations_query:
-            delegation_name = text_normalizer(delegation["name"])
-            if delegation_name not in self.catalog_delegation:
-                self.catalog_delegation[delegation_name] = delegation
-            alt_names = delegation["other_names"] or []
-            for alt_name in alt_names:
-                alt_name = text_normalizer(alt_name)
-                if alt_name not in self.catalog_delegation:
-                    self.catalog_delegation[alt_name] = delegation
-        # print("DELEGATIONS: \n", self.catalog_delegation)
-
-    def build_catalog_clues_by_id(self, key_field):
-        from catalog.models import CLUES
-        clues_data_query = CLUES.objects.filter(institution=self.institution)
-        if self.global_state:
-            clues_data_query.filter(state=self.global_state)
-        value_list = ["id", key_field]
-        clues_data_list = list(clues_data_query.values(*value_list))
-        for clues_data in clues_data_list:
-            clues_key = clues_data[key_field]
-            self.catalog_clues_by_id[clues_key] = clues_data["id"]
-
-    def build_catalog_container(self):
-        from medicine.models import Container
-        all_containers = Container.objects.all()
-        containers_query = list(all_containers.values('key2', 'id'))
-        for container in containers_query:
-            self.catalog_container[container["key2"]] = container["id"]
+    def build_catalog_by_id(
+            self, model, key_field, entity, catalog_name, complement_field):
+        query_filter = {f"{key_field}__isnull": False}
+        if entity:
+            query_filter["entity"] = entity
+        model_query = model.objects.filter(**query_filter)
+        list_values = ["id", key_field]
+        if complement_field:
+            list_values.append(complement_field)
+        model_list = list(model_query.values(*list_values))
+        catalog_model = {}
+        for elem in model_list:
+            catalog_model[model[key_field]] = elem["id"]
+            if complement_field:
+                complement_list = elem[complement_field] or []
+                for name in complement_list:
+                    if name not in catalog_model:
+                        catalog_model[name] = elem["id"]
+        final_path = f"catalogs/{model.__name__.lower()}_by_{key_field}.json"
+        if entity:
+            final_path = f"{entity.acronym}/{final_path}"
+        file_model, errors = create_file(
+            catalog_model, self.s3_client, final_path=final_path)
+        if errors:
+            raise Exception(f"Error creando catálogo {catalog_name}: {errors}")
+        return file_model
 
     def get_date_format(self):
         from data_param.models import Transformation
         transformation = Transformation.objects.filter(
             clean_function__name="format_date",
             file_control=self.file_control).first()
+        if not transformation:
+            transformation = Transformation.objects.filter(
+                clean_function__name="format_date",
+                name_column__file_control=self.file_control).first()
         return transformation.addl_params["value"] \
-            if transformation else '%Y-%m-%d %H:%M:%S.%f'
+            if transformation else '%Y-%m-%d %H:%M:%S.%fYYY'
 
     # ########## FUNCIONES AUXILIARES #############
     def send_csv_to_db(self, path, model_name):
@@ -338,62 +605,3 @@ class Match:
         self.task_params["models"] = [self.data_file]
         self.task_params["function_after"] = "check_success_insert"
         return async_in_lambda("save_csv_in_db", params, self.task_params)
-
-    def create_delegation(self, delegation_name, clues_id):
-        from catalog.models import Delegation, CLUES
-        if self.institution.code in ["ISSSTE", "IMSS"]:
-            try:
-                clues_obj = CLUES.objects.get(id=clues_id)
-                del_obj, created = Delegation.objects.get_or_create(
-                    institution=self.institution,
-                    name=delegation_name,
-                    clues=clues_obj,
-                    state=clues_obj.state,
-                )
-                delegation_id = del_obj.id
-                final_delegation = {}
-                for field in delegation_value_list:
-                    final_delegation[field] = getattr(del_obj, field)
-                self.catalog_delegation[delegation_name] = final_delegation
-                return delegation_id, None
-            except Exception as e:
-                return None, "No se pudo crear la delegación, ERROR: %s" % e
-        else:
-            error = "Por alguna razón, no es ISSSTE o IMSS y no tiene delegación"
-            return None, error
-
-
-#def save_csv_in_db(event, context):
-def lambda_handler(event, context):
-    import psycopg2
-    db_config = event.get("db_config")
-    sql_query = event.get("sql_query")
-    connection = psycopg2.connect(
-        database=db_config.get("NAME"),
-        user=db_config.get("USER"),
-        password=db_config.get("PASSWORD"),
-        host=db_config.get("HOST"),
-        port=db_config.get("PORT"))
-    cursor = connection.cursor()
-    cursor.execute(sql_query)
-    connection.commit()
-    cursor.close()
-    connection.close()
-
-# https://apidesabasto.yeeko.org/api/inai/data_file/3862/insert_data/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

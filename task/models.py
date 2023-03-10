@@ -67,10 +67,13 @@ class AsyncTask(models.Model):
     date_end = models.DateTimeField(blank=True, null=True)
 
     def save_status(self, status_id=None):
+        from datetime import datetime
         if status_id:
             self.status_task_id = status_id
         else:
             self.status_task_id = self.status_task_id
+        if self.status_task.is_completed and not self.date_end:
+            self.date_end = datetime.now()
         self.save()
         return self
 

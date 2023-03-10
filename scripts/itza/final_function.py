@@ -108,16 +108,16 @@ def new_clues(tot_list):
 news_clues = new_clues(tot_list)
 
 
-#Funcion para cargar clues nuevas identificadas con new_clues
-#Esta funcion se está probando...
-def import_newclues(tot_list):
+# Funcion para cargar clues nuevas identificadas con new_clues
+# Esta funcion se está probando...
+def import_new_clues(tot_list):
     from catalog.models import State
     from catalog.models import Institution
     from catalog.models import CLUES
     from catalog.models import Municipality
-    newclues = tot_list
-    #newclues = new_clues(tot_list)
-    for row in newclues:
+    new_clues = tot_list
+    # new_clues = new_clues(tot_list)
+    for row in new_clues:
         state_inegi_code = row[2]
         try:
             state = State.objects.get(inegi_code=state_inegi_code)
@@ -135,9 +135,9 @@ def import_newclues(tot_list):
         except Exception as e:
             municipality = None    
         clues_n = CLUES.objects.create(
-            state = state,
-            institution = institution,
-            name = row[17],
+            state=state,
+            institution=institution,
+            name=row[17],
             #municipality - se carga field municipality? en el modelo CLUES esta
             municipality_inegi_code = municipality,
             typology = row[11],
@@ -145,7 +145,7 @@ def import_newclues(tot_list):
             typology_cve=row[12],
             id_clues=row[0],
             clues=row[1],
-            status_operation = row[25],
+            status_operation=row[25],
             longitude=row[28],
             latitude=row[27],
             locality=row[4],

@@ -5,6 +5,7 @@ from catalog.models import Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
+from classify_task.models import Stage, StatusTask
 from transparency.models import Anomaly
 from data_param.models import (
     DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup, FileControl)
@@ -278,6 +279,14 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         on_delete=models.CASCADE)
     status_process = models.ForeignKey(
         StatusControl, blank=True, null=True, on_delete=models.CASCADE)
+
+    stage = models.ForeignKey(
+        Stage, blank=True, null=True, on_delete=models.CASCADE,
+        verbose_name="Etapa actual")
+    status = models.ForeignKey(
+        StatusTask, blank=True, null=True, on_delete=models.CASCADE,
+        verbose_name="Status actual")
+
     file_type = models.ForeignKey(
         FileType, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="Tipo de archivo")
@@ -287,6 +296,8 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True, verbose_name="Primeros datos, de exploración")
     sheet_names = JSONField(
         blank=True, null=True, verbose_name="Nombres de las hojas")
+    sheets_to_insert = JSONField(
+        blank=True, null=True, verbose_name="Nombres de las hojas a insertar")
     suffix = models.CharField(
         max_length=10, blank=True, null=True)
     directory = models.CharField(

@@ -1,50 +1,14 @@
-from desabasto.models import *
 import re
 from django.db.models import Q
-import unidecode
-from catalog.models import CLUES
-
-
-def get_int(numb):
-    if numb.is_digit():
-        # return int(row[17])
-        pass
-    else:
-        return 0
+from catalog.models import State, Institution, CLUES
 
 # ------------EJEMPLO HIDRATED---------------- #
-
-def getFileCsv(file_path):
-    import io
-    with io.open(file_path, "r", encoding="utf-8") as file:
-        data = file.read()
-        rr_data_rows = data.split("\n")
-        headers = rr_data_rows.pop(0)
-        all_headers = headers.split("|")
-        print(all_headers)
-        return all_headers, rr_data_rows
-
-
-def hydrateCol(row, all_headers):
-    hydrated = {}
-    cols = row.split("|")
-    if not len(cols):
-        return False
-    for idx_head, header in enumerate(all_headers):
-        try:
-            hydrated[header] = cols[idx_head]
-        except Exception as e:
-            print(cols)
-            print(hydrated)
-            return False
-    return hydrated
 
 
 def import_clues():
     import csv
     from pprint import pprint
     from django.utils.dateparse import parse_datetime
-    from catalog.models import (State, Institution, CLUES)
     with open('clues.csv') as csv_file:
         #contents = f.read().decode("UTF-8")
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -71,21 +35,20 @@ def import_clues():
                 print(clues)
 
 
-def set_searcheable_clues():
-    from catalog.models import (State, Institution, CLUES)
+def set_searchable_clues():
     from django.db.models import Q
-    is_seach = CLUES.objects.filter(status_operation='EN OPERACION')\
+    is_search = CLUES.objects.filter(status_operation='EN OPERACION')\
         .exclude(Q(institution__code='SMP')|Q(institution__code='HUN')
             |Q(institution__code='CIJ')|Q(institution__code='CRO')
             |Q(establishment_type='DE APOYO')
             |Q(establishment_type='DE ASISTENCIA SOCIAL')
             |Q(typology_cve='BS')|Q(typology_cve='X')
             |Q(typology_cve='P')|Q(typology_cve='UMM'))
-    is_seach.update(is_searchable=True)
+    print("count: %s" % is_search.count())
+    is_search.update(is_searchable=True)
 
 
 def update_institution_public():
-    from catalog.models import Institution
     for institution in Institution.objects.all():
         institution.public_name = institution.name
         institution.public_code = institution.code
@@ -94,312 +57,312 @@ def update_institution_public():
 
 typologies = [
     {
-        'typology_cve': u'UMF',
+        'typology_cve': 'UMF',
         'typology': None,
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'UMF',
-        'clasif_name': u'Unidad Médica Familiar',
-        'alter_clasifs': u'unidad de medicina familiar',
-        'chars':[u'UMF ', u'Unidad de Medicina Familiar No. '
-            ,u'Unidad de Medicina Familiar No.',u'Unidad de Medicina Familiar ',
-            u'UMF No',u'U.H.F. ',u'UMF/UMAA '],
+        'prev_clasif_name': 'UMF',
+        'clasif_name': 'Unidad Médica Familiar',
+        'alter_clasifs': 'unidad de medicina familiar',
+        'chars':['UMF ', 'Unidad de Medicina Familiar No. '
+            ,'Unidad de Medicina Familiar No.','Unidad de Medicina Familiar ',
+            'UMF No','U.H.F. ','UMF/UMAA '],
     },{
         'typology_cve': None,
-        'typology': u'CASA DE SALUD',
+        'typology': 'CASA DE SALUD',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'Casa de S.',
-        'clasif_name': u'Casa de Salud',
-        'alter_clasifs': u'',
-        'chars':[u'Casa de salud '],
+        'prev_clasif_name': 'Casa de S.',
+        'clasif_name': 'Casa de Salud',
+        'alter_clasifs': '',
+        'chars':['Casa de salud '],
     },{
         'typology_cve': None,
-        'typology': u'CLÍNICA DE ESPECIALIDADES',
+        'typology': 'CLÍNICA DE ESPECIALIDADES',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'Clínica de Esp.',
-        'clasif_name': u'Clínica de Especialidades',
+        'prev_clasif_name': 'Clínica de Esp.',
+        'clasif_name': 'Clínica de Especialidades',
         'alter_clasifs': None,
-        'chars':[u'CE '],
+        'chars':['CE '],
     },{
-        'typology_cve': u'99',
+        'typology_cve': '99',
         'typology': None,
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'CRI',
-        'clasif_name': u'Centro de Rehabilitación Integral',
-        'alter_clasifs': u'educación especial',
+        'prev_clasif_name': 'CRI',
+        'clasif_name': 'Centro de Rehabilitación Integral',
+        'alter_clasifs': 'educación especial',
         'chars':[
-            u'CENTRO DE REHABILITACION INTEGRAL (CRI)',
-            u'CENTRO DE REHABILITACION INTEGRAL ',
-            u'CENTRO DE REHABILITACION Y EDUCACION ESPECIAL '],
+            'CENTRO DE REHABILITACION INTEGRAL (CRI)',
+            'CENTRO DE REHABILITACION INTEGRAL ',
+            'CENTRO DE REHABILITACION Y EDUCACION ESPECIAL '],
     },{
-        'typology_cve': u'CAAPS',
+        'typology_cve': 'CAAPS',
         'typology': None,
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'CAAPS',
-        'clasif_name': u'Centro de Rehabilitación Integral',
-        'alter_clasifs': u'ceaps ceap cap cedral caap',
-        'chars':[u'CAAPS ',u'CEAPS ','CENTRO DE SALUD CEDRAL','CENTRO DE SALUD ',
-            u'CENTRO AVANZADO DE ATENCIÓN PRIMARIA A LA  SALUD',
-            u'CENTRO AVANZADO DE ATENCIÓN PRIMARÍA A LA SALUD',
-            u'CENTRO ESPECIALIZADO EN ATENCIÓN PRIMARIA A LA SALUD'],
+        'prev_clasif_name': 'CAAPS',
+        'clasif_name': 'Centro de Rehabilitación Integral',
+        'alter_clasifs': 'ceaps ceap cap cedral caap',
+        'chars':['CAAPS ','CEAPS ','CENTRO DE SALUD CEDRAL','CENTRO DE SALUD ',
+            'CENTRO AVANZADO DE ATENCIÓN PRIMARIA A LA  SALUD',
+            'CENTRO AVANZADO DE ATENCIÓN PRIMARÍA A LA SALUD',
+            'CENTRO ESPECIALIZADO EN ATENCIÓN PRIMARIA A LA SALUD'],
     },{
         'typology_cve': None,
-        'typology': u'CENTRO DE SALUD CON HOSPITALIZACIÓN',
+        'typology': 'CENTRO DE SALUD CON HOSPITALIZACIÓN',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'CS c/Hosp',
-        'clasif_name': u'C. de Salud con Hospitalización',
-        'alter_clasifs': u'clínica regional',
+        'prev_clasif_name': 'CS c/Hosp',
+        'clasif_name': 'C. de Salud con Hospitalización',
+        'alter_clasifs': 'clínica regional',
         'chars':[
-            u'CENTRO DE SALUD CON HOSPITALIZACIÓN',
-            u'CENTRO DE SALUD CON HOSPITAL',
-            u'C.S. C/ HOSPITALIZACIÓN'
-            u'CSC/H '
-            u'CLINICA REGIONAL'
+            'CENTRO DE SALUD CON HOSPITALIZACIÓN',
+            'CENTRO DE SALUD CON HOSPITAL',
+            'C.S. C/ HOSPITALIZACIÓN'
+            'CSC/H '
+            'CLINICA REGIONAL'
         ],
     },{
         'typology_cve': None,
-        'typology': u'CENTROS DE SALUD CON SERVICIOS AMPLIADOS',
+        'typology': 'CENTROS DE SALUD CON SERVICIOS AMPLIADOS',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'CESSA',
-        'clasif_name': u'C. de Salud con Serv. Ampliados',
-        'alter_clasifs': u'cesa',
+        'prev_clasif_name': 'CESSA',
+        'clasif_name': 'C. de Salud con Serv. Ampliados',
+        'alter_clasifs': 'cesa',
         'chars':[
-            u'CENTRO DE SALUD DE SERVICIOS AMPLIADOS DE',
-            u'CENTRO DE SALUD CON SERVICIOS AMPLIADOS (CESSA)',
-            u'CENTRO DE SALUD CON SERVICIOS AMPLIADOS',
-            u'CENTRO DE SALUD',
-            u'CESSA',
-            u'CESA'
+            'CENTRO DE SALUD DE SERVICIOS AMPLIADOS DE',
+            'CENTRO DE SALUD CON SERVICIOS AMPLIADOS (CESSA)',
+            'CENTRO DE SALUD CON SERVICIOS AMPLIADOS',
+            'CENTRO DE SALUD',
+            'CESSA',
+            'CESA'
         ],
     },
     {
         'typology_cve': None,
-        'typology': u'HOSPITAL ESPECIALIZADO',
+        'typology': 'HOSPITAL ESPECIALIZADO',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'H Esp',
-        'clasif_name': u'Hospital Especializado',
+        'prev_clasif_name': 'H Esp',
+        'clasif_name': 'Hospital Especializado',
         'alter_clasifs': 'especialidades',
         'chars':[
-            u'HIES',
+            'HIES',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL ESPECIALIZADO',
+        'typology': 'HOSPITAL ESPECIALIZADO',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'H Ped',
-        'clasif_name': u'Hospital Pediátrico',
+        'prev_clasif_name': 'H Ped',
+        'clasif_name': 'Hospital Pediátrico',
         'alter_clasifs': 'pediatría',
         'chars':[
-            u'HOSPITAL PEDIÁTRICO',
+            'HOSPITAL PEDIÁTRICO',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL ESPECIALIZADO',
+        'typology': 'HOSPITAL ESPECIALIZADO',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'H Mat-Inf',
-        'clasif_name': u'Hospital Materno Infantil',
+        'prev_clasif_name': 'H Mat-Inf',
+        'clasif_name': 'Hospital Materno Infantil',
         'alter_clasifs': 'pediatría',
         'chars':[
-            u'HOSPITAL MATERNO INFANTIL',
+            'HOSPITAL MATERNO INFANTIL',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL ESPECIALIZADO',
+        'typology': 'HOSPITAL ESPECIALIZADO',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'H Mujer',
-        'clasif_name': u'Hospital de la Mujer',
+        'prev_clasif_name': 'H Mujer',
+        'clasif_name': 'Hospital de la Mujer',
         'alter_clasifs': None,
         'chars':[
-            u'HOSPITAL DE LA MUJER',
+            'HOSPITAL DE LA MUJER',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL ESPECIALIZADO',
+        'typology': 'HOSPITAL ESPECIALIZADO',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'HRAE Mujer',
-        'clasif_name': u'Hosp. Reg. de Alta Espec. de la Mujer',
+        'prev_clasif_name': 'HRAE Mujer',
+        'clasif_name': 'Hosp. Reg. de Alta Espec. de la Mujer',
         'alter_clasifs': 'especialidad hospital regional',
         'chars':[
-            u'HOSPITAL REGIONAL DE ALTA ESPECIALIDAD DE LA MUJER',
+            'HOSPITAL REGIONAL DE ALTA ESPECIALIDAD DE LA MUJER',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL ESPECIALIZADO',
+        'typology': 'HOSPITAL ESPECIALIZADO',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'HRAE',
-        'clasif_name': u'Hosp. Reg. de Alta Especialidad',
+        'prev_clasif_name': 'HRAE',
+        'clasif_name': 'Hosp. Reg. de Alta Especialidad',
         'alter_clasifs': 'hospital regional',
         'chars':[
-            u'HOSPITAL REGIONAL DE ALTA ESPECIALIDAD',
+            'HOSPITAL REGIONAL DE ALTA ESPECIALIDAD',
         ],
     },{
         #CAMBIO
         'typology_cve': None,
-        'typology': u'HOSPITAL DE GINECO-PEDIATRÍA',
+        'typology': 'HOSPITAL DE GINECO-PEDIATRÍA',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'H Esp',
-        'clasif_name': u'Hospital de Ginecopediatría',
+        'prev_clasif_name': 'H Esp',
+        'clasif_name': 'Hospital de Ginecopediatría',
         'alter_clasifs': 'especialidades',
         'chars':[
-            u'HGP',
+            'HGP',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL DE GINECO-OBSTETRICIA',
+        'typology': 'HOSPITAL DE GINECO-OBSTETRICIA',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HGO',
-        'clasif_name': u'Hospital de Gineco Obstetricia',
+        'prev_clasif_name': 'HGO',
+        'clasif_name': 'Hospital de Gineco Obstetricia',
         'alter_clasifs': 'ginecológico',
         'chars':[
-            u'HGO',
+            'HGO',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL DE GINECO-OBSTETRICIA CON MEDICINA FAMILIAR',
+        'typology': 'HOSPITAL DE GINECO-OBSTETRICIA CON MEDICINA FAMILIAR',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HGOMF',
-        'clasif_name': u'H. de Gineco-Obstetricia con Med. Fam.',
+        'prev_clasif_name': 'HGOMF',
+        'clasif_name': 'H. de Gineco-Obstetricia con Med. Fam.',
         'alter_clasifs': 'ginecologico medicina familiar hospital',
         'chars':[
-            u'HGOMF',
+            'HGOMF',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL GENERAL DE SUBZONA',
+        'typology': 'HOSPITAL GENERAL DE SUBZONA',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HGSZ',
-        'clasif_name': u'Hospital Gral de Subzona',
+        'prev_clasif_name': 'HGSZ',
+        'clasif_name': 'Hospital Gral de Subzona',
         'alter_clasifs': 'general subzona',
         'chars':[
-            u'HGS',
+            'HGS',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL GENERAL DE SUBZONA CON MEDICINA FAMILIAR',
+        'typology': 'HOSPITAL GENERAL DE SUBZONA CON MEDICINA FAMILIAR',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HRAE Mujer',
-        'clasif_name': u'Hosp Gral de Subzona con Med Fam',
+        'prev_clasif_name': 'HRAE Mujer',
+        'clasif_name': 'Hosp Gral de Subzona con Med Fam',
         'alter_clasifs': ' HOSPITAL GENERAL MEDICINA FAMILIAR',
         'chars':[
-            u'HGSMF',
+            'HGSMF',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL DE ESPECIALIDADES',
+        'typology': 'HOSPITAL DE ESPECIALIDADES',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HE',
-        'clasif_name': u'Hospital de Especialidades',
+        'prev_clasif_name': 'HE',
+        'clasif_name': 'Hospital de Especialidades',
         'alter_clasifs': None,
         'chars':[
-            u'HES',
+            'HES',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL PSIQUIÁTRICO',
+        'typology': 'HOSPITAL PSIQUIÁTRICO',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'H Psiq',
-        'clasif_name': u'Hospital Psiquiátrico',
+        'prev_clasif_name': 'H Psiq',
+        'clasif_name': 'Hospital Psiquiátrico',
         'alter_clasifs': 'psiquiatra',
         'chars':[
-            u'HOSPITAL PSIQUIÁTRICO',
+            'HOSPITAL PSIQUIÁTRICO',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL GENERAL REGIONAL',
+        'typology': 'HOSPITAL GENERAL REGIONAL',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HGR',
-        'clasif_name': u'Hospital General Regional',
-        'alter_clasifs': u'',
+        'prev_clasif_name': 'HGR',
+        'clasif_name': 'Hospital General Regional',
+        'alter_clasifs': '',
         'chars':[
-            u'HGR',
-            u'HOSPITAL GENERAL REGIONAL',
+            'HGR',
+            'HOSPITAL GENERAL REGIONAL',
         ],
     },
     {
         'typology_cve': None,
-        'typology': u'HOSPITAL GENERAL DE ZONA CON MEDICINA FAMILIAR',
+        'typology': 'HOSPITAL GENERAL DE ZONA CON MEDICINA FAMILIAR',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HGZMF',
-        'clasif_name': u'Hosp Gral de Zona con Med Fam',
-        'alter_clasifs': u'Hospital General de Medicina Familiar HGZ',
+        'prev_clasif_name': 'HGZMF',
+        'clasif_name': 'Hosp Gral de Zona con Med Fam',
+        'alter_clasifs': 'Hospital General de Medicina Familiar HGZ',
         'chars':[
-            u'HGZMF',
-            u'HOSPITAL GENERAL DE ZONA',
+            'HGZMF',
+            'HOSPITAL GENERAL DE ZONA',
         ],
     },
     {
         'typology_cve': None,
-        'typology': u'HOSPITAL GENERAL DE ZONA',
+        'typology': 'HOSPITAL GENERAL DE ZONA',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HGZ',
-        'clasif_name': u'Hospital General de Zona',
-        'alter_clasifs': u'HGZ HGZMF',
+        'prev_clasif_name': 'HGZ',
+        'clasif_name': 'Hospital General de Zona',
+        'alter_clasifs': 'HGZ HGZMF',
         'chars':[
-            u'HGZ ',
-            u'HOSPITAL GENERAL DE ZONA',
+            'HGZ ',
+            'HOSPITAL GENERAL DE ZONA',
         ],
     },
     {
         'typology_cve': None,
-        'typology': u'HOSPITAL INTEGRAL (COMUNITARIO)',
+        'typology': 'HOSPITAL INTEGRAL (COMUNITARIO)',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HIC',
-        'clasif_name': u'Hosp Integral Comunitario',
-        'alter_clasifs': u'básico hospital',
+        'prev_clasif_name': 'HIC',
+        'clasif_name': 'Hosp Integral Comunitario',
+        'alter_clasifs': 'básico hospital',
         'chars':[
-            u'H. B. C.',
-            u'HOSPITAL BÁSICO COMUNITARIO',
-            u'HOSPITAL COMUNITARIO',
-            u'HOSPITAL INTEGRAL',
-            u'HC',
-            u'HI',
+            'H. B. C.',
+            'HOSPITAL BÁSICO COMUNITARIO',
+            'HOSPITAL COMUNITARIO',
+            'HOSPITAL INTEGRAL',
+            'HC',
+            'HI',
         ],
     },{
         'typology_cve': None,
         'typology': None,
         'typologies': 'urbano de ',
         'all_clues': False,
-        'prev_clasif_name': u'CS Urbano',
-        'clasif_name': u'Centro de Salud Urbano',
-        'alter_clasifs': u'consulta externa clínica',
+        'prev_clasif_name': 'CS Urbano',
+        'clasif_name': 'Centro de Salud Urbano',
+        'alter_clasifs': 'consulta externa clínica',
         'chars':[
-            u'CS Urbano',
-            u'Centro de Salud Urbano',
-            u'URBANO DE',
-            u'URB.DE',
-            u'U 0',
-            u'U-0',
-            u'CSU',
-            u'C.S.',
-            u'C. S.',
-            u'C.S',
-            u'CENTRO DE SALUD',
-            u'CS',
-            u'CENTRO SALUD',
-            u'CLÍNICA DE CONSULTA EXTERNA',
+            'CS Urbano',
+            'Centro de Salud Urbano',
+            'URBANO DE',
+            'URB.DE',
+            'U 0',
+            'U-0',
+            'CSU',
+            'C.S.',
+            'C. S.',
+            'C.S',
+            'CENTRO DE SALUD',
+            'CS',
+            'CENTRO SALUD',
+            'CLÍNICA DE CONSULTA EXTERNA',
         ],
     },
     {
@@ -407,53 +370,53 @@ typologies = [
         'typology': None,
         'typologies': 'rural de ',
         'all_clues': False,
-        'prev_clasif_name': u'CS Rural',
-        'clasif_name': u'Centro de Salud Rural',
-        'alter_clasifs': u'consulta externa clínica unidad médica módulo',
+        'prev_clasif_name': 'CS Rural',
+        'clasif_name': 'Centro de Salud Rural',
+        'alter_clasifs': 'consulta externa clínica unidad médica módulo',
         'chars':[
-            u'CS Rural',
-            u'Centro de Salud Rural',
-            u'Unidad Médica tradicional ',
-            u'MÓDULO DE MEDICINA TRADICIONAL',
-            u'UNIDAD MEDICA RURAL',
-            u'UNIDAD MÉDICA RURAL',
-            u'RURAL DE ',
-            u'U.M.R. ',
-            u'R 0',
-            u'R-0',
-            u'R0',
-            u'RUR.DE ',
-            u'RUR. DE ',
-            u'C.S.',
-            u'C. S.',
-            u'C.S',
-            u'CENTRO DE SALUD',
-            u'CS',
-            u'CENTRO SALUD',
-            u'CLÍNICA DE CONSULTA EXTERNA',
+            'CS Rural',
+            'Centro de Salud Rural',
+            'Unidad Médica tradicional ',
+            'MÓDULO DE MEDICINA TRADICIONAL',
+            'UNIDAD MEDICA RURAL',
+            'UNIDAD MÉDICA RURAL',
+            'RURAL DE ',
+            'U.M.R. ',
+            'R 0',
+            'R-0',
+            'R0',
+            'RUR.DE ',
+            'RUR. DE ',
+            'C.S.',
+            'C. S.',
+            'C.S',
+            'CENTRO DE SALUD',
+            'CS',
+            'CENTRO SALUD',
+            'CLÍNICA DE CONSULTA EXTERNA',
         ],
     },{
         'typology_cve': None,
-        'typology': u'HOSPITAL ESPECIALIZADO',
+        'typology': 'HOSPITAL ESPECIALIZADO',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'HG',
-        'clasif_name': u'Hospital General',
-        'alter_clasifs': u'',
+        'prev_clasif_name': 'HG',
+        'clasif_name': 'Hospital General',
+        'alter_clasifs': '',
         'chars':[
-            u'HOSPITAL GENERAL',
+            'HOSPITAL GENERAL',
         ],
     },
     {
         'typology_cve': None,
-        'typology': u'HOSPITAL GENERAL',
+        'typology': 'HOSPITAL GENERAL',
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'HR',
-        'clasif_name': u'Hospital Regional',
-        'alter_clasifs': u'general',
+        'prev_clasif_name': 'HR',
+        'clasif_name': 'Hospital Regional',
+        'alter_clasifs': 'general',
         'chars':[
-            u'HOSPITAL REGIONAL',
+            'HOSPITAL REGIONAL',
         ],
     },
     {
@@ -461,26 +424,26 @@ typologies = [
         'typology': None,
         'typologies': None,
         'all_clues': False,
-        'prev_clasif_name': u'HR',
-        'clasif_name': u'Hospital Regional',
-        'alter_clasifs': u'general',
+        'prev_clasif_name': 'HR',
+        'clasif_name': 'Hospital Regional',
+        'alter_clasifs': 'general',
         'chars':[
-            u'HOSPITAL REGIONAL',
+            'HOSPITAL REGIONAL',
         ],
     },
     {
         'typology_cve': None,
-        'typology': u'HOSPITAL GENERAL',
+        'typology': 'HOSPITAL GENERAL',
         'typologies': None,
         'all_clues': True,
-        'prev_clasif_name': u'HG',
-        'clasif_name': u'Hospital General',
-        'alter_clasifs': u'',
+        'prev_clasif_name': 'HG',
+        'clasif_name': 'Hospital General',
+        'alter_clasifs': '',
         'chars':[
-            u'HOSPITAL GENERAL',
-            u'HOSPITAL GRAL.',
-            u'H.G.',
-            u'HG',
+            'HOSPITAL GENERAL',
+            'HOSPITAL GRAL.',
+            'H.G.',
+            'HG',
         ],
     },
     ]
@@ -492,11 +455,11 @@ typologies2 = [
         'typologies': None,
         'institution': 'SEDENA',
         'all_clues': False,
-        'prev_clasif_name': u'HMR',
-        'clasif_name': u'Hospital Militar General',
+        'prev_clasif_name': 'HMR',
+        'clasif_name': 'Hospital Militar General',
         'alter_clasifs': None,
         'chars':[
-            u'HOSPITAL MILITAR REGIONAL',
+            'HOSPITAL MILITAR REGIONAL',
         ],
     },
     {
@@ -506,11 +469,11 @@ typologies2 = [
         'typologies': None,
         'institution': 'SEDENA',
         'all_clues': False,
-        'prev_clasif_name': u'HMR',
-        'clasif_name': u'Hospital Militar de Zona',
+        'prev_clasif_name': 'HMR',
+        'clasif_name': 'Hospital Militar de Zona',
         'alter_clasifs': None,
         'chars':[
-            u'HOSPITAL MILITAR REGIONAL',
+            'HOSPITAL MILITAR REGIONAL',
         ],
     },
     {
@@ -519,8 +482,8 @@ typologies2 = [
         'typologies': None,
         'institution': 'SEDENA',
         'all_clues': True,
-        'prev_clasif_name': u'SEDENA',
-        'clasif_name': u'Secretaría de la Defensa',
+        'prev_clasif_name': 'SEDENA',
+        'clasif_name': 'Secretaría de la Defensa',
         'alter_clasifs': None,
         'chars':[
         ],
@@ -534,8 +497,8 @@ typologies3 = [
         'typologies': None,
         'institution': 'ISSSTE',
         'all_clues': False,
-        'prev_clasif_name': u'HR/HAE',
-        'clasif_name': u'Hosp Reg / Alta Especialidad',
+        'prev_clasif_name': 'HR/HAE',
+        'clasif_name': 'Hosp Reg / Alta Especialidad',
         'alter_clasifs': None,
         'chars':[
         ],
@@ -547,11 +510,11 @@ typologies3 = [
         'typologies': None,
         'institution': 'SSA',
         'all_clues': False,
-        'prev_clasif_name': u'Inst Nal',
-        'clasif_name': u'Instituto Nacional',
+        'prev_clasif_name': 'Inst Nal',
+        'clasif_name': 'Instituto Nacional',
         'alter_clasifs': None,
         'chars':[
-            u'INSTITUTO NACIONAL DE ',
+            'INSTITUTO NACIONAL DE ',
         ],
     }]
 
@@ -573,20 +536,20 @@ typologies_f=[{
 typologies_rurb=[
     {
         'typology_cve': None,
-        'typology': u'HOSPITAL INTEGRAL (COMUNITARIO)',
+        'typology': 'HOSPITAL INTEGRAL (COMUNITARIO)',
         'typologies': None,
         'all_clues': True,
         'institution': None,
-        'prev_clasif_name': u'HIC',
-        'clasif_name': u'Hosp Integral Comunitario',
-        'alter_clasifs': u'básico hospital',
+        'prev_clasif_name': 'HIC',
+        'clasif_name': 'Hosp Integral Comunitario',
+        'alter_clasifs': 'básico hospital',
         'chars':[
-            u'H. B. C.',
-            u'HOSPITAL BÁSICO COMUNITARIO',
-            u'HOSPITAL COMUNITARIO',
-            u'HOSPITAL INTEGRAL',
-            u'HC',
-            u'HI',
+            'H. B. C.',
+            'HOSPITAL BÁSICO COMUNITARIO',
+            'HOSPITAL COMUNITARIO',
+            'HOSPITAL INTEGRAL',
+            'HC',
+            'HI',
         ],
     },{
         #no está repetido???
@@ -595,30 +558,30 @@ typologies_rurb=[
         'typologies': 'urbano de ',
         'all_clues': True,
         'institution': None,
-        'prev_clasif_name': u'CS Urbano',
-        'clasif_name': u'Centro de Salud Urbano',
-        'alter_clasifs': u'consulta externa clínica',
+        'prev_clasif_name': 'CS Urbano',
+        'clasif_name': 'Centro de Salud Urbano',
+        'alter_clasifs': 'consulta externa clínica',
         'chars':[
-            u'CS Urbano',
-            u'Centro de Salud Urbano',
-            u'URBANO DE',
-            u'URB.DE',
-            u'U 0',
-            u'U-0',
-            u'CSU',
-            u'C.S.',
-            u'C. S.',
-            u'C.S',
-            u'CENTRO DE SALUD',
-            u'CS',
-            u'CENTRO SALUD',
-            u'CLÍNICA DE CONSULTA EXTERNA',
+            'CS Urbano',
+            'Centro de Salud Urbano',
+            'URBANO DE',
+            'URB.DE',
+            'U 0',
+            'U-0',
+            'CSU',
+            'C.S.',
+            'C. S.',
+            'C.S',
+            'CENTRO DE SALUD',
+            'CS',
+            'CENTRO SALUD',
+            'CLÍNICA DE CONSULTA EXTERNA',
         ],
     }]
 
 
-def insert_names(clues, tipo, char=False):
-    the_clues = clues#.filter(real_name__isnull=True)
+def insert_names(clues, tipo, char=""):
+    the_clues = clues  # .filter(real_name__isnull=True)
     if char:
         the_clues = the_clues.filter(name__istartswith=char)
     len_char = len(char) if char else 0
@@ -629,7 +592,7 @@ def insert_names(clues, tipo, char=False):
     for hosp in the_clues:
         real_name = hosp.name[len_char:]
         real_name = " ".join(real_name.split())
-        arr_nums = re.findall('\d+', real_name)
+        arr_nums = re.findall(r'\d+', real_name)
         if tipo['typologies']:
             len_char2 = re.search(r"\d", real_name[:5])
             if len_char2 is not None:
@@ -643,18 +606,20 @@ def insert_names(clues, tipo, char=False):
             hosp.real_name = real_name
         hosp.save()
 
-def rururb():
-    for tipo in typologies_rurb:
+
+def rururb(current_list):
+    for tipo in current_list:
         print(tipo["typology"])
+        clues = CLUES.objects.filter(real_name__isnull=True, is_searchable=True)
         if tipo["typology_cve"]:
-            clues = CLUES.objects.filter(typology_cve=tipo["typology_cve"])
+            clues.filter(typology_cve=tipo["typology_cve"])
         elif tipo["typology"]:
-            clues = CLUES.objects.filter(typology=tipo["typology"])
+            clues.filter(typology=tipo["typology"])
         elif tipo["typologies"]:
-            clues = CLUES.objects.filter(typology__istartswith=tipo["typologies"],)
+            clues.filter(typology__istartswith=tipo["typologies"],)
         else:
-            clues = CLUES.objects.filter(real_name__isnull=True, is_searchable=True)
-        if tipo["institution"]:
+            clues.filter(real_name__isnull=True, is_searchable=True)
+        if "institution" in tipo:
             clues = clues.filter(institution__code=tipo['institution'])
         for char in tipo["chars"]:
             insert_names(clues, tipo, char)
@@ -667,7 +632,7 @@ def insert_names_other():
     clues = CLUES.objects.filter(is_searchable=True,
         prev_clasif_name__isnull=True)
     for hosp in clues:
-        len_char= 0
+        len_char = 0
         if (hosp.name.startswith(hosp.typology_cve)):
             len_char = len(hosp.typology_cve)
         real_name = hosp.name[len_char:]

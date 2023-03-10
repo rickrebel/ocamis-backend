@@ -22,7 +22,7 @@ def calculate_delivered(available_data):
     prescribed_amount = available_data.get("prescribed_amount")
     if not prescribed_amount:
         error = "No se pudo determinar si se entregó o no"
-        return None, error
+        return available_data, error
 
     delivered = "unknown"
 
@@ -41,7 +41,7 @@ def calculate_delivered(available_data):
             delivered = "partial"
     else:
         error = "No se pudo determinar si se entregó o no"
-        return None, error
+        return available_data, error
     available_data["delivered_id"] = delivered
     return available_data, None
 
@@ -84,6 +84,8 @@ def lambda_handler(event, context):
     init_data = event["init_data"]
     init_data["s3"] = event["s3"]
     init_data["webhook_url"] = event.get("webhook_url")
+    if "artificial_request_id" in event:
+        context["aws_request_id"] = event["artificial_request_id"]
     match_aws = MatchAws(init_data, context)
 
     s3_client = boto3.client(
@@ -103,6 +105,7 @@ def lambda_handler(event, context):
 class MatchAws:
 
     def __init__(self, init_data: dict, context):
+        from datetime import datetime
         for key, value in init_data.items():
             setattr(self, key, value)
         self.data_file_id = init_data["data_file_id"]
@@ -129,6 +132,8 @@ class MatchAws:
         self.unique_clues = init_data["unique_clues"]
         self.failed_delegations = []
 
+        self.last_revised = datetime.now()
+
         self.last_missing_row = None
         self.all_missing_rows = []
         self.all_missing_fields = []
@@ -152,13 +157,14 @@ class MatchAws:
         # iso_date = None
         # first_iso = None
         all_prescriptions = { }
+        success_drugs_count = 0
         for row in all_data:
             # print("data_row \t", data_row)
             self.last_missing_row = None
             # is_same_date = False
             available_data = {
                 "data_file_id": self.data_file_id,
-                "row_seq": row[0],
+                "row_seq": int(row[0]),
                 "uuid": uuid_lib.uuid4()
             }
             available_data, some_date = self.complement_available_data(
@@ -166,7 +172,7 @@ class MatchAws:
 
             if not some_date:
                 error = "No se pudo convertir ninguna fecha"
-                self.all_missing_rows[-1][-1] = error
+                self.append_missing_row(row, error)
                 continue
             # if last_date != date[:10]:
             #     last_date = date[:10]
@@ -180,7 +186,7 @@ class MatchAws:
 
             available_data, error = calculate_delivered(available_data)
             if error:
-                self.append_missing_row(row[0], row[1:], error)
+                self.append_missing_row(row, error)
                 continue
             delivered = available_data.get("delivered_id")
 
@@ -210,13 +216,14 @@ class MatchAws:
                 clues_id = self.clues_match(available_data, self.unique_clues)
                 available_data["clues_id"] = clues_id
                 delegation_name = available_data.get("delegation_name")
-                if not delegation_name == "AGUASCALIENTES":
-                    continue
+                # if not delegation_name == "AGUASCALIENTES":
+                #     continue
 
                 delegation_id, delegation_error = self.delegation_match(
                     available_data, clues_id)
-                if not delegation_id:
-                    self.append_missing_row(row[0], row[1:], delegation_error)
+
+                if delegation_error:
+                    self.append_missing_row(row, delegation_error)
                     continue
                 available_data["delegation_id"] = delegation_id
 
@@ -231,6 +238,7 @@ class MatchAws:
 
                 current_drug_data.append(value)
             csv_buffer["drug"].writerow(current_drug_data)
+            success_drugs_count += 1
 
             # IMPORTANTE: Falta un proceso para los siguientes campos:
             # doctor = None
@@ -239,12 +247,17 @@ class MatchAws:
 
             # if len(all_prescriptions) > self.sample_size:
             #     break
+        csv_buffer["missing_field"].writerows(self.all_missing_fields)
+        report_errors = self.build_report()
+        report_errors["prescription_count"] = len(all_prescriptions)
+        report_errors["drug_count"] = success_drugs_count
+        csv_buffer["missing_row"].writerows(self.all_missing_rows)
 
         for curr_prescription in all_prescriptions.values():
             current_prescription_data = []
             # curr_prescription = all_prescriptions.get(folio)
             for field_name in self.model_fields["prescription"]:
-                value = curr_prescription.get(field_name, locals().get(field_name))
+                value = curr_prescription.get(field_name)
                 current_prescription_data.append(value)
             csv_buffer["prescription"].writerow(current_prescription_data)
 
@@ -258,7 +271,6 @@ class MatchAws:
             all_final_paths.append({
                 "name": elem_list["name"],
                 "path": only_name,
-
             })
             s3_client.put_object(
                 Body=csv_files[elem_list["name"]].getvalue(),
@@ -269,12 +281,14 @@ class MatchAws:
             )
             # self.send_csv_to_db(final_path, elem_list)
 
+        final_request_id = self.context.get("aws_request_id")
         result_data = {
             "result": {
                 "decode": self.decode,
                 "final_paths": all_final_paths,
+                "report_errors": report_errors,
             },
-            "request_id": self.context.aws_request_id
+            "request_id": final_request_id
         }
         return json.dumps(result_data)
 
@@ -297,13 +311,14 @@ class MatchAws:
             row_decode = row.decode(self.decode) if self.decode != "str" else str(row)
             # .replace('\r\n', '')
             row_data = row_decode.replace('\r\n', '').split(self.delimiter)
-            if len(row_data) == self.columns_count:
-                row_data.insert(0, str(row_seq))
+            current_count = len(row_data)
+            row_data.insert(0, str(row_seq))
+            if current_count == self.columns_count:
                 structured_data.append(row_data)
             else:
-                errors = ["Conteo distinto de Columnas: %s de %s" % (
-                    len(row_data), self.columns_count)]
-                self.append_missing_row(row_seq, row, errors)
+                error = "Conteo distinto de Columnas; %s de %s" % (
+                    current_count, self.columns_count)
+                self.append_missing_row(row_data, error)
 
         return structured_data
 
@@ -324,7 +339,7 @@ class MatchAws:
                 except ValueError:
                     error = "No se pudo convertir la fecha"
                     self.append_missing_field(
-                        row, field["column"], value, error=error, drug_uuid=uuid)
+                        row, field["name_column"], value, error=error, drug_uuid=uuid)
                     value = None
             elif field["data_type"] == "Integer":
                 try:
@@ -332,7 +347,7 @@ class MatchAws:
                 except ValueError:
                     error = "No se pudo convertir a número entero"
                     self.append_missing_field(
-                        row, field["column"], value, error=error, drug_uuid=uuid)
+                        row, field["name_column"], value, error=error, drug_uuid=uuid)
                     value = None
             elif field["data_type"] == "Float":
                 try:
@@ -340,7 +355,7 @@ class MatchAws:
                 except ValueError:
                     error = "No se pudo convertir a número decimal"
                     self.append_missing_field(
-                        row, field["column"], value, error=error, drug_uuid=uuid)
+                        row, field["name_column"], value, error=error, drug_uuid=uuid)
                     value = None
             available_data[field["name"]] = value
         return available_data, some_date
@@ -389,13 +404,19 @@ class MatchAws:
         return "utf-8"
 
     def append_missing_row(
-            self, row_seq, original_data, error=None, drug_id=None):
+            self, row_data, error=None, drug_id=None):
         if self.last_missing_row:
-            self.all_missing_rows[-1][-1] = error
+            if error:
+                self.last_missing_row[-1][-2] = False
+                self.all_missing_rows[-1][-1] = error
             return self.all_missing_rows[-1][0]
+        last_revised = self.last_revised
+        inserted = not bool(error)
+        row_seq = int(row_data[0])
+        original_data = row_data[1:]
         missing_data = []
         uuid = str(uuid_lib.uuid4())
-        data_file_ic = self.data_file_id
+        data_file_id = self.data_file_id
         for field_name in self.model_fields["missing_row"]:
             value = locals().get(field_name)
             missing_data.append(value)
@@ -405,9 +426,11 @@ class MatchAws:
 
     def append_missing_field(
             self, row, name_column_id, original_value, error, drug_uuid=None):
-        missing_row_id = self.append_missing_row(row[0], row, drug_id=drug_uuid)
+        missing_row_id = self.append_missing_row(row, drug_id=drug_uuid)
         missing_field = []
         uuid = str(uuid_lib.uuid4())
+        inserted = False
+        last_revised = self.last_revised
         # if name_column:
         #     name_column = name_column.id
         # print("error: %s" % error)
@@ -427,12 +450,11 @@ class MatchAws:
             try:
                 delegation_cat = self.catalog_delegation[delegation_name]
                 delegation = delegation_cat["id"]
-            except Exception as e:
-                delegation_error = f"No se encontró la delegación" \
-                                   f" {delegation_name} ({e})"
+            except Exception:
+                delegation_error = f"No se encontró la delegación;" \
+                                   f" {delegation_name}"
             is_failed = delegation_name in self.failed_delegations
             if not is_failed and not delegation and clues_id and self.total_tries < 20:
-
                 delegation, delegation_error = self.create_delegation(
                     clues_id, delegation, delegation_error, delegation_name)
         return delegation, delegation_error
@@ -451,9 +473,9 @@ class MatchAws:
             # RICK 18: No entiendo por qué se decodifica el contenido de la respuesta
             content = response_create.content
             # if self.decode == 'str':
-            content = str(content)
+            #    content = str(content)
             # else:
-            #     content = content.decode(self.decode)
+            content = content.decode(self.decode)
             content = json.loads(content)
             [data_result, delegation_error] = content
             if data_result:
@@ -465,7 +487,85 @@ class MatchAws:
         except Exception as e:
             self.total_tries += 1
             print("NO SE PUDO LEER", e)
-            delegation_error = "ESTAMOS EXPERIMENTANDO CREAR"
+            delegation_error = f"Hubo un error al crear la delegación; " \
+                               f"{delegation_name}, error: {e}"
         # delegation, delegation_error = self.create_delegation(
         #     delegation_name, clues_id)
         return delegation, delegation_error
+
+    def build_report(self):
+        report_data = {"general_errors": ""}
+        if self.all_missing_rows:
+            report_data["missing_rows"] = len(self.all_missing_rows)
+            row_errors = {}
+            error_types_count = 0
+            for missing_row in self.all_missing_rows:
+                error = missing_row[-1]
+                if not error:
+                    continue
+                [error_type, error_detail] = error.split(";", 1)
+                if error_type in row_errors:
+                    row_errors[error_type]["count"] += 1
+                    if error_detail in row_errors[error_type]:
+                        row_errors[error_type][error_detail]["count"] += 1
+                        example_count = len(
+                            row_errors[error_type][error_detail]["examples"])
+                        if example_count < 4:
+                            row_errors[error_type][error_detail]["examples"].append(
+                                missing_row)
+                    elif len(row_errors[error_type]) < 20:
+                        row_errors[error_type][error_detail] = {
+                            "count": 1, "examples": [missing_row]}
+                elif error_types_count < 40:
+                    row_errors[error_type] = {
+                        "count": 1,
+                        error_detail: {
+                            "count": 1, "examples": [missing_row]}
+                    }
+                    error_types_count += 1
+            row_errors = sorted(row_errors.items(), key=lambda x: x[1], reverse=True)
+            row_errors = row_errors[:50]
+            report_data["row_errors"] = row_errors
+            if len(row_errors) > 50:
+                report_data["general_errors"] += \
+                    "Se encontraron más de 50 tipos de errores en las filas"
+
+        if self.all_missing_fields:
+            report_data["missing_fields"] = len(self.all_missing_fields)
+            field_errors = {}
+            error_types_count = 0
+            for missing_field in self.all_missing_fields:
+                error = missing_field[-1]
+                name_column = missing_field[2]
+                original_value = missing_field[3]
+                if error in field_errors:
+                    field_errors[error]["count"] += 1
+                    if name_column in field_errors[error]:
+                        field_errors[error][name_column]["count"] += 1
+                        example_count = len(
+                            field_errors[error][name_column]["examples"])
+                        if example_count < 4:
+                            field_errors[error][name_column]["examples"].append(
+                                original_value)
+                    else:
+                        field_errors[error][name_column] = {
+                            "count": 1,
+                            "examples": [original_value]
+                        }
+                elif error_types_count < 40:
+                    error_types_count += 1
+                    field_errors[error] = {
+                        "count": 1,
+                        name_column: {
+                            "count": 1,
+                            "examples": [original_value]
+                        }
+                    }
+            field_errors = sorted(
+                field_errors.items(), key=lambda x: sum(x[1].values()),
+                reverse=True)
+            report_data["field_errors"] = field_errors
+
+        if not report_data.get("missing_rows") and not report_data.get("missing_fields"):
+            report_data["general_errors"] = "No se encontraron errores"
+        return report_data

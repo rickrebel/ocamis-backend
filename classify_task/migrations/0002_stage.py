@@ -3,6 +3,8 @@
 from django.db import migrations, models
 import django.db.models.deletion
 
+# stages = ['initial', 'explore', 'counting', 'transform', 'insert']
+
 
 class Migration(migrations.Migration):
 

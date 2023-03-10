@@ -132,14 +132,15 @@ def get_csv_file(file_obj, s3_client=None):
         return file_obj.final_path
 
 
-def create_file(file_obj, file_bytes, only_name, s3_client=None):
+def create_file(file_bytes, s3_client=None, file_obj=None, only_name=None, final_path=None):
     from inai.models import set_upload_path
     from django.core.files import File
     all_errors = []
     final_file = None
     try:
         if s3_client:
-            final_path = set_upload_path(file_obj, only_name)
+            if not final_path:
+                final_path = set_upload_path(file_obj, only_name)
             success_file = s3_client.put_object(
                 Key=f"{aws_location}/{final_path}",
                 Body=file_bytes,

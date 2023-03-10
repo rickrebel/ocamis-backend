@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.db import models
 from django.db.models import JSONField
+import uuid as uuid_lib
 
 
 def default_alternative_names():
@@ -39,6 +37,7 @@ class State(models.Model):
 
 
 class Municipality(models.Model):
+
     inegi_code = models.CharField(max_length=6, verbose_name="Clave INEGI")
     name = models.CharField(max_length=120, verbose_name="Nombre")
     state = models.ForeignKey(
@@ -104,22 +103,26 @@ class CLUES(models.Model):
     name = models.CharField(
         max_length=255, verbose_name="NOMBRE DE LA UNIDAD")
     key_issste = models.CharField(
-        max_length=12, verbose_name="CLAVE ISSSTE",
+        max_length=12, verbose_name="Clave única de ISSSTE",
         blank=True, null=True)
     is_searchable = models.BooleanField(
         default=False, verbose_name="Activo",
         help_text="Puede buscarse por el usuario")
-    municipality = models.CharField(
-        max_length=255, verbose_name="NOMBRE DEL MUNICIPIO")
-    municipality_inegi_code = models.ForeignKey(
-        Municipality, on_delete=models.CASCADE)
+    municipality_name = models.CharField(
+        max_length=255, verbose_name="NOMBRE DEL MUNICIPIO",
+        blank=True, null=True)
+    municipality_inegi_code = models.CharField(
+        max_length=5, blank=True, null=True)
+    municipality = models.ForeignKey(
+        Municipality, on_delete=models.CASCADE,
+        blank=True, null=True)
     typology = models.CharField(
         max_length=255, verbose_name="NOMBRE DE TIPOLOGIA")
     typology_obj = models.ForeignKey(
         Typology, verbose_name="Tipología (Catálogo)",
         blank=True, null=True, on_delete=models.CASCADE)
     typology_cve = models.CharField(
-        max_length=12, verbose_name="CLAVE DE TIPOLOGÍA")
+        max_length=18, verbose_name="CLAVE DE TIPOLOGÍA")
     id_clues = models.CharField(max_length=10, verbose_name="ID_CLUES")
     clues = models.CharField(max_length=20, verbose_name="CLUES")
     status_operation = models.CharField(
@@ -149,7 +152,7 @@ class CLUES(models.Model):
     beds_other = models.IntegerField(
         verbose_name="CAMAS EN OTRAS AREAS")
     total_unities = models.IntegerField(
-        verbose_name="UNIDADES TOTALES (SUMA)")
+        verbose_name="suma de unidades")
     admin_institution = models.CharField(
         max_length=80, verbose_name="NOMBRE DE LA INS ADM")
     atention_level = models.CharField(
@@ -200,11 +203,11 @@ class CLUES(models.Model):
         max_length=6, blank=True, null=True,
         verbose_name="CODIGO POSTAL")
     rfc = models.CharField(
-        max_length=6, blank=True, null=True,
+        max_length=15, blank=True, null=True,
         verbose_name="RFC")
     last_change = models.DateTimeField(
         blank=True, null=True,
-         verbose_name="FECHA ULTIMO MOVIMIENTO")
+        verbose_name="FECHA ULTIMO MOVIMIENTO")
 
     def __str__(self):
         return self.clues
@@ -379,6 +382,8 @@ class Entity(models.Model):
 
 class Area(models.Model):
 
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
     key = models.CharField(
         max_length=255, verbose_name="Clave del área",
         blank=True, null=True)
@@ -388,6 +393,9 @@ class Area(models.Model):
     description = models.TextField(
         verbose_name="Descripción del área",
         blank=True, null=True)
+    entity = models.ForeignKey(
+        Entity, verbose_name="Institución",
+        on_delete=models.CASCADE)
 
     def __str__(self):
         return self.key or self.name

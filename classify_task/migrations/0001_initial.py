@@ -26,6 +26,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Status de tarea',
                 'verbose_name_plural': '3. Status de tareas',
                 'ordering': ['order'],
+                'db_table': 'task_statustask',
             },
         ),
         migrations.CreateModel(
@@ -41,6 +42,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Función (tarea)',
                 'verbose_name_plural': '2. Funciones (tareas)',
+                'db_table': 'task_taskfunction',
             },
         ),
     ]

@@ -290,9 +290,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             new_tasks, new_errors = petition.find_matches_in_children(
                 orphan_files, current_file_ctrl=file_control.id,
                 task_params=task_params)
-            if len(new_tasks) == 0 and key_task:
-                key_task.status_task_id = "finished"
-                key_task.save()
+            comprobate_status(key_task, new_errors, new_tasks)
             return send_response(petition, task=key_task, errors=new_errors)
         else:
             return Response(

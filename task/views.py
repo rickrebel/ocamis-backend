@@ -35,9 +35,9 @@ def calculate_special_function(special_function):
             final_delegation[field] = getattr(curr_delegation, field)
         error = None
     except Delegation.DoesNotExist:
-        error = "No existe la delegación"
+        error = f"No se encontró la delegación; {delegation_name}"
     except Delegation.MultipleObjectsReturned:
-        error = "Hay más de una delegación"
+        error = f"Hay más de una delegación con el mismo nombre; {delegation_name}"
 
     is_valid_name = any(
         [valid_string in delegation_name for valid_string in valid_strings])
@@ -57,12 +57,11 @@ def calculate_special_function(special_function):
             # self.catalog_delegation[delegation_name] = final_delegation
             # return delegation_id, None
         except Exception as e:
-            error = "No se pudo crear la delegación, ERROR: %s" % e
+            error = "No se pudo crear la delegación; ERROR: %s" % e
     if not final_delegation and not error:
-        error = "No es un nombre válido, razón desconocida"
+        error = f"No es un nombre válido, razón desconocida; {delegation_name}"
     response = json.dumps([final_delegation, error])
     return HttpResponse(response)
-
 
 
 class AWSMessage(generic.View):
@@ -95,9 +94,10 @@ class AWSMessage(generic.View):
         if special_function:
             return calculate_special_function(special_function)
         request_id = body.get("request_id")
+        print("request_id: ", request_id)
         result = body.get("result", {})
         errors = result.get("errors", [])
-        current_task = AsyncTask.objects.get(request_id=request_id)
+        current_task = AsyncTask.objects.get(request_id=str(request_id))
         current_task.status_task_id = "success"
         current_task.date_arrive = datetime.now()
         current_task.result = result

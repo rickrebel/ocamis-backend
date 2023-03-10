@@ -217,6 +217,27 @@ class FinalField(models.Model):
         verbose_name_plural = "Campos finales (en DB)"
 
 
+class DictionaryFile(models.Model):
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE, blank=True, null=True)
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE)
+    file = models.FileField(upload_to="dictionary_files")
+    unique_field = models.ForeignKey(
+        FinalField, on_delete=models.CASCADE, blank=True, null=True,
+        related_name="dictionary_files")
+    final_fields = models.ManyToManyField(
+        FinalField, blank=True, verbose_name="Campos finales",
+        related_name="m2m_dictionary_files")
+
+    def __str__(self):
+        return f"{self.file_control} - {self.collection}"
+
+    class Meta:
+        verbose_name = "Catálogo para match"
+        verbose_name_plural = "Catálogos para match"
+
+
 class CleanFunction(models.Model):
     name = models.CharField(max_length=80)
     public_name = models.CharField(max_length=120, blank=True, null=True)
@@ -275,10 +296,10 @@ class NameColumn (models.Model):
         blank=True, null=True,
         on_delete=models.CASCADE)
     # collection = models.IntegerField(blank=True, null=True)
-    collection = models.ForeignKey(
-        Collection,
-        blank=True, null=True,
-        on_delete=models.CASCADE)
+    # collection = models.ForeignKey(
+    #     Collection,
+    #     blank=True, null=True,
+    #     on_delete=models.CASCADE)
     # final_field = models.IntegerField(blank=True, null=True)
     final_field = models.ForeignKey(
         FinalField,
@@ -289,9 +310,9 @@ class NameColumn (models.Model):
     #    ParameterGroup,
     #    blank=True, null=True,
     #    on_delete=models.CASCADE)
-    clean_params = JSONField(blank=True, null=True,
-        verbose_name="Parámetros de limpieza")
-    requiered_row = models.BooleanField(default=False)
+    # clean_params = JSONField(
+    #     blank=True, null=True, verbose_name="Parámetros de limpieza")
+    required_row = models.BooleanField(default=False)
     parent_column = models.ForeignKey(
         "NameColumn", related_name="parents",
         verbose_name="Columna padre de la que derivó",
@@ -303,6 +324,17 @@ class NameColumn (models.Model):
     seq = models.IntegerField(
         blank=True, null=True, verbose_name="order",
         help_text="Número consecutivo para ordenación en dashboard")
+    last_update = models.DateTimeField(
+        auto_now=True, verbose_name="Última actualización")
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+        original = NameColumn.objects.filter(id=self.id).first()
+        if original:
+            if original.position_in_data is not None:
+                if original.final_field != self.final_field:
+                    self.last_update = timezone.now()
+        super(NameColumn, self).save(*args, **kwargs)
 
     def __str__(self):
         return "%s-%s | %s" % (
@@ -336,6 +368,22 @@ class Transformation(models.Model):
         verbose_name="Columna")
     addl_params = JSONField(
         blank=True, null=True, default=default_params)
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+        original = Transformation.objects.filter(id=self.id).first()
+        if original:
+            if original.name_column is not None:
+                clean_function_changed = self.clean_function != original.clean_function
+                addl_params_changed = self.addl_params != original.addl_params
+                if clean_function_changed or addl_params_changed:
+                    self.name_column.last_update = timezone.now()
+                    self.name_column.save()
+        super(Transformation, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return "%s | %s" % (
+            self.clean_function or '?', self.name_column or '?')
 
     class Meta:
         verbose_name = "Transformación a aplicar"

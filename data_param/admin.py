@@ -162,7 +162,7 @@ class NameColumnAdmin(admin.ModelAdmin):
     list_filter = [
         "final_field__collection",
         "final_field__parameter_group", "column_type"]
-    ordering = ["collection", "final_field", "name_in_data"]
+    ordering = ["final_field__collection", "final_field", "name_in_data"]
 
 
 class FileControlAdmin(admin.ModelAdmin):

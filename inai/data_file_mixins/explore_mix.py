@@ -32,7 +32,8 @@ class ExploreMix:
         new_errors = []
         forced_save = kwargs.get("forced_save", False)
         if data_file and not data_file.sheet_names:
-            if data_file.petition_file_control.file_control.file_format.short_name == 'xls':
+            xls_suffixes = ['.xls', '.xlsx', '.xlsb']
+            if data_file.suffix in xls_suffixes:
                 forced_save = True
             else:
                 data_file.sheet_names = ['default']
@@ -309,7 +310,8 @@ class ExploreMix:
                 current_s3_client, dev_resource_2 = start_session()
                 print("rr_file_name", curr_only_name)
                 rr_file_name, errors = create_file(
-                    self, buf, curr_only_name, current_s3_client)
+                    buf, current_s3_client, only_name=curr_only_name,
+                    file_obj=self)
                 print("exito en creación de archivo")
                 print("errors", errors)
                 DataFile.objects.create(
@@ -376,7 +378,7 @@ class ExploreMix:
                 if is_prod:
                     buf = "\n".join(buf)
                     rr_file_name, errors = create_file(
-                        self, buf, curr_only_name, s3_client)
+                        buf, s3_client, only_name=curr_only_name, file_obj=self)
                 else:
                     rr_file_name = f"{directory}\\{curr_only_name}"
                     outFile = open(rr_file_name, "wt", encoding="UTF-8")

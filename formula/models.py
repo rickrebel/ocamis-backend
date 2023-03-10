@@ -69,7 +69,6 @@ class Prescription(models.Model):
     #Nueva versión del modelo Prescription con atomizado de datos
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
-    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
     folio_ocamis = models.CharField(max_length=60)
     # folio_document = models.CharField(max_length=40)
     folio_document = models.CharField(max_length=40)
@@ -93,9 +92,9 @@ class Prescription(models.Model):
         Area, on_delete=models.CASCADE, blank=True, null=True)
     #EXTENSION: COSAS NO TAN RELEVANTES:
     #tipo_documento = models.IntegerField()
-    document_type = models.ForeignKey(
-        DocumentType, on_delete=models.CASCADE, blank=True, null=True)
-    # document_type = models.CharField(max_length=50, blank=True, null=True)
+    # document_type = models.ForeignKey(
+    #     DocumentType, on_delete=models.CASCADE, blank=True, null=True)
+    document_type = models.CharField(max_length=50, blank=True, null=True)
     # fecha_emision = models.DateTimeField(blank=True, null=True)
     date_release = models.DateTimeField(blank=True, null=True)
     # fecha_entrega = models.DateTimeField(blank=True, null=True)
@@ -103,10 +102,7 @@ class Prescription(models.Model):
     date_visit = models.DateTimeField(blank=True, null=True)
     doctor = models.ForeignKey(
         Doctor, blank=True, null=True, on_delete=models.CASCADE)
-    # clave_presupuestal = models.CharField(
-    #     max_length=20, blank=True, null=True)
-    budget_key = models.CharField(
-        max_length=20, blank=True, null=True)
+    is_valid = models.BooleanField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Receta"
@@ -131,6 +127,10 @@ class Drug(models.Model):
     prescription = models.ForeignKey(
         Prescription, on_delete=models.CASCADE,
         related_name='drugs')
+    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+    sheet_name = models.CharField(max_length=255, blank=True, null=True)
+    row_seq = models.PositiveIntegerField(blank=True, null=True)
+
     container = models.ForeignKey(
         Container, blank=True, null=True, on_delete=models.CASCADE)
     # cantidad_prescrita = models.PositiveSmallIntegerField(
@@ -141,8 +141,6 @@ class Drug(models.Model):
     #     blank=True, null=True)
     delivered_amount = models.PositiveSmallIntegerField(
         blank=True, null=True)
-    # not_delivered_amount = models.PositiveSmallIntegerField(
-    #     blank=True, null=True)
     #delivered = models.CharField(max_length=3, blank=True, null=True)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
@@ -150,10 +148,9 @@ class Drug(models.Model):
     # precio_medicamento = models.FloatField(blank=True, null=True)
     price = models.FloatField(blank=True, null=True)
 
-    row_seq = models.PositiveIntegerField(blank=True, null=True)
     rn = models.CharField(max_length=80, blank=True, null=True)
-    for_training = models.CharField(
-        max_length=20, choices=TRAINING_CHOICES, blank=True, null=True)
+    # for_training = models.CharField(
+    #     max_length=20, choices=TRAINING_CHOICES, blank=True, null=True)
 
     class Meta:
         verbose_name = "Insumos"
@@ -168,6 +165,7 @@ class MissingRow(models.Model):
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     data_file = models.ForeignKey(
         DataFile, on_delete=models.CASCADE)
+    sheet_name = models.CharField(max_length=255, blank=True, null=True)
     prescription = models.ForeignKey(
         Prescription, 
         blank=True, null=True,
@@ -180,7 +178,10 @@ class MissingRow(models.Model):
         blank=True, null=True)
     row_seq = models.IntegerField(default=1)
     # tab = models.CharField(max_length=255, blank=True, null=True)
-    # errors = JSONField(blank=True, null=True)
+
+    # ¡ÚLTIMOS CAMPOS SIEMPRE!
+    inserted = models.BooleanField(blank=True, null=True)
+    # errors = JSONField(blank=True, null=True, default=list)
     error = models.TextField(blank=True, null=True)
     # !!! Por nada del mundo, poner más campos debajo de este comentario
 
@@ -201,12 +202,16 @@ class MissingField(models.Model):
         on_delete=models.CASCADE)
     # name_column = models.IntegerField(blank=True, null=True)
     name_column = models.ForeignKey(
-        NameColumn,
-        on_delete=models.CASCADE)
+        NameColumn, on_delete=models.CASCADE)
+    # SIEMPRE EN POSICIÓN 3:
     original_value = models.TextField(blank=True, null=True)
     final_value = models.TextField(blank=True, null=True)
     other_values = JSONField(
         blank=True, null=True)
+    last_revised = models.DateTimeField()
+
+    # ¡ÚLTIMOS CAMPOS SIEMPRE!
+    inserted = models.BooleanField(blank=True, null=True)
     # errors = JSONField(blank=True, null=True)
     error = models.TextField(blank=True, null=True)
     # !!! Por nada del mundo, poner más campos debajo de este comentario

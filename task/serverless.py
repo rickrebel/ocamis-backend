@@ -1,5 +1,7 @@
 import json
 from django.conf import settings
+from task.aws.start_build_csv_data import lambda_handler as start_build_csv_data
+from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
 
 
 def execute_in_lambda(function_name, params, in_lambda=True):
@@ -30,6 +32,8 @@ def async_in_lambda(function_name, params, task_params):
     from scripts.common import start_session
     from task.models import AsyncTask
     from datetime import datetime
+    import threading
+
     s3_client, dev_resource = start_session("lambda")
     api_url = getattr(settings, "API_URL", False)
     params["webhook_url"] = f"{api_url}task/webhook_aws/"
@@ -54,25 +58,45 @@ def async_in_lambda(function_name, params, task_params):
         query_kwargs[camel_to_snake(model.__class__.__name__)] = model
     # print("query_kwargs:\n", query_kwargs, "\n")
     current_task = AsyncTask.objects.create(**query_kwargs)
-    dumb_params = json.dumps(params)
     # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
-    function_name = f"{function_name}:normal"
-    response = s3_client.invoke(
-        FunctionName=function_name,
-        InvocationType='Event',
-        LogType='Tail',
-        Payload=dumb_params
-    )
-    # print("response", response, "\n")
+    function_final = f"{function_name}:normal"
+    if globals().get(function_name, False):
+        print("SE EJECUTA EN LOCAL")
+        request_id = current_task.id
+        params["artificial_request_id"] = str(request_id)
+        current_task.request_id = request_id
+        current_task.status_task_id = "running"
+        current_task.save()
+        # print("SE GUARDÓ BIEN")
+        # payload_response = json.loads(response['Payload'].read())
+        # print("payload_response", payload_response)
 
-    request_id = response["ResponseMetadata"]["RequestId"]
-    current_task.request_id = request_id
-    current_task.status_task_id = "running"
-    current_task.save()
-    # print("SE GUARDÓ BIEN")
-    #payload_response = json.loads(response['Payload'].read())
-    #print("payload_response", payload_response)
-    return current_task
+        def run_in_thread():
+            print("ESTOY EN EL THREAD ASÍNCRONO")
+            globals()[function_name](params, {})
+
+        t = threading.Thread(target=run_in_thread)
+        t.start()
+
+        return current_task
+    else:
+        dumb_params = json.dumps(params)
+        response = s3_client.invoke(
+            FunctionName=function_final,
+            InvocationType='Event',
+            LogType='Tail',
+            Payload=dumb_params
+        )
+        # print("response", response, "\n")
+        request_id = response["ResponseMetadata"]["RequestId"]
+        current_task.request_id = request_id
+        current_task.status_task_id = "running"
+        current_task.save()
+        # print("SE GUARDÓ BIEN")
+        # payload_response = json.loads(response['Payload'].read())
+        # print("payload_response", payload_response)
+        return current_task
+
 
 def count_excel_rows(params):
     from scripts.common import start_session

@@ -19,6 +19,7 @@ class StatusTask(models.Model):
         ordering = ['order']
         verbose_name = "Status de tarea"
         verbose_name_plural = "3. Status de tareas"
+        db_table = 'classify_task_statustask'
 
 
 class TaskFunction(models.Model):
@@ -44,6 +45,7 @@ class TaskFunction(models.Model):
     class Meta:
         verbose_name = "Función (tarea)"
         verbose_name_plural = "2. Funciones (tareas)"
+        db_table = 'classify_task_taskfunction'
 
 
 class Stage(models.Model):
@@ -52,7 +54,6 @@ class Stage(models.Model):
     description = models.TextField(blank=True, null=True)
     order = models.IntegerField(default=5)
     icon = models.CharField(max_length=30, blank=True, null=True)
-    color = models.CharField(max_length=30, blank=True, null=True)
     next_function = models.ForeignKey(
         "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
         related_name="next_functions")

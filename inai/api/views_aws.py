@@ -312,12 +312,12 @@ class DataFileViewSet(CreateRetrievView):
         return Response(
             {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=["get"], detail=True, url_path="insert_data")
-    def insert_data(self, request, **kwargs):
+    @action(methods=["get"], detail=True, url_path="transform_data")
+    def transform_data(self, request, **kwargs):
         from inai.data_file_mixins.matches_mix import Match
         data_file = self.get_object()
         key_task, task_params = build_task_params(
-            data_file, "insert_data", request)
+            data_file, "transform_data", request)
         my_match = Match(data_file, task_params)
         all_tasks, all_errors, new_files = my_match.build_csv_converted()
         # Match.build_csv_converted(data_file, task_params)

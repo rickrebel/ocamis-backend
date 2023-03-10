@@ -691,7 +691,7 @@ class TotalList(views.APIView):
         #today = timezone.now()
         #date_time_str = "01/%s/%s" % (today.month, today.year)
         #date_time_obj = datetime.strptime(date_time_str, '%d/%m/%Y')
-        print(date_time_obj)
+        # print(date_time_obj)
         query_kwargs = {
             "report__complement__validated": True,
             "report__state__isnull": False,
@@ -1086,7 +1086,7 @@ class ReportMedicineView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        from desabasto.models import Supply
+        from medicine.models import Supply
         from django.db.models import Q
         q = request.query_params.get("q")
         if not q:

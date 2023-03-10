@@ -50,8 +50,8 @@ def fetch_entities(include_groups):
             "petitions__file_controls__file_control__data_group",
             prefetch_columns,
             "petitions__file_controls__file_control__columns__final_field",
-            "petitions__file_controls__file_control"\
-                "__columns__final_field__collection",
+            "petitions__file_controls__file_control"
+            "__columns__final_field__collection",
         )
     return all_entities
 
