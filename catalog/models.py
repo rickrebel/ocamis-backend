@@ -393,9 +393,13 @@ class Area(models.Model):
     description = models.TextField(
         verbose_name="Descripción del área",
         blank=True, null=True)
-    entity = models.ForeignKey(
-        Entity, verbose_name="Institución",
-        on_delete=models.CASCADE)
+    institution = models.ForeignKey(
+        Institution, on_delete=models.CASCADE)
+    delegation = models.ForeignKey(
+        Delegation, null=True, blank=True, on_delete=models.CASCADE)
+    aggregate_to = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE)
+    is_aggregate = models.BooleanField(default=False)
 
     def __str__(self):
         return self.key or self.name

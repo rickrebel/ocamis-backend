@@ -1,7 +1,9 @@
 import json
 from django.conf import settings
 from task.aws.start_build_csv_data import lambda_handler as start_build_csv_data
+from task.aws.start_build_csv_data import lambda_handler as prepare_files
 from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
+from task.aws.xls_to_csv import lambda_handler as xls_to_csv
 
 
 def execute_in_lambda(function_name, params, in_lambda=True):
@@ -25,7 +27,8 @@ def execute_in_lambda(function_name, params, in_lambda=True):
         return payload_response
     else:
         print("EJECUTADO EN LOCAL")
-        return globals()[function_name](params, None)
+        context = {"aws_request_id": "local"}
+        return globals()[function_name](params, context)
 
 
 def async_in_lambda(function_name, params, task_params):
@@ -60,7 +63,8 @@ def async_in_lambda(function_name, params, task_params):
     current_task = AsyncTask.objects.create(**query_kwargs)
     # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
     function_final = f"{function_name}:normal"
-    if globals().get(function_name, False):
+    use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
+    if globals().get(function_name, False) and use_local_lambda:
         print("SE EJECUTA EN LOCAL")
         request_id = current_task.id
         params["artificial_request_id"] = str(request_id)
@@ -73,7 +77,12 @@ def async_in_lambda(function_name, params, task_params):
 
         def run_in_thread():
             print("ESTOY EN EL THREAD ASÍNCRONO")
-            globals()[function_name](params, {})
+
+            class Context:
+                def __init__(self, request_id):
+                    self.aws_request_id = request_id
+
+            globals()[function_name](params, Context(request_id))
 
         t = threading.Thread(target=run_in_thread)
         t.start()
@@ -185,33 +194,3 @@ def decompress_zip_aws(event, context):
         all_new_files.append({"file": curr_file, "directory": directory})
 
     return {"files": all_new_files, "errors": all_errors}
-
-
-def clean_na(row):
-    cols = row.tolist()
-    return [col.strip() if isinstance(col, str) else "" for col in cols]
-
-
-def explore_data_xls(event, context):
-    import pandas as pd
-    final_path = event["final_path"]
-    nrows = event["nrows"]
-    excel_file = pd.ExcelFile(final_path)
-    sheets = event["sheets"]
-    all_sheets = {}
-    #object_excel = io.BytesIO(streaming_body_1.read())
-    for sheet_name in sheets:
-        data_excel = excel_file.parse(
-            sheet_name,
-            dtype='string', na_filter=False,
-            keep_default_na=False, header=None)
-        total_rows = data_excel.shape[0]
-        if nrows:
-            data_excel = data_excel.head(nrows)
-        iter_data = data_excel.apply(clean_na, axis=1)
-        list_val = iter_data.tolist()
-        all_sheets[sheet_name] = {
-            "all_data": list_val,
-            "total_rows": total_rows,
-        }
-    return all_sheets

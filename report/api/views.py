@@ -123,8 +123,6 @@ class ReportView(ListCreateRetrieveUpdateMix):
     @action(methods=['get'], detail=False, url_path='next')
     def next(self, request, **kwargs):
         from datetime import timedelta
-        if not request.user.is_staff:
-            raise PermissionDenied()
         query_kwargs = {"validated__isnull": True}
         pending = request.query_params.get("pending")
         if pending:
@@ -301,8 +299,6 @@ class ReportView2(ListCreateRetrieveUpdateMix):
     @action(methods=['get'], detail=False, url_path='next')
     def next(self, request, **kwargs):
         from datetime import timedelta
-        if not request.user.is_staff:
-            raise PermissionDenied()
         query_kwargs = {"complement__validated__isnull": True}
         pending = request.query_params.get("pending")
         if pending:
@@ -343,8 +339,6 @@ class ReportView2(ListCreateRetrieveUpdateMix):
 
     @action(methods=["post"], detail=True, url_path='pending')
     def pending(self, request, **kwargs):
-        if not request.user.is_staff:
-            raise PermissionDenied()
         pending = request.data.get("pending")
         validated = request.data.get("validated")
         report = self.get_object()

@@ -22,7 +22,7 @@ class StateViewSet(ListRetrieveUpdateMix):
 
 
 class EntityViewSet(ListRetrieveUpdateMix):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.IsAdminUser,)
     serializer_class = serializers.EntitySerializer
     queryset = Entity.objects.all().prefetch_related(
             "petitions",
@@ -60,8 +60,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
     def create_months(self, request, **kwargs):
         import json
         from inai.models import MonthEntity
-        if not request.user.is_staff:
-            raise PermissionDenied()
         year = request.data.get("year")
         entity = self.get_object()
         for month in range(12):

@@ -59,6 +59,28 @@ def restructurate_reasons():
     #for PetitionNegativeReason in NegativeReason:
 
 
+def set_file_type_to_datafile():
+    from inai.models import DataFile
+    from category.models import FileType
+    all_files = DataFile.objects.all()
+    for data_file in all_files:
+        if data_file.file_type:
+            continue
+        data_file.file_type_id = 'original_data'
+        data_file.save()
+
+
+def change_some_default_values():
+    from inai.models import DataFile
+    all_files = DataFile.objects.all()
+    fields = ['inserted_rows', 'completed_rows', 'total_rows']
+    for data_file in all_files:
+        for field in fields:
+            if getattr(data_file, field) == 1:
+                setattr(data_file, field, 0)
+        data_file.save()
+
+
 def name_columns_to_upper():
     from data_param.models import NameColumn
     all_names = NameColumn.objects.all()
@@ -68,4 +90,58 @@ def name_columns_to_upper():
             name.save()
 
 
+def recalculate_sheets():
+    from scripts.common import explore_sheets
+
+    from inai.models import DataFile
+    from data_param.models import FileControl
+
+    all_controls = FileControl.objects.all()
+    complete_controls = all_controls.filter(
+        status_process__name="complete_counting")
+    for file_control in complete_controls:
+        include_names, exclude_names, include_idx, exclude_idx = explore_sheets(
+            file_control)
+        complete_files = DataFile.objects.filter(
+            file_control__in=complete_controls, sample_data__isnull=False)
+        for file in complete_files:
+            if not file.sample_data or not file.sheet_names:
+                continue
+            filtered_sheets = []
+            pending_sheets = []
+            sheets_info = {"all": file.sheet_names}
+            for position, sheet_name in enumerate(file.sheet_names, start=1):
+                if include_names and sheet_name not in include_names:
+                    continue
+                if exclude_names and sheet_name in exclude_names:
+                    continue
+                if include_idx and position not in include_idx:
+                    continue
+                if exclude_idx and position in exclude_idx:
+                    continue
+                filtered_sheets.append(sheet_name)
+            sheets_info["filtered"] = filtered_sheets
+
+
+def results_to_warnings():
+    from inai.models import DataFile
+    files_with_results = DataFile.objects.filter(
+        all_results__isnull=False).exclude(all_results__exact={})
+    for file in files_with_results:
+        # file.warnings = file.all_results
+        # file.all_results = None
+        # file.save()
+        print(file.all_results)
+
+
+def set_data_files_to_initial():
+    from inai.models import DataFile
+    all_data_files = DataFile.objects.all()
+    all_data_files.update(stage_id="initial", status_id="finished")
+
+
+def delete_child_data_files():
+    from inai.models import DataFile
+    all_data_files = DataFile.objects.filter(origin_file__isnull=False)
+    all_data_files.delete()
 

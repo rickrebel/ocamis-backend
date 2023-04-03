@@ -28,7 +28,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         "retrieve": serializers.PetitionFullSerializer,
     }
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, *args, **kwargs):
         from inai.models import ReplyFile
         from data_param.models import FileControl
         from data_param.models import DataGroup
@@ -143,7 +143,7 @@ def move_and_duplicate(data_files, petition, request):
                 new_file.pk = None
                 new_file.petition_file_control = pet_file_ctrl
                 # new_file.save()
-                new_file.change_status('initial')
+                new_file.change_status('initial|finished')
             #if not is_dupl:
             else:
                 data_file.petition_file_control = pet_file_ctrl
@@ -165,32 +165,103 @@ def move_and_duplicate(data_files, petition, request):
 class DataFileViewSet(CreateRetrievView):
     queryset = DataFile.objects.all()
     serializer_class = serializers.DataFileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
     action_serializers = {
         "list": serializers.DataFileSerializer,
-        "retrieve": serializers.DataFileEditSerializer,
+        "retrieve": serializers.DataFileFullSerializer,
     }
 
     def get_queryset(self):
-        return DataFile.objects.all()
+        return DataFile.objects.all().prefetch_related(
+            "sheet_files", "sheet_files__laps")
 
     @action(methods=["put"], detail=True, url_path="move")
     def move(self, request, **kwargs):
-        if not request.user.is_staff:
-            raise PermissionDenied()
-
         data_file = self.get_object()
         petition = data_file.petition_file_control.petition
         return move_and_duplicate([data_file], petition, request)
 
-    @action(methods=["get"], detail=True, url_path="start_reply_file")
-    def start_reply_file(self, request, **kwargs):
-        return 1
+    @action(methods=["get"], detail=True, url_path="change_stage")
+    def change_stage(self, request, **kwargs):
+        from inai.data_file_mixins.matches_mix import Match
+        from classify_task.models import Stage
+
+        data_file = self.get_object()
+        if not data_file.can_repeat:
+            return Response({
+                "errors": ["Aún se está procesando; espera máx. 15 minutos"]
+            }, status=status.HTTP_404_NOT_FOUND)
+        stage_text = request.query_params.get("stage")
+        target_stage = Stage.objects.get(name=stage_text)
+        key_task, task_params = build_task_params(
+            data_file, target_stage.main_function.name, request)
+        target_name = target_stage.name
+        after_aws = "find_coincidences_from_aws" if \
+            target_name == "cluster" else "build_sample_data_after"
+        curr_kwargs = {"after_if_empty": after_aws}
+        for stage in target_stage.re_process_stages.all():
+            current_function = stage.main_function.name
+            print("stage", stage.name, current_function)
+            task_params["models"] = [data_file]
+            method = getattr(data_file, current_function)
+            if not method:
+                break
+            new_tasks, all_errors, data_file = method(task_params, **curr_kwargs)
+            if all_errors or new_tasks:
+                if all_errors:
+                    data_file.save_errors(
+                        all_errors, f"{stage.name}|with_errors")
+                return comprobate_status(
+                    key_task, all_errors, new_tasks, want_http_response=True)
+            elif stage.name == target_name:
+                data_file = data_file.change_status(f"{target_name}|finished")
+                comprobate_status(key_task, all_errors, new_tasks)
+                data = serializers.DataFileSerializer(data_file).data
+                response_body = {"data_file": data}
+                return Response(response_body, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND, data={
+            "errors": "Hubo un error inesperado"
+        })
+        # new_tasks, all_errors, data_file = data_file.get_sample_data(
+        #     task_params, **curr_kwargs)
+        # if all_errors or new_tasks:
+        #     return comprobate_status(
+        #         key_task, all_errors, new_tasks, want_http_response=True)
+        # errors = []
+        # all_tasks = []
+        # if stage.order >= 3:
+        #     data_file, saved, errors = data_file.find_coincidences(
+        #         task_params=task_params)
+        #     if not saved and not errors:
+        #         errors = ["No coincide con el grupo de control (2)"]
+        # if not errors:
+        #     if stage_name == "prepare":
+        #         data_file = data_file.count_file_rows()
+        #     if stage_name in ["transform", "prepare"]:
+        #         my_match = Match(data_file, task_params)
+        #         is_prepare = stage_name == "prepare"
+        #         all_tasks, all_errors, new_files = my_match \
+        #             .build_csv_converted(is_prepare=is_prepare)
+        #     elif stage.order <= 3:
+        #         data_file = data_file.change_status(f"{stage_name}|finished")
+        # else:
+        #     data_file.save_errors(errors, "cluster|with_errors")
+        # resp = comprobate_status(
+        #     key_task, errors, all_tasks, want_http_response=True)
+        # if resp:
+        #     return resp
+        # elif data_file:
+        #     data = serializers.DataFileSerializer(data_file).data
+        #     response_body = {"data_file": data}
+        #     return Response(response_body, status=status.HTTP_200_OK)
+        # else:
+        #     return Response(status=status.HTTP_404_NOT_FOUND, data={
+        #         "detail": "Hubo un error inesperado"
+        #     })
 
     @action(methods=["get"], detail=True, url_path="build_sample_data")
     def build_sample_data(self, request, **kwargs):
-        if not request.user.is_staff:
-            raise PermissionDenied()
         data_file = self.get_object()
         key_task, task_params = build_task_params(
             data_file, "build_sample_data", request)
@@ -210,7 +281,7 @@ class DataFileViewSet(CreateRetrievView):
             errors = ["No coincide con el formato del archivo 2"]
         response_body = {}
         if errors:
-            data_file.save_errors(errors, "explore_fail")
+            data_file.save_errors(errors, "explore|with_errors")
             response_body["errors"] = errors
             final_status = status.HTTP_400_BAD_REQUEST
         elif data_file:
@@ -226,10 +297,10 @@ class DataFileViewSet(CreateRetrievView):
                 print("ANALIZAR")
             else:
                 if new_data_file:
-                    new_data_file = new_data_file.change_status("success_exploration")
+                    new_data_file = new_data_file.change_status("explore|finished")
                     final_status = status.HTTP_200_OK
                 else:
-                    new_data_file = data_file.change_status("success_exploration")
+                    new_data_file = data_file.change_status("explore|finished")
                     final_status = status.HTTP_400_BAD_REQUEST
             if new_data_file:
                 if new_data_file:
@@ -252,27 +323,19 @@ class DataFileViewSet(CreateRetrievView):
 
     @action(methods=["get"], detail=True, url_path="counting")
     def counting(self, request, **kwargs):
-        if not request.user.is_staff:
-            raise PermissionDenied()
         data_file = self.get_object()
         key_task, task_params = build_task_params(
             data_file, "counting", request)
         curr_kwargs = {
-            "after_if_empty": "find_coincidences_from_aws",
+            "after_if_empty": "find_and_counting_from_aws",
         }
         all_tasks, all_errors, data_file = data_file.get_sample_data(
             task_params, **curr_kwargs)
 
         resp = comprobate_status(
             key_task, all_errors, all_tasks, want_http_response=True)
-        if not resp:
-            all_tasks, all_errors, data_file = data_file.every_has_total_rows(
-                task_params)
-            resp = comprobate_status(
-                key_task, all_errors, all_tasks, want_http_response=True)
         if resp:
             return resp
-        # data_file, saved, errors = data_file.find_coincidences()
 
         response_body = {}
         final_status = status.HTTP_200_OK
@@ -289,31 +352,8 @@ class DataFileViewSet(CreateRetrievView):
         print("response_body: ", response_body)
         return Response(response_body, status=final_status)
 
-    @action(methods=["get"], detail=True, url_path="build_columns")
-    def build_columns(self, request, **kwargs):
-
-        data_file = self.get_object()
-        key_task, task_params = build_task_params(
-            data_file, "build_columns", request)
-        curr_kwargs = {
-            "after_if_empty": "explore_data_xls_after",
-        }
-        all_tasks, all_errors, data_file = data_file.get_sample_data(
-            task_params, **curr_kwargs)
-        resp = comprobate_status(
-            key_task, all_errors, all_tasks, want_http_response=True)
-        if resp:
-            return resp
-        if data_file:
-            new_tasks, errors, data = data_file.build_complex_headers()
-            all_errors.extend(errors or [])
-            if data:
-                return Response(data, status=status.HTTP_201_CREATED)
-        return Response(
-            {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(methods=["get"], detail=True, url_path="transform_data")
-    def transform_data(self, request, **kwargs):
+    @action(methods=["get"], detail=True, url_path="transform_data_prev")
+    def transform_data_prev(self, request, **kwargs):
         from inai.data_file_mixins.matches_mix import Match
         data_file = self.get_object()
         key_task, task_params = build_task_params(
@@ -334,17 +374,40 @@ class DataFileViewSet(CreateRetrievView):
         else:
             data["new_task"] = key_task.id
             return Response(data, status=status.HTTP_200_OK)
-
         # if data_file:
         #     data = serializers.DataFileSerializer(data_file).data
         #     return Response(data, status=status.HTTP_201_CREATED)
         # return Response(
         #     {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=["get"], detail=True, url_path="build_columns")
+    def build_columns(self, request, **kwargs):
+
+        data_file = self.get_object()
+        key_task, task_params = build_task_params(
+            data_file, "build_columns", request)
+        curr_kwargs = {
+            "after_if_empty": "build_sample_data_after",
+        }
+        all_tasks, all_errors, data_file = data_file.get_sample_data(
+            task_params, **curr_kwargs)
+        resp = comprobate_status(
+            key_task, all_errors, all_tasks, want_http_response=True)
+        if resp:
+            return resp
+        if data_file:
+            new_tasks, errors, data = data_file.build_complex_headers()
+            all_errors.extend(errors or [])
+            if data:
+                return Response(data, status=status.HTTP_201_CREATED)
+        return Response(
+            {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class OpenDataInaiViewSet(ListRetrieveView):
     queryset = DataFile.objects.all()
     serializer_class = serializers.DataFileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
         return DataFile.objects.all()
@@ -356,8 +419,6 @@ class OpenDataInaiViewSet(ListRetrieveView):
         import pandas as pd
         from datetime import datetime
         from scripts.import_inai import insert_from_json
-        if not request.user.is_staff:
-            raise PermissionDenied()
 
         zip_file = zipfile.ZipFile(request.FILES['file'])
         petitions = []
@@ -469,8 +530,6 @@ class OpenDataInaiViewSet(ListRetrieveView):
         import json
         from datetime import datetime
         from scripts.import_inai import insert_from_json
-        if not request.user.is_staff:
-            raise PermissionDenied()
         data_json = request.data
         data = json.load(data_json["file"])
 

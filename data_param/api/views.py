@@ -7,7 +7,7 @@ from api.mixins import MultiSerializerModelViewSet
 from inai.api.serializers import (
     PetitionSemiFullSerializer, PetitionFileControlDeepSerializer,
     FileControlFullSerializer, TransformationEditSerializer,
-    NameColumnEditSerializer)
+    NameColumnEditSerializer, DataFileSerializer)
 from inai.models import PetitionFileControl, DataFile
 from task.views import build_task_params, comprobate_status
 from . import serializers
@@ -45,7 +45,7 @@ def build_common_filters(limiters, available_filters):
 
 
 class FileControlViewSet(MultiSerializerModelViewSet):
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.IsAdminUser,)
     serializer_class = serializers.FileControlSerializer
     pagination_class = HeavyResultsSetPagination
     queryset = FileControl.objects.all().prefetch_related(
@@ -54,7 +54,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         "columns__column_transformations",
         "file_transformations",
         "petition_file_control",
-        "petition_file_control__data_files",
+        # "petition_file_control__data_files",
+        # "petition_file_control__data_files__sheet_files",
         # "petition_file_control__data_files__origin_file",
     )
 
@@ -84,17 +85,18 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             "file_transformations",
             "petition_file_control",
             "petition_file_control__data_files",
+            "petition_file_control__data_files__sheet_files",
             # "petition_file_control__data_files__origin_file",
         )
         if status_register:
             controls = controls.filter(status_register_id=status_register)
         return controls
 
-    def get(self, request):
-        # print("ESTOY EN GET")
+    def retrieve(self, request, **kwargs):
+        print("ESTOY EN GET")
         file_control = self.get_object()
         serializer = FileControlFullSerializer(
-            file_control, context={ 'request': request })
+            file_control, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request, **kwargs):
@@ -177,9 +179,16 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             {"name": "status_register", "field": "status_register_id"},
             {"name": "data_group", "field": "data_group_id"},
             {"name": "file_format", "field": "file_format_id"},
+            # {"name": "final_field", "field": "columns__final_field_id"},
         ]
         if limiters:
             all_filters = build_common_filters(limiters, available_filters)
+            final_field = limiters.get("final_field", None)
+            if final_field is not None:
+                if final_field == 0:
+                    all_filters["columns__final_field__isnull"] = True
+                else:
+                    all_filters["columns__final_field_id"] = limiters["final_field"]
             if all_filters:
                 controls = controls.filter(**all_filters).distinct()
             total_count = controls.count()
@@ -214,8 +223,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     @action(methods=["post"], detail=True, url_path='columns')
     def columns(self, request, **kwargs):
         from inai.models import FileControl
-        if not request.user.is_staff:
-            raise PermissionDenied()
         columns_items = request.data.get("columns")
         file_control = self.get_object()
         # limiters = json.loads(limiters)
@@ -294,8 +301,84 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             return send_response(petition, task=key_task, errors=new_errors)
         else:
             return Response(
-                { "errors": ["No hay archivos en grupos huérfanos"] },
+                {"errors": ["No hay archivos en grupos huérfanos"]},
                 status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["put"], detail=True, url_path='massive_change_stage')
+    def massive_change_stage(self, request, **kwargs):
+        from classify_task.models import Stage
+
+        file_control = self.get_object()
+        # status_req = request.data.get("status", { })
+        # status_id = status_req.get("id", False)
+        # status_name = status_req.get("name", False)
+        print("rdata:", request.data)
+        stage_init = request.data.get("stage_init")
+        status_init = request.data.get("status_init")
+        all_data_files = DataFile.objects.filter(
+            petition_file_control__file_control=file_control,
+            status_id=status_init, stage_id=stage_init)
+        stage_final = request.data.get("stage_final")
+        target_stage = Stage.objects.get(name=stage_final)
+        function_name = target_stage.main_function.name
+        after_aws = "find_coincidences_from_aws" if \
+            target_stage.name == "cluster" else "build_sample_data_after"
+        curr_kwargs = { "after_if_empty": after_aws }
+        subgroup = f"{stage_init}|{status_init}"
+        key_task, task_params = build_task_params(
+            file_control, function_name, request, subgroup=subgroup)
+        all_tasks = []
+        all_errors = []
+        final_count = 0
+        for data_file in all_data_files[:100]:
+            if not data_file.can_repeat:
+                continue
+            if final_count >= 50:
+                break
+            final_count += 1
+            df_task, task_params = build_task_params(
+                data_file, function_name, request, parent_task=key_task)
+            re_process_stages = target_stage.re_process_stages.all()
+            # stages = ["sample", "cluster", "prepare"]
+            for stage in re_process_stages:
+                current_function = stage.main_function.name
+                task_params["models"] = [data_file]
+                method = getattr(data_file, current_function)
+                if not method:
+                    break
+                new_tasks, new_errors, data_file = method(task_params, **curr_kwargs)
+                # if stage_name == "sample":
+                #     new_tasks, new_errors, data_file = data_file.get_sample_data(
+                #         task_params, **curr_kwargs)
+                # elif stage_name == "cluster":
+                #     new_tasks, new_errors, data_file = data_file.verify_coincidences(
+                #         task_params, **curr_kwargs)
+                # elif stage_name == "prepare":
+                #     new_tasks, new_errors, data_file = data_file.prepare_transform(
+                #         task_params, **curr_kwargs)
+                # elif stage_name == "prepare":
+                #     new_tasks, new_errors, data_file = data_file.transform_data(
+                #         task_params, **curr_kwargs)
+                # else:
+                #     break
+                if new_errors or new_tasks:
+                    if new_errors:
+                        data_file.save_errors(
+                            new_errors, f"{stage.name}|with_errors")
+                    all_errors.extend(new_errors)
+                    all_tasks.extend(new_tasks)
+                    comprobate_status(df_task, all_errors, new_tasks)
+                    break
+                elif stage.name == stage_final:
+                    data_file = data_file.change_status(f"{stage.name}|finished")
+                    comprobate_status(df_task, all_errors, new_tasks)
+        data = {
+            "errors": all_errors,
+            "file_control": FileControlFullSerializer(file_control).data,
+        }
+        comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
+        data["new_task"] = key_task.id
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(methods=["put"], detail=True, url_path='massive_action')
     def massive_action(self, request, **kwargs):
@@ -307,7 +390,9 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         all_data_files = DataFile.objects.filter(
             petition_file_control__file_control=file_control,
             status_process_id=status_id)
-        method = status_req.get("addl_params", { }).get("next_step", { }).get("method", False)
+        method = status_req.get("addl_params", {})\
+                           .get("next_step", {})\
+                           .get("method", False)
         if method == "buildExploreDataFile" or method == "countFile":
             function_name = "massive_explore" \
                 if method == "buildExploreDataFile" else "massive_count"
@@ -319,29 +404,28 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             for data_file in all_data_files[:50]:
                 curr_kwargs = {
                     "after_if_empty": "find_coincidences_from_aws",
-                    "all_tasks": all_tasks,
+                    # "all_tasks": all_tasks,
                 }
-                all_tasks, new_errors, data_file = data_file.get_sample_data(
+                new_tasks, new_errors, data_file = data_file.get_sample_data(
                     task_params, **curr_kwargs)
+                all_tasks.extend(new_tasks)
                 if not data_file:
                     continue
                 task_params["models"] = [data_file]
+                errors = []
                 if method == "buildExploreDataFile":
-                    process_error = "explore_fail"
+                    process_error = "explore|with_errors"
                     data_file, saved, errors = data_file.find_coincidences()
                     if not saved and not errors:
                         errors = ["No coincide con el formato del archivo 1"]
                 else:
-                    process_error = "counting_failed"
-                    all_tasks, errors, data_file = data_file.every_has_total_rows(
-                        task_params)
+                    process_error = "prepare|with_errors"
                     if data_file:
                         data_rows = data_file.count_file_rows()
                         errors = data_rows.get("errors", [])
                 if errors:
                     all_errors.extend(errors)
                     data_file.save_errors(errors, process_error)
-
 
             data = {
                 "errors": all_errors,

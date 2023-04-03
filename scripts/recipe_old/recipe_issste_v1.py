@@ -47,13 +47,13 @@ base_sql = (
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
     "folio_document,date_release,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,prescribed_amount,delivered_amount,"
-    "clave_doctor,nombre_medico,especialidad_medico,price,rn)")
+    "clave,full_name,especialidad_medico,price,rn)")
 base_sql2 = (
     "COPY desabasto_recipereportraw(delegation,budget_key,"
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
     "folio_document,date_release,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,prescribed_amount,delivered_amount,"
-    "clave_doctor,nombre_medico,especialidad_medico,price)")
+    "clave,full_name,especialidad_medico,price)")
 options = "csv DELIMITER '|' NULL 'NULL' HEADER ENCODING 'LATIN1'"
 options2 = "csv DELIMITER '|' NULL 'NULL' ENCODING 'LATIN1'"
 
@@ -197,10 +197,10 @@ def get_data(file="reporte_recetas_202011_4.csv", start_index=3, base_print=1):
                 print("delivered_amount")
                 print(delivered_amount)
                 print
-                print("clave_doctor")
+                print("clave")
                 print(clave_doctor)
                 print
-                print("nombre_medico")
+                print("full_name")
                 print(nombre_medico)
                 print
                 print("especialidad_medico")
@@ -232,16 +232,16 @@ def get_clues(**kwargs):
 
 
 def get_doctor(**kwargs):
-    clave_doctor = kwargs.get("clave_doctor")
+    clave_doctor = kwargs.get("clave")
     if clave_doctor == "NULL":
         return None
-    nombre_medico = kwargs.get("nombre_medico")
+    nombre_medico = kwargs.get("full_name")
     especialidad_medico = kwargs.get("especialidad_medico")
     doctor = Doctor.objects.filter(clave_doctor=clave_doctor).first()
     if not doctor:
         doctor = Doctor()
-        doctor.clave_doctor = clave_doctor
-        doctor.nombre_medico = nombre_medico
+        doctor.clave = clave_doctor
+        doctor.full_name = nombre_medico
         if especialidad_medico in especialidad_medico_list:
             especialidad_medico = especialidad_medico_list.get(
                 especialidad_medico)
@@ -448,8 +448,8 @@ def converter_file_in_related_files(
                 "nivel_atencion": nivel_atencion,
                 "tipo_documento": tipo_documento,
                 "folio_document": folio_document,
-                "clave_doctor": clave_doctor,
-                "nombre_medico": nombre_medico,
+                "clave": clave_doctor,
+                "full_name": nombre_medico,
                 "especialidad_medico": especialidad_medico,
                 "delivered_medicine": []
             }
@@ -525,8 +525,8 @@ def converter_file_in_related_files(
             recipe_data.get("nivel_atencion"),
             recipe_data.get("tipo_documento"),
             recipe_data.get("folio_document"),
-            recipe_data.get("clave_doctor"),
-            recipe_data.get("nombre_medico"),
+            recipe_data.get("clave"),
+            recipe_data.get("full_name"),
             recipe_data.get("especialidad_medico"),
             recipe_delivered])
 
@@ -551,7 +551,7 @@ def converter_file_in_related_files(
             ("id", "year_month", "calculate_id", "delegation",
                 "budget_key", "unidad_medica", "tipo_unidad_med",
                 "nivel_atencion", "tipo_documento", "folio_document",
-                "clave_doctor", "nombre_medico", "especialidad_medico",
+                "clave", "full_name", "especialidad_medico",
                 "delivered", ))
 
         upload_csv_to_database(

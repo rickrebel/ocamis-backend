@@ -3,9 +3,10 @@ from rest_framework import serializers
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
     Petition, PetitionFileControl, DataFile, MonthEntity, PetitionMonth,
-    ReplyFile, PetitionBreak, PetitionNegativeReason)
+    ReplyFile, PetitionBreak, PetitionNegativeReason, SheetFile, LapSheet)
 from data_param.models import Transformation, NameColumn, FileControl
 
+from category.models import FileType
 from category.api.serializers import (
     NegativeReasonSimpleSerializer)
 
@@ -85,6 +86,33 @@ class MonthEntitySimpleSerializer(serializers.ModelSerializer):
         fields = ["year_month", "human_name"]
 
 
+class LapSheetSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = LapSheet
+        fields = "__all__"
+
+
+class SheetFileSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+    short_name = serializers.SerializerMethodField(read_only=True)
+    real_name = serializers.SerializerMethodField(read_only=True)
+    laps = LapSheetSerializer(read_only=True, many=True)
+
+    def get_real_name(self, obj):
+        return obj.file.name.split("/")[-1]
+
+    def get_short_name(self, obj):
+        real_name = obj.file.name.split("/")[-1]
+        return f"{real_name[:25]}...{real_name[-15:]}" \
+            if len(real_name) > 42 else real_name
+
+    class Meta:
+        model = SheetFile
+        fields = "__all__"
+
+
 class DataFileSimpleSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
@@ -92,10 +120,6 @@ class DataFileSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = DataFile
         fields = ["id", "name", "url"]
-
-
-def get_has_sample_data(obj):
-    return bool(obj.sample_data)
 
 
 class DataFileSerializer(serializers.ModelSerializer):
@@ -108,7 +132,7 @@ class DataFileSerializer(serializers.ModelSerializer):
     # petition_file_control_id = serializers.PrimaryKeyRelatedField(
     #     write_only=True, source="petition_file_control",
     #     queryset=PetitionFileControl.objects.all())
-    #child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
+    # child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     has_sample_data = serializers.SerializerMethodField(read_only=True)
     short_name = serializers.SerializerMethodField(read_only=True)
     real_name = serializers.SerializerMethodField(read_only=True)
@@ -116,7 +140,8 @@ class DataFileSerializer(serializers.ModelSerializer):
         source="petition_file_control.petition_id", read_only=True)
 
     def get_has_sample_data(self, obj):
-        return bool(obj.sample_data)
+        # return bool(obj.sample_data)
+        return bool(obj.sheet_files.exists())
 
     def get_real_name(self, obj):
         return obj.file.name.split("/")[-1]
@@ -134,6 +159,15 @@ class DataFileSerializer(serializers.ModelSerializer):
 
 
 class DataFileEditSerializer(DataFileSerializer):
+
+    class Meta:
+        model = DataFile
+        fields = "__all__"
+        read_only_fields = ["petition_file_control", "file"]
+
+
+class DataFileFullSerializer(DataFileSerializer):
+    sheet_files = SheetFileSerializer(many=True, read_only=True)
 
     class Meta:
         model = DataFile
@@ -184,8 +218,18 @@ class PetitionFileControlSerializer(serializers.ModelSerializer):
 
 
 class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
-    #file_control = FileControlSimpleSerializer()
-    data_files = DataFileSerializer(many=True)
+    # file_control = FileControlSimpleSerializer()
+    # data_files = DataFileSerializer(many=True)
+    data_files = serializers.SerializerMethodField(read_only=True)
+
+    def get_data_files(self, obj):
+        # return []
+        return DataFileSerializer(obj.data_files.all(), many=True).data
+        data_files = DataFile.objects\
+            .filter(petition_file_control=obj)\
+            .prefetch_related("sheet_files")
+        return DataFileSerializer(data_files, many=True).data
+
 
     class Meta:
         model = PetitionFileControl
@@ -265,20 +309,20 @@ class PetitionFullSerializer(PetitionSemiFullSerializer):
 class PetitionEditSerializer(serializers.ModelSerializer):
     negative_reasons = PetitionNegativeReasonSerializer(
         many=True, read_only=True)
-    """status_data = StatusControlSimpleSerializer(read_only=True)
-    status_data_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="status_data",
-        queryset=StatusControl.objects.all(), required=False)
-    status_petition = StatusControlSimpleSerializer(
-        read_only=True)
-    status_complain = StatusControlSimpleSerializer(
-        read_only=True)
-    status_petition_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="status_petition",
-        queryset=StatusControl.objects.all(), required=False)
-    status_complain_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="status_complain",
-        queryset=StatusControl.objects.all(), required=False)"""
+    # status_data = StatusControlSimpleSerializer(read_only=True)
+    # status_data_id = serializers.PrimaryKeyRelatedField(
+    #     write_only=True, source="status_data",
+    #     queryset=StatusControl.objects.all(), required=False)
+    # status_petition = StatusControlSimpleSerializer(
+    #     read_only=True)
+    # status_complain = StatusControlSimpleSerializer(
+    #     read_only=True)
+    # status_petition_id = serializers.PrimaryKeyRelatedField(
+    #     write_only=True, source="status_petition",
+    #     queryset=StatusControl.objects.all(), required=False)
+    # status_complain_id = serializers.PrimaryKeyRelatedField(
+    #     write_only=True, source="status_complain",
+    #     queryset=StatusControl.objects.all(), required=False)
 
     class Meta:
         model = Petition

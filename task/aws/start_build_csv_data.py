@@ -64,34 +64,38 @@ def calculate_delivered_final(all_delivered):
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
 def lambda_handler(event, context):
-
-    aws_access_key_id = event["s3"]["aws_access_key_id"]
-    aws_secret_access_key = event["s3"]["aws_secret_access_key"]
-    bucket_name = event["s3"]["bucket_name"]
-    aws_location = event["s3"]["aws_location"]
-    file = event["file"]
-
-    dev_resource = boto3.resource(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-
-    content_object = dev_resource.Object(
-        bucket_name=bucket_name,
-        key=f"{aws_location}/{file}"
-    )
-    streaming_body_1 = content_object.get()['Body']
-    object_final = io.BytesIO(streaming_body_1.read())
+    # if "artificial_request_id" in event:
+    #     context["aws_request_id"] = event["artificial_request_id"]
     init_data = event["init_data"]
     init_data["s3"] = event["s3"]
     init_data["webhook_url"] = event.get("webhook_url")
-    if "artificial_request_id" in event:
-        context["aws_request_id"] = event["artificial_request_id"]
     match_aws = MatchAws(init_data, context)
 
-    s3_client = boto3.client(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-    final_result = match_aws.build_csv_to_data(object_final, s3_client)
+    if init_data.get("is_prepare", False):
+        prepare_sample = init_data["sample_data"]
+        final_result = match_aws.build_csv_to_data(prepare_sample)
+    else:
+        aws_access_key_id = event["s3"]["aws_access_key_id"]
+        aws_secret_access_key = event["s3"]["aws_secret_access_key"]
+        bucket_name = event["s3"]["bucket_name"]
+        aws_location = event["s3"]["aws_location"]
+        file = event["file"]
+
+        dev_resource = boto3.resource(
+            's3', aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key)
+
+        content_object = dev_resource.Object(
+            bucket_name=bucket_name,
+            key=f"{aws_location}/{file}"
+        )
+        streaming_body_1 = content_object.get()['Body']
+        object_final = io.BytesIO(streaming_body_1.read())
+        s3_client = boto3.client(
+            's3', aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key)
+
+        final_result = match_aws.build_csv_to_data(object_final, s3_client)
     # print("final_result", final_result)
     if "webhook_url" in event:
         webhook_url = event["webhook_url"]
@@ -120,16 +124,19 @@ class MatchAws:
         self.row_start_data = init_data["row_start_data"]
         self.delimiter = init_data["delimiter"]
         self.columns_count = init_data["columns_count"]
-        self.final_lists = init_data["final_lists"]
+        self.editable_models = init_data["editable_models"]
         self.model_fields = init_data["model_fields"]
         self.existing_fields = init_data["existing_fields"]
-        self.catalog_clues_by_id = init_data["catalog_clues_by_id"]
-        self.catalog_delegation = init_data["catalog_delegation"]
-        self.catalog_container = init_data["catalog_container"]
+
+        self.catalogs = init_data["catalogs"]
+        self.cats = {}
+        # self.catalog_clues = {}
+        # self.catalog_container = {}
+        # self.catalog_delegation = {}
         self.webhook_url = init_data.get("webhook_url")
 
         self.string_date = init_data["string_date"]
-        self.unique_clues = init_data["unique_clues"]
+        # self.unique_clues = init_data["unique_clues"]
         self.failed_delegations = []
 
         self.last_revised = datetime.now()
@@ -137,41 +144,105 @@ class MatchAws:
         self.last_missing_row = None
         self.all_missing_rows = []
         self.all_missing_fields = []
-        self.s3 = init_data["s3"]
+        self.new_cat_rows = {cat: [] for cat in self.catalogs.keys()}
+
+        self.s3 = init_data.get("s3")
         self.context = context
         self.total_tries = 1
+        self.last_date = None
+        self.last_date_formatted = None
 
-    def build_csv_to_data(self, complete_file, s3_client):
-        csv_buffer = { }
-        csv_files = { }
-        for elem in self.final_lists:
+        self.is_prepare = init_data.get("is_prepare", False)
+
+    def get_json_file(self, file_name):
+        aws_access_key_id = self.s3["aws_access_key_id"]
+        aws_secret_access_key = self.s3["aws_secret_access_key"]
+        bucket_name = self.s3["bucket_name"]
+        aws_location = self.s3["aws_location"]
+
+        # dev_resource = boto3.resource(
+        #     's3', aws_access_key_id=aws_access_key_id,
+        #     aws_secret_access_key=aws_secret_access_key)
+        # content_object = dev_resource.Object(
+        #     bucket_name=bucket_name,
+        #     key=f"{aws_location}/{file_name}"
+        # )
+        # streaming_body_1 = content_object.get()['Body']
+        # object_final = io.BytesIO(streaming_body_1.read())
+        # return json.loads(object_final.read().decode('utf-8'))
+        s3_client = boto3.client(
+            's3', aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key)
+
+        obj = s3_client.get_object(
+            Bucket=bucket_name,
+            Key=f"{aws_location}/{file_name}")
+        return json.loads(obj['Body'].read().decode('utf-8'))
+
+    def build_csv_to_data(self, complete_file, s3_client=None):
+        csv_buffer = {}
+        csv_files = {}
+        for elem in self.editable_models:
             csv_files[elem["name"]] = io.StringIO()
             csv_buffer[elem["name"]] = csv.writer(
                 csv_files[elem["name"]], delimiter=self.delimiter)
-
-        data_rows = complete_file.readlines()
-
+        print("PASO 1")
+        if self.is_prepare:
+            data_rows = complete_file.get("all_data", [])
+            tail_data = complete_file.get("tail_data", [])
+            data_rows.extend(tail_data)
+        else:
+            data_rows = complete_file.readlines()
+        print("PASO 2")
         all_data = self.divide_rows(data_rows)
+        print("PASO 3")
+        for cat_name, cat_data in self.catalogs.items():
+            print(f"PASO 3.{cat_name}")
+            # print("cat_unique", cat_data["unique_field"])
+            # print("cat_unique_id", cat_data["unique_field_id"])
+            try:
+                current_unique = [field for field in self.existing_fields if
+                                  field["final_field_id"] == cat_data["unique_field_id"]][0]
+            except IndexError:
+                current_unique = {}
+            self.catalogs[cat_name]["unique_field"] = current_unique
+            current_json = self.get_json_file(cat_data.get("file"))
+            self.cats[cat_name] = current_json
 
+        print("PASO 4")
         # last_date = None
         # iso_date = None
         # first_iso = None
-        all_prescriptions = { }
+        all_prescriptions = {}
         success_drugs_count = 0
         for row in all_data:
             # print("data_row \t", data_row)
             self.last_missing_row = None
             # is_same_date = False
+            uuid = str(uuid_lib.uuid4())
+
+            def generic_match_row(av_data, c_data):
+                c_name = c_data["name"]
+                el_id, orig_val = self.generic_match(c_data, av_data)
+                av_data[f"{c_name}_id"] = el_id
+                if not el_id:
+                    err = f"No se encontró el {c_name}"
+                    name_col = c_data["unique_field"].get("name_column")
+                    self.append_missing_field(
+                        row, name_col, orig_val, err, drug_uuid=uuid)
+
+                return av_data
+
             available_data = {
                 "data_file_id": self.data_file_id,
                 "row_seq": int(row[0]),
-                "uuid": uuid_lib.uuid4()
+                "uuid": uuid
             }
             available_data, some_date = self.complement_available_data(
                 available_data, row)
 
             if not some_date:
-                error = "No se pudo convertir ninguna fecha"
+                error = "Fechas; No se pudo convertir ninguna fecha"
                 self.append_missing_row(row, error)
                 continue
             # if last_date != date[:10]:
@@ -190,7 +261,8 @@ class MatchAws:
                 continue
             delivered = available_data.get("delivered_id")
 
-            available_data = self.medicine_match(available_data)
+            cat_container = self.catalogs.get("container")
+            available_data = generic_match_row(available_data, cat_container)
 
             folio_document = available_data.get("folio_document")
             folio_ocamis = "%s-%s-%s-%s" % (
@@ -205,7 +277,7 @@ class MatchAws:
                 curr_prescription["delivered_final_id"] = calculate_delivered_final(
                     all_delivered)
             else:
-                uuid_folio = uuid_lib.uuid4()
+                uuid_folio = str(uuid_lib.uuid4())
                 available_data["uuid_folio"] = uuid_folio
                 available_data["prescription_id"] = uuid_folio
                 available_data["delivered_final_id"] = delivered
@@ -213,12 +285,21 @@ class MatchAws:
                 available_data["folio_document"] = folio_document
                 available_data["all_delivered"] = [delivered]
 
-                clues_id = self.clues_match(available_data, self.unique_clues)
-                available_data["clues_id"] = clues_id
-                delegation_name = available_data.get("delegation_name")
-                # if not delegation_name == "AGUASCALIENTES":
-                #     continue
+                for cat_name, cat_data in self.catalogs.items():
+                    if cat_name in ["container", "delegation"]:
+                        continue
+                    available_data = generic_match_row(available_data, cat_data)
 
+                # clave_clues = available_data.pop(
+                #     unique_clues.get("name"), None)
+                # clues_id = self.clues_match(clave_clues)
+                # available_data["clues_id"] = clues_id
+                # if not clues_id and unique_clues:
+                #     error = "No se encontró la CLUES"
+                #     self.append_missing_field(
+                #         row, unique_clues["name_column"], clave_clues,
+                #         error, drug_uuid=uuid)
+                clues_id = available_data.get("clues_id")
                 delegation_id, delegation_error = self.delegation_match(
                     available_data, clues_id)
 
@@ -232,25 +313,33 @@ class MatchAws:
             current_drug_data = []
             for drug_field in self.model_fields["drug"]:
                 value = available_data.pop(drug_field, None)
-                if not value:
+                if value is None:
                     value = locals().get(drug_field)
                 # value = available_data.get(drug_field, locals().get(drug_field))
-
                 current_drug_data.append(value)
             csv_buffer["drug"].writerow(current_drug_data)
             success_drugs_count += 1
-
-            # IMPORTANTE: Falta un proceso para los siguientes campos:
-            # doctor = None
-            # area = None
-            # diagnosis = None
-
             # if len(all_prescriptions) > self.sample_size:
             #     break
-        csv_buffer["missing_field"].writerows(self.all_missing_fields)
+        print("PASO 5")
+        final_request_id = self.context.aws_request_id
         report_errors = self.build_report()
         report_errors["prescription_count"] = len(all_prescriptions)
         report_errors["drug_count"] = success_drugs_count
+        print("PASO 6  -- LLEGO AL FINAL DE TODO")
+        if self.is_prepare:
+            print("PASO 7, en prepare")
+            result_data = {
+                "result": {
+                    "final_paths": None,
+                    "report_errors": report_errors,
+                    "is_prepare": True
+                },
+                "request_id": final_request_id
+            }
+            return json.dumps(result_data)
+
+        csv_buffer["missing_field"].writerows(self.all_missing_fields)
         csv_buffer["missing_row"].writerows(self.all_missing_rows)
 
         for curr_prescription in all_prescriptions.values():
@@ -266,7 +355,7 @@ class MatchAws:
 
         all_final_paths = []
 
-        for elem_list in self.final_lists:
+        for elem_list in self.editable_models:
             only_name = self.final_path.replace("NEW_ELEM_NAME", elem_list['name'])
             all_final_paths.append({
                 "name": elem_list["name"],
@@ -281,7 +370,6 @@ class MatchAws:
             )
             # self.send_csv_to_db(final_path, elem_list)
 
-        final_request_id = self.context.get("aws_request_id")
         result_data = {
             "result": {
                 "decode": self.decode,
@@ -294,7 +382,7 @@ class MatchAws:
 
     def divide_rows(self, data_rows):
         structured_data = []
-        sample = data_rows[:20]
+        sample = data_rows[:50]
         self.decode = self.obtain_decode(sample)
         # self.file_control.decode = decode
         # self.file_control.save()
@@ -305,12 +393,15 @@ class MatchAws:
 
         begin = self.row_start_data
 
-        for row_seq, row in enumerate(data_rows[begin - 1:], start=begin):
+        for row_seq, row in enumerate(data_rows[begin+1:], start=begin+1):
             # print("Row: %s" % row_seq)
             self.last_missing_row = None
-            row_decode = row.decode(self.decode) if self.decode != "str" else str(row)
-            # .replace('\r\n', '')
-            row_data = row_decode.replace('\r\n', '').split(self.delimiter)
+            if self.is_prepare:
+                row_data = [col.replace('\r\n', '').strip() for col in row]
+            else:
+                row_decode = row.decode(self.decode) if self.decode != "str" else str(row)
+                # .replace('\r\n', '')
+                row_data = row_decode.replace('\r\n', '').split(self.delimiter)
             current_count = len(row_data)
             row_data.insert(0, str(row_seq))
             if current_count == self.columns_count:
@@ -323,121 +414,92 @@ class MatchAws:
         return structured_data
 
     def complement_available_data(self, available_data, row):
+        import re
         from datetime import datetime
         some_date = None
         uuid = available_data.get("uuid")
         for field in self.existing_fields:
+            error = None
             value = row[field["position"]]
-            if field["data_type"] == "Datetime":  # and not is_same_date:
-                # if value == last_date:
-                #     is_same_date = True
-                try:
-                    value = datetime.strptime(value, self.string_date)
+            try:
+                if field["data_type"] == "Datetime":  # and not is_same_date:
+                    if value == self.last_date and value:
+                        value = self.last_date_formatted
+                    else:
+                        self.last_date = value
+                        # value = value.strftime(self.string_date)
+                        value = datetime.strptime(value, self.string_date)
+                        self.last_date_formatted = value
                     if not some_date:
                         some_date = value
-                        # last_date = value
-                except ValueError:
-                    error = "No se pudo convertir la fecha"
-                    self.append_missing_field(
-                        row, field["name_column"], value, error=error, drug_uuid=uuid)
-                    value = None
-            elif field["data_type"] == "Integer":
-                try:
+                elif field["data_type"] == "Integer":
                     value = int(value)
-                except ValueError:
-                    error = "No se pudo convertir a número entero"
-                    self.append_missing_field(
-                        row, field["name_column"], value, error=error, drug_uuid=uuid)
-                    value = None
-            elif field["data_type"] == "Float":
-                try:
+                elif field["data_type"] == "Float":
                     value = float(value)
-                except ValueError:
-                    error = "No se pudo convertir a número decimal"
-                    self.append_missing_field(
-                        row, field["name_column"], value, error=error, drug_uuid=uuid)
-                    value = None
+            except ValueError:
+                error = "No se pudo convertir a %s" % field["data_type"]
+            regex_format = field.get("regex_format")
+            if regex_format:
+                if not re.match(regex_format, value):
+                    error = "No se pudo validar con el formato %s" % regex_format
+            if error:
+                self.append_missing_field(
+                    row, field["name_column"], value, error=error, drug_uuid=uuid)
+                value = None
             available_data[field["name"]] = value
         return available_data, some_date
 
-    def medicine_match(self, available_data):
-        if available_data.get("key2"):
-            new_key2 = available_data["key2"].replace(".", "")
-            available_data["key2"] = new_key2
-            curr_container = self.catalog_container.get(new_key2)
-            available_data["container_id"] = curr_container
-        return available_data
+    # def medicine_match(self, available_data):
+    #     cat_container = self.catalogs["container"]
+    #     unique_field = cat_container.get("unique_field")
+    #     if unique_field:
+    #         new_key2 = available_data[unique_field].replace(".", "")
+    #         available_data[unique_field] = new_key2
+    #         curr_container = self.cats["container"].get(new_key2)
+    #         # available_data["container_id"] = curr_container
+    #         return curr_container, available_data[unique_field]
+    #     return None, None
 
-    def clues_match(self, available_data, unique_clues):
-        clues = None
-        clave_clues = available_data.pop(unique_clues.get("name"), None)
+    def generic_match(self, cat_data, available_data):
+        cat_name = cat_data["name"]
+        if cat_name == "clues" and self.global_clues_id:
+            return self.global_clues_id, None
+        unique_field = cat_data.get("unique_field")
+        if unique_field:
+            params = cat_data.get("params", {})
+            id_field = params.get("id", "id")
+            init_value = available_data[unique_field.get("name")]
+            if cat_name == "container":
+                init_value = init_value.replace(".", "")
+            # available_data[unique_field] = unique_field
+            complete_values = self.cats[cat_name].get(init_value)
+            final_value = complete_values.get(id_field) \
+                if complete_values else None
+            # available_data["container_id"] = final_value
+            if not final_value and not params.get("only_unique"):
+                final_value = self.append_catalog_row(cat_name, available_data)
+            if not final_value:
+                print(f"No se encontró init: {init_value} en {cat_name} \n "
+                      f"unique_field: {unique_field}\n")
+            return final_value, init_value
+        else:
+            print("No se encontró unique_field", cat_name)
+        # elif not cat_data.get("only_unique"):
+        #     return None, None
+        #     # return self.append_catalog_row(cat_name, available_data), None
+        return None, None
+
+    def clues_match(self, clave_clues):
         if self.global_clues_id:
-            clues = self.global_clues_id
-        elif clave_clues and self.catalog_clues_by_id:
+            return self.global_clues_id
+        clues = None
+        catalog_clues = self.catalogs["clues"]
+        if clave_clues and catalog_clues:
             try:
-                clues = self.catalog_clues_by_id.get(clave_clues)
+                clues = self.cats["clues"].get(clave_clues)
             except KeyError:
                 pass
         return clues
-
-    def obtain_decode(self, sample):
-        if self.decode:
-            return self.decode
-
-        for row in sample:
-            is_byte = isinstance(row, bytes)
-            posible_latin = False
-            if is_byte:
-                try:
-                    row.decode("utf-8")
-                except Exception:
-                    posible_latin = True
-                if posible_latin:
-                    try:
-                        row.decode("latin-1")
-                        return "latin-1"
-                    except Exception as e:
-                        print(e)
-                        return "unknown"
-            else:
-                return "str"
-        return "utf-8"
-
-    def append_missing_row(
-            self, row_data, error=None, drug_id=None):
-        if self.last_missing_row:
-            if error:
-                self.last_missing_row[-1][-2] = False
-                self.all_missing_rows[-1][-1] = error
-            return self.all_missing_rows[-1][0]
-        last_revised = self.last_revised
-        inserted = not bool(error)
-        row_seq = int(row_data[0])
-        original_data = row_data[1:]
-        missing_data = []
-        uuid = str(uuid_lib.uuid4())
-        data_file_id = self.data_file_id
-        for field_name in self.model_fields["missing_row"]:
-            value = locals().get(field_name)
-            missing_data.append(value)
-        self.last_missing_row = missing_data
-        self.all_missing_rows.append(missing_data)
-        return uuid
-
-    def append_missing_field(
-            self, row, name_column_id, original_value, error, drug_uuid=None):
-        missing_row_id = self.append_missing_row(row, drug_id=drug_uuid)
-        missing_field = []
-        uuid = str(uuid_lib.uuid4())
-        inserted = False
-        last_revised = self.last_revised
-        # if name_column:
-        #     name_column = name_column.id
-        # print("error: %s" % error)
-        for field_name in self.model_fields["missing_field"]:
-            value = locals().get(field_name)
-            missing_field.append(value)
-        self.all_missing_fields.append(missing_field)
 
     def delegation_match(self, available_data, clues_id):
         delegation_name = available_data.pop("delegation_name", None)
@@ -448,7 +510,7 @@ class MatchAws:
         elif delegation_name:
             delegation_name = text_normalizer(delegation_name)
             try:
-                delegation_cat = self.catalog_delegation[delegation_name]
+                delegation_cat = self.cats["delegation"][delegation_name]
                 delegation = delegation_cat["id"]
             except Exception:
                 delegation_error = f"No se encontró la delegación;" \
@@ -480,7 +542,8 @@ class MatchAws:
             [data_result, delegation_error] = content
             if data_result:
                 new_name = data_result["name"]
-                self.catalog_delegation[new_name] = data_result
+                self.cats["delegation"][new_name] = data_result
+                # self.catalog_delegation[new_name] = data_result
                 delegation = content["id"]
             else:
                 self.failed_delegations.append(delegation_name)
@@ -493,6 +556,84 @@ class MatchAws:
         #     delegation_name, clues_id)
         return delegation, delegation_error
 
+    def obtain_decode(self, sample):
+        if self.decode:
+            return self.decode
+
+        for row in sample:
+            is_byte = isinstance(row, bytes)
+            posible_latin = False
+            if is_byte:
+                try:
+                    row.decode("utf-8")
+                except Exception:
+                    posible_latin = True
+                if posible_latin:
+                    try:
+                        row.decode("latin-1")
+                        return "latin-1"
+                    except Exception as e:
+                        print(e)
+                        return "unknown"
+            else:
+                return "str"
+        return "utf-8"
+
+    def append_missing_row(self, row_data, error=None, drug_id=None):
+        if self.last_missing_row:
+            if error:
+                # print(self.all_missing_rows)
+                self.last_missing_row[-2] = False
+                self.all_missing_rows[-1][-1] = error
+            return self.all_missing_rows[-1][0]
+        last_revised = self.last_revised
+        inserted = not bool(error)
+        inserted = False
+        # row_seq = int(row_data[0])
+        # original_data = row_data[1:]
+        original_data = row_data
+        missing_data = []
+        uuid = str(uuid_lib.uuid4())
+        data_file_id = self.data_file_id
+        for field_name in self.model_fields["missing_row"]:
+            value = locals().get(field_name)
+            missing_data.append(value)
+        self.last_missing_row = missing_data
+        self.all_missing_rows.append(missing_data)
+        return uuid
+
+    def append_missing_field(
+            self, row, name_column_id, original_value, error, drug_uuid=None):
+        missing_row_id = self.append_missing_row(row, drug_id=drug_uuid)
+        missing_field = []
+        uuid = str(uuid_lib.uuid4())
+        inserted = False
+        last_revised = self.last_revised
+        # if name_column:
+        #     name_column = name_column.id
+        # print("error: %s" % error)
+        for field_name in self.model_fields["missing_field"]:
+            value = locals().get(field_name)
+            missing_field.append(value)
+        self.all_missing_fields.append(missing_field)
+
+    def append_catalog_row(self, cat_name, available_data):
+        uuid = str(uuid_lib.uuid4())
+        inserted = False
+        last_revised = self.last_revised
+        is_aggregate = False
+        institution_id = self.institution_id
+        delegation_id = self.global_delegation_id
+        new_row = []
+        row_data = {}
+        for field_name in self.model_fields[cat_name]:
+            value = available_data.get(field_name, locals().get(field_name))
+            new_row.append(value)
+            row_data[field_name] = value
+        self.new_cat_rows[cat_name].append(new_row)
+        self.cats[cat_name][uuid] = row_data
+        return uuid
+
     def build_report(self):
         report_data = {"general_errors": ""}
         if self.all_missing_rows:
@@ -503,7 +644,11 @@ class MatchAws:
                 error = missing_row[-1]
                 if not error:
                     continue
-                [error_type, error_detail] = error.split(";", 1)
+                try:
+                    [error_type, error_detail] = error.split(";", 1)
+                except Exception as e:
+                    print("error", e)
+                    [error_type, error_detail] = [error, error]
                 if error_type in row_errors:
                     row_errors[error_type]["count"] += 1
                     if error_detail in row_errors[error_type]:
@@ -542,9 +687,8 @@ class MatchAws:
                     field_errors[error]["count"] += 1
                     if name_column in field_errors[error]:
                         field_errors[error][name_column]["count"] += 1
-                        example_count = len(
-                            field_errors[error][name_column]["examples"])
-                        if example_count < 4:
+                        examples = field_errors[error][name_column]["examples"]
+                        if len(examples) < 6 and original_value not in examples:
                             field_errors[error][name_column]["examples"].append(
                                 original_value)
                     else:
@@ -561,9 +705,10 @@ class MatchAws:
                             "examples": [original_value]
                         }
                     }
-            field_errors = sorted(
-                field_errors.items(), key=lambda x: sum(x[1].values()),
-                reverse=True)
+            # field_errors = sorted(
+            #     # field_errors.items(), key=lambda x: sum(x[1].values()),
+            #     field_errors.items(), key=lambda x: sum(x["count"].values()),
+            #     reverse=True)
             report_data["field_errors"] = field_errors
 
         if not report_data.get("missing_rows") and not report_data.get("missing_fields"):

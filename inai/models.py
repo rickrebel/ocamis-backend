@@ -8,7 +8,8 @@ from category.models import (
 from classify_task.models import Stage, StatusTask
 from transparency.models import Anomaly
 from data_param.models import (
-    DataType, FinalField, CleanFunction, DataGroup, Collection, ParameterGroup, FileControl)
+    DataType, FinalField, CleanFunction,
+    DataGroup, Collection, ParameterGroup, FileControl)
 
 from .data_file_mixins.explore_mix import ExploreMix
 from .data_file_mixins.utils_mix import DataUtilsMix
@@ -22,6 +23,9 @@ from .petition_mixins.petition_mix import PetitionTransformsMix
 def set_upload_path(instance, filename):
     #from django.conf import settings
     #files_path = getattr(settings, "FILES_PATH")
+    is_sheet_file = getattr(instance, "data_file", False)
+    if is_sheet_file:
+        instance = instance.data_file
     try:
         petition = instance.petition_file_control.petition
     except:
@@ -229,7 +233,8 @@ class ReplyFile(models.Model, ReplyFileMix):
         blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE, blank=True, null=True)
+        FileType, on_delete=models.CASCADE, blank=True, null=True,
+        default='no_final_info')
     text = models.TextField(
         blank=True, null=True,
         verbose_name="Texto (en caso de no haber archivo)")
@@ -261,6 +266,8 @@ class ReplyFile(models.Model, ReplyFileMix):
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
+    csv_file = models.FileField(
+        upload_to=set_upload_path, blank=True, null=True)
     zip_path = models.TextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     petition_month = models.ForeignKey(
@@ -278,26 +285,25 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         PetitionFileControl, related_name="data_files", blank=True, null=True,
         on_delete=models.CASCADE)
     status_process = models.ForeignKey(
-        StatusControl, blank=True, null=True, on_delete=models.CASCADE)
+        StatusControl, on_delete=models.CASCADE)
 
     stage = models.ForeignKey(
         Stage, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="Etapa actual")
     status = models.ForeignKey(
         StatusTask, blank=True, null=True, on_delete=models.CASCADE,
-        verbose_name="Status actual")
+        default='initial', verbose_name="Status actual")
+    # last_update = models.DateTimeField(auto_now=True)
 
     file_type = models.ForeignKey(
         FileType, blank=True, null=True, on_delete=models.CASCADE,
+        default='original_data',
         verbose_name="Tipo de archivo")
     #jump_columns = models.IntegerField(
     #    default=0, verbose_name="Columnas vacías al comienzo")
-    sample_data = JSONField(
-        blank=True, null=True, verbose_name="Primeros datos, de exploración")
-    sheet_names = JSONField(
-        blank=True, null=True, verbose_name="Nombres de las hojas")
-    sheets_to_insert = JSONField(
-        blank=True, null=True, verbose_name="Nombres de las hojas a insertar")
+    # {"name 1": {"all_data": [], "headers": [], "data_rows": [], "plus_rows": 1}, "name 2": {...}}
+    filtered_sheets = JSONField(
+        blank=True, null=True, verbose_name="Nombres de las hojas filtradas")
     suffix = models.CharField(
         max_length=10, blank=True, null=True)
     directory = models.CharField(
@@ -305,11 +311,20 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True)
     error_process = JSONField(
         blank=True, null=True, verbose_name="Errores de procesamiento")
+    warnings = JSONField(
+        blank=True, null=True, verbose_name="Advertencias")
+    total_rows = models.IntegerField(default=0)
+
+    # Creo que deben eliminarse:
+    sample_data = JSONField(
+        blank=True, null=True, verbose_name="Primeros datos, de exploración")
+    sheet_names = JSONField(
+        blank=True, null=True, verbose_name="Nombres de las hojas")
+    # {"all": [], "filtered": [], "matched": []}
     all_results = JSONField(
         blank=True, null=True, verbose_name="Todos los resultados")
-    inserted_rows = models.IntegerField(default=1)
-    completed_rows = models.IntegerField(default=1)
-    total_rows = models.IntegerField(default=1)
+    completed_rows = models.IntegerField(default=0)
+    inserted_rows = models.IntegerField(default=0)
 
     @property
     def final_path(self):
@@ -317,19 +332,186 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         is_prod = getattr(settings, "IS_PRODUCTION", False)
         return self.file.url if is_prod else self.file.path
 
-    """def save(self, *args, **kwargs):
-        print("saving datafile: ")
-        print(bool(self.sample_data))
-        print(self.sample_data)
-        super(DataFile, self).save(*args, **kwargs)"""
+    @property
+    def sheet_names_list(self):
+        return self.sheet_files \
+            .filter(file_type_id__in=['sheet', 'split', 'clone']) \
+            .order_by("id") \
+            .values_list("sheet_name", flat=True)
+
+    @property
+    def all_sample_data(self):
+        sheet_files = self.sheet_files \
+            .filter(file_type_id__in=['sheet', 'split', 'clone'])
+        return {tf.sheet_name: tf.sample_data for tf in sheet_files}
+
+    @property
+    def last_lap(self):
+        from django.db.models import Max
+        laps = LapSheet.objects.filter(sheet_file__data_file=self)
+        if laps.exists():
+            last_sheet = laps.aggregate(Max('lap'))
+            return last_sheet['lap__max']
+        return -2
+
+    @property
+    def can_repeat(self):
+        from datetime import datetime, timedelta
+        from django.utils.timezone import make_aware
+        if self.status.is_completed:
+            return True
+        x_minutes = 15
+        last_task = self.async_tasks.filter(is_current=True).last()
+        if not last_task:
+            return True
+        if last_task.status_task.is_completed:
+            return True
+        quick_status = ['success', 'pending', 'created']
+        if last_task.status_task in quick_status:
+            x_minutes = 2
+        now = make_aware(datetime.now())
+        last_update = last_task.date_arrive or last_task.date_start
+        # more_than_x_minutes = (
+        #     now - timedelta(minutes=x_minutes)) > last_update
+        more_than_x_minutes = (
+            now - last_update) > timedelta(minutes=x_minutes)
+
+        return more_than_x_minutes
+
+    # def save(self, *args, **kwargs):
+    #     from django.utils import timezone
+    #     self.last_update = timezone.now()
+    #     super(DataFile, self).save(*args, **kwargs)
 
     def __str__(self):
         return "%s %s" % (str(self.file), self.petition_file_control)
-        #return "%s %s" % (self.petition_file_control, self.date)
-        #return "hola"
 
     class Meta:
-        ordering = ["file"]
+        ordering = ["-id"]
         verbose_name = "Archivo con datos"
         verbose_name_plural = "Archivos con datos"
 
+
+class SheetFile(models.Model):
+
+    data_file = models.ForeignKey(
+        DataFile, related_name="sheet_files", on_delete=models.CASCADE)
+    file = models.FileField(max_length=255, upload_to=set_upload_path)
+    file_type = models.ForeignKey(
+        FileType, on_delete=models.CASCADE, blank=True, null=True)
+    matched = models.BooleanField(blank=True, null=True)
+    sheet_name = models.CharField(max_length=255, blank=True, null=True)
+    sample_data = JSONField(blank=True, null=True, default=default_explore_data)
+    total_rows = models.IntegerField(default=0)
+    # completed_rows = models.IntegerField(default=0)
+    # inserted_rows = models.IntegerField(default=0)
+    # all_results = JSONField(blank=True, null=True)
+    valid_insert = models.BooleanField(default=True)
+
+    @property
+    def next_lap(self):
+        last_lap = self.laps.all().order_by("-inserted", "lap").last()
+        if last_lap:
+            return last_lap.lap + 1 if last_lap.inserted else last_lap.lap
+        return 0
+
+    def finish_build_csv_data(self, task_params=None, **kwargs):
+        print("FINISH BUILD CSV DATA")
+        data_file = self.data_file
+        is_prepare = kwargs.get("is_prepare", False)
+        final_paths = kwargs.get("final_paths", []) or []
+        next_lap = self.next_lap if not is_prepare else -1
+        # print("final_paths", final_paths)
+        report_errors = kwargs.get("report_errors", {})
+        lap_sheet, created = LapSheet.objects.get_or_create(
+            sheet_file=self, lap=next_lap)
+        fields_in_report = report_errors.keys()
+        for field in fields_in_report:
+            setattr(lap_sheet, field, report_errors[field])
+        lap_sheet.save()
+        # data_file.all_results = kwargs.get("report_errors", {})
+        # data_file.save()
+        if not data_file.petition_file_control.file_control.decode:
+            decode = kwargs.get("decode", None)
+            if decode:
+                data_file.petition_file_control.file_control.decode = decode
+                data_file.petition_file_control.file_control.save()
+        new_task, errors, data = lap_sheet.save_result_csv(final_paths)
+        if errors:
+            data_file.save_errors(errors, "prepare|with_errors")
+        else:
+            data_file.change_status(f"prepare|finished")
+        return new_task, errors, data
+
+    def __str__(self):
+        return f">{self.file_type}< {self.sheet_name}- {self.data_file}"
+
+    class Meta:
+        verbose_name = "Archivo csv"
+        verbose_name_plural = "Archivos csv"
+        ordering = ["id"]
+        unique_together = ("data_file", "sheet_name", "file_type")
+
+
+class LapSheet(models.Model):
+
+    sheet_file = models.ForeignKey(
+        SheetFile, related_name="laps", on_delete=models.CASCADE)
+    lap = models.IntegerField(default=0)
+    inserted = models.BooleanField(default=False)
+    general_error = models.CharField(max_length=255, blank=True, null=True)
+    prescription_count = models.IntegerField(default=0)
+    drug_count = models.IntegerField(default=0)
+    missing_rows = models.IntegerField(default=0)
+    missing_fields = models.IntegerField(default=0)
+    row_errors = JSONField(blank=True, null=True)
+    field_errors = JSONField(blank=True, null=True)
+
+    def save_result_csv(self, result_files):
+        all_new_files = []
+        new_tasks = []
+        for result_file in result_files:
+            model_name = result_file["name"]
+            collection = Collection.objects.get(model_name=model_name)
+            new_file = TableFile.objects.create(
+                file=result_file["path"],
+                lap_sheet=self,
+                collection=collection,
+            )
+            # new_file.change_status('initial|finished')
+            all_new_files.append(new_file)
+            # new_tasks = self.send_csv_to_db(result_file["path"], model_name)
+            # new_tasks.append(new_tasks)
+        return new_tasks, [], all_new_files
+
+    def __str__(self):
+        return "%s %s" % (str(self.sheet_file), self.lap)
+
+    class Meta:
+        verbose_name = "Lap de archivo csv"
+        verbose_name_plural = "Laps de archivo csv"
+        ordering = ["id"]
+        unique_together = ("sheet_file", "lap")
+
+
+class TableFile(models.Model):
+
+    # sheet_file = models.ForeignKey(
+    #     SheetFile, related_name="process_files", on_delete=models.CASCADE)
+    lap_sheet = models.ForeignKey(
+        LapSheet, related_name="table_files", on_delete=models.CASCADE)
+    file = models.FileField(max_length=255, upload_to=set_upload_path)
+    # file_type = models.ForeignKey(
+    #     FileType, on_delete=models.CASCADE, blank=True, null=True)
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE, blank=True, null=True)
+    is_for_edition = models.BooleanField(default=False)
+
+    def __str__(self):
+        return "%s %s" % (self.collection, self.lap_sheet)
+
+    class Meta:
+        verbose_name = "Archivo para insertar"
+        verbose_name_plural = "Archivos para insertar"
+        ordering = ["id"]
+        unique_together = ("lap_sheet", "collection", "is_for_edition")

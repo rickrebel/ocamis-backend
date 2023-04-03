@@ -103,7 +103,7 @@ class Presentation(models.Model):
     description = models.TextField(blank=True, null=True)
     presentation_type_raw = models.CharField(
         max_length=255, blank=True, null=True)
-
+    # Según yo se tendría que borrar...
     clave = models.CharField(max_length=20, blank=True, null=True)
     official_name = models.TextField(blank=True, null=True)
     official_attributes = models.TextField(blank=True, null=True)

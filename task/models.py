@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
-from inai.models import Petition, DataFile, ReplyFile
+from inai.models import Petition, DataFile, ReplyFile, SheetFile
 from data_param.models import FileControl
 from classify_task.models import StatusTask, TaskFunction
 
@@ -26,6 +26,9 @@ class AsyncTask(models.Model):
     data_file = models.ForeignKey(
         DataFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
+    sheet_file = models.ForeignKey(
+        SheetFile, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
     reply_file = models.ForeignKey(
         ReplyFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
@@ -41,6 +44,7 @@ class AsyncTask(models.Model):
     task_function = models.ForeignKey(
         TaskFunction, blank=True, null=True, on_delete=models.CASCADE,
         related_name="functions")
+    is_massive = models.BooleanField(default=False)
     # task_function = models.CharField(
     #     max_length=100, blank=True, null=True,
     #     verbose_name="Nombre de la función")
@@ -80,12 +84,15 @@ class AsyncTask(models.Model):
     @property
     def can_repeat(self):
         from datetime import datetime, timedelta
-        failed = self.status_task_id in ['with_errors', 'not_executed']
-        if failed or self.status_task.is_completed:
+        if self.status_task.is_completed:
             return True
-        more_than_15_minutes = (
-            datetime.now() - self.date_start) > timedelta(minutes=15)
-        return more_than_15_minutes
+        x_minutes = 15
+        quick_status = ['success', 'pending', 'created']
+        if self.status_task.name in quick_status:
+            x_minutes = 2
+        more_than_x_minutes = (
+            datetime.now() - self.date_start) > timedelta(minutes=x_minutes)
+        return more_than_x_minutes
 
     def __str__(self):
         return "%s -- %s" % (self.task_function.name, self.status_task)
@@ -104,15 +111,18 @@ def async_task_post_save(sender, instance, created, **kwargs):
     # print("kwargs", kwargs)
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
-    from task.api.serializers import AsyncTaskFullSerializer
+    from task.api.serializers import (
+        AsyncTaskFullSerializer, AsyncTaskSerializer)
     channel_layer = get_channel_layer()
+    serializer = AsyncTaskFullSerializer \
+        if instance.is_current else AsyncTaskSerializer
     async_to_sync(channel_layer.group_send)(
         "dashboard", {
             "type": "send_task_info",
             "result": {
                 "model": sender.__name__,
                 "created": created,
-                "task_data": AsyncTaskFullSerializer(instance).data,
+                "task_data": serializer(instance).data,
             }
         },
     )

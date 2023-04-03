@@ -98,6 +98,7 @@ def import_delegations():
 
 # import_delegations()
 
+
 def generate_insabi_delegations():
     from catalog.models import Delegation, State, Institution
     insabi = Institution.objects.get(code="INSABI")

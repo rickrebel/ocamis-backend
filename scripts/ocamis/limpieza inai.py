@@ -7,10 +7,10 @@ def test_data_from_file():
     row_headers = None
     final_data, headers, error_number_columns = get_data_from_file_txt(
         path_imss, number_columns, row_start_data, row_headers)
-    print("rows_count: ", len(final_data)) ## 1,000,000
-    print("headers: ", headers) ## None
-    print("error_number_columns: ", error_number_columns) ## 0
-    print("primeros datos:\n", final_data[:20]) ## [[----],[----],...]
+    # print("rows_count: ", len(final_data)) ## 1,000,000
+    # print("headers: ", headers) ## None
+    # print("error_number_columns: ", error_number_columns) ## 0
+    # print("primeros datos:\n", final_data[:20]) ## [[----],[----],...]
 
 
 def get_data_from_file_txt(

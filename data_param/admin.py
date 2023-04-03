@@ -4,7 +4,7 @@ from inai.models import PetitionFileControl
 
 from .models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction,
-    ParameterGroup, NameColumn, FileControl, Transformation)
+    ParameterGroup, NameColumn, FileControl, Transformation, DictionaryFile)
 
 
 class CleanFunctionInLine(admin.StackedInline):
@@ -16,28 +16,27 @@ class CleanFunctionInLine(admin.StackedInline):
 class FinalFieldAdmin(admin.ModelAdmin):
     list_display = [
         "name",
-        "collection",
         "parameter_group",
+        "collection",
         "verbose_name",
         "data_type",
-        "in_data_base",
         "is_common",
+        "is_unique",
+        "in_data_base",
         "verified",
         "need_for_viz",
-        "is_unique",
     ]
-    list_filter = ["collection", "parameter_group", "data_type"]
+    list_filter = ["parameter_group", "collection", "verified", "data_type"]
     inlines = [CleanFunctionInLine]
     list_editable = [
-        "verified",
         "verbose_name",
         "in_data_base",
-        "is_common",
         "need_for_viz",
         "is_unique",
+        "is_common",
     ]
     ordering = [
-        "parameter_group", "collection", "-is_common", "verbose_name"]        
+        "parameter_group", "collection", "verbose_name"]
     search_fields = [
         "name", "collection__name", "collection__model_name",
         "verbose_name", "parameter_group__name"]
@@ -50,13 +49,19 @@ class FinalFieldInLine(admin.StackedInline):
     model = FinalField
     extra = 0
     show_change_link = True
-    fieldsets=(
+    fieldsets = (
         (None, {
-            "fields":("collection","name","verbose_name","data_type","addl_params",)
+            "fields": (
+                "collection", "parameter_group",
+                "name", "verbose_name", "data_type",
+                "regex_format", "is_unique", "in_data_base", "verified",
+                "included", "match_use")
         }),
         ("Más configuraciones:", {
-            #"classes": ("collapse",),
-            "fields": ("variations", "is_required", "is_common", "dashboard_hide", "in_data_base", "verified")
+            "classes": ("collapse",),
+            "fields": (
+                "is_required", "is_common", "dashboard_hide",
+                "variations", "addl_params")
         }),
         )
 
@@ -143,7 +148,7 @@ class PetitionFileControlInline(admin.TabularInline):
 class NameColumnInline(admin.StackedInline):
     model = NameColumn
     classes = ["collapse"]
-    raw_id_fields = ["parent_column", "children_column", "file_control"]
+    raw_id_fields = ["parent_column", "child_column", "file_control"]
     extra = 0
 
 
@@ -158,7 +163,7 @@ class NameColumnAdmin(admin.ModelAdmin):
         "parent_column",
         "file_control",
     ]
-    raw_id_fields = ["parent_column", "children_column", "file_control"]
+    raw_id_fields = ["parent_column", "child_column", "file_control"]
     list_filter = [
         "final_field__collection",
         "final_field__parameter_group", "column_type"]
@@ -188,6 +193,17 @@ class TransformationAdmin(admin.ModelAdmin):
     raw_id_fields = ["name_column", "file_control"]
 
 
+class DictionaryFileAdmin(admin.ModelAdmin):
+    list_display = [
+        "institution",
+        "delegation",
+        "file_control",
+        "file",
+        "unique_field",
+    ]
+
+
 ocamis_admin_site.register(Transformation, TransformationAdmin)
 ocamis_admin_site.register(NameColumn, NameColumnAdmin)
 ocamis_admin_site.register(FileControl, FileControlAdmin)
+ocamis_admin_site.register(DictionaryFile, DictionaryFileAdmin)

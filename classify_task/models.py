@@ -11,6 +11,8 @@ class StatusTask(models.Model):
     icon = models.CharField(max_length=30, blank=True, null=True)
     color = models.CharField(max_length=30, blank=True, null=True)
     is_completed = models.BooleanField(default=False)
+    macro_status = models.CharField(
+        max_length=30, blank=True, null=True, default="in_progress")
 
     def __str__(self):
         return self.public_name or self.name
@@ -29,45 +31,50 @@ class TaskFunction(models.Model):
         ("data_file", "DataFile (archivo de datos)"),
         # RICK 18, ahora hay que borrar process_file
         ("reply_file", "ReplyFile (.zip)"),
+        ("sheet_file", "Pestaña"),
     )
 
     name = models.CharField(max_length=100, primary_key=True)
     model_name = models.CharField(
         max_length=100, choices=MODEL_CHOICES, blank=True, null=True)
     public_name = models.CharField(max_length=120, blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
-    icon = models.CharField(max_length=30, blank=True, null=True)
-    addl_params = JSONField(blank=True, null=True)
+    is_active = models.BooleanField(default=False)
+    is_from_aws = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.name
+        active_mark = "✅" if self.is_active else "❌"
+        aws_mark = "🌐" if self.is_from_aws else ""
+        return f"{active_mark} {self.name} ({self.model_name}){aws_mark}"
 
     class Meta:
         verbose_name = "Función (tarea)"
+        ordering = ['-is_active', 'model_name', 'is_from_aws', 'name']
         verbose_name_plural = "2. Funciones (tareas)"
-        db_table = 'classify_task_taskfunction'
 
 
 class Stage(models.Model):
     name = models.CharField(max_length=80, primary_key=True)
     public_name = models.CharField(max_length=120)
+    action_text = models.CharField(
+        max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     order = models.IntegerField(default=5)
     icon = models.CharField(max_length=30, blank=True, null=True)
-    next_function = models.ForeignKey(
+    # next_function = models.ForeignKey(
+    #     "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
+    #     related_name="next_functions")
+    main_function = models.ForeignKey(
         "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
-        related_name="next_functions")
-    next_text = models.TextField(
-        blank=True, null=True, verbose_name="Texto para continuar")
-    massive_next_text = models.TextField(
-        blank=True, null=True, verbose_name="Texto - continuar masivamente")
-    retry_function = models.ForeignKey(
-        "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
-        related_name="try_functions")
-    retry_text = models.TextField(
-        blank=True, null=True, verbose_name="Texto para reintentar")
-    massive_retry_text = models.TextField(
-        blank=True, null=True, verbose_name="Texto - reintentar masivamente")
+        verbose_name="Función principal", related_name="stages")
+    #function_from_aws = models.
+    next_stage = models.OneToOneField(
+        "Stage", blank=True, null=True, on_delete=models.CASCADE,
+        related_name="previous_stage")
+    available_next_stages = models.ManyToManyField(
+        "Stage", blank=True, related_name="previous_stages")
+    re_process_stages = models.ManyToManyField(
+        "Stage", blank=True, related_name="re_processing",
+        verbose_name="Etapas a re-procesar")
 
     def __str__(self):
         return self.public_name or self.name

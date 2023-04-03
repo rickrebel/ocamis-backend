@@ -10,11 +10,11 @@ from task.models import AsyncTask
 
 class AsyncTaskViewSet(ListRetrieveView):
     queryset = AsyncTask.objects.all()
-    serializer_class = serializers.AsyncTaskFullSerializer
+    serializer_class = serializers.AsyncTaskSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "list": serializers.AsyncTaskFullSerializer,
-        "retrieve": serializers.AsyncTaskFullSerializer,
+        "list": serializers.AsyncTaskSerializer,
+        "retrieve": serializers.AsyncTaskSerializer,
     }
 
     def get_queryset(self):
@@ -38,6 +38,7 @@ class AsyncTaskViewSet(ListRetrieveView):
             .filter(date_start__gte=last_hours)\
             .prefetch_related(
                 "data_file",
+                "sheet_file",
                 "data_file__petition_file_control",
                 "reply_file",
                 "file_control",
@@ -47,7 +48,7 @@ class AsyncTaskViewSet(ListRetrieveView):
         staff_users = User.objects.filter(is_staff=True)
         staff_data = UserProfileSerializer(staff_users, many=True).data
         data = {
-            "tasks": serializers.AsyncTaskFullSerializer(all_tasks, many=True).data,
+            "tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
             "staff_users": staff_data,
             "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
         }
@@ -75,6 +76,7 @@ class AsyncTaskViewSet(ListRetrieveView):
         task_by_start = AsyncTask.objects\
             .filter(date_start__gte=last_request)\
             .prefetch_related(
+                "sheet_file",
                 "data_file",
                 "data_file__petition_file_control",
                 "reply_file",
@@ -83,7 +85,7 @@ class AsyncTaskViewSet(ListRetrieveView):
             )
         all_tasks = task_by_start
         data = {
-            "new_tasks": serializers.AsyncTaskFullSerializer(all_tasks, many=True).data,
+            "new_tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
             "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
             "last_request_sent": last_request.strftime("%Y-%m-%d %H:%M:%S"),
             "last_task": AsyncTask.objects.first().date_start.strftime("%Y-%m-%d %H:%M:%S"),

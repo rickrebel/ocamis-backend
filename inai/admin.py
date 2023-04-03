@@ -5,7 +5,7 @@ from django.contrib.admin import AdminSite
 # Register your models here.
 from .models import (
     Petition, PetitionFileControl, DataFile,
-    PetitionMonth, ReplyFile)
+    PetitionMonth, ReplyFile, SheetFile, LapSheet)
 
 
 class OcamisAdminSite(AdminSite):
@@ -60,13 +60,52 @@ class PetitionAdmin(admin.ModelAdmin):
     list_filter = ["entity"]
 
 
-ocamis_admin_site.register(Petition, PetitionAdmin)
+class LapSheetInline(admin.TabularInline):
+    model = LapSheet
+    extra = 0
+    show_change_link = True
+    raw_id_fields = ["sheet_file"]
+
+
+class LapSheetAdmin(admin.ModelAdmin):
+    list_display = [
+        "sheet_file",
+        "lap",
+        "inserted",
+        "prescription_count",
+        "drug_count",
+    ]
+    raw_id_fields = ["sheet_file"]
+
+
+class SheetFileAdmin(admin.ModelAdmin):
+    list_display = [
+        "file",
+        "file_type",
+        "matched",
+        "sheet_name",
+    ]
+    list_filter = [
+        "file_type", "matched"]
+    search_fields = [
+        "file", "data_file__petition__entity__acronym",
+        "data_file__petition__folio_petition"]
+    inlines = [LapSheetInline]
+    raw_id_fields = ["data_file"]
+
+
+class SheetFileInline(admin.StackedInline):
+    model = SheetFile
+    extra = 0
+    show_change_link = True
 
 
 class DataFileAdmin(admin.ModelAdmin):
     list_display = [
         "petition_file_control",
         "file",
+        "file_type",
+        "suffix",
         "petition_month",
         "origin_file",
         "status_process",
@@ -74,10 +113,18 @@ class DataFileAdmin(admin.ModelAdmin):
     raw_id_fields = [
         "petition_file_control", "petition_month", "origin_file",
         "reply_file"]
-    list_filter = ["petition_file_control__petition__entity"]
+    list_filter = [
+        "file_type",
+        "status_process", ("origin_file", admin.EmptyFieldListFilter),
+        "petition_file_control__petition__entity"]
+    search_fields = [
+        "file", "petition_file_control__petition__entity__acronym",
+        "petition_file_control__petition__folio_petition"]
+    inlines = [SheetFileInline]
 
-
-ocamis_admin_site.register(DataFile, DataFileAdmin)
+    def get_list_filter(self, request):
+        list_filter = super().get_list_filter(request)
+        return list_filter  # + ['origin_file__isnull']
 
 
 class ReplyFileAdmin(admin.ModelAdmin):
@@ -91,4 +138,9 @@ class ReplyFileAdmin(admin.ModelAdmin):
     list_filter = ["petition__entity"]
 
 
+ocamis_admin_site.register(LapSheet, LapSheetAdmin)
+ocamis_admin_site.register(Petition, PetitionAdmin)
 ocamis_admin_site.register(ReplyFile, ReplyFileAdmin)
+ocamis_admin_site.register(DataFile, DataFileAdmin)
+ocamis_admin_site.register(SheetFile, SheetFileAdmin)
+

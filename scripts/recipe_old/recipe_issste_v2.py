@@ -35,13 +35,13 @@ base_sql = (
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
     "folio_document,date_release,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,prescribed_amount,delivered_amount,"
-    "clave_doctor,nombre_medico,especialidad_medico,price,rn)")
+    "clave,full_name,especialidad_medico,price,rn)")
 base_sql2 = (
     "COPY desabasto_recipereportraw(delegation,budget_key,"
     "unidad_medica,tipo_unidad_med,nivel_atencion,tipo_documento,"
     "folio_document,date_release,fecha_entrega,clave_medicamento,"
     "descripcion_medicamento,prescribed_amount,delivered_amount,"
-    "clave_doctor,nombre_medico,especialidad_medico,price)")
+    "clave,full_name,especialidad_medico,price)")
 options = "csv DELIMITER '|' NULL 'NULL' HEADER ENCODING 'LATIN1'"
 options2 = "csv DELIMITER '|' NULL 'NULL' ENCODING 'LATIN1'"
 
@@ -359,7 +359,7 @@ def check_clave_doctor(clave_doctor, nombre_medico, especialidad_medico):
     global data_file_medico
     if not claves_medico:
         claves_medico = list(
-            Doctor.objects.values_list("clave_doctor", flat=True))
+            Doctor.objects.values_list("clave", flat=True))
     if clave_doctor not in claves_medico:
         claves_medico.append(clave_doctor)
         data_file_medico.append([
@@ -396,7 +396,7 @@ def get_recipe_report_data(recipe_report_data, institution="issste"):
 
     fecha_entrega = recipe_report_data[8]
 
-    # ###revicion de existencia de clave_doctor
+    # ###revicion de existencia de clave
     clave_doctor = recipe_report_data[13]
     nombre_medico = recipe_report_data[14]
     especialidad_medico = recipe_report_data[15]
@@ -557,7 +557,7 @@ def converter_file_in_related_files(
                 "date_release": date_release,
                 "fecha_entrega": fecha_entrega,
                 "nivel_atencion": nivel_atencion,
-                "clave_doctor": clave_doctor,
+                "clave": clave_doctor,
                 "delivered_medicine": [],
                 "year_month": int(year_month)
             }
@@ -628,7 +628,7 @@ def converter_file_in_related_files(
             recipe_data.get("date_release"),
             recipe_data.get("fecha_entrega"),
             recipe_data.get("nivel_atencion"),
-            recipe_data.get("clave_doctor"),
+            recipe_data.get("clave"),
             recipe_delivered,
             int(year_month)])
     # ordenado por folio_document
@@ -660,7 +660,7 @@ def converter_file_in_related_files(
         {
             "path": medico_path,
             "fields": [
-                "clave_doctor", "nombre_medico", "especialidad_medico_id"
+                "clave", "full_name", "especialidad_medico_id"
             ],
             "table_name": "desabasto_medic",
             "data_file": data_file_medico,

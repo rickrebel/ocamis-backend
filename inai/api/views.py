@@ -198,8 +198,6 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=True)
     def change_months(self, request, **kwargs):
-        if not request.user.is_staff:
-            raise PermissionDenied()
         limiters = request.data.get("limiters")
         print(limiters)
         # limiters = json.loads(limiters)
@@ -250,11 +248,11 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
     def get_queryset(self):
         if "petition_id" in self.kwargs:
             return ReplyFile.objects.filter(
-                petition=self.kwargs["petition_id"])
+                petition_id=self.kwargs["petition_id"])
         return ReplyFile.objects.all()
 
-    def create(self, request, petition_id=False):
-
+    def create(self, request, **kwargs):
+        petition_id = self.kwargs.get("petition_id")
         reply_file = request.data
         new_reply_file = ReplyFile()
         new_reply_file.petition_id = petition_id
@@ -285,7 +283,7 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
 class PetitionFileControlViewSet(CreateRetrievView):
     queryset = PetitionFileControl.objects.all()
     serializer_class = serializers.PetitionFileControlFullSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
     action_serializers = {
         "list": serializers.PetitionFileControlFullSerializer,
         "retrieve": serializers.PetitionFileControlFullSerializer,
@@ -320,8 +318,6 @@ class PetitionFileControlViewSet(CreateRetrievView):
     def move_massive(self, request, **kwargs):
         from inai.api.views_aws import move_and_duplicate
         from inai.models import DataFile
-        if not request.user.is_staff:
-            raise PermissionDenied()
 
         petition_file_control = self.get_object()
         petition = petition_file_control.petition
@@ -360,6 +356,7 @@ class AscertainableViewSet(CreateRetrievView):
             new_data_file, data=data_file)
         if serializer_data_file.is_valid():
             # control = serializer_data_file.save()
+            print("serializer_data_file", serializer_data_file)
             serializer_data_file.save()
         else:
             return Response({ "errors": serializer_data_file.errors },

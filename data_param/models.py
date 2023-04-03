@@ -5,10 +5,8 @@ from django.db.models import JSONField
 
 from category.models import ColumnType, FileFormat, StatusControl
 from transparency.models import Anomaly
-from catalog.models import Entity
+from catalog.models import Institution, Delegation, Entity
 
-
-##Otros catalogos
 
 class DataGroup(models.Model):
     name = models.CharField(
@@ -31,6 +29,9 @@ class DataGroup(models.Model):
 
 
 class Collection(models.Model):
+    data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE,
+        verbose_name="Conjunto de datos")
     name = models.CharField(
         max_length=225, verbose_name="verbose_name_plural",
         help_text="Nombre del Modelo público (Meta.verbose_name_plural)")
@@ -39,12 +40,13 @@ class Collection(models.Model):
         verbose_name="Nombre en el código")
     description = models.TextField(
         blank=True, null=True)
-    data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE, 
-        verbose_name="Conjunto de datos")
+    open_insertion = models.BooleanField(
+        default=False, verbose_name="Permitir inserción de datos")
+    cat_params = JSONField(
+        default=dict, verbose_name="Parámetros para catálogo")
 
     def __str__(self):
-        return f"{self.name} \n ({self.model_name})"
+        return f"{self.model_name}"
 
     class Meta:
         verbose_name = "Modelo (Tabla)"
@@ -104,9 +106,6 @@ class FileControl(models.Model):
     )
 
     name = models.CharField(max_length=255)
-    # file_type = models.ForeignKey(
-    #     FileType, on_delete=models.CASCADE,
-    #     blank=True, null=True,)
     data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE)
     # data_group = models.IntegerField()
@@ -162,6 +161,17 @@ class FileControl(models.Model):
 
 
 class FinalField(models.Model):
+    INCLUDED_CHOICES = (
+        ("yes", "Sí"),
+        ("no", "No"),
+        ("wait", "En espera de inclusión"),
+    )
+    MATCHING_CHOICES = (
+        ("as_unique", "Como único"),
+        ("in_list", "En la lista"),
+        ("alternatives", "Nombres alternativos"),
+    )
+
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE)
     parameter_group = models.ForeignKey(
@@ -184,26 +194,33 @@ class FinalField(models.Model):
         verbose_name="Otros posibles nombres (variaciones)",
         help_text="Nombres como pueden venir en las tablas de INAI",
         )
+    regex_format = models.CharField(max_length=255, blank=True, null=True)
     is_required = models.BooleanField(
         default=False, verbose_name="Es indispensable para registrar fila")
+    included = models.BooleanField(
+        verbose_name="valid", blank=True, null=True,
+        help_text="¿La inserción lo incluye?")
     is_unique = models.BooleanField(
         default=False, help_text="Puede ser una llave única",
         verbose_name="Único")
+    match_use = models.CharField(
+        max_length=16, choices=MATCHING_CHOICES, blank=True, null=True,
+        help_text="Uso en el match con catálogos")
+    in_data_base = models.BooleanField(
+        default=False, verbose_name="En DB",
+        help_text="Ya está en la base de datos comprobado")
+    verified = models.BooleanField(
+        default=False, verbose_name="Verificado",
+        help_text="Ricardo ya verificó que todos los parámetros están bien")
     is_common = models.BooleanField(
-        default=False, verbose_name="Es común")
+        default=False, verbose_name="Común")
     dashboard_hide = models.BooleanField(
         default=False,
         verbose_name="Oculta en dashboard",
         help_text="Ocultar en el dashboard (es complementaria o equivalente)")
-    in_data_base = models.BooleanField(
-        default=False, verbose_name="En DB", 
-        help_text="Ya está en la base de datos comprobado")
-    verified = models.BooleanField(
-        default=False, verbose_name="Verificado", 
-        help_text="Ricardo ya verificó que todos los parámetros están bien")
     need_for_viz = models.BooleanField(
         default=False,
-        verbose_name="para data viz",
+        verbose_name="Data viz",
         help_text="Se utiliza en indicadores de transparencia")
 
     def __str__(self):
@@ -218,8 +235,14 @@ class FinalField(models.Model):
 
 
 class DictionaryFile(models.Model):
-    entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True)
+    # entity = models.ForeignKey(
+    #     Entity, on_delete=models.CASCADE, blank=True, null=True)
+    institution = models.ForeignKey(
+        Institution, on_delete=models.CASCADE, blank=True, null=True)
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
+    file_control = models.ForeignKey(
+        FileControl, on_delete=models.CASCADE, blank=True, null=True)
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE)
     file = models.FileField(upload_to="dictionary_files")
@@ -229,9 +252,15 @@ class DictionaryFile(models.Model):
     final_fields = models.ManyToManyField(
         FinalField, blank=True, verbose_name="Campos finales",
         related_name="m2m_dictionary_files")
+    last_update = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+        self.last_update = timezone.now()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.file_control} - {self.collection}"
+        return f"{self.file} - {self.collection}"
 
     class Meta:
         verbose_name = "Catálogo para match"
@@ -295,21 +324,12 @@ class NameColumn (models.Model):
         DataType,
         blank=True, null=True,
         on_delete=models.CASCADE)
-    # collection = models.IntegerField(blank=True, null=True)
-    # collection = models.ForeignKey(
-    #     Collection,
-    #     blank=True, null=True,
-    #     on_delete=models.CASCADE)
     # final_field = models.IntegerField(blank=True, null=True)
     final_field = models.ForeignKey(
         FinalField,
         blank=True, null=True,
         on_delete=models.CASCADE,
         related_name="name_columns")
-    #parameter_group = models.ForeignKey(
-    #    ParameterGroup,
-    #    blank=True, null=True,
-    #    on_delete=models.CASCADE)
     # clean_params = JSONField(
     #     blank=True, null=True, verbose_name="Parámetros de limpieza")
     required_row = models.BooleanField(default=False)
@@ -317,7 +337,7 @@ class NameColumn (models.Model):
         "NameColumn", related_name="parents",
         verbose_name="Columna padre de la que derivó",
         blank=True, null=True, on_delete=models.CASCADE)
-    children_column = models.ForeignKey(
+    child_column = models.ForeignKey(
         "NameColumn", related_name="childrens",
         verbose_name="Hijo resultado (junto a otras columnas)",
         blank=True, null=True, on_delete=models.CASCADE)

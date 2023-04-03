@@ -16,7 +16,7 @@ from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
 from transparency.models import Anomaly, TransparencyIndex
-from classify_task.models import StatusTask, TaskFunction
+from classify_task.models import StatusTask, TaskFunction, Stage
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
@@ -24,7 +24,8 @@ from category.api.serializers import (
     InvalidReasonSimpleSerializer, FileFormatSimpleSerializer,
     TransparencyIndexSimpleSerializer, TransparencyLevelSimpleSerializer,
     TransparencyIndexSerializer,)
-from task.api.serializers import StatusTaskSimpleSerializer, TaskFunctionSerializer
+from task.api.serializers import (
+    StatusTaskSimpleSerializer, TaskFunctionSerializer, StageSimpleSerializer)
 
 from catalog.models import Entity
 from catalog.api.serializers import EntitySerializer
@@ -44,6 +45,7 @@ class CatalogView(views.APIView):
             "petition_file_control",
             "petition_file_control__data_files",
             "petition_file_control__data_files__origin_file",
+            "petition_file_control__data_files__sheet_files",
         )
         final_fields_query = FinalField.objects.filter(dashboard_hide=False)
 
@@ -65,6 +67,8 @@ class CatalogView(views.APIView):
                 StatusTask.objects.all(), many=True).data,
             "task_functions": TaskFunctionSerializer(
                 TaskFunction.objects.all(), many=True).data,
+            "stages": StageSimpleSerializer(
+                Stage.objects.all(), many=True).data,
 
             ## CATÁLOGOS GENERALES:
             "data_types": DataTypeSimpleSerializer(

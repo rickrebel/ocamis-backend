@@ -24,8 +24,7 @@ def lambda_handler(event, context):
     for sheet_name in pending_sheets:
         data_excel = excel_file.parse(
             sheet_name,
-            dtype='string', na_filter=
-            False,
+            dtype='string', na_filter=False,
             keep_default_na=False, header=None)
         total_rows = data_excel.shape[0]
         if n_rows:
@@ -44,7 +43,8 @@ def lambda_handler(event, context):
 
     message_response = {
         "result": {
-            "new_sheets": all_sheets, "all_sheet_names": all_sheet_names
+            "new_sheets": all_sheets,
+            "all_sheet_names": all_sheet_names
         },
         "request_id": context.aws_request_id
     }

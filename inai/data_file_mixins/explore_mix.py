@@ -4,22 +4,27 @@ class ExploreMix:
     petition_file_control: None
 
     def get_sample_data(self, task_params=None, **kwargs):
-        from task.models import AsyncTask
+        # from task.models import AsyncTask
+        from django.utils import timezone
+        from category.models import FileFormat
+        from inai.models import SheetFile
+        # print("get_sample_data 1", timezone.now())
         data_file = self
-        all_tasks = kwargs.get("all_tasks", [])
-        all_errors = kwargs.get("all_errors", [])
         task_params = task_params or {}
         data_file.error_process = []
-        parent_task = task_params.get("parent_task")
-        # previous_tasks
-        previous_tasks = AsyncTask.objects.filter(data_file=data_file)\
-            .exclude(parent_task=parent_task)\
-            .exclude(id=parent_task.id)
-        for task in previous_tasks:
-            task.is_current = False
-            task.save()
+        data_file.warning = []
+        # parent_task = task_params.get("parent_task")
+        # # previous_tasks
+        # previous_tasks = AsyncTask.objects\
+        #     .filter(data_file=data_file)\
+        #     .exclude(parent_task=parent_task)\
+        #     .exclude(id=parent_task.id)
+        # for task in previous_tasks:
+        #     task.is_current = False
+        #     task.save()
         data_file.save()
         task_params["models"] = [data_file]
+        # print("get_sample_data 2", timezone.now())
         if not data_file.suffix:
             (data_file, errors, suffix), first_task = data_file.decompress_file(
                 task_params=task_params)
@@ -27,28 +32,50 @@ class ExploreMix:
                 data_file.suffix = suffix
                 data_file.save()
             else:
-                self.save_errors(errors, 'explore_fail')
+                self.save_errors(errors, 'explore|with_errors')
                 return [first_task], errors, None
-        new_errors = []
+        # print("get_sample_data 3", timezone.now())
         forced_save = kwargs.get("forced_save", False)
-        if data_file and not data_file.sheet_names:
-            xls_suffixes = ['.xls', '.xlsx', '.xlsb']
-            if data_file.suffix in xls_suffixes:
+        sheet_names = data_file.sheet_names_list
+        if not sheet_names:
+            xls_format = FileFormat.objects.get(short_name="xls")
+            if data_file.suffix in xls_format.suffixes:
+                forced_save = True
+            elif not data_file.sample_data:
                 forced_save = True
             else:
-                data_file.sheet_names = ['default']
-                data_file.save()
-        if not data_file:
-            print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-        elif not data_file.sample_data or forced_save:
-            print("NO HAY SAMPLE DATA O NO HAY SHEET NAMES")
+                sample_data = data_file.sample_data or {}
+                default_sheet = sample_data.get("default", {})
+                previous_explore = default_sheet and \
+                                   data_file.status_process.order > 6
+                if previous_explore and default_sheet.get("tail_data"):
+                    total_rows = default_sheet.pop("total_rows", 0)
+                    SheetFile.objects.create(
+                        file=data_file.file,
+                        data_file=data_file,
+                        sheet_name="default",
+                        file_type_id="clone",
+                        matched=True,
+                        sample_data=default_sheet,
+                        total_rows=total_rows
+                    )
+                    data_file.filtered_sheets = ["default"]
+                    data_file.save()
+                    sheet_names = ["default"]
+                else:
+                    forced_save = True
+        new_errors = []
+        # if not data_file.sample_data or forced_save:
+        # print("get_sample_data 4", timezone.now())
+        if forced_save:
+            # print("NO HAY SAMPLE DATA O NO HAY SHEET NAMES")
             task_params["function_after"] = kwargs.get("after_if_empty")
             current_file_ctrl = kwargs.get("current_file_ctrl")
             params_after = task_params.get("params_after", {})
             after_params_if_empty = kwargs.get("after_params_if_empty", {})
             params_after.update(after_params_if_empty)
             task_params["params_after"] = params_after
-            if forced_save or not data_file.sheet_names:
+            if forced_save or not sheet_names:
                 type_explor = 'forced_save'
             else:
                 type_explor = 'only_save'
@@ -56,30 +83,48 @@ class ExploreMix:
                 type_explor, file_control=current_file_ctrl,
                 task_params=task_params)
             if new_task:
-                all_tasks.append(new_task)
-                return all_tasks, all_errors, None
+                return [new_task], new_errors, None
+        # print("get_sample_data 5", timezone.now())
         if new_errors:
-            all_errors.extend(new_errors)
-            return all_tasks, all_errors, None
-        return all_tasks, all_errors, data_file
+            self.save_errors(new_errors, 'explore|with_errors')
+            return [], new_errors, None
+        return [], [], data_file
 
+    def transform_data(self, task_params, **kwargs):
+        from inai.data_file_mixins.matches_mix import Match
+        my_match = Match(self, task_params)
+        return my_match.build_csv_converted(is_prepare=False)
+
+    def prepare_transform(self, task_params, **kwargs):
+        from inai.data_file_mixins.matches_mix import Match
+        data_file = self.count_file_rows()
+        my_match = Match(data_file, task_params)
+        return my_match.build_csv_converted(is_prepare=True)
 
     def count_file_rows(self):
+        from inai.models import SheetFile
+        from django.db.models import Sum
         file_control = self.petition_file_control.file_control
-        file_format = file_control.file_format
-        total_count = 0
         minus_headers = file_control.row_start_data - 1
-        if file_format.short_name == 'csv' or file_format.short_name == 'txt':
-            total_count = self.sample_data["default"]["total_rows"]
-        elif file_format.short_name == 'xls':
-            total_count = self.count_xls_rows()
-            minus_headers = len(self.sample_data.keys()) * minus_headers
-        total_count = total_count - minus_headers
+        total_count_query = SheetFile.objects.filter(
+            data_file=self,
+            sheet_name__in=self.filtered_sheets
+        ).aggregate(Sum("total_rows"))
+        total_count = total_count_query.get("total_rows__sum", 0)
+        minus_headers = len(self.filtered_sheets) * minus_headers
+        # if file_format.short_name == 'csv' or file_format.short_name == 'txt':
+        #     total_count = self.sample_data["default"]["total_rows"]
+        # elif file_format.short_name == 'xls':
+        #     total_count = self.count_xls_rows()
+        #     minus_headers = len(self.sample_data.keys()) * minus_headers
+        total_count -= minus_headers
         self.total_rows = total_count
-        #self.save()
-        self.change_status("success_counting")
-        return {"total_rows": total_count}
+        self.save()
+        return self
+        # self.change_status("success_counting")
+        # return {"total_rows": total_count}
 
+    # RICK 19: Según yo, esto ya no debería existir
     def count_csv_rows(self):
         from scripts.common import get_file, start_session
         s3_client, dev_resource = start_session()
@@ -87,6 +132,7 @@ class ExploreMix:
         final_count = len(data.readlines())
         return final_count
 
+    # RICK 19: Según yo, esto ya no debería existir
     def count_xls_rows(self):
         from scripts.common import build_s3
         from task.serverless import count_excel_rows
@@ -126,18 +172,44 @@ class ExploreMix:
         if not saved and not errors:
             errors = ["No coincide con el formato del archivo 3"]
         if errors:
-            data_file.save_errors(errors, "explore_fail")
+            data_file.save_errors(errors, "explore|with_errors")
+            return [], errors, None
+        elif data_file.stage_id == 'cluster':
+            data_file.change_status("cluster|finished")
+        return [], errors, None
+
+    def find_and_counting_from_aws(self, task_params=None, **kwargs):
+        n_t, errors, data_file = self.find_coincidences_from_aws(
+            task_params=task_params, **kwargs)
+        if errors:
             return [], errors, None
         return [], errors, None
 
+    def verify_coincidences(self, task_params, **kwargs):
+        data_file = self
+        data_file, saved, new_errors = data_file.find_coincidences()
+        if not saved and not new_errors:
+            new_errors = ["No coincide con el grupo de control (4)"]
+        return [], new_errors, data_file
+
+    def has_exact_matches(self, filtered_sheets=None):
+        if not filtered_sheets or not self.sheet_files.exists():
+            return False
+        sheets_matched = self.sheet_files.filter(matched=True)\
+            .values_list("sheet_name", flat=True).distinct()
+        if not sheets_matched.exists():
+            return False
+        set_sheets_matched = set(sheets_matched)
+        set_filtered_sheets = set(filtered_sheets)
+        return set_filtered_sheets.issubset(set_sheets_matched)
+
     def find_coincidences(
             self, saved=False, petition=None, file_ctrl=None,
-            parent=None, task_params=None, **kwargs):
-        from inai.models import PetitionFileControl
+            task_params=None, **kwargs):
+        from inai.models import PetitionFileControl, DataFile
         from data_param.models import NameColumn
         data_file = self
-        if not parent:
-            parent = data_file
+        already_cluster = not bool(file_ctrl)
         data, errors, new_task = data_file.transform_file_in_data(
             'auto_explore', task_params=task_params, file_control=file_ctrl)
         if not petition or not file_ctrl:
@@ -146,26 +218,40 @@ class ExploreMix:
                 petition = pfc.petition
             if not file_ctrl:
                 file_ctrl = pfc.file_control
-        # if not data:
         if errors:
-            # errors.append("No se pudo explorar el archivo")
             return data_file, saved, errors
         if not data and not errors and not new_task:
             return data_file, saved, errors
-        # row_headers = file_ctrl.row_headers or 0
-        # headers = data["headers"]
         current_sheets = data["current_sheets"]
         structured_data = data["structured_data"]
-        validated_data = data_file.sample_data or {}
+        if already_cluster:
+            print("INTENTO GUARDAR current_sheets", current_sheets)
+            data_file.filtered_sheets = current_sheets
+            data_file.save()
+        is_match_ready = data_file.has_exact_matches(current_sheets)
+        if is_match_ready:
+            return data_file, True, []
+        # is_orphan = file_ctrl.data_group.name == "orphan"
         all_data_files = {}
-        for sheet_name in current_sheets:
-            no_headers_in_ctrl = not file_ctrl.row_headers
+        same_data_files = DataFile.objects\
+            .filter(file=self.file)\
+            .exclude(petition_file_control__file_control__data_group__name="orphan")
+        for df in same_data_files:
+            all_data_files[df.petition_file_control_id] = df
+        name_columns_simple = NameColumn.objects.filter(
+            file_control=file_ctrl, position_in_data__isnull=False)
+        sorted_sheet_names = current_sheets.copy()
+        other_sheets = [sheet for sheet in structured_data.keys()
+                        if sheet not in sorted_sheet_names]
+        sorted_sheet_names.extend(other_sheets)
+        current_pfc = data_file.petition_file_control_id
+        only_cols_with_headers = file_ctrl.file_transformations\
+            .filter(clean_function__name="only_cols_with_headers").exists()
+
+        for sheet_name in sorted_sheet_names:
             # headers = validated_rows[row_headers-1] if row_headers else []
-            # validated_rows = validated_rows[file_ctrl.row_start_data-1:]
             if not structured_data[sheet_name].get("headers"):
-                if no_headers_in_ctrl:
-                    name_columns_simple = NameColumn.objects.filter(
-                        file_control=file_ctrl, position_in_data__isnull=False)
+                if not file_ctrl.row_headers:
                     try:
                         total_cols = len(structured_data[sheet_name]["all_data"][0])
                         if total_cols == len(name_columns_simple):
@@ -178,15 +264,35 @@ class ExploreMix:
                 else:
                     continue
             else:
-                name_columns = NameColumn.objects.filter(
-                    file_control=file_ctrl, name_in_data__isnull=False) \
+                name_columns = name_columns_simple \
                     .values_list("name_in_data", flat=True)
                 headers = structured_data[sheet_name]["headers"]
                 headers = [head.strip().upper() for head in headers]
-                name_columns_list = [name.strip().upper() for name in list(name_columns)]
+                if only_cols_with_headers:
+                    headers = [head for head in headers if head]
+                name_columns_list = [
+                    name.strip().upper() for name in list(name_columns)]
                 same_headers = name_columns_list == headers
 
+            def save_sheet_file(d_f=data_file, save_sample_data=False):
+                table_s = d_f.sheet_files.filter(sheet_name=sheet_name).first()
+                if table_s:
+                    if save_sample_data:
+                        table_s.sample_data = structured_data[sheet_name]
+                    table_s.matched = True
+                    table_s.save()
+                else:
+                    raise Exception(f"No se encontró el archivo con el "
+                                    f"nombre de hoja {sheet_name}")
+
             if not same_headers:
+                continue
+            if sheet_name not in current_sheets:
+                if data_file.petition_file_control_id in all_data_files:
+                    save_sheet_file()
+                    data_file.add_warning(
+                        "Hay pestañas con el mismo formato, no incluidas en "
+                        "por los filtros de inclusión y exclusión")
                 continue
             try:
                 succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
@@ -195,33 +301,51 @@ class ExploreMix:
             except PetitionFileControl.MultipleObjectsReturned:
                 errors = ["El grupos de control está duplicado en la solicitud"]
                 return data_file, saved, errors
-            validated_data[sheet_name] = structured_data[sheet_name]
+            # validated_data[sheet_name] = structured_data[sheet_name]
             current_pfc = succ_pet_file_ctrl.id
             already_in_pfc = current_pfc in all_data_files
             # if pet_file_saved:
             #     continue
-            if not already_in_pfc and all_data_files:
+            if all_data_files and not already_in_pfc:
+                original_sheet_files = data_file.sheet_files.all()
                 info_text = "El archivo está en varios grupos de control"
-                data_file.add_result(("info", info_text))
+                data_file.add_warning(info_text)
                 new_data_file = data_file
                 new_data_file.pk = None
                 new_data_file.petition_file_control = succ_pet_file_ctrl
-                new_data_file.sample_data = validated_data
+                new_data_file.filtered_sheets = current_sheets
+                new_data_file.change_status("explore|finished")
+                # new_data_file.sample_data = validated_data
                 new_data_file.save()
-                new_data_file.add_result(("info", info_text))
+                new_data_file.add_warning(info_text)
                 all_data_files[current_pfc] = new_data_file
+                for sheet_file in original_sheet_files:
+                    sheet_file.pk = None
+                    sheet_file.data_file = new_data_file
+                    if sheet_file.sheet_name == sheet_name:
+                        sheet_file.sample_data = structured_data[sheet_name]
+                    sheet_file.save()
             else:
                 current_file = all_data_files.get(current_pfc, data_file)
-                current_file.sample_data = validated_data
+                # current_file.sample_data = validated_data
+                save_sheet_file(current_file, True)
+                if not saved and not already_cluster:
+                    current_file.filtered_sheets = current_sheets
                 saved = True
                 if not already_in_pfc:
                     current_file.petition_file_control = succ_pet_file_ctrl
-                    current_file.change_status("success_exploration")
-                else:
-                    current_file.save()
+                    # current_file = current_file.change_status("explore|finished")
+                    current_file.stage_id = "explore"
+                    current_file.status_id = "finished"
+                current_file.save()
                 all_data_files[current_pfc] = current_file
-        if all_data_files:
-            return all_data_files[data_file.petition_file_control.id], saved, []
+        if current_pfc in all_data_files:
+            is_match_ready = data_file.has_exact_matches(current_sheets)
+            if not is_match_ready:
+                errors = ["No todas las pestañas filtradas coinciden con "
+                          "el grupo de control"]
+                return data_file, saved, errors
+            return all_data_files[current_pfc], saved, []
         return data_file, saved, []
         #return all_data_files, saved, []
 
@@ -251,7 +375,7 @@ class ExploreMix:
                     return (None, errors, None), None
                 #Se vuelve a obtener la ubicación final del nuevo archivo
                 #Como el archivo ya está descomprimido, se guarda sus status
-            self = self.change_status('decompressed')
+            self = self.change_status('explore|finished')
             # Se realiza todito el proceso para guardar el nuevo objeto DataFinal,
             # manteniendo todas las características del archivo original
             suffixes.remove('.gz')
@@ -319,6 +443,7 @@ class ExploreMix:
                     origin_file=self,
                     date=self.date,
                     status_process=initial_status,
+                    # FALTA EL STATUS Y STAGE
                     #Revisar si lo más fácil es poner o no los siguientes:
                     #file_control=original_file.file_control,
                     petition_file_control=self.petition_file_control,
@@ -390,6 +515,7 @@ class ExploreMix:
                     #origin_file=original_file,
                     origin_file=self,
                     date=original_file.date,
+                    # FALTA STATUS Y STAGE
                     status_process=initial_status,
                     #Revisar si lo más fácil es poner o no los siguientes:
                     #file_control=original_file.file_control,
@@ -419,7 +545,7 @@ class ExploreMix:
     def corroborate_save_data(self, task_params=None, **kwargs):
         from_aws = kwargs.get("from_aws", False)
         if from_aws:
-            x, y, data_file = self.explore_data_xls_after(**kwargs)
+            x, y, data_file = self.build_sample_data_after(**kwargs)
             parent_task = task_params.get("parent_task", None)
             if parent_task.params_after:
                 kwargs.update(parent_task.params_after)
@@ -446,7 +572,7 @@ class ExploreMix:
                 all_errors.extend(errors)
         if not saved:
             all_errors.append("No existe ningún grupo de control coincidente")
-            data_file.save_errors(all_errors, "explore_fail")
+            data_file.save_errors(all_errors, "explore|with_errors")
         return None, all_errors, None
 
     def build_complex_headers(self, task_params=None, **kwargs):
@@ -458,7 +584,7 @@ class ExploreMix:
             'auto_explore', task_params=task_params)
         if errors:
             all_errors.extend(errors)
-            data_file.save_errors(all_errors, "explore_fail")
+            data_file.save_errors(all_errors, "explore|with_errors")
             return None, errors, None
 
         def text_normalizer(text):
@@ -558,7 +684,7 @@ class ExploreMix:
         (new_self, errors, suffix), first_task = self.decompress_file()
         # print("new_self: ", new_self)
         if errors:
-            status_error = 'explore_fail' if is_explore else 'extraction_failed'
+            status_error = 'explore|with_errors' if is_explore else 'transform|with_errors'
             self.save_errors(errors, status_error)
             return None, errors, None
         new_childs_count = self.child_files.count()
@@ -570,7 +696,7 @@ class ExploreMix:
                 return None, errors, None
             count_splited = new_self.split_file()
         if errors:
-            status_error = 'explore_fail' if is_explore else 'extraction_failed'
+            status_error = 'explore|with_errors' if is_explore else 'transform|with_errors'
             new_self.save_errors(errors, status_error)
             return None, errors, None
         if count_splited and not is_explore:
@@ -607,75 +733,76 @@ class ExploreMix:
             print("POR ALGUNA RAZÓN NO ES EXPLORE")
             return new_self, new_errors, new_tasks
 
-    def comprobate_coincidences(self, task_params=None, **kwargs):
-        from inai.models import DataFile
-        # print("new_children_ids: ", new_children_ids)
-        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
-        from_aws = kwargs.get("from_aws", False)
-
-        file_ctrl = data_file.petition_file_control.file_control
-        petition = data_file.petition_file_control.petition
-
-        parent_task = task_params.get("parent_task", None)
-        if from_aws:
-            new_children_ids = kwargs.get("new_children_ids", [])
-            new_children = DataFile.objects.filter(id__in=new_children_ids)
-        else:
-            init_children = list(
-                self.child_files.all().values_list('id', flat=True))
-            # RICK 14
-            (data_file, errors, suffix), first_task = self.decompress_file()
-            if not data_file:
-                print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-                return None, errors, 0
-            new_children = data_file.child_files.all()
-            if init_children:
-                new_children = new_children.exclude(id__in=init_children)
-            new_children_ids = new_children.values_list('id', flat=True)
-
-        task_params = task_params or {}
-        params_after = task_params.get("params_after", { })
-        params_after["new_children_ids"] = list(new_children_ids)
-        # params_after["all_file_controls_ids"] = [file_ctrl.id]
-        task_params["params_after"] = params_after
-        task_params["function_after"] = "comprobate_coincidences"
-        task_params["models"] = [data_file]
-
-        if not new_children_ids:
-            data_file, errors, new_task = data_file.transform_file_in_data(
-                'only_save', file_control=file_ctrl,
-                task_params=task_params)
-            if new_task:
-                return data_file, errors, 0
-            if not data_file:
-                print("NO ENTIENDO QUÉ PASÓ")
-                return None, errors, 0
-            data_file, saved, errors = data_file.find_coincidences(
-                False, petition=petition, file_ctrl=file_ctrl)
-        else:
-            print("HAY NUEVOS CHILDREN")
-            first_child = new_children.first()
-            first_child, errors, new_task = first_child.transform_file_in_data(
-                'only_save', file_control=file_ctrl,
-                task_params=task_params)
-            if new_task:
-                return first_child, errors, 0, new_task
-            first_child, saved, errors = first_child.find_coincidences(
-                False, petition=petition, file_ctrl=file_ctrl)
-            if saved:
-                for child in new_children:
-                    child.sample_data = first_child.sample_data
-                    child.status_process = first_child.status_process
-                    child.save()
-                data_file.sample_data = first_child.sample_data
-                data_file.status_process = first_child.status_process
-                data_file = data_file.save()
-
-        if not errors and not saved and file_ctrl.row_headers:
-            errors.append("Las columnas no coincide con el archivo")
-            # errors = ["No hay coincidencias con las columnas"]
-        if errors:
-            data_file = data_file.save_errors(errors, "explore_fail")
-            return data_file, errors, new_children
-        else:
-            return data_file, None, new_children
+    #RICK 19; corroborar que esto ya no e llame, está muy desfasado
+    # def comprobate_coincidences(self, task_params=None, **kwargs):
+    #     from inai.models import DataFile
+    #     # print("new_children_ids: ", new_children_ids)
+    #     data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
+    #     from_aws = kwargs.get("from_aws", False)
+    #
+    #     file_ctrl = data_file.petition_file_control.file_control
+    #     petition = data_file.petition_file_control.petition
+    #
+    #     parent_task = task_params.get("parent_task", None)
+    #     if from_aws:
+    #         new_children_ids = kwargs.get("new_children_ids", [])
+    #         new_children = DataFile.objects.filter(id__in=new_children_ids)
+    #     else:
+    #         init_children = list(
+    #             self.child_files.all().values_list('id', flat=True))
+    #         # RICK 14
+    #         (data_file, errors, suffix), first_task = self.decompress_file()
+    #         if not data_file:
+    #             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
+    #             return None, errors, 0
+    #         new_children = data_file.child_files.all()
+    #         if init_children:
+    #             new_children = new_children.exclude(id__in=init_children)
+    #         new_children_ids = new_children.values_list('id', flat=True)
+    #
+    #     task_params = task_params or {}
+    #     params_after = task_params.get("params_after", { })
+    #     params_after["new_children_ids"] = list(new_children_ids)
+    #     # params_after["all_file_controls_ids"] = [file_ctrl.id]
+    #     task_params["params_after"] = params_after
+    #     task_params["function_after"] = "comprobate_coincidences"
+    #     task_params["models"] = [data_file]
+    #
+    #     if not new_children_ids:
+    #         data_file, errors, new_task = data_file.transform_file_in_data(
+    #             'only_save', file_control=file_ctrl,
+    #             task_params=task_params)
+    #         if new_task:
+    #             return data_file, errors, 0
+    #         if not data_file:
+    #             print("NO ENTIENDO QUÉ PASÓ")
+    #             return None, errors, 0
+    #         data_file, saved, errors = data_file.find_coincidences(
+    #             False, petition=petition, file_ctrl=file_ctrl)
+    #     else:
+    #         print("HAY NUEVOS CHILDREN")
+    #         first_child = new_children.first()
+    #         first_child, errors, new_task = first_child.transform_file_in_data(
+    #             'only_save', file_control=file_ctrl,
+    #             task_params=task_params)
+    #         if new_task:
+    #             return first_child, errors, 0, new_task
+    #         first_child, saved, errors = first_child.find_coincidences(
+    #             False, petition=petition, file_ctrl=file_ctrl)
+    #         if saved:
+    #             for child in new_children:
+    #                 child.sample_data = first_child.sample_data
+    #                 child.status_process = first_child.status_process
+    #                 child.save()
+    #             data_file.sample_data = first_child.sample_data
+    #             data_file.status_process = first_child.status_process
+    #             data_file = data_file.save()
+    #
+    #     if not errors and not saved and file_ctrl.row_headers:
+    #         errors.append("Las columnas no coincide con el archivo")
+    #         # errors = ["No hay coincidencias con las columnas"]
+    #     if errors:
+    #         data_file = data_file.save_errors(errors, "explore_fail")
+    #         return data_file, errors, new_children
+    #     else:
+    #         return data_file, None, new_children

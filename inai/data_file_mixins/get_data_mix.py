@@ -6,34 +6,34 @@ class ExtractorsMix:
     save_errors: classmethod
     final_path: str
 
-    def every_has_total_rows(self, task_params=None, **kwargs):
-        data_file = self
-        sample_data = data_file.sample_data
-        need_recalculate = False
-        if not sample_data:
-            need_recalculate = True
-        if not need_recalculate:
-            for sheet_name, sheet_data in sample_data.items():
-                if not sheet_data.get("total_rows"):
-                    need_recalculate = True
-                    break
-        if need_recalculate:
-            curr_kwargs = {
-                "forced_save": True, "after_if_empty": "counting_from_aws"}
-            all_tasks, all_errors, data_file = data_file.get_sample_data(
-                task_params, **curr_kwargs)
-            return all_tasks, all_errors, data_file
-        return [], [], data_file
+    # def every_has_total_rows(self, task_params=None, **kwargs):
+    #     data_file = self
+    #     sample_data = data_file.sample_data
+    #     need_recalculate = False
+    #     if not sample_data:
+    #         need_recalculate = True
+    #     if not need_recalculate:
+    #         for sheet_name, sheet_data in sample_data.items():
+    #             if not sheet_data.get("total_rows"):
+    #                 need_recalculate = True
+    #                 break
+    #     if need_recalculate:
+    #         curr_kwargs = {
+    #             "forced_save": True, "after_if_empty": "counting_from_aws"}
+    #         all_tasks, all_errors, data_file = data_file.get_sample_data(
+    #             task_params, **curr_kwargs)
+    #         return all_tasks, all_errors, data_file
+    #     return [], [], data_file
 
-    def counting_from_aws(self, task_params=None, **kwargs):
-        from data_param.models import FileControl
-        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
-        data_file, saved, errors = data_file.find_coincidences()
-        if not saved and not errors:
-            errors = ["No coincide con el formato del archivo (counting)"]
-        if errors:
-            data_file.save_errors(errors, "explore_fail")
-        return [], errors, None
+    # def counting_from_aws(self, task_params=None, **kwargs):
+    #     from data_param.models import FileControl
+    #     data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
+    #     data_file, saved, errors = data_file.find_coincidences()
+    #     if not saved and not errors:
+    #         errors = ["No coincide con el formato del archivo (counting)"]
+    #     if errors:
+    #         data_file.save_errors(errors, "explore_fail")
+    #     return [], errors, None
 
     def transform_file_in_data(
             self, type_explor, file_control=None, task_params=None):
@@ -41,13 +41,14 @@ class ExtractorsMix:
         is_explore = bool(type_explor)
         data_file = self
         # is_auto = type_explor == 'auto_explore'
-        status_error = 'explore_fail' if is_explore else 'extraction_failed'
+        status_error = 'explore|with_errors' if is_explore else 'extraction|with_errors'
         if not file_control:
             file_control = data_file.petition_file_control.file_control
         is_orphan = file_control.data_group.name == "orphan"
         new_task = None
         current_sheets = ["default"]
         same_suffix = True
+        validated_data = {}
         if not is_orphan:
             if not file_control.file_format:
                 errors = ["El grupo de control no tiene formato específico"]
@@ -73,9 +74,9 @@ class ExtractorsMix:
                 data_file.save_errors(errors, status_error)
             return None, errors, new_task
 
-        if is_explore:
-            data_file.sample_data = validated_data
-            data_file.save()
+        # if is_explore:
+        #     data_file.sample_data = validated_data
+        #     data_file.save()
 
         if type_explor == 'only_save' or type_explor == 'forced_save':
             return data_file, errors, new_task
@@ -83,7 +84,18 @@ class ExtractorsMix:
         row_headers = file_control.row_headers or 0
         # for sheet_name, all_data in validated_data.items():
         new_validated_data = {}
-        for sheet_name in current_sheets:
+
+        def calculate_aislated(headers):
+            not_null_aislated = []
+            some_null = False
+            for header in headers[1:]:
+                if not header:
+                    some_null = True
+                if some_null and header:
+                    not_null_aislated.append(header)
+            return not_null_aislated
+
+        for sheet_name in validated_data.keys():
             try:
                 curr_sheet = validated_data.get(sheet_name).copy()
             except Exception as e:
@@ -100,15 +112,16 @@ class ExtractorsMix:
                 headers = []
                 if row_headers and len(all_data) > row_headers - 1:
                     headers = all_data[row_headers - 1]
-                    nulls = [header for header in headers[1:] if not header]
-                    few_nulls = len(nulls) < 2
+                    # nulls = [header for header in headers[1:] if not header]
+                    not_null_aislated = calculate_aislated(headers)
+                    few_nulls = len(not_null_aislated) < 2
                     if not few_nulls and len(all_data) > row_headers:
                         plus_rows = 1
                         headers = all_data[row_headers]
-                        nulls = [header for header in headers[1:] if not header]
+                        not_null_aislated = calculate_aislated(headers)
                         # if nulls:
                         #    continue
-                    few_nulls = len(nulls) < 2
+                    few_nulls = len(not_null_aislated) < 2
                 if (few_nulls and headers) or not row_headers:
                     # plus_cols = 0 if headers[0] else 1
                     # validated_data[sheet_name]["plus_columns"] = plus_cols
@@ -119,10 +132,10 @@ class ExtractorsMix:
                     # curr_sheet["headers"] = headers[plus_cols:]
                     curr_sheet["headers"] = headers
                 else:
-                    print("No pasó las pruebas básicas")
+                    print("No pasó las pruebas básicas -", sheet_name)
                     curr_sheet["headers"] = headers
                     curr_sheet["data_rows"] = all_data
-                    pendiente_hasta_aca = 0
+                    # pendiente_hasta_aca = 0
             new_validated_data[sheet_name] = curr_sheet
 
         # if not is_explore:
@@ -131,7 +144,7 @@ class ExtractorsMix:
         #         row = execute_matches(row, self)
         #         matched_rows.append(row)
         #     return matched_rows
-
+        print("current_sheets", current_sheets)
         result = {
             "structured_data": new_validated_data,
             "current_sheets": current_sheets,
@@ -140,77 +153,40 @@ class ExtractorsMix:
 
     def get_data_from_excel(
             self, type_explor, file_control=None, task_params=None):
-        from data_param.models import Transformation
         from task.serverless import async_in_lambda
-        from scripts.common import get_excel_file
+        from scripts.common import build_s3
+        from scripts.common import explore_sheets
         is_explore = bool(type_explor)
         if is_explore:
-            all_sheets = self.sample_data or {}
+            all_sheets = self.all_sample_data
         else:
             all_sheets = {}
 
-        sheet_names = self.sheet_names or []
-        has_sheet_names = bool(sheet_names)
-        # if not sheet_names:
-        #     try:
-        #         print(self.final_path)
-        #         excel_file = get_excel_file(self.final_path)
-        #         sheet_names = excel_file.sheet_names
-        #         self.sheet_names = sheet_names
-        #         self.save()
-        #     except Exception as error:
-        #         import traceback
-        #         print("obteniendo sheets", error)
-        #         error_ = traceback.format_exc()
-        #         return (None, None, [error_]), None
+        sheet_names = self.sheet_names_list
+        
         if type_explor == 'only_save' or type_explor == 'forced_save':
-            # nrows = 220 if is_explore else None
-            n_rows = 220 if len(sheet_names) < 10 else 40
-            n_end = 30 if len(sheet_names) < 10 else 15
-            saved_sheet_names = [name for [name, content] in all_sheets.items()
-                                 if content.get("total_rows")]
-            pending_sheets = list(set(sheet_names) - set(saved_sheet_names))
-            if pending_sheets or not has_sheet_names:
-                params = {
-                    "final_path": self.final_path,
-                    "n_rows": n_rows,
-                    "n_end": n_end,
-                    "sheets": pending_sheets,
-                    "ready_sheets": list(saved_sheet_names),
-                }
-                task_params = task_params or {}
-                params_after = task_params.get("params_after", {})
-                params_after["current_sheets"] = pending_sheets
-                task_params["params_after"] = params_after
-                new_task = async_in_lambda(
-                    "explore_data_xls", params, task_params)
-                # if "errorMessage" in new_sheets:
-                #     return None, None, [new_sheets["errorMessage"]]
-                # all_sheets.update(new_sheets)
-                return (all_sheets, [], []), new_task
-            else:
-                return (all_sheets, sheet_names, []), None
+            # has_sheet_names = bool(sheet_names)
+            # if not has_sheet_names:
+            params = {
+                "final_path": self.final_path,
+                "only_name": self.file.name,
+                "s3": build_s3(),
+            }
+            task_params = task_params or {}
+            new_task = async_in_lambda("xls_to_csv", params, task_params)
+            return (all_sheets, [], []), new_task
+            # else:
+            #     return (all_sheets, sheet_names, []), None
 
-        file_transformations = Transformation.objects.filter(
-            file_control=file_control,
-            clean_function__name__icontains="_tabs_").prefetch_related(
-            "clean_function")
-        include_names = exclude_names = include_idx = exclude_idx = None
-        current_sheets = []
+        include_names, exclude_names, include_idx, exclude_idx = explore_sheets(
+            file_control)
+        print("include_names", include_names)
+        print("exclude_names", exclude_names)
+        print("include_idx", include_idx)
+        print("exclude_idx", exclude_idx)
+
+        filtered_sheets = []
         pending_sheets = []
-
-        for transform in file_transformations:
-            current_values = transform.addl_params["value"].split(",")
-            func_name = transform.clean_function.name
-            all_names = [name.upper().strip() for name in current_values]
-            if func_name == 'include_tabs_by_name':
-                include_names = all_names
-            elif func_name == 'exclude_tabs_by_name':
-                exclude_names = all_names
-            elif func_name == 'include_tabs_by_index':
-                include_idx = [int(val.strip()) for val in current_values]
-            elif func_name == 'exclude_tabs_by_index':
-                exclude_idx = [int(val.strip()) for val in current_values]
 
         for position, sheet_name in enumerate(sheet_names, start=1):
             if include_names and sheet_name not in include_names:
@@ -221,7 +197,7 @@ class ExtractorsMix:
                 continue
             if exclude_idx and position in exclude_idx:
                 continue
-            current_sheets.append(sheet_name)
+            filtered_sheets.append(sheet_name)
             # xls.parse(sheet_name)
             if is_explore and sheet_name in all_sheets:
                 if "all_data" in all_sheets[sheet_name]:
@@ -229,7 +205,8 @@ class ExtractorsMix:
             print("SE TUVO QUE LEER EL EXCEL DE NUEVO")
             pending_sheets.append(sheet_name)
             continue
-        return (all_sheets, current_sheets, []), None
+        print("SÍ LLEGAMOS A VOLVER A CALCULAR LAS PESTAÑAS", filtered_sheets)
+        return (all_sheets, filtered_sheets, []), None
 
     def explore_data_xls_after(self, parent_task=None, **kwargs):
         # params_after = {}
@@ -241,7 +218,7 @@ class ExtractorsMix:
         decode = kwargs.get("decode")
         if decode:
             file_control = self.petition_file_control.file_control
-            if not file_control.decode and file_control.data_group.name is not 'orphan':
+            if not file_control.decode and file_control.data_group.name != 'orphan':
                 file_control.decode = decode
                 file_control.save()
         self.sheet_names = all_sheet_names
@@ -253,9 +230,37 @@ class ExtractorsMix:
         self.save()
         return [], [], self
 
+    def build_sample_data_after(self, parent_task=None, **kwargs):
+        from inai.models import SheetFile
+        new_sheets = kwargs.get("new_sheets", {})
+        sheet_count = len(new_sheets)
+        for sheet_name, sheet_data in new_sheets.items():
+            is_not_xls = sheet_count == 1 and sheet_name == "default"
+            simple_path = self.file if is_not_xls else None
+            file_type_id = "clone" if is_not_xls else "sheet"
+            final_path = sheet_data.pop("final_path", simple_path)
+            total_rows = sheet_data.pop("total_rows")
+            SheetFile.objects.create(
+                file=final_path,
+                data_file=self,
+                sheet_name=sheet_name,
+                sample_data=sheet_data,
+                file_type_id=file_type_id,
+                total_rows=total_rows,
+            )
+        decode = kwargs.get("decode")
+        if decode:
+            file_control = self.petition_file_control.file_control
+            if not file_control.decode and file_control.data_group.name != 'orphan':
+                file_control.decode = decode
+                file_control.save()
+        if self.stage_id == "explore":
+            self.status_id = "finished"
+            self.save()
+        return [], [], self
+
     def get_data_from_file_simple(
             self, type_explor, file_control=None, task_params=None):
-        from scripts.common import get_file, start_session
         from task.serverless import async_in_lambda
         from scripts.common import build_s3
         from scripts.recipe_specials import special_issste
@@ -263,7 +268,6 @@ class ExtractorsMix:
         errors = []
         is_explore = bool(type_explor)
 
-        # if type_explor == 'only_save':
         if type_explor == 'only_save' or type_explor == 'forced_save':
             params = {
                 "file": self.file.name,
@@ -281,10 +285,13 @@ class ExtractorsMix:
                 "explore_data_simple", params, task_params)
             return None, [], async_task
 
-        if is_explore and isinstance(self.sample_data, dict):
-            if "all_data" in self.sample_data.get("default", {}):
-                return self.sample_data, errors, None
+        all_sheets = self.all_sample_data
+        if is_explore and isinstance(all_sheets, dict):
+            if "all_data" in all_sheets.get("default", {}):
+                return all_sheets, errors, None
 
+        print("ESTOY EN UN LUGAR QUE NO DEBERÍA DE ESTAR CSV")
+        raise Exception("ESTOY EN UN LUGAR QUE NO DEBERÍA DE ESTAR CSV")
         s3_client, dev_resource = start_session()
         data = get_file(self, dev_resource)
         if isinstance(data, dict):
@@ -309,6 +316,7 @@ class ExtractorsMix:
 
         return validated_data, None, None
 
+    # RICK 19: Esto debería eliminarse
     def divide_rows(self, data_rows, file_control, is_explore=False):
         global raws
         from data_param.models import NameColumn
@@ -360,18 +368,5 @@ class ExtractorsMix:
             #    print(row_data)
 
         raws["missing_r"] = missing_data
-        return structured_data
 
-    def finish_build_csv_data(self, task_params=None, **kwargs):
-        print("finish_build_csv_data")
-        from inai.data_file_mixins.matches_mix import Match
-        match = Match(self, task_params=task_params)
-        final_paths = kwargs.get("final_paths", {})
-        print("final_paths", final_paths)
-        if not self.petition_file_control.file_control.decode:
-            decode = kwargs.get("decode", None)
-            if decode:
-                self.petition_file_control.file_control.decode = decode
-                self.petition_file_control.file_control.save()
-        new_task, errors, data = match.save_result_csv(final_paths)
-        return new_task, errors, data
+        return structured_data

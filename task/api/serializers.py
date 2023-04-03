@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from task.models import AsyncTask
-from classify_task.models import StatusTask, TaskFunction
+from classify_task.models import StatusTask, TaskFunction, Stage
 
 
 class StatusTaskSimpleSerializer(serializers.ModelSerializer):
@@ -11,24 +11,14 @@ class StatusTaskSimpleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class AsyncTaskSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = AsyncTask
-        fields = "__all__"
-
-
 class AsyncTaskSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AsyncTask
-        fields = "__all__"
-        exclude = ()
+        exclude = ["result", "original_request"]
 
 
-class AsyncTaskFullSerializer(serializers.ModelSerializer):
-    from inai.api.serializers import DataFileSerializer
-    data_file_full = DataFileSerializer(read_only=True, source="data_file")
+class AsyncTaskSerializer(serializers.ModelSerializer):
     # entity_id = serializers.IntegerField(source="data_file.petition_file_control.petition.entity.id")
     # prev_petition_id = serializers.IntegerField(
     #     source="data_file.petition_file_control.petition_id", read_only=True)
@@ -57,6 +47,21 @@ class AsyncTaskFullSerializer(serializers.ModelSerializer):
         exclude = ["result", "original_request"]
 
 
+class AsyncTaskFullSerializer(AsyncTaskSerializer):
+    from inai.api.serializers import DataFileFullSerializer
+    data_file_full = DataFileFullSerializer(read_only=True, source="data_file")
+    file_control_full = serializers.SerializerMethodField(read_only=True)
+
+    def get_file_control_full(self, obj):
+        from data_param.api.serializers import FileControlSerializer
+        if not obj.file_control and not obj.data_file:
+            return None
+        file_control = obj.file_control or obj.data_file.petition_file_control.file_control
+        # print("file_control", file_control)
+        # print("serializer: \n", FileControlSerializer(file_control).data)
+        return FileControlSerializer(file_control).data
+
+
 class TaskFunctionSerializer(serializers.ModelSerializer):
     model_public_name = serializers.SerializerMethodField()
 
@@ -65,4 +70,11 @@ class TaskFunctionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TaskFunction
+        fields = "__all__"
+
+
+class StageSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Stage
         fields = "__all__"

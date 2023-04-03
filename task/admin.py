@@ -3,17 +3,7 @@ from inai.admin import ocamis_admin_site
 from django.utils.html import format_html
 
 from .models import (AsyncTask)
-from classify_task.models import StatusTask, TaskFunction
-
-
-class StatusTaskAdmin(admin.ModelAdmin):
-    list_display = [
-        "name", "public_name", "order", "description", "color", "icon",
-        "is_completed"]
-    list_editable = ["order", "color", "is_completed"]
-
-
-ocamis_admin_site.register(StatusTask, StatusTaskAdmin)
+from classify_task.models import StatusTask, TaskFunction, Stage
 
 
 class AsyncTaskAdmin(admin.ModelAdmin):
@@ -23,13 +13,16 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         # "function_name",
         "task_function",
         "status_task",
+        "is_massive",
         "is_current",
         "display_other_dates",
         # "date_start",
         "start_simple",
         # "date_end",
     ]
-    raw_id_fields = ["petition", "file_control", "data_file", "reply_file"]
+    raw_id_fields = [
+        "petition", "file_control", "data_file", "reply_file", "sheet_file",
+        "parent_task", "user"]
     list_filter = ["status_task", "task_function", "is_current"]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
 
@@ -42,8 +35,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     @staticmethod
     def start_simple(obj):
         from datetime import datetime
-        from django.utils.timezone import make_aware
-        from django.utils.timezone import get_current_timezone
+        from django.utils.timezone import get_current_timezone, make_aware
         tz = get_current_timezone()
         date = make_aware(datetime.fromtimestamp(obj.date_start.timestamp()), tz)
         date_string = date.strftime("%d-%m-%Y <br> <b>%H:%M</b>")
@@ -83,15 +75,45 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     display_other_dates.short_description = "end"
 
 
-ocamis_admin_site.register(AsyncTask, AsyncTaskAdmin)
+class StatusTaskAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "public_name",
+        "order",
+        "description",
+        "color",
+        "icon",
+        "is_completed",
+        "macro_status",
+    ]
+    list_editable = ["order", "color", "is_completed"]
 
 
 class TaskFunctionAdmin(admin.ModelAdmin):
     list_display = [
         "name",
+        "is_active",
+        "is_from_aws",
         "public_name",
         "model_name",
     ]
+    list_editable = ["public_name", "is_active", "is_from_aws"]
 
 
+class StageAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "description",
+        "public_name",
+        "order",
+        "icon",
+        "main_function",
+        # "retry_function",
+    ]
+    list_editable = ["order", "icon"]
+
+
+ocamis_admin_site.register(AsyncTask, AsyncTaskAdmin)
+ocamis_admin_site.register(StatusTask, StatusTaskAdmin)
 ocamis_admin_site.register(TaskFunction, TaskFunctionAdmin)
+ocamis_admin_site.register(Stage, StageAdmin)

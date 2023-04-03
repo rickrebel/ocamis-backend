@@ -43,13 +43,13 @@ class StatusControl(models.Model):
 
 
 class FileType(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, primary_key=True)
     public_name = models.CharField(
         max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_default = models.BooleanField(default=False)
-    has_data = models.BooleanField(default= False)
-    is_original = models.BooleanField(default= False)
+    has_data = models.BooleanField(default=False)
+    is_original = models.BooleanField(default=False)
     order = models.IntegerField(default=15)
     color = models.CharField(max_length=20, blank=True, null=True)
     group = models.CharField(

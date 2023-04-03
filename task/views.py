@@ -102,24 +102,32 @@ class AWSMessage(generic.View):
         current_task.date_arrive = datetime.now()
         current_task.result = result
         current_task.save()
-        models = ["petition", "file_control", "reply_file", "data_file"]
+        models = [
+            "petition", "file_control", "reply_file", "data_file", "sheet_file"]
         function_after = current_task.function_after
         final_errors = []
         new_tasks = []
         new_result = result.copy()
         for model in models:
             current_obj = getattr(current_task, model)
-            if current_obj:
-                # print("CURRENT OBJ: ", current_obj)
-                # name_model = current_obj.__class__.__name__
-                # print("NAME MODEL: ", name_model)
-                method = getattr(current_obj, function_after)
-                # print("METHOD: ", method)
-                task_params = {"parent_task": current_task}
-                new_result["from_aws"] = True
+            if not current_obj:
+                continue
+            # print("CURRENT OBJ: ", current_obj)
+            # name_model = current_obj.__class__.__name__
+            # print("NAME MODEL: ", name_model)
+            method = getattr(current_obj, function_after)
+            # print("METHOD: ", method)
+            task_params = {"parent_task": current_task}
+            new_result["from_aws"] = True
+            try:
                 new_tasks, final_errors, data = method(
                     **new_result, task_params=task_params)
-                break
+            except Exception as e:
+                import traceback
+                error_ = traceback.format_exc()
+                print("ERROR EN EL MÉTODO: ", error_)
+                final_errors.append(str(error_))
+            break
         errors += (final_errors or [])
         current_task.date_end = datetime.now()
         comprobate_status(current_task, errors, new_tasks)
@@ -221,32 +229,52 @@ def camel_to_snake(name):
 
 
 def build_task_params(
-        model, function_name, request, subgroup=None):
+        model, function_name, request, subgroup=None, parent_task=None):
     from datetime import datetime
-    kwargs = {camel_to_snake(model.__class__.__name__): model}
+    print("build_task_params 1: ", datetime.now())
+    model_name = camel_to_snake(model.__class__.__name__)
+    kwargs = {model_name: model}
+    is_massive = bool(subgroup)
 
     def update_previous_tasks(tasks):
-        # print("TASKS: ", tasks)
+        print("TASKS: ", tasks)
         # tasks.update(is_current=False)
         for task in tasks:
-            task.is_current = False
-            task.save()
+            if task.is_current:
+                task.is_current = False
+                task.save()
             if task.child_tasks.exists():
                 update_previous_tasks(task.child_tasks.all())
 
-    update_previous_tasks(AsyncTask.objects.filter(**kwargs))
-
-    if subgroup:
+    if not is_massive:
+        print("build_task_params 2.0: ", datetime.now())
+        update_previous_tasks(AsyncTask.objects.filter(**kwargs))
+    print("build_task_params 2.1: ", datetime.now())
+    # print("function_name: ", function_name)
+    if is_massive:
+        kwargs["is_massive"] = True
         kwargs["subgroup"] = subgroup
+    print("build_task_params 3: ", datetime.now())
     task_function, created = TaskFunction.objects.get_or_create(
         name=function_name)
     if created:
         task_function.public_name = function_name
         task_function.save()
+    print("build_task_params 4: ", datetime.now())
+    if model_name == "data_file":
+        stage = task_function.stages.first()
+        if stage:
+            model.stage = stage
+            model.status_id = "pending"
+            model.save()
+    print("build_task_params 5: ", datetime.now())
+    if parent_task:
+        kwargs["parent_task"] = parent_task
     key_task = AsyncTask.objects.create(
         user=request.user, task_function=task_function,
         date_start=datetime.now(), status_task_id="created", **kwargs
     )
+    print("build_task_params 6: ", datetime.now())
     return key_task, {"parent_task": key_task}
 
 

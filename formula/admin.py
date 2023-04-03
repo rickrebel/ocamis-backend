@@ -30,8 +30,8 @@ ocamis_admin_site.register(MedicalSpeciality, MedicalSpecialityAdmin)
 
 class DoctorAdmin(admin.ModelAdmin):
 
-    list_display = ["clave_doctor", "nombre_medico", "especialidad_medico"]
-    search_fields = ["clave_doctor", "nombre_medico"]
+    list_display = ["clave", "full_name", "medical_speciality"]
+    search_fields = ["clave", "full_name"]
 
 
 ocamis_admin_site.register(Doctor, DoctorAdmin)
