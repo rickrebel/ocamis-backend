@@ -184,7 +184,6 @@ class DataFileViewSet(CreateRetrievView):
 
     @action(methods=["get"], detail=True, url_path="change_stage")
     def change_stage(self, request, **kwargs):
-        from inai.data_file_mixins.matches_mix import Match
         from classify_task.models import Stage
 
         data_file = self.get_object()

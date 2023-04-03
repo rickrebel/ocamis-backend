@@ -355,6 +355,14 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         return -2
 
     @property
+    def next_lap(self):
+        last_lap = LapSheet.objects.filter(sheet_file__data_file=self)\
+            .order_by("-inserted", "lap").last()
+        if last_lap:
+            return last_lap.lap + 1 if last_lap.inserted else last_lap.lap
+        return 0
+
+    @property
     def can_repeat(self):
         from datetime import datetime, timedelta
         from django.utils.timezone import make_aware

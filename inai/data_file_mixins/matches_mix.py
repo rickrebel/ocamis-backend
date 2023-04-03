@@ -40,9 +40,9 @@ class Match:
         from catalog.models import Delegation
         from data_param.models import NameColumn
         self.data_file = data_file
+        self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
         self.file_control = data_file.petition_file_control.file_control
-
         self.entity = petition.entity
         self.institution = self.entity.institution
         self.global_state = self.entity.state
@@ -58,7 +58,7 @@ class Match:
         elif self.global_clues:
             self.global_delegation = self.global_clues.related_delegation
         print("global_delegation", self.global_delegation)
-        only_name = f"NEW_ELEM_NAME_{self.data_file.id}.csv"
+        only_name = f"NEW_ELEM_NAME_{self.data_file.id}_lap{self.lap}.csv"
         self.final_path = set_upload_path(self.data_file, only_name)
         self.name_columns = NameColumn.objects \
             .filter(file_control=self.file_control) \
@@ -114,6 +114,7 @@ class Match:
                 f"Elementos faltantes: {missing_criteria}"
             return [], [error], self.data_file
 
+
         self.build_all_catalogs()
         self.build_existing_fields()
 
@@ -124,6 +125,7 @@ class Match:
         #             existing_field["is_unique"]:
         #         unique_clues = existing_field
         #         break
+
 
         init_data = {
             "data_file_id": self.data_file.id,
@@ -142,6 +144,7 @@ class Match:
             "existing_fields": self.existing_fields,
             "catalogs": self.catalogs,
             "is_prepare": is_prepare,
+            "lap": -1 if is_prepare else self.lap,
             # "catalog_delegation": self.catalog_delegation_by_id,
             # "catalog_clues_by_id": self.catalog_clues_by_id,
             # "catalog_container": self.catalog_container,

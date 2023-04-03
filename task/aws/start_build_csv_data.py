@@ -127,6 +127,7 @@ class MatchAws:
         self.editable_models = init_data["editable_models"]
         self.model_fields = init_data["model_fields"]
         self.existing_fields = init_data["existing_fields"]
+        self.lap = init_data["lap"]
 
         self.catalogs = init_data["catalogs"]
         self.cats = {}
