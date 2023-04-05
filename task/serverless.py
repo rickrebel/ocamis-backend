@@ -97,10 +97,11 @@ def async_in_lambda(function_name, params, task_params):
                 LogType='Tail',
                 Payload=dumb_params
             )
-            # print("response", response, "\n")
+            print("response", response, "\n")
             request_id = response["ResponseMetadata"]["RequestId"]
             current_task.request_id = request_id
             current_task.status_task_id = "running"
+            current_task.save()
             # print("SE GUARDÓ BIEN")
             # payload_response = json.loads(response['Payload'].read())
             # print("payload_response", payload_response)
