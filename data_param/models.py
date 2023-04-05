@@ -51,6 +51,7 @@ class Collection(models.Model):
     class Meta:
         verbose_name = "Modelo (Tabla)"
         verbose_name_plural = "Modelos o Tablas"
+        ordering = ['data_group', 'name']
 
 
 def default_params_data_type():

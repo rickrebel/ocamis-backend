@@ -123,7 +123,7 @@ class AgencyAdmin(admin.ModelAdmin):
         "name",
         "institution__code",
         "state__short_name"
-        ]
+    ]
 
 
 class DelegationAdmin(admin.ModelAdmin):

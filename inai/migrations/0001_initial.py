@@ -99,8 +99,8 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('addl_params', django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True)),
                 ('clean_function', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='data_param.CleanFunction', verbose_name='Función de limpieza o tranformación')),
-                ('file_control', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='file_tranformations', to='inai.FileControl', verbose_name='Grupo de archivos')),
-                ('name_column', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='column_tranformations', to='inai.NameColumn', verbose_name='Columna')),
+                ('file_control', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='file_transformations', to='inai.FileControl', verbose_name='Grupo de archivos')),
+                ('name_column', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='column_transformations', to='inai.NameColumn', verbose_name='Columna')),
             ],
         ),
         migrations.CreateModel(

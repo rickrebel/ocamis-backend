@@ -141,16 +141,16 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
         transformations = data.pop('transformations', None)
         if transformations is not None:
-            actual_id_tranformations = []
+            actual_id_transformations = []
             for transf_item in transformations:
                 transformation = Transformation()
                 transform_ser = TransformationEditSerializer(
                     transformation, data=transf_item)
                 if transform_ser.is_valid():
                     tranform = transform_ser.save()
-                    actual_id_tranformations.append(tranform.id)
+                    actual_id_transformations.append(tranform.id)
             Transformation.objects.filter(file_control=file_control) \
-                .exclude(id__in=actual_id_tranformations).delete()
+                .exclude(id__in=actual_id_transformations).delete()
 
         new_file_control = FileControl.objects.get(id=file_control.id)
         new_serializer = FileControlFullSerializer(
@@ -254,7 +254,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 print("es válido")
                 column = column_serializer.save()
                 actual_id_columns.append(column.id)
-                actual_id_tranformations = []
+                actual_id_transformations = []
                 for transf_item in transformations:
                     transformation = Transformation()
                     transf_item["name_column"] = column.id
@@ -263,12 +263,12 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                     if transform_ser.is_valid():
                         print("transf válido")
                         tranform = transform_ser.save()
-                        actual_id_tranformations.append(tranform.id)
+                        actual_id_transformations.append(tranform.id)
                         print("transf_id", tranform.id)
                     else:
                         print("NO ES VALIDO", transform_ser.errors)
                 Transformation.objects.filter(name_column=column) \
-                    .exclude(id__in=actual_id_tranformations).delete()
+                    .exclude(id__in=actual_id_transformations).delete()
             else:
                 print("no es válido")
                 print(column_serializer.errors)

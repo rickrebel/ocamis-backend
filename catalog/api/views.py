@@ -22,7 +22,8 @@ class StateViewSet(ListRetrieveUpdateMix):
 
 
 class AgencyViewSet(ListRetrieveUpdateMix):
-    permission_classes = (permissions.IsAdminUser,)
+    # permission_classes = (permissions.IsAdminUser,)
+    permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.AgencySerializer
     queryset = Agency.objects.all().prefetch_related(
             "petitions",
@@ -32,14 +33,14 @@ class AgencyViewSet(ListRetrieveUpdateMix):
             "petitions__negative_reasons",
             "petitions__negative_reasons__negative_reason",
             "petitions__file_controls",
-            #"petitions__file_controls__file_control",
-            #"petitions__file_controls__file_control__data_group",
-            #"petitions__file_controls__file_control__file_type",
-            #"petitions__file_controls__file_control__file_tranformations",
-            #"petitions__file_controls__file_control__file_tranformations__clean_function",
-            #"petitions__file_controls__data_files",
-            #"petitions__file_controls__data_files__status_process",
-            #"petitions__file_controls__data_files__month_agency",
+            # "petitions__file_controls__file_control",
+            # "petitions__file_controls__file_control__data_group",
+            # "petitions__file_controls__file_control__file_type",
+            # "petitions__file_controls__file_control__file_transformations",
+            # "petitions__file_controls__file_control__file_transformations__clean_function",
+            # "petitions__file_controls__data_files",
+            # "petitions__file_controls__data_files__status_process",
+            # "petitions__file_controls__data_files__month_agency",
         )
     
     action_serializers = {
@@ -75,7 +76,6 @@ class AgencyViewSet(ListRetrieveUpdateMix):
     
     @action(methods=["get"], detail=False, url_path='data_viz')
     def data_viz(self, request, **kwargs):
-        #import json
         from catalog.api.final_viz import (
             fetch_agencies, build_quality_simple)
         from transparency.models import TransparencyLevel
@@ -83,7 +83,6 @@ class AgencyViewSet(ListRetrieveUpdateMix):
         from category.api.serializers import (
             TransparencyIndexSerializer, TransparencyLevelSimpleSerializer)
         from data_param.models import FileControl
-        from data_param.api.serializers import FileControlSimpleSerializer
         from inai.api.serializers_viz import (
             FileControlViz2Serializer)
         indices_query = TransparencyIndex.objects.all()\

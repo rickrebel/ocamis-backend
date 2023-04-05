@@ -60,34 +60,48 @@ def build_quality_simple(file_ctrl):
     drug = None
     final_fields = file_ctrl["columns"]
 
-    has_clues = ("CLUES", "clues") in final_fields or file_ctrl["has_ent_clues"]
-    has_name = ("CLUES", "name") in final_fields
-    if has_clues:
+    def has_field(field, is_unique=None):
+        [model, field] = field.split(":")
+        if is_unique is None:
+            return (model, field, True) in final_fields \
+                or (model, field, False) in final_fields
+        else:
+            return (model, field, is_unique) in final_fields
+
+    def has_unique_field(model, is_unique=True):
+        for field in final_fields:
+            if field[0] == model and field[2] == is_unique:
+                return True
+        return False
+
+    has_clues_unique = has_unique_field("CLUES")
+    has_clues_other = has_unique_field("CLUES", False)
+    if has_clues_unique:
         clues = "enough"
-    elif has_name:
+    elif has_clues_other:
         clues = "almost_enough"
     else:
         clues = "not_enough"
-    emission = (("Prescription", "date_release") in final_fields or
-                ("Prescription", "date_visit") in final_fields)
-    entrega = ("Prescription", "fecha_entrega") in final_fields
-    folio = ("Prescription", "folio_document") in final_fields
+    emission = (has_field("Prescription:date_release") or
+                has_field("Prescription:date_visit"))
+    entrega = has_field("Prescription:date_delivery")
+    folio = has_field("Prescription:folio_document")
     if folio and emission and entrega:
         formula = "enough"
     elif folio and (emission or entrega):
         formula = "almost_enough"
     else:
         formula = "not_enough"
-    official_key = ("Container", "key2") in final_fields
-    prescrita = ("Drug", "prescribed_amount") in final_fields
-    entregada = ("Drug", "delivered_amount") in final_fields
-    no_entregada = ("Drug", "not_delivered_amount") in final_fields
-    assortment = ("Drug", "clasif_assortment") in final_fields
-    own_key = ("Container", "_own_key") in final_fields
+    official_key = has_field("Container:key2")
+    prescrita = has_field("Drug:prescribed_amount")
+    entregada = has_field("Drug:delivered_amount")
+    no_entregada = has_field("Drug:not_delivered_amount")
+    assortment = has_field("Drug:clasif_assortment")
+    own_key = has_field("Container:_own_key")
     other_names = (
-        ("Component", "name") in final_fields or
-        ("Presentation", "description") in final_fields or
-        ("Container", "name") in final_fields)
+        has_field("Component:name") or
+        has_field("Presentation:description") or
+        has_field("Container:name"))
     if prescrita and (entregada or assortment or no_entregada):
         if official_key and (entregada or no_entregada):
             drug = "enough"
