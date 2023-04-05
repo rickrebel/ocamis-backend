@@ -1,24 +1,18 @@
 # -*- coding: utf-8 -*-
 from rest_framework import serializers
 
-from inai.models import (
-    Petition, PetitionFileControl, PetitionMonth, MonthEntity)
+from inai.models import Petition
 from data_param.models import FileControl, NameColumn
-
-from category.models import StatusControl, FileType
-from category.api.serializers import (
-    FileTypeSimpleSerializer, StatusControlSimpleSerializer)
 
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, FinalFieldVizSerializer)
 
-from inai.api.serializers import (
-    PetitionMonthSerializer, PetitionNegativeReasonSimpleSerializer)
+from inai.api.serializers import PetitionNegativeReasonSimpleSerializer
 
 
 class PetitionMonthVizSerializer(serializers.RelatedField):
     def to_representation(self, value):
-        return value.month_entity.year_month
+        return value.month_agency.year_month
 
 
 class MonthEntityVizSerializer(serializers.RelatedField):
@@ -58,24 +52,24 @@ class AnomaliesVizSerializer(serializers.RelatedField):
         return (value.id)
 
 
-class EntityCLUESVizSerializer(serializers.RelatedField):
+class AgencyCLUESVizSerializer(serializers.RelatedField):
     def to_representation(self, value):
         #return (value.name)
-        return value.petition.entity.clues_id
+        return value.petition.agency.clues_id
 
 
-class EntityViz2Serializer(serializers.RelatedField):
+class AgencyViz2Serializer(serializers.RelatedField):
     def to_representation(self, value):
         #return (value.name)
-        return value.petition.entity_id
+        return value.petition.agency_id
 
 
 class FileControlViz2Serializer(serializers.ModelSerializer):
     #data_group = DataGroupSimpleSerializer(read_only=True)
     columns = NameColumnVizSerializer(many=True, read_only=True,)
     anomalies = AnomaliesVizSerializer(many=True, read_only=True)
-    petition_file_control = EntityCLUESVizSerializer(many=True, read_only=True)
-    entities = EntityViz2Serializer(
+    petition_file_control = AgencyCLUESVizSerializer(many=True, read_only=True)
+    agencies = AgencyViz2Serializer(
         many=True, read_only=True, source="petition_file_control")
     #format_file = serializers.ReadOnlyField(source="file_format_id")
 
@@ -90,7 +84,7 @@ class FileControlViz2Serializer(serializers.ModelSerializer):
             #"data_group",
             "columns",
             "petition_file_control",
-            "entities"
+            "agencies"
         ]
 
 
@@ -150,7 +144,7 @@ class PetitionVizSerializer(serializers.ModelSerializer):
         model = Petition
         fields = [
             "id",
-            "entity",
+            "agency",
             "folio_petition",
             "file_controls",
             "status_data",

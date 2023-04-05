@@ -70,32 +70,31 @@ def lambda_handler(event, context):
     init_data["s3"] = event["s3"]
     init_data["webhook_url"] = event.get("webhook_url")
     match_aws = MatchAws(init_data, context)
+    is_prepare = init_data.get("is_prepare", False)
+    # if init_data.get("is_prepare", False):
+    #     prepare_sample = init_data["sample_data"]
+    #     final_result = match_aws.build_csv_to_data(prepare_sample)
+    aws_access_key_id = event["s3"]["aws_access_key_id"]
+    aws_secret_access_key = event["s3"]["aws_secret_access_key"]
+    bucket_name = event["s3"]["bucket_name"]
+    aws_location = event["s3"]["aws_location"]
+    file = event["file"]
 
-    if init_data.get("is_prepare", False):
-        prepare_sample = init_data["sample_data"]
-        final_result = match_aws.build_csv_to_data(prepare_sample)
-    else:
-        aws_access_key_id = event["s3"]["aws_access_key_id"]
-        aws_secret_access_key = event["s3"]["aws_secret_access_key"]
-        bucket_name = event["s3"]["bucket_name"]
-        aws_location = event["s3"]["aws_location"]
-        file = event["file"]
+    dev_resource = boto3.resource(
+        's3', aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key)
 
-        dev_resource = boto3.resource(
-            's3', aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key)
+    content_object = dev_resource.Object(
+        bucket_name=bucket_name,
+        key=f"{aws_location}/{file}"
+    )
+    streaming_body_1 = content_object.get()['Body']
+    object_final = io.BytesIO(streaming_body_1.read())
+    s3_client = boto3.client(
+        's3', aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key)
 
-        content_object = dev_resource.Object(
-            bucket_name=bucket_name,
-            key=f"{aws_location}/{file}"
-        )
-        streaming_body_1 = content_object.get()['Body']
-        object_final = io.BytesIO(streaming_body_1.read())
-        s3_client = boto3.client(
-            's3', aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key)
-
-        final_result = match_aws.build_csv_to_data(object_final, s3_client)
+    final_result = match_aws.build_csv_to_data(object_final, s3_client)
     # print("final_result", final_result)
     if "webhook_url" in event:
         webhook_url = event["webhook_url"]
@@ -115,7 +114,7 @@ class MatchAws:
         self.data_file_id = init_data["data_file_id"]
         # self.file_control_id = init_data["file_control_id"]
         self.global_clues_id = init_data["global_clues_id"]
-        self.entity_id = init_data["entity_id"]
+        self.agency_id = init_data["agency_id"]
         self.institution_id = init_data["institution_id"]
         # self.global_state_id = init_data["global_state_id"]
         self.global_delegation_id = init_data["global_delegation_id"]
@@ -189,6 +188,7 @@ class MatchAws:
                 csv_files[elem["name"]], delimiter=self.delimiter)
         print("PASO 1")
         if self.is_prepare:
+            complete_file = json.loads(complete_file.read())
             data_rows = complete_file.get("all_data", [])
             tail_data = complete_file.get("tail_data", [])
             data_rows.extend(tail_data)
@@ -267,7 +267,7 @@ class MatchAws:
 
             folio_document = available_data.get("folio_document")
             folio_ocamis = "%s-%s-%s-%s" % (
-                self.entity_id, iso_date[0], iso_date[1], folio_document)
+                self.agency_id, iso_date[0], iso_date[1], folio_document)
 
             curr_prescription = all_prescriptions.get(folio_ocamis)
             if curr_prescription:

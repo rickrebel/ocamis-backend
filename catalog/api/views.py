@@ -6,7 +6,7 @@ from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 from desabasto.api.views import StandardResultsSetPagination
 
-from catalog.models import Institution, State, CLUES, Entity
+from catalog.models import Institution, State, CLUES, Agency
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
@@ -21,10 +21,10 @@ class StateViewSet(ListRetrieveUpdateMix):
     }
 
 
-class EntityViewSet(ListRetrieveUpdateMix):
+class AgencyViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.IsAdminUser,)
-    serializer_class = serializers.EntitySerializer
-    queryset = Entity.objects.all().prefetch_related(
+    serializer_class = serializers.AgencySerializer
+    queryset = Agency.objects.all().prefetch_related(
             "petitions",
             "petitions__petition_months",
             "petitions__file_controls",
@@ -39,34 +39,34 @@ class EntityViewSet(ListRetrieveUpdateMix):
             #"petitions__file_controls__file_control__file_tranformations__clean_function",
             #"petitions__file_controls__data_files",
             #"petitions__file_controls__data_files__status_process",
-            #"petitions__file_controls__data_files__month_entity",
+            #"petitions__file_controls__data_files__month_agency",
         )
     
     action_serializers = {
-        "list": serializers.EntitySerializer,
-        "retrieve": serializers.EntityFullSerializer,
-        "update": serializers.EntitySerializer,
-        "data_viz": serializers.EntityVizSerializer,
+        "list": serializers.AgencySerializer,
+        "retrieve": serializers.AgencyFullSerializer,
+        "update": serializers.AgencySerializer,
+        "data_viz": serializers.AgencyVizSerializer,
     }
 
     def get(self, request):
         print("ESTOY EN GET")
-        entity = self.get_object()
-        serializer = serializers.EntityFullSerializer(
-            entity, context={'request': request})
+        agency = self.get_object()
+        serializer = serializers.AgencyFullSerializer(
+            agency, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["post"], detail=True, url_path='create_months')
     def create_months(self, request, **kwargs):
         import json
-        from inai.models import MonthEntity
+        from inai.models import MonthAgency
         year = request.data.get("year")
-        entity = self.get_object()
+        agency = self.get_object()
         for month in range(12):
             try:
                 month += 1
                 ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
-                MonthEntity.objects.create(entity=entity, year_month=ye_mo)
+                MonthAgency.objects.create(agency=agency, year_month=ye_mo)
             except Exception as e:
                 return Response(
                     {"errors": ["No se pudo crear", "%s" % e]},
@@ -77,7 +77,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
     def data_viz(self, request, **kwargs):
         #import json
         from catalog.api.final_viz import (
-            fetch_entities, build_quality_simple)
+            fetch_agencies, build_quality_simple)
         from transparency.models import TransparencyLevel
         from transparency.models import TransparencyIndex
         from category.api.serializers import (
@@ -102,12 +102,12 @@ class EntityViewSet(ListRetrieveUpdateMix):
         pilot = request.query_params.get("is_pilot", "false")
         is_pilot = pilot.lower() in ["si", "yes", "true"]
         include_groups = ["detailed", "stock"]
-        all_entities = fetch_entities(include_groups)
+        all_agencies = fetch_agencies(include_groups)
         if is_pilot:
-            all_entities = all_entities.filter(is_pilot=True)
+            all_agencies = all_agencies.filter(is_pilot=True)
 
         serializer = self.get_serializer_class()(
-            all_entities, many=True, context={'request': request})
+            all_agencies, many=True, context={'request': request})
         detailed_controls_query = FileControl.objects\
             .filter(
                 data_group__name="detailed",
@@ -117,7 +117,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 "anomalies",
                 "columns__final_field",
                 "columns__final_field__collection",
-                "petition_file_control__petition__entity"
+                "petition_file_control__petition__agency"
             )\
             .distinct()
         #detailed_controls_query
@@ -146,7 +146,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 file_ctrl["has_ent_clues"] = False
             #clues, formula, drug = build_quality_simple(file_ctrl)
             file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
-            file_ctrl["entity"] = file_ctrl["entities"][0]
+            file_ctrl["agency"] = file_ctrl["agencies"][0]
             #file_ctrl["quality_names"] = {}
             #file_ctrl["quality_names"]["clues"] = clues
             #file_ctrl["quality_names"]["formula"] = formula
@@ -168,11 +168,11 @@ class EntityViewSet(ListRetrieveUpdateMix):
         status_other = ["waiting", "pick_up",]
         #enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
         final_data = {"file_controls": detailed_controls}
-        final_data["entities"] = []
-        for entity in serializer.data:
-            #entity["file_ctrls"] = [ctrl for ctrl in detailed_controls 
-            #    if ctrl["entity"] and entity["id"]]
-            for petition in entity["petitions"]:
+        final_data["agencies"] = []
+        for agency in serializer.data:
+            #agency["file_ctrls"] = [ctrl for ctrl in detailed_controls 
+            #    if ctrl["agency"] and agency["id"]]
+            for petition in agency["petitions"]:
                 status_data = petition["status_data"]
                 if not status_data or status_data in status_negative:
                     petition["access_name"] = "negative"
@@ -187,7 +187,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 many_ctrls = len(petition["file_controls"]) > 1
                 petition["many_file_controls"] = many_ctrls
 
-            final_data["entities"].append(entity)
+            final_data["agencies"].append(agency)
 
         #return Response(
         #    serializer.data, status=status.HTTP_200_OK)

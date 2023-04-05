@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from catalog.models import Entity
+from catalog.models import Agency
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
@@ -34,26 +34,26 @@ def set_upload_path(instance, filename):
         except Exception as e:
             return "/".join(["sin_instance", filename])
 
-    entity_type = petition.entity.entity_type[:8].lower()
+    agency_type = petition.agency.agency_type[:8].lower()
     try:
-        acronym = petition.entity.acronym.lower()
+        acronym = petition.agency.acronym.lower()
 
     except:
         acronym = 'others'
     try:
-        last_year_month = instance.month_entity.year_month
+        last_year_month = instance.month_agency.year_month
     except AttributeError:
         try:
-            #last_year_month = petition.petition_months[-1].month_entity.year_month
+            #last_year_month = petition.petition_months[-1].month_agency.year_month
             last_year_month = petition.last_year_month()
         except :
             last_year_month = "others"
     except:
         last_year_month = "others"
-    #final_path = "/".join([entity_type, acronym, last_year_month, filename])
+    #final_path = "/".join([agency_type, acronym, last_year_month, filename])
     #print(os.path.join('/media/%s/' % instance.id, filename))
     #print(os.path.join(files_path, final_path))
-    return "/".join([entity_type, acronym, last_year_month, filename])
+    return "/".join([agency_type, acronym, last_year_month, filename])
 
 
 class Petition(models.Model, PetitionTransformsMix):
@@ -61,8 +61,8 @@ class Petition(models.Model, PetitionTransformsMix):
     folio_petition = models.CharField(
         max_length=50,
         verbose_name="Folio de la solicitud")
-    entity = models.ForeignKey(
-        Entity,
+    agency = models.ForeignKey(
+        Agency,
         related_name="petitions",
         on_delete=models.CASCADE)
     ask_extension = models.BooleanField(
@@ -115,7 +115,7 @@ class Petition(models.Model, PetitionTransformsMix):
         blank=True, null=True)
 
     def __str__(self):
-        return "%s -- %s" % (self.entity, self.folio_petition or self.id)
+        return "%s -- %s" % (self.agency, self.folio_petition or self.id)
 
     class Meta:
         verbose_name = "Solicitud - Petición"
@@ -174,15 +174,15 @@ class PetitionFileControl(models.Model):
         verbose_name_plural = "Relacional: Petición -- Grupos de Control"
 
 
-class MonthEntity(models.Model):
-    entity = models.ForeignKey(
-        Entity, 
+class MonthAgency(models.Model):
+    agency = models.ForeignKey(
+        Agency,
         related_name="months",
         on_delete=models.CASCADE)
     year_month = models.CharField(max_length=10)
 
     def __str__(self):
-        return "%s -- %s" % (self.entity, self.year_month)
+        return "%s -- %s" % (self.agency, self.year_month)
 
     @property
     def human_name(self):
@@ -204,15 +204,15 @@ class PetitionMonth(models.Model):
         Petition, 
         related_name="petition_months",
         on_delete=models.CASCADE)
-    month_entity = models.ForeignKey(
-        MonthEntity, on_delete=models.CASCADE)
+    month_agency = models.ForeignKey(
+        MonthAgency, on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return "%s-> %s, %s" % (self.id, self.petition, self.month_entity)
+        return "%s-> %s, %s" % (self.id, self.petition, self.month_agency)
 
     class Meta:
-        get_latest_by = "month_entity__year_month"
+        get_latest_by = "month_agency__year_month"
         verbose_name = "Mes de peticion"
         verbose_name_plural = "Meses de peticion"
 
@@ -233,8 +233,7 @@ class ReplyFile(models.Model, ReplyFileMix):
         blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE, blank=True, null=True,
-        default='no_final_info')
+        FileType, on_delete=models.CASCADE, blank=True, null=True)
     text = models.TextField(
         blank=True, null=True,
         verbose_name="Texto (en caso de no haber archivo)")
@@ -266,8 +265,6 @@ class ReplyFile(models.Model, ReplyFileMix):
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
-    csv_file = models.FileField(
-        upload_to=set_upload_path, blank=True, null=True)
     zip_path = models.TextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     petition_month = models.ForeignKey(
@@ -285,15 +282,14 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         PetitionFileControl, related_name="data_files", blank=True, null=True,
         on_delete=models.CASCADE)
     status_process = models.ForeignKey(
-        StatusControl, on_delete=models.CASCADE)
+        StatusControl, blank=True, null=True, on_delete=models.CASCADE)
 
     stage = models.ForeignKey(
         Stage, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="Etapa actual")
     status = models.ForeignKey(
         StatusTask, blank=True, null=True, on_delete=models.CASCADE,
-        default='initial', verbose_name="Status actual")
-    # last_update = models.DateTimeField(auto_now=True)
+        verbose_name="Status actual")
 
     file_type = models.ForeignKey(
         FileType, blank=True, null=True, on_delete=models.CASCADE,

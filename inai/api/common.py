@@ -1,5 +1,5 @@
 from inai.api import serializers
-from catalog.api.serializers import EntityFileControlsSerializer
+from catalog.api.serializers import AgencyFileControlsSerializer
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -9,8 +9,8 @@ def send_response(petition, task=None, errors=None):
     data = {
         "errors": errors,
         "petition": petition_data,
-        "file_controls": EntityFileControlsSerializer(
-            petition.entity).data["file_controls"],
+        "file_controls": AgencyFileControlsSerializer(
+            petition.agency).data["file_controls"],
     }
 
     if task:

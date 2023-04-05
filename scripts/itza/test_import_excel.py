@@ -1103,7 +1103,7 @@ modelo3 = Collection (name = 'Medicamentos',
 modelo3.save() 
 
 modelo4 = Collection (name = 'Sujetos Obligados',
-                    model_name ='Entity',
+                    model_name ='Agency',
                     description = 'Contiene nombre completo de sujetos obligados', 
                     #data_group ='Catalogo')
 modelo4.save() 

@@ -5,7 +5,7 @@ from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
 
 from inai.models import (
-    Petition, MonthEntity, PetitionMonth, PetitionBreak,
+    Petition, MonthAgency, PetitionMonth, PetitionBreak,
     ReplyFile, PetitionFileControl, DataFile)
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
@@ -44,8 +44,8 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         range_months = data_petition.pop('range_months', [])
         petition_reasons = data_petition.pop('petition_reasons', [])
         petition_breaks = data_petition.pop('build_petition_breaks', [])
-        entity = data_petition.pop('entity', [])
-        data_petition["entity"] = entity["id"]
+        agency = data_petition.pop('agency', [])
+        data_petition["agency"] = agency["id"]
 
         serializer_pet = self.get_serializer_class()(
             new_petition, data=data_petition)
@@ -57,14 +57,14 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
         data_petition["petition"] = petition.id
 
-        month_entitites = MonthEntity.objects.filter(
-            entity=petition.entity,
+        month_entitites = MonthAgency.objects.filter(
+            agency=petition.agency,
             year_month__gte=range_months[0],
             year_month__lte=range_months[1])
 
-        for month_entity in month_entitites:
+        for month_agency in month_entitites:
             PetitionMonth.objects.create(
-                petition=petition, month_entity=month_entity)
+                petition=petition, month_agency=month_agency)
 
         for pet_break in petition_breaks:
             petition_break = PetitionBreak()
@@ -155,8 +155,8 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             "negative_reasons",
             "negative_reasons__negative_reason",
             "file_controls",
-            "entity",
-        ).order_by("entity__acronym", "folio_petition")
+            "agency",
+        ).order_by("agency__acronym", "folio_petition")
         total_count = 0
         available_filters = [
             {"name": "status_petition", "field": "status_petition_id"},
@@ -167,10 +167,10 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             all_filters = build_common_filters(limiters, available_filters)
             if limiters.get("selected_year"):
                 if limiters.get("selected_month"):
-                    all_filters["petition_months__month_entity__year_month"] =\
+                    all_filters["petition_months__month_agency__year_month"] =\
                         f"{limiters.get('selected_year')}{limiters.get('selected_month')}"
                 else:
-                    all_filters["petition_months__month_entity__year_month__icontains"] =\
+                    all_filters["petition_months__month_agency__year_month__icontains"] =\
                         limiters.get("selected_year")
             if all_filters:
                 petitions = petitions.filter(**all_filters).distinct()
@@ -205,15 +205,15 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         petition = self.get_object()
         current_pet_months = PetitionMonth.objects.filter(petition=petition)
         current_pet_months.exclude(
-            month_entity__year_month__gte=limiters[0],
-            month_entity__year_month__lte=limiters[1],
+            month_agency__year_month__gte=limiters[0],
+            month_agency__year_month__lte=limiters[1],
         ).delete()
-        new_month_entities = MonthEntity.objects.filter(
-            entity=petition.entity,
+        new_month_agencies = MonthAgency.objects.filter(
+            agency=petition.agency,
             year_month__gte=limiters[0], year_month__lte=limiters[1])
-        for mon_ent in new_month_entities:
+        for mon_ent in new_month_agencies:
             PetitionMonth.objects.get_or_create(
-                petition=petition, month_entity=mon_ent)
+                petition=petition, month_agency=mon_ent)
 
         final_pet_monts = PetitionMonth.objects.filter(
             petition=petition)

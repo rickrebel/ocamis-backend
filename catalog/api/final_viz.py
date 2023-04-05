@@ -1,9 +1,9 @@
 
-def fetch_entities(include_groups):
+def fetch_agencies(include_groups):
     from django.db.models import Prefetch
-    from catalog.models import Entity
+    from catalog.models import Agency
     from inai.models import (
-        Petition, PetitionMonth, MonthEntity)
+        Petition, PetitionMonth, MonthAgency)
     from data_param.models import NameColumn
     from data_param.models import FileControl
 
@@ -17,11 +17,11 @@ def fetch_entities(include_groups):
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
 
     filter_petition_month = PetitionMonth.objects\
-        .filter(month_entity__year_month__lte="202212")
+        .filter(month_agency__year_month__lte="202212")
     prefetch_petition_month = Prefetch(
         "petitions__petition_months",
         queryset=filter_petition_month)
-    filter_month = MonthEntity.objects\
+    filter_month = MonthAgency.objects\
         .filter(year_month__lte="202212")
     prefetch_month = Prefetch("months", queryset=filter_month)
     filter_file_control = FileControl.objects\
@@ -29,7 +29,7 @@ def fetch_entities(include_groups):
     prefetch_file_control = Prefetch(
         "petitions__file_controls__file_control",
         queryset=filter_file_control)
-    all_entities = Entity.objects\
+    all_agencies = Agency.objects\
         .filter(competent=True, vigencia=True)\
         .prefetch_related(
             "institution",
@@ -44,7 +44,7 @@ def fetch_entities(include_groups):
             prefetch_petition_month,
             #"petitions__petition_months",
             "petitions__negative_reasons",
-            "petitions__petition_months__month_entity",
+            "petitions__petition_months__month_agency",
             #prefetch_file_control,
             "petitions__file_controls__file_control",
             "petitions__file_controls__file_control__data_group",
@@ -53,7 +53,7 @@ def fetch_entities(include_groups):
             "petitions__file_controls__file_control"
             "__columns__final_field__collection",
         )
-    return all_entities
+    return all_agencies
 
 
 def build_quality_simple(file_ctrl):

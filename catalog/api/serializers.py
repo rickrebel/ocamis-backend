@@ -3,10 +3,10 @@ from rest_framework import serializers
 
 from report.models import Responsable
 from catalog.models import (
-    State, Institution, CLUES, Alliances, Municipality, Disease, Entity
+    State, Institution, CLUES, Alliances, Municipality, Disease, Agency
 )
 #from report.api.serializers import ResponsableListSerializer
-from inai.models import MonthEntity
+from inai.models import MonthAgency
 
 
 class ResponsableListSerializer(serializers.ModelSerializer):
@@ -105,27 +105,27 @@ class DiseaseSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class EntitySerializer(serializers.ModelSerializer):
+class AgencySerializer(serializers.ModelSerializer):
     institution = InstitutionSerializer(read_only=True)
     state = StateSimpleSerializer(read_only=True)
     clues = CLUESSerializer(read_only=True)
 
     class Meta:
-        model = Entity
+        model = Agency
         fields = [
             "id", "institution", "state", "clues", "name", 
-            "addl_params", "vigencia", "entity_type", "acronym",
+            "addl_params", "vigencia", "agency_type", "acronym",
             "notes", "is_pilot"]
 
 
-class EntityFileControlsSerializer(serializers.ModelSerializer):
+class AgencyFileControlsSerializer(serializers.ModelSerializer):
     file_controls = serializers.SerializerMethodField(read_only=True)
     
     def get_file_controls(self, obj):
         from data_param.models import FileControl
         from data_param.api.serializers import FileControlSemiFullSerializer
         queryset = FileControl.objects\
-            .filter(entity=obj)\
+            .filter(agency=obj)\
             .distinct()\
             .order_by("data_group", "id")\
             .prefetch_related(
@@ -139,41 +139,41 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
         return FileControlSemiFullSerializer(queryset, many=True).data
 
     class Meta:
-        model = Entity
+        model = Agency
         fields = ["file_controls"]
 
 
-class EntityFullSerializer(EntitySerializer, EntityFileControlsSerializer):
-#class EntityFullSerializer(EntitySerializer):
+# class AgencyFullSerializer(AgencySerializer):
+class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
     from inai.api.serializers import (
         PetitionSemiFullSerializer, MonthEntitySimpleSerializer)
 
     petitions = PetitionSemiFullSerializer(many=True)
     months = MonthEntitySimpleSerializer(many=True)
-    #entity_type = read_only_fields(many=True)
+    #agency_type = read_only_fields(many=True)
 
     class Meta:
-        model = Entity
+        model = Agency
         fields = "__all__"
 
 
-class EntityVizSerializer(EntitySerializer):
+class AgencyVizSerializer(AgencySerializer):
     #from inai.api.serializers import MonthEntitySimpleSerializer
     from inai.api.serializers_viz import (
         PetitionVizSerializer, MonthEntityVizSerializer)
 
-    entity_type = serializers.ReadOnlyField()
+    agency_type = serializers.ReadOnlyField()
     petitions = PetitionVizSerializer(many=True)
     months = MonthEntityVizSerializer(many=True, read_only=True)
     #months = serializers.SerializerMethodField(read_only=True)
 
     #def get_months(self, obj):
-    #    return MonthEntity.objects.filter(entity=obj)\
+    #    return MonthAgency.objects.filter(agency=obj)\
     #        .values_list("year_month", flat=True).distinct()
 
 
     class Meta:
-        model = Entity
+        model = Agency
         fields = [
             "id",
             "name",
@@ -182,7 +182,7 @@ class EntityVizSerializer(EntitySerializer):
             "institution",
             "state",
             "clues",
-            "entity_type",
+            "agency_type",
             "petitions",
             "months",
             "population",

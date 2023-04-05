@@ -281,9 +281,12 @@ class ExtractorsMix:
             function_after = task_params.get(
                 "function_after", "find_matches_in_file_controls")
             task_params["function_after"] = function_after
+            errors = []
             async_task = async_in_lambda(
                 "explore_data_simple", params, task_params)
-            return None, [], async_task
+            if not async_task:
+                errors.append("No se pudo iniciar la tarea")
+            return errors, [], async_task
 
         all_sheets = self.all_sample_data
         if is_explore and isinstance(all_sheets, dict):
@@ -292,29 +295,29 @@ class ExtractorsMix:
 
         print("ESTOY EN UN LUGAR QUE NO DEBERÍA DE ESTAR CSV")
         raise Exception("ESTOY EN UN LUGAR QUE NO DEBERÍA DE ESTAR CSV")
-        s3_client, dev_resource = start_session()
-        data = get_file(self, dev_resource)
-        if isinstance(data, dict):
-            if data.get("errors", False):
-                return False, data["errors"], None
-        data_rows = data.readlines()
-        total_rows = len(data_rows)
-        if is_explore:
-            data_rows = data_rows[220]
-        validated_data_default = self.divide_rows(
-            data_rows, file_control, is_explore=is_explore)
-        validated_data = {
-            "default": {
-                "all_data": validated_data_default[:200],
-                "total_rows": total_rows,
-            }
-        }
-
-        is_issste = file_control.petition.entity.institution.code == 'ISSSTE'
-        if is_issste:
-            new_tasks, errors, data = special_issste(data, file_control, is_issste)
-
-        return validated_data, None, None
+        # s3_client, dev_resource = start_session()
+        # data = get_file(self, dev_resource)
+        # if isinstance(data, dict):
+        #     if data.get("errors", False):
+        #         return False, data["errors"], None
+        # data_rows = data.readlines()
+        # total_rows = len(data_rows)
+        # if is_explore:
+        #     data_rows = data_rows[220]
+        # validated_data_default = self.divide_rows(
+        #     data_rows, file_control, is_explore=is_explore)
+        # validated_data = {
+        #     "default": {
+        #         "all_data": validated_data_default[:200],
+        #         "total_rows": total_rows,
+        #     }
+        # }
+        #
+        # is_issste = file_control.petition.agency.institution.code == 'ISSSTE'
+        # if is_issste:
+        #     new_tasks, errors, data = special_issste(data, file_control, is_issste)
+        #
+        # return validated_data, None, None
 
     # RICK 19: Esto debería eliminarse
     def divide_rows(self, data_rows, file_control, is_explore=False):

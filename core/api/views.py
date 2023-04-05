@@ -27,8 +27,8 @@ from category.api.serializers import (
 from task.api.serializers import (
     StatusTaskSimpleSerializer, TaskFunctionSerializer, StageSimpleSerializer)
 
-from catalog.models import Entity
-from catalog.api.serializers import EntitySerializer
+from catalog.models import Agency
+from catalog.api.serializers import AgencySerializer
 
 
 class CatalogView(views.APIView):
@@ -36,7 +36,7 @@ class CatalogView(views.APIView):
 
     def get(self, request):
         #data = {}
-        entities_query = Entity.objects.filter().prefetch_related(
+        agencies_query = Agency.objects.filter().prefetch_related(
             "institution", "state", "clues")
         file_control_query = FileControl.objects.all().prefetch_related(
             "data_group",
@@ -52,7 +52,7 @@ class CatalogView(views.APIView):
         data = {
             #"file_controls": FileControlFullSerializer(
             #    file_control_query, many=True).data,
-            "entities": EntitySerializer(entities_query, many=True).data,
+            "agencies": AgencySerializer(agencies_query, many=True).data,
             ## CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,

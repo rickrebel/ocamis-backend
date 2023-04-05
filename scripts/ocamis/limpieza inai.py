@@ -86,9 +86,9 @@ def intento_de_limpieza():
         
 def adivinar_nombre():
     import re
-    from catalog.models import Entity
+    from catalog.models import Agency
 
-    unique_entities = [
+    unique_agencies = [
         'Centro Regional de Alta Especialidad de Chiapas (CRAE)',
         'Instituto de Seguridad y Servicios Sociales de los Trabajadores del Estado (ISSSTE)',
         'Instituto Mexicano del Seguro Social (IMSS)',
@@ -119,15 +119,15 @@ def adivinar_nombre():
         'Instituto de Salud para el Bienestar',
     ]
 
-    for entity in unique_entities:
-        match = re.search(r"\(([a-zA-Z]+?)\)", entity)
+    for agency in unique_agencies:
+        match = re.search(r"\(([a-zA-Z]+?)\)", agency)
         if match:
             first_text_between_parentheses = match.group(1)
             try:
-                entity_obj = Entity.objects.get(acronym=first_text_between_parentheses)
-                entity_obj.nameForInai = entity
-                entity_obj.save()
-            except Entity.DoesNotExist:
+                agency_obj = Agency.objects.get(acronym=first_text_between_parentheses)
+                agency_obj.nameForInai = agency
+                agency_obj.save()
+            except Agency.DoesNotExist:
                 continue
         else:
             print("No text between parentheses found.")

@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
-    Petition, PetitionFileControl, DataFile, MonthEntity, PetitionMonth,
+    Petition, PetitionFileControl, DataFile, MonthAgency, PetitionMonth,
     ReplyFile, PetitionBreak, PetitionNegativeReason, SheetFile, LapSheet)
 from data_param.models import Transformation, NameColumn, FileControl
 
@@ -75,14 +75,14 @@ class NameColumnEditSerializer(serializers.ModelSerializer):
 class MonthEntitySerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = MonthEntity
+        model = MonthAgency
         fields = "__all__"
 
 
 class MonthEntitySimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = MonthEntity
+        model = MonthAgency
         fields = ["year_month", "human_name"]
 
 
@@ -176,7 +176,7 @@ class DataFileFullSerializer(DataFileSerializer):
 
 
 class PetitionMonthSerializer(serializers.ModelSerializer):
-    month_entity = MonthEntitySimpleSerializer(read_only=True)
+    month_agency = MonthEntitySimpleSerializer(read_only=True)
 
     class Meta:
         model = PetitionMonth
@@ -185,16 +185,16 @@ class PetitionMonthSerializer(serializers.ModelSerializer):
 
 """class PetitionMiniSerializer(serializers.ModelSerializer):
     petition_months = PetitionMonthSerializer(many=True)
-    #entity = serializers.SerializerMethodField(read_only=True)
+    #agency = serializers.SerializerMethodField(read_only=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)    
 
-    def get_entity(self, obj):
+    def get_agency(self, obj):
         show_inst = self.context.get("show_institution", False)
         request = self.context.get("request", False)
         if request and request.method == "GET" and show_inst:
-            return EntitySerializer(obj.entity).data
-        return obj.entity.id
+            return AgencySerializer(obj.agency).data
+        return obj.agency.id
 
     class Meta:
         model = Petition

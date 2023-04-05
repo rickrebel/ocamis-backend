@@ -9,12 +9,12 @@ https://descarga.plataformadetransparencia.org.mx/buscador-ws/descargaArchivo/SI
 inai_fiels = [
     {
         "inai_open_search": "idSujetoObligado",
-        "model_name": "Entity",
+        "model_name": "Agency",
         "final_field": "idSujetoObligado",
     },
     {
         "inai_open_search": "nombreSujetoObligado",
-        "model_name": "Entity",
+        "model_name": "Agency",
         "final_field": "nombreSujetoObligado",
         "insert": True,
     },

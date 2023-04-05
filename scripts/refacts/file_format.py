@@ -59,16 +59,16 @@ def refact_file_format():
         all_controls.filter(format_file=key).update(file_format=curr_format_obj)
 
 
-def refact_entity_in_file_control():
+def refact_agency_in_file_control():
     from data_param.models import FileControl
     all_controls = FileControl.objects.all()
     for control in all_controls:
         pfc = control.petition_file_control.first()
         if pfc:
-            control.entity = pfc.petition.entity
-            #print(pfc.petition.entity)
+            control.agency = pfc.petition.agency
+            #print(pfc.petition.agency)
             control.save()
         else:
             control.delete()
 
-# refact_entity_in_file_control()
+# refact_agency_in_file_control()

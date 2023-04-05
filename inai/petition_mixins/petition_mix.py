@@ -2,15 +2,15 @@ class PetitionMix:
     petition_months: None
 
     def first_year_month(self):
-        return self.petition_months.earliest().month_entity.year_month
+        return self.petition_months.earliest().month_agency.year_month
 
     def last_year_month(self):
-        return self.petition_months.latest().month_entity.year_month
+        return self.petition_months.latest().month_agency.year_month
 
     def months(self):
         html_list = ''
-        start = self.petition_months.earliest().month_entity.human_name
-        end = self.petition_months.latest().month_entity.human_name
+        start = self.petition_months.earliest().month_agency.human_name
+        end = self.petition_months.latest().month_agency.human_name
         return " ".join(list(set([start, end])))
     months.short_description = "Meses"
 
@@ -35,7 +35,7 @@ class PetitionMix:
 
 
 class PetitionTransformsMix(PetitionMix):
-    entity: None
+    agency: None
 
     def find_matches_in_children(
             self, all_data_files, current_file_ctrl=None, task_params=None):
@@ -43,8 +43,8 @@ class PetitionTransformsMix(PetitionMix):
         # self.__module__
         # cls = self.__class__
         # print("comienza find_matches_in_children", "\n")
-        entity_file_controls = FileControl.objects.filter(
-            petition_file_control__petition__entity=self.entity,
+        agency_file_controls = FileControl.objects.filter(
+            petition_file_control__petition__agency=self.agency,
             file_format__isnull=False) \
             .exclude(data_group__name="orphan") \
             .prefetch_related("columns") \
@@ -53,13 +53,13 @@ class PetitionTransformsMix(PetitionMix):
         all_tasks = []
 
         if current_file_ctrl:
-            entity_file_controls = entity_file_controls.filter(
+            agency_file_controls = agency_file_controls.filter(
                 id=current_file_ctrl)
 
-        near_file_controls = entity_file_controls\
+        near_file_controls = agency_file_controls\
             .filter(petition_file_control__petition=self)\
             .prefetch_related("file_format")
-        others_file_controls = entity_file_controls\
+        others_file_controls = agency_file_controls\
             .exclude(petition_file_control__petition=self)\
             .prefetch_related("file_format")
         all_file_controls = near_file_controls | others_file_controls

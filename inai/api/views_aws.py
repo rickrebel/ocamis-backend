@@ -14,7 +14,7 @@ from api.mixins import (
     MultiSerializerListRetrieveMix as ListRetrieveView)
 
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
-from catalog.api.serializers import EntityFileControlsSerializer
+from catalog.api.serializers import AgencyFileControlsSerializer
 from task.views import comprobate_status, build_task_params
 
 last_final_path = None
@@ -50,7 +50,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 name=name_control,
                 data_group=orphan_group,
                 final_data=False,
-                entity=petition.entity,
+                agency=petition.agency,
             )
         pet_file_ctrl, created_pfc = PetitionFileControl.objects \
             .get_or_create(file_control=file_control, petition=petition)
@@ -156,8 +156,8 @@ def move_and_duplicate(data_files, petition, request):
     petition_data = serializers.PetitionFullSerializer(petition).data
     data = {
         "petition": petition_data,
-        "file_controls": EntityFileControlsSerializer(
-            petition.entity).data["file_controls"],
+        "file_controls": AgencyFileControlsSerializer(
+            petition.agency).data["file_controls"],
     }
     return Response(data, status=status.HTTP_200_OK)
 
@@ -458,11 +458,11 @@ class OpenDataInaiViewSet(ListRetrieveView):
         inai_fields = [
             {
                 "inai_open_search": "Institución",
-                "model_name": "Entity",
+                "model_name": "Agency",
                 "app_name": "catalog",
                 "final_field": "nombreSujetoObligado",
                 "insert": True,
-                "related": 'entity',
+                "related": 'agency',
             },
             {
                 "inai_open_search": "No. de folio",
@@ -475,7 +475,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
                 "inai_open_search": False,
                 "app_name": "inai",
                 "model_name": "Petition",
-                "final_field": "entity",
+                "final_field": "agency",
                 "unique": True,
             },
             {
@@ -543,18 +543,18 @@ class OpenDataInaiViewSet(ListRetrieveView):
         inai_fields = [
             {
                 "inai_open_search": "idSujetoObligado",
-                "model_name": "Entity",
+                "model_name": "Agency",
                 "app_name": "catalog",
                 "final_field": "idSujetoObligado",
-                "related": 'entity',
+                "related": 'agency',
             },
             {
                 "inai_open_search": "nombreSujetoObligado",
-                "model_name": "Entity",
+                "model_name": "Agency",
                 "app_name": "catalog",
                 "final_field": "nombreSujetoObligado",
                 # "insert": True,
-                "related": 'entity',
+                "related": 'agency',
             },
             {
                 "inai_open_search": "dsFolio",
@@ -567,7 +567,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
                 "inai_open_search": False,
                 "app_name": "inai",
                 "model_name": "Petition",
-                "final_field": "entity",
+                "final_field": "agency",
                 "unique": True,
             },
             {

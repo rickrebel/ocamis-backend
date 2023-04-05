@@ -3,7 +3,7 @@
 from category.models import NegativeReason
 from inai.models import PetitionNegativeReason
 from data_param.models import FileControl
-from catalog.models import Entity, CLUES
+from catalog.models import Agency, CLUES
 from django.db.models import Count
 
 NegativeReason.objects.all()\
@@ -20,16 +20,16 @@ ordered_negatives = PetitionNegativeReason.objects.all()\
 
 ordered_freq_by_id = PetitionNegativeReason.objects\
     .filter(negative_reason__id=2)\
-    .values('petition__entity__name', 'petition__entity__acronym')\
-    .annotate(total=Count("petition__entity__name"))\
-    .values('total', 'petition__entity__name', 'petition__entity__acronym')\
+    .values('petition__agency__name', 'petition__agency__acronym')\
+    .annotate(total=Count("petition__agency__name"))\
+    .values('total', 'petition__agency__name', 'petition__eagency__acronym')\
     .order_by("-total")
 
-for entity in ordered_freq_by_id:
-    print(entity)
+for agency in ordered_freq_by_id:
+    print(agency)
 
 
-entities = Entity.objects\
+agencies = Agency.objects\
     .filter(petitions__negative_reasons__negative_reason_id=2)\
     .values('acronym', 'name')\
     .distinct()\
@@ -46,16 +46,16 @@ totalclu = CLUES.objects.all()\
 # PetitionNegativeReason.objects.all(petititon__ negative_reason__name=)
 
 
-entities = FileControl.objects\
+agencies = FileControl.objects\
     .filter(anomalies__in=[3, 4])\
-    .values('petition_file_control__petition__entity__name')\
-    .annotate(total=Count("petition_file_control__petition__entity__name"))\
-    .values('total', 'petition_file_control__petition__entity__name')\
+    .values('petition_file_control__petition__agency__name')\
+    .annotate(total=Count("petition_file_control__petition__agency__name"))\
+    .values('total', 'petition_file_control__petition__agency__name')\
     .order_by("-total")
 
 
-for entity in entities:
-    print(entity)
+for agency in agencies:
+    print(agency)
 
 
 

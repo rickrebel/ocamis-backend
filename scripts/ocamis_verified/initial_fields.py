@@ -1,48 +1,47 @@
 
 def generate_months():
-    from inai.models import MonthEntity
-    from catalog.models import Entity
-    for entity in Entity.objects.all():
+    from inai.models import MonthAgency
+    from catalog.models import Agency
+    for agency in Agency.objects.all():
         for sum_year in range(6):
             year = sum_year + 2017
             for month in range(12):
                 month += 1
                 ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
-                MonthEntity.objects.get_or_create(entity=entity, year_month=ye_mo)
-                #print("%s-%s" % (entity.id, ye_mo))
+                MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
+                #print("%s-%s" % (agency.id, ye_mo))
 
 
 def generate_months_one_year(year):
-    from inai.models import MonthEntity
-    from catalog.models import Entity
-    for entity in Entity.objects.all():
+    from inai.models import MonthAgency
+    from catalog.models import Agency
+    for agency in Agency.objects.all():
         for month in range(12):
             month += 1
             ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
-            MonthEntity.objects.get_or_create(entity=entity, year_month=ye_mo)
-            #print("%s-%s" % (entity.id, ye_mo))
+            MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
+            #print("%s-%s" % (agency.id, ye_mo))
 
 
-
-def generate_months_entity(acronym):
-    from inai.models import MonthEntity
-    from catalog.models import Entity
-    for entity in Entity.objects.filter(acronym=acronym):
+def generate_months_agency(acronym):
+    from inai.models import MonthAgency
+    from catalog.models import Agency
+    for agency in Agency.objects.filter(acronym=acronym):
         for sum_year in range(6):
             year = sum_year + 2017
             for month in range(12):
                 month += 1
                 ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
-                MonthEntity.objects.get_or_create(entity=entity, year_month=ye_mo)
-                #print("%s-%s" % (entity.id, ye_mo))
+                MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
+                #print("%s-%s" % (agency.id, ye_mo))
 
-#generate_months_entity("SSEDOMEX")
-#generate_months_entity("CRAE")
-#generate_months_entity("SSPCDMX")
+#generate_months_agency("SSEDOMEX")
+#generate_months_agency("CRAE")
+#generate_months_agency("SSPCDMX")
 
         
 def insert_populations():
-    from catalog.models import Entity
+    from catalog.models import Agency
     pob_states2 = [
         ["01", 955242],
         ["02", 1195226],
@@ -78,6 +77,6 @@ def insert_populations():
         ["32", 1455943],
         ]
     for pob_st in pob_states2:
-        entities = Entity.objects.filter(
+        agencies = Agency.objects.filter(
             state__inegi_code=pob_st[0], clues__isnull=True)
-        entities.update(population=pob_st[1])
+        agencies.update(population=pob_st[1])

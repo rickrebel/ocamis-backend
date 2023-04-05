@@ -121,9 +121,9 @@ def get_csv_file(file_obj, s3_client=None):
                 Bucket=bucket_name,
                 Key=f"{aws_location}/{file_obj.file.name}"
                 )
-            #print(BytesIO(content_object['Body'].read()))
+            # print(BytesIO(content_object['Body'].read()))
             csv_file = BytesIO(content_object['Body'].read())
-            return  pd.read_csv(csv_file, on_bad_lines='skip')
+            return pd.read_csv(csv_file, on_bad_lines='skip')
             #return pd.read_csv(BytesIO(content_object['Body'].read()))
         except Exception as e:
             print(e)

@@ -57,7 +57,7 @@ def generate_file(app_name, model_name):
         json.dump(final_data, json_file)
         json_file.close()
 
-#generate_file('catalog', 'Entity')
+#generate_file('catalog', 'Agency')
 #generate_file('catalog', 'State')
 #sincronize_entities('catalog', 'State')
 
@@ -88,14 +88,21 @@ def sincronize_entities(app_name, model_name, field_id="id"):
                 print(e)
 
 
+print("HOLI")
+
 # from scripts.ocamis_verified.sincro_json import sincronize_entities, generate_file
 
 # generate_file('task', 'TaskFunction')
 # sincronize_entities('task', 'TaskFunction', field_id='name')
 
-# generate_file('category', 'StatusControl')
-# sincronize_entities('category', 'StatusControl')
+generate_file('category', 'FileType')
+sincronize_entities('category', 'FileType', field_id='name')
+#
+# generate_file('classify_task', 'Stage')
+# sincronize_entities('classify_task', 'Stage', field_id='name')
 
+# generate_file('task', 'TaskFunction', field_id='name')
 # sincronize_entities('task', 'TaskFunction', field_id='name')
+
 # sincronize_entities('category', 'StatusControl')
 # sincronize_entities('data_param', 'DataGroup')

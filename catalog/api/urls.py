@@ -7,7 +7,7 @@ from catalog.api.views import (
     CLUESList,
     SendEmailNewOrganizationView,
     StateViewSet,
-    EntityViewSet,
+    AgencyViewSet,
 )
 
 router = routers.DefaultRouter()
@@ -15,7 +15,7 @@ router = routers.DefaultRouter()
 router.register(r'institutions', InstitutionList)
 router.register(r'clues', CLUESList)
 router.register(r'state', StateViewSet)
-router.register(r'entity', EntityViewSet)
+router.register(r'agency', AgencyViewSet)
 
 urlpatterns = [
     path('new_organization/', SendEmailNewOrganizationView.as_view()),

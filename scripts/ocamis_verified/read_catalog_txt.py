@@ -109,11 +109,11 @@ def generate_insabi_delegations():
             name=name, state=state, institution=insabi)
 
 
-def generate_entity_delegations():
-    from catalog.models import Delegation, Entity
-    entities_with_clues = Entity.objects.filter(clues__isnull=False).distinct()
-    for entity in entities_with_clues:
-        name = f"{entity.name}"
+def generate_agency_delegations():
+    from catalog.models import Delegation, Agency
+    agencies_with_clues = Agency.objects.filter(clues__isnull=False).distinct()
+    for agency in agencies_with_clues:
+        name = f"{agency.name}"
         Delegation.objects.get_or_create(
-            name=name, state=entity.state,
-            institution=entity.institution, clues=entity.clues)
+            name=name, state=agency.state,
+            institution=agency.institution, clues=agency.clues)

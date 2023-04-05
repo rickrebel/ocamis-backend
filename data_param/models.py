@@ -5,7 +5,7 @@ from django.db.models import JSONField
 
 from category.models import ColumnType, FileFormat, StatusControl
 from transparency.models import Anomaly
-from catalog.models import Institution, Delegation, Entity
+from catalog.models import Institution, Delegation, Agency
 
 
 class DataGroup(models.Model):
@@ -109,8 +109,8 @@ class FileControl(models.Model):
     data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE)
     # data_group = models.IntegerField()
-    entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE,
+    agency = models.ForeignKey(
+        Agency, on_delete=models.CASCADE,
         verbose_name="Entidad", blank=True, null=True)
     format_file = models.CharField(
         max_length=5,
@@ -147,8 +147,8 @@ class FileControl(models.Model):
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
 
     def __str__(self):
-        #all_entities = Entity.objects.filter(
-        #    petitions__file_controls__petition__entity=self).distinct()\
+        #all_agencies = Agency.objects.filter(
+        #    petitions__file_controls__petition__agency=self).distinct()\
         #        .value_list("acronym", flat=True)
         return f"{self.id}. {self.name}"
         #return self.name
@@ -235,8 +235,8 @@ class FinalField(models.Model):
 
 
 class DictionaryFile(models.Model):
-    # entity = models.ForeignKey(
-    #     Entity, on_delete=models.CASCADE, blank=True, null=True)
+    # agency = models.ForeignKey(
+    #     Agency, on_delete=models.CASCADE, blank=True, null=True)
     institution = models.ForeignKey(
         Institution, on_delete=models.CASCADE, blank=True, null=True)
     delegation = models.ForeignKey(

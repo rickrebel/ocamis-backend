@@ -306,7 +306,7 @@ class Alliances(models.Model):
         return self.name
 
 
-class Entity(models.Model):
+class Agency(models.Model):
     name = models.CharField(
         max_length=120, blank=True, null=True,
         verbose_name="Nombre",
@@ -350,23 +350,23 @@ class Entity(models.Model):
         verbose_name="Derechohabientes", blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        from inai.models import MonthEntity
+        from inai.models import MonthAgency
         self_created = True if self.pk is None else False
-        super(Entity, self).save(*args, **kwargs)
+        super(Agency, self).save(*args, **kwargs)
         if self_created:
             for sum_year in range(7):
                 year = sum_year + 2017
                 for month in range(12):
                     month += 1
                     ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
-                    MonthEntity.objects.get_or_create(entity=self, year_month=ye_mo)
+                    MonthAgency.objects.get_or_create(agency=self, year_month=ye_mo)
 
     def __str__(self):
         return self.name or "%s -%s -%s" % (
             self.institution, self.state, self.clues)
 
     @property
-    def entity_type(self):
+    def agency_type(self):
         if self.clues:
             return 'Hospital Federal'
         elif self.state:

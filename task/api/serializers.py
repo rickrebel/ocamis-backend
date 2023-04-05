@@ -19,7 +19,7 @@ class AsyncTaskSimpleSerializer(serializers.ModelSerializer):
 
 
 class AsyncTaskSerializer(serializers.ModelSerializer):
-    # entity_id = serializers.IntegerField(source="data_file.petition_file_control.petition.entity.id")
+    # agency_id = serializers.IntegerField(source="data_file.petition_file_control.petition.agency.id")
     # prev_petition_id = serializers.IntegerField(
     #     source="data_file.petition_file_control.petition_id", read_only=True)
     petition_id = serializers.SerializerMethodField(read_only=True)

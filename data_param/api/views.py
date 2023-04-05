@@ -33,14 +33,14 @@ def build_common_filters(limiters, available_filters):
         final_filters["notes__isnull"] = not limiters.get("has_notes")
     if limiters.get("status_task") or limiters.get("has_task"):
         final_filters["id__in"] = limiters.get("related_ids", [])
-    if limiters.get("entity_type"):
-        if limiters.get("entity_type") == 'Hospital Federal':
-            final_filters["entity__clues__isnull"] = False
-        elif limiters.get("entity_type") == 'Estatal':
-            final_filters["entity__state__isnull"] = False
+    if limiters.get("agency_type"):
+        if limiters.get("agency_type") == 'Hospital Federal':
+            final_filters["agency__clues__isnull"] = False
+        elif limiters.get("agency_type") == 'Estatal':
+            final_filters["agency__state__isnull"] = False
         else:
-            final_filters["entity__clues__isnull"] = True
-            final_filters["entity__state__isnull"] = True
+            final_filters["agency__clues__isnull"] = True
+            final_filters["agency__state__isnull"] = True
     return final_filters
 
 
@@ -172,8 +172,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             "data_group",
             "columns",
             "columns__column_transformations",
-            "entity",
-        ).order_by("data_group__name", "entity__acronym", "name")
+            "agency",
+        ).order_by("data_group__name", "agency__acronym", "name")
         total_count = 0
         available_filters = [
             {"name": "status_register", "field": "status_register_id"},

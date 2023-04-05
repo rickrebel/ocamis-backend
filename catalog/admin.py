@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from inai.admin import ocamis_admin_site
 
 from django.contrib import admin
-#from django.contrib.admin import AdminSite
+# from django.contrib.admin import AdminSite
 
 from .models import (
     Alliances,
@@ -12,7 +12,7 @@ from .models import (
     State,
     Municipality,
     Disease,
-    Entity,
+    Agency,
     Delegation,
 )
 
@@ -31,9 +31,6 @@ class StateAdmin(admin.ModelAdmin):
         "code_name",
         "other_names"]
 
-admin.site.register(State, StateAdmin)
-ocamis_admin_site.register(State, StateAdmin)
-
 
 class MunicipalityAdmin(admin.ModelAdmin):
     list_display = [
@@ -42,9 +39,6 @@ class MunicipalityAdmin(admin.ModelAdmin):
     search_fields = [
         "inegi_code",
         "name"]
-
-
-admin.site.register(Municipality, MunicipalityAdmin)
 
 
 class InstitutionAdmin(admin.ModelAdmin):
@@ -60,9 +54,6 @@ class InstitutionAdmin(admin.ModelAdmin):
         "public_name",
         "public_code",
         "relevance"]
-
-admin.site.register(Institution, InstitutionAdmin)
-ocamis_admin_site.register(Institution, InstitutionAdmin)
 
 
 class CLUESAdmin(admin.ModelAdmin):
@@ -95,9 +86,6 @@ class CLUESAdmin(admin.ModelAdmin):
         "jurisdiction"
     ]
 
-admin.site.register(CLUES, CLUESAdmin)
-ocamis_admin_site.register(CLUES, CLUESAdmin)
-
 
 class AlliancesAdmin(admin.ModelAdmin):
     list_display = [
@@ -109,23 +97,18 @@ class AlliancesAdmin(admin.ModelAdmin):
     search_fields = ["name"]
 
 
-admin.site.register(Alliances, AlliancesAdmin)
-
-
 class DiseaseAdmin(admin.ModelAdmin):
     list_display = [
         "name",
     ]
     search_fields = ["name"]
 
-admin.site.register(Disease, DiseaseAdmin)
 
-
-class EntityAdmin(admin.ModelAdmin):
+class AgencyAdmin(admin.ModelAdmin):
     list_display = [
         "acronym",
         "name",
-        "entity_type",
+        "agency_type",
         "vigencia",
         "competent",
         "nombreSujetoObligado",
@@ -141,9 +124,6 @@ class EntityAdmin(admin.ModelAdmin):
         "institution__code",
         "state__short_name"
         ]
-
-#admin.site.register(Entity, EntityAdmin)
-ocamis_admin_site.register(Entity, EntityAdmin)
 
 
 class DelegationAdmin(admin.ModelAdmin):
@@ -161,5 +141,17 @@ class DelegationAdmin(admin.ModelAdmin):
         "state__short_name"
     ]
 
+
+admin.site.register(State, StateAdmin)
+ocamis_admin_site.register(State, StateAdmin)
+admin.site.register(Municipality, MunicipalityAdmin)
+admin.site.register(Institution, InstitutionAdmin)
+ocamis_admin_site.register(Institution, InstitutionAdmin)
+admin.site.register(CLUES, CLUESAdmin)
+ocamis_admin_site.register(CLUES, CLUESAdmin)
+admin.site.register(Alliances, AlliancesAdmin)
+admin.site.register(Disease, DiseaseAdmin)
+# admin.site.register(Agency, AgencyAdmin)
+ocamis_admin_site.register(Agency, AgencyAdmin)
 
 ocamis_admin_site.register(Delegation, DelegationAdmin)

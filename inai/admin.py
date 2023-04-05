@@ -31,22 +31,22 @@ class PetitionFileControlAdmin(admin.ModelAdmin):
         "petition",
         "file_control",
     ]
-    list_filter = ["petition__entity"]
-    inlines = [ DataFileInline ]
+    list_filter = ["petition__agency"]
+    inlines = [DataFileInline]
 
 ocamis_admin_site.register(PetitionFileControl, PetitionFileControlAdmin)
 
 
 class PetitionMonthInline(admin.TabularInline):
     model = PetitionMonth
-    raw_id_fields = ["month_entity"]
+    raw_id_fields = ["month_agency"]
     extra = 0
 
 
 class PetitionAdmin(admin.ModelAdmin):
     list_display = [
         "folio_petition",
-        "entity",
+        "agency",
         "months",
         "months_in_description",
         "folio_complain",
@@ -54,10 +54,10 @@ class PetitionAdmin(admin.ModelAdmin):
         "status_petition",
     ]
     search_fields = [
-        "folio_petition", "entity__acronym", "entity__name",
-        "entity__state__short_name"]
+        "folio_petition", "agency__acronym", "agency__name",
+        "agency__state__short_name"]
     inlines = [PetitionMonthInline]
-    list_filter = ["entity"]
+    list_filter = ["agency"]
 
 
 class LapSheetInline(admin.TabularInline):
@@ -88,7 +88,7 @@ class SheetFileAdmin(admin.ModelAdmin):
     list_filter = [
         "file_type", "matched"]
     search_fields = [
-        "file", "data_file__petition__entity__acronym",
+        "file", "data_file__petition__agency__acronym",
         "data_file__petition__folio_petition"]
     inlines = [LapSheetInline]
     raw_id_fields = ["data_file"]
@@ -116,9 +116,9 @@ class DataFileAdmin(admin.ModelAdmin):
     list_filter = [
         "file_type",
         "status_process", ("origin_file", admin.EmptyFieldListFilter),
-        "petition_file_control__petition__entity"]
+        "petition_file_control__petition__agency"]
     search_fields = [
-        "file", "petition_file_control__petition__entity__acronym",
+        "file", "petition_file_control__petition__agency__acronym",
         "petition_file_control__petition__folio_petition"]
     inlines = [SheetFileInline]
 
@@ -135,7 +135,7 @@ class ReplyFileAdmin(admin.ModelAdmin):
         "url_download",
     ]
     raw_id_fields = ["petition"]
-    list_filter = ["petition__entity"]
+    list_filter = ["petition__agency"]
 
 
 ocamis_admin_site.register(LapSheet, LapSheetAdmin)

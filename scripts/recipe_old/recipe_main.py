@@ -29,7 +29,7 @@ def get_data_from_file_simple(file):
     except Exception as e:
         print(e)
         return False, ["%s" % e]
-    is_issste = file.petition.entity.institution.code == 'ISSSTE'
+    is_issste = file.petition.agency.institution.code == 'ISSSTE'
     file_control = file.file_control
     if "|" in data[:5000]:
         file_control.separator = '|'

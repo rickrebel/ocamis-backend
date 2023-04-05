@@ -1,6 +1,7 @@
 import io
 from django.conf import settings
 from scripts.common import start_session, create_file
+import json
 import csv
 import uuid as uuid_lib
 
@@ -43,10 +44,10 @@ class Match:
         self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
         self.file_control = data_file.petition_file_control.file_control
-        self.entity = petition.entity
-        self.institution = self.entity.institution
-        self.global_state = self.entity.state
-        self.global_clues = self.entity.clues
+        self.agency = petition.agency
+        self.institution = self.agency.institution
+        self.global_state = self.agency.state
+        self.global_clues = self.agency.clues
         self.global_delegation = None
         print("self.institution.code", self.institution.code)
         if self.institution.code == "INSABI":
@@ -135,7 +136,7 @@ class Match:
             "delimiter": self.delimiter,
             "final_path": self.final_path,
             "row_start_data": self.file_control.row_start_data,
-            "entity_id": self.entity.id if self.entity else None,
+            "agency_id": self.agency.id if self.agency else None,
             "institution_id": self.institution.id if self.institution else None,
             "global_clues_id": self.global_clues.id if self.global_clues else None,
             "columns_count": self.columns_count,
@@ -154,22 +155,31 @@ class Match:
         # result = start_build_csv_data(params, None)
         self.task_params["function_after"] = "finish_build_csv_data"
         all_tasks = []
-        print("is_prepare", is_prepare)
+        # print("is_prepare", is_prepare)
         for sheet_file in self.data_file.sheet_files.filter(matched=True):
 
             if sheet_file.sheet_name not in self.data_file.filtered_sheets:
                 continue
             self.task_params["models"] = [sheet_file]
-            if is_prepare:
-                init_data["sample_data"] = sheet_file.sample_data
             params = {
                 "init_data": init_data,
                 "s3": build_s3(),
                 "file": sheet_file.file.name,
             }
+            if is_prepare:
+                dump_sample = json.dumps(sheet_file.sample_data)
+                final_path = f"catalogs/{self.agency.acronym}" \
+                             f"/sample_file_{self.data_file.id}.json"
+                file_sample, errors = create_file(
+                    dump_sample, self.s3_client, final_path=final_path)
+                if errors:
+                    return [], errors, self.data_file
+                params["file"] = file_sample
+                # init_data["sample_data"] = sheet_file.sample_data
             async_task = async_in_lambda(
                 "start_build_csv_data", params, self.task_params)
-            all_tasks.append(async_task)
+            if async_task:
+                all_tasks.append(async_task)
         return all_tasks, [], self.data_file
 
     def build_existing_fields(self):
@@ -271,7 +281,7 @@ class Match:
         if not key_medicine:
             if some_medicine:
                 missing_criteria.append(
-                    "Hay medicamentos, pero aún no los procesamos")
+                    "Hay campos de medicamento, pero aún no los procesamos")
             else:
                 missing_criteria.append("Algún medicamentos")
         return missing_criteria
@@ -298,7 +308,7 @@ class Match:
                 "model2": "catalog:Area",
                 "only_unique": False,
                 "required": False,
-                "by_entity": True,
+                "by_agency": True,
                 "id": "uuid",
                 "value_list": ["description", "name", "key"],
             },
@@ -306,7 +316,7 @@ class Match:
                 "model2": "formula:Doctor",
                 "only_unique": False,
                 "required": False,
-                "by_entity": True,
+                "by_agency": True,
                 "id": "uuid",
                 "value_list": [
                     "full_name", "professional_license",
@@ -318,7 +328,7 @@ class Match:
                 "model2": "catalog:CLUES",
                 "only_unique": True,
                 "required": True,
-                "by_entity": True,
+                "by_agency": True,
                 "value_list": [
                     'name', 'state__short_name', 'typology', 'typology_cve',
                     'jurisdiction', 'atention_level'],
@@ -328,13 +338,13 @@ class Match:
                 "model2": "catalog:Delegation",
                 "only_unique": True,
                 "required": True,
-                "by_entity": True,
+                "by_agency": True,
                 "complement_field": "other_names",
                 "value_list": ['name', 'state__short_name', 'clues'],
             }
         for [catalog_name, catalog] in catalogs.items():
-            # if catalog.get("by_entity", False):
-            #     catalog["entity"] = self.entity
+            # if catalog.get("by_agency", False):
+            #     catalog["agency"] = self.agency
             dict_file = self.build_catalog(catalog_name, **catalog)
             # file_name = dict_file.file.name if dict_file else None
             # file_name = self.build_catalog(catalog_name, **catalog)
@@ -365,9 +375,9 @@ class Match:
             return None
         query_dict_file = {"collection": model_unique.final_field.collection,
                            "unique_field": model_unique.final_field}
-        # entity = kwargs.get("entity")
-        if kwargs.get("by_entity"):
-            # query_dict_file["entity"] = self.entity
+        # agency = kwargs.get("agency")
+        if kwargs.get("by_agency"):
+            # query_dict_file["agency"] = self.agency
             query_dict_file["institution"] = self.institution
             if self.global_delegation:
                 query_dict_file["delegation"] = self.global_delegation
@@ -380,9 +390,8 @@ class Match:
 
     def build_catalog_by_id(
             self, model, key_field, catalog_name, **kwargs):
-        import json
         query_filter = {f"{key_field}__isnull": False}
-        if kwargs.get("by_entity"):
+        if kwargs.get("by_agency"):
             query_filter["institution"] = self.institution
             if catalog_name == "clues":
                 if self.global_clues:
@@ -408,8 +417,8 @@ class Match:
                     if name not in catalog_model:
                         catalog_model[name] = elem
         final_path = f"catalogs/{model.__name__.lower()}_by_{key_field}.json"
-        if kwargs.get("by_entity"):
-            final_path = f"{self.entity.acronym}/{final_path}"
+        if kwargs.get("by_agency"):
+            final_path = f"{self.agency.acronym}/{final_path}"
         dumb_catalog = json.dumps(catalog_model)
         file_model, errors = create_file(
             dumb_catalog, self.s3_client, final_path=final_path)
@@ -472,7 +481,7 @@ class Match:
     #         raise Exception("No se encontró un campo único para CLUES")
     #     dict_file = DictionaryFile.objects.filter(
     #         collection__model_name='CLUES',
-    #         entity=self.entity,
+    #         agency=self.agency,
     #         unique_field=clues_unique.final_field).first()
     #     if not dict_file:
     #         file_clues, errors = self.build_catalog_clues_by_id(
@@ -482,7 +491,7 @@ class Match:
     #                             f" {errors}")
     #         dict_file = DictionaryFile.objects.create(
     #             collection=clues_unique.final_field.collection,
-    #             entity=self.entity,
+    #             agency=self.agency,
     #             unique_field=clues_unique.final_field,
     #             file=file_clues,
     #         )
@@ -501,7 +510,7 @@ class Match:
     #         raise Exception("No se encontró un campo único para Delegación")
     #     dict_file = DictionaryFile.objects.filter(
     #         collection__model_name='Delegation',
-    #         entity=self.entity,
+    #         agency=self.agency,
     #         unique_field=delegation_unique.final_field).first()
     #     if not dict_file:
     #         file_delegation, errors = self.build_catalog_delegation_by_id(
@@ -511,7 +520,7 @@ class Match:
     #                             f" {errors}")
     #         dict_file = DictionaryFile.objects.create(
     #             collection=delegation_unique.final_field.collection,
-    #             entity=self.entity,
+    #             agency=self.agency,
     #             unique_field=delegation_unique.final_field,
     #             file=file_delegation,
     #         )
@@ -533,7 +542,7 @@ class Match:
     #             alt_name = text_normalizer(alt_name)
     #             if alt_name not in catalog_delegation:
     #                 catalog_delegation[alt_name] = delegation
-    #     final_path = f"{self.entity.acronym}/catalogs/delegation_by_{key_field}.json"
+    #     final_path = f"{self.agency.acronym}/catalogs/delegation_by_{key_field}.json"
     #     file_name, errors = create_file(
     #         catalog_delegation, self.s3_client, final_path=final_path)
     #     return file_name, errors
@@ -549,7 +558,7 @@ class Match:
     #     for clues_data in clues_data_list:
     #         clues_key = clues_data[key_field]
     #         catalog_clues[clues_key] = clues_data["id"]
-    #     final_path = f"{self.entity.acronym}/catalogs/clues_by_{key_field}.json"
+    #     final_path = f"{self.agency.acronym}/catalogs/clues_by_{key_field}.json"
     #     file_name, errors = create_file(
     #         catalog_clues, self.s3_client, final_path=final_path)
     #     return file_name, errors
@@ -636,7 +645,7 @@ class Match:
     #         return None
     #     dict_file = DictionaryFile.objects.filter(
     #         collection__model_name='Area',
-    #         entity=self.entity,
+    #         agency=self.agency,
     #         unique_field=area_unique.final_field).first()
     #     if not dict_file:
     #         file_area, errors = self.build_catalog_area_by_id(
@@ -647,18 +656,18 @@ class Match:
     #         dict_file = DictionaryFile.objects.create(
     #             collection=area_unique.final_field.collection,
     #             unique_field=area_unique.final_field,
-    #             entity=self.entity,
+    #             agency=self.agency,
     #             file=file_area,
     #         )
     #     return dict_file.file.name
     #
     # def build_catalog_area_by_id(self, key_field):
     #     from catalog.models import Area
-    #     query_filter = {f"{key_field}__isnull": False, "entity": self.entity}
+    #     query_filter = {f"{key_field}__isnull": False, "agency": self.agency}
     #     areas_query = Area.objects.filter(**query_filter)
     #     areas_list = list(areas_query.values("id", key_field))
     #     catalog_area = {area[key_field]: area["id"]
     #                     for area in areas_list}
-    #     final_path = f"{self.entity.acronym}/catalogs/area_by_{key_field}.json"
+    #     final_path = f"{self.agency.acronym}/catalogs/area_by_{key_field}.json"
     #     return create_file(
     #         catalog_area, self.s3_client, final_path=final_path)

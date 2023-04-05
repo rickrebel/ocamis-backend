@@ -83,7 +83,7 @@ def generate_file(app_name, model_name):
         write.writerows(final_data)
         csv_file.close()
 
-#generate_file('catalog', 'Entity')
+#generate_file('catalog', 'Agency')
 #generate_file('catalog', 'State')
 #sincronize_entities('catalog', 'State')
 
@@ -122,8 +122,8 @@ def sincronize_entities(app_name, model_name):
 #generate_file('category', 'TransparencyIndex')
 #sincronize_entities('category', 'TransparencyIndex')
 
-#generate_file('catalog', 'Entity')
-#sincronize_entities('catalog', 'Entity')
+#generate_file('catalog', 'Agency')
+#sincronize_entities('catalog', 'Agency')
 
 #generate_file('category', 'DateBreak')
 #sincronize_entities('category', 'DateBreak')

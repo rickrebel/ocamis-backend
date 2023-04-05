@@ -176,7 +176,7 @@ class FileControlAdmin(admin.ModelAdmin):
         "data_group",
         "status_register",
     ]
-    list_filter = ["data_group", "petition_file_control__petition__entity"]
+    list_filter = ["data_group", "petition_file_control__petition__agency"]
     inlines = [
         NameColumnInline,
         PetitionFileControlInline,
