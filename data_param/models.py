@@ -288,7 +288,7 @@ class CleanFunction(models.Model):
         blank=True, null=True,
         verbose_name="Otras configuraciones")
     column_type = models.ForeignKey(
-        ColumnType, related_name="col_type_functions",
+        ColumnType, related_name="clean_functions",
         on_delete=models.CASCADE,
         verbose_name="Tipo de columna",
         blank=True, null=True)

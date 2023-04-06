@@ -28,7 +28,7 @@ class ColumnTypeSimpleSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "description",
-            "col_type_functions",
+            "clean_functions",
             "name",
             "order",
             "public_name",

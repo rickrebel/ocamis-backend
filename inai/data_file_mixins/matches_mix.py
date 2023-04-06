@@ -67,6 +67,8 @@ class Match:
                 "final_field",
                 "final_field__collection",
                 "final_field__parameter_group",
+                "column_transformations",
+                "column_transformations__clean_function",
             )
 
         original_columns = self.name_columns.filter(
@@ -115,7 +117,6 @@ class Match:
                 f"Elementos faltantes: {missing_criteria}"
             return [], [error], self.data_file
 
-
         self.build_all_catalogs()
         self.build_existing_fields()
 
@@ -127,9 +128,9 @@ class Match:
         #         unique_clues = existing_field
         #         break
 
-
         init_data = {
             "data_file_id": self.data_file.id,
+            "file_name": self.data_file.file.name,
             # "file_control_id": self.file_control.id,
             "global_delegation_id": self.global_delegation.id if self.global_delegation else None,
             "decode": self.file_control.decode,
@@ -165,6 +166,7 @@ class Match:
                 "init_data": init_data,
                 "s3": build_s3(),
                 "file": sheet_file.file.name,
+                "sheet_name": sheet_file.sheet_name,
             }
             if is_prepare:
                 dump_sample = json.dumps(sheet_file.sample_data)
@@ -219,6 +221,35 @@ class Match:
             ["key:Area", "area_key"],
         ]
 
+        def build_column_data(column, final_name=None):
+            is_special_column = column.column_type.name != "original_column"
+            new_column = {
+                "name": final_name,
+                "name_column": column.id,
+                "position": column.position_in_data,
+                "required_row": column.required_row,
+                "final_field_id": column.final_field.id,
+                "collection": column.final_field.collection.model_name,
+                "is_unique": column.final_field.is_unique,
+                "data_type": column.final_field.data_type.name,
+                "regex_format": column.final_field.regex_format,
+                "is_special": is_special_column,
+                "column_type": column.column_type.name,
+                "parent": column.parent_column.id if column.parent_column else None,
+                "child": column.child_column.id if column.child_column else None,
+            }
+            # if is_special_column:
+            special_functions = [
+                "fragmented", "concatenated", "only_params_parent",
+                "only_params_child"]
+            transformation = column.column_transformations \
+                .filter(clean_function__in=special_functions).first()
+            if transformation:
+                new_column["clean_function"] = transformation.clean_function.name
+                new_column["t_value"] = transformation.addl_params.get("value")
+            return new_column
+
+        included_columns = []
         for simple_field in simple_fields:
             field_name = simple_field[0].split(":")
             name_to_local = simple_field[1] \
@@ -226,18 +257,18 @@ class Match:
             query_fields = {"final_field__name": field_name[0]}
             if len(field_name) > 1:
                 query_fields["final_field__collection__model_name"] = field_name[1]
-            column = self.name_columns.filter(**query_fields).first()
-            if column:
-                self.existing_fields.append({
-                    "name": name_to_local,
-                    "name_column": column.id,
-                    "position": column.position_in_data,
-                    "final_field_id": column.final_field.id,
-                    "collection": column.final_field.collection.model_name,
-                    "is_unique": column.final_field.is_unique,
-                    "data_type": column.final_field.data_type.name,
-                    "regex_format": column.final_field.regex_format,
-                })
+            name_column = self.name_columns.filter(**query_fields).first()
+            if name_column:
+                included_columns.append(name_column.id)
+                new_name_column = build_column_data(name_column, name_to_local)
+                self.existing_fields.append(new_name_column)
+
+        other_name_columns = self.name_columns\
+            .exclude(id__in=included_columns)
+        for name_column in other_name_columns:
+            new_name_column = build_column_data(name_column)
+            self.existing_fields.append(new_name_column)
+
         if not self.existing_fields:
             raise Exception("No se encontraron campos para crear las recetas")
         return self.existing_fields
@@ -284,6 +315,36 @@ class Match:
                     "Hay campos de medicamento, pero aún no los procesamos")
             else:
                 missing_criteria.append("Algún medicamentos")
+        special_columns = self.name_columns.filter(
+            column_type__clean_functions__isnull=False,
+            column_transformations__isnull=True)
+        for column in special_columns:
+            transformation = column.column_transformations.first()
+            error_text = f"La columna de tipo {column.column_type.public_name}" \
+                f" no tiene la transformación {transformation.clean_function.public_name}"
+            missing_criteria.append(error_text)
+        valid_control_trans = [
+            "include_tabs_by_name", "exclude_tabs_by_name",
+            "include_tabs_by_index", "exclude_tabs_by_index",
+            "only_cols_with_headers", "no_valid_row_data"]
+        control_transformations = self.file_control.file_transformations\
+            .exclude(clean_function__name__in=valid_control_trans)
+        valid_column_trans = [
+            "fragmented", "concatenated", "format_date", "clean_key_container",
+            "get_ceil", "only_params_parent", "only_params_child",
+            "global_variable"]
+        column_transformations = self.name_columns\
+            .exclude(clean_function__name__in=valid_column_trans)
+
+        def add_transformation_error(transform):
+            public_name = transform.clean_function.public_name
+            error_txt = f"La transformación {public_name} aún no está soportada"
+            missing_criteria.append(error_txt)
+
+        for transformation in control_transformations:
+            add_transformation_error(transformation)
+        for transformation in column_transformations:
+            add_transformation_error(transformation)
         return missing_criteria
 
     def build_all_catalogs(self):

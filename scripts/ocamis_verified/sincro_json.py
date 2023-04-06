@@ -92,11 +92,11 @@ print("HOLI")
 
 # from scripts.ocamis_verified.sincro_json import sincronize_entities, generate_file
 
-# generate_file('task', 'TaskFunction')
-# sincronize_entities('task', 'TaskFunction', field_id='name')
+# generate_file('classify_task', 'TaskFunction')
+# sincronize_entities('classify_task', 'TaskFunction', field_id='name')
 
-generate_file('category', 'FileType')
-sincronize_entities('category', 'FileType', field_id='name')
+# generate_file('category', 'FileType')
+# sincronize_entities('category', 'FileType', field_id='name')
 #
 # generate_file('classify_task', 'Stage')
 # sincronize_entities('classify_task', 'Stage', field_id='name')

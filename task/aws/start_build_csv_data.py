@@ -112,6 +112,8 @@ class MatchAws:
         for key, value in init_data.items():
             setattr(self, key, value)
         self.data_file_id = init_data["data_file_id"]
+        self.file_name = init_data["file_name"]
+        self.sheet_name = init_data["sheet_name"]
         # self.file_control_id = init_data["file_control_id"]
         self.global_clues_id = init_data["global_clues_id"]
         self.agency_id = init_data["agency_id"]
@@ -126,6 +128,8 @@ class MatchAws:
         self.editable_models = init_data["editable_models"]
         self.model_fields = init_data["model_fields"]
         self.existing_fields = init_data["existing_fields"]
+        self.special_fields = [field for field in self.existing_fields
+                               if field["is_special"]]
         self.lap = init_data["lap"]
 
         self.catalogs = init_data["catalogs"]
@@ -154,31 +158,6 @@ class MatchAws:
 
         self.is_prepare = init_data.get("is_prepare", False)
 
-    def get_json_file(self, file_name):
-        aws_access_key_id = self.s3["aws_access_key_id"]
-        aws_secret_access_key = self.s3["aws_secret_access_key"]
-        bucket_name = self.s3["bucket_name"]
-        aws_location = self.s3["aws_location"]
-
-        # dev_resource = boto3.resource(
-        #     's3', aws_access_key_id=aws_access_key_id,
-        #     aws_secret_access_key=aws_secret_access_key)
-        # content_object = dev_resource.Object(
-        #     bucket_name=bucket_name,
-        #     key=f"{aws_location}/{file_name}"
-        # )
-        # streaming_body_1 = content_object.get()['Body']
-        # object_final = io.BytesIO(streaming_body_1.read())
-        # return json.loads(object_final.read().decode('utf-8'))
-        s3_client = boto3.client(
-            's3', aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key)
-
-        obj = s3_client.get_object(
-            Bucket=bucket_name,
-            Key=f"{aws_location}/{file_name}")
-        return json.loads(obj['Body'].read().decode('utf-8'))
-
     def build_csv_to_data(self, complete_file, s3_client=None):
         csv_buffer = {}
         csv_files = {}
@@ -196,6 +175,7 @@ class MatchAws:
             data_rows = complete_file.readlines()
         print("PASO 2")
         all_data = self.divide_rows(data_rows)
+
         print("PASO 3")
         for cat_name, cat_data in self.catalogs.items():
             print(f"PASO 3.{cat_name}")
@@ -210,13 +190,33 @@ class MatchAws:
             current_json = self.get_json_file(cat_data.get("file"))
             self.cats[cat_name] = current_json
 
+        required_cols = [col for col in self.existing_fields
+                         if col["required_row"]]
+        built_cols = self.get_built_cols()
+        divided_cols = self.get_divided_cols()
+        file_name = self.file_name.split(".")[0]
+        global_cols = [col for col in self.existing_fields
+                       if col["column_type"] == "global"]
+        tab_cols = [col for col in self.existing_fields
+                    if col["column_type"] == "tab"]
+        file_name_cols = [col for col in self.existing_fields
+                          if col["column_type"] == 'file_name']
+        ceil_cols = self.get_ceil_cols(all_data)
         print("PASO 4")
         # last_date = None
         # iso_date = None
         # first_iso = None
         all_prescriptions = {}
         success_drugs_count = 0
-        for row in all_data:
+        total_count = 0
+        discarded_count = self.row_start_data - 1
+        for row in all_data[discarded_count:]:
+            required_cols_in_null = [col for col in required_cols
+                                     if not row[col["position"]]]
+            if required_cols_in_null:
+                discarded_count += 1
+                continue
+            total_count += 1
             # print("data_row \t", data_row)
             self.last_missing_row = None
             # is_same_date = False
@@ -239,8 +239,40 @@ class MatchAws:
                 "row_seq": int(row[0]),
                 "uuid": uuid
             }
+
             available_data, some_date = self.complement_available_data(
                 available_data, row)
+
+            for built_col in built_cols:
+                origin_values = []
+                for origin_col in built_col["origin_cols"]:
+                    origin_values.append(row[origin_col["position"]])
+                concat_char = built_col.get("t_value", "")
+                built_value = concat_char.join(origin_values)
+                available_data[built_col["name"]] = built_value
+
+            for divided_col in divided_cols:
+                divided_char = divided_col.get("t_value")
+                if not divided_char:
+                    continue
+                origin_value = row[divided_col["position"]]
+                divided_values = origin_value.split(divided_char)
+                destiny_cols = divided_col["destiny_cols"]
+                for i, divided_value in enumerate(divided_values, start=1):
+                    destiny_col = destiny_cols[i - 1]
+                    available_data[destiny_col["name"]] = divided_value
+
+            for global_col in global_cols:
+                available_data[global_col["name"]] = global_col["t_value"]
+
+            for tab_col in tab_cols:
+                available_data[tab_col["name"]] = self.sheet_name
+
+            for file_name_col in file_name_cols:
+                available_data[file_name_col["name"]] = file_name
+
+            for ceil_col in ceil_cols:
+                available_data[ceil_col["name"]] = ceil_col["final_value"]
 
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"
@@ -327,6 +359,8 @@ class MatchAws:
         report_errors = self.build_report()
         report_errors["prescription_count"] = len(all_prescriptions)
         report_errors["drug_count"] = success_drugs_count
+        report_errors["total_count"] = total_count
+        report_errors["discarded_count"] = discarded_count
         print("PASO 6  -- LLEGO AL FINAL DE TODO")
         if self.is_prepare:
             print("PASO 7, en prepare")
@@ -381,6 +415,31 @@ class MatchAws:
         }
         return json.dumps(result_data)
 
+    def get_json_file(self, file_name):
+        aws_access_key_id = self.s3["aws_access_key_id"]
+        aws_secret_access_key = self.s3["aws_secret_access_key"]
+        bucket_name = self.s3["bucket_name"]
+        aws_location = self.s3["aws_location"]
+
+        # dev_resource = boto3.resource(
+        #     's3', aws_access_key_id=aws_access_key_id,
+        #     aws_secret_access_key=aws_secret_access_key)
+        # content_object = dev_resource.Object(
+        #     bucket_name=bucket_name,
+        #     key=f"{aws_location}/{file_name}"
+        # )
+        # streaming_body_1 = content_object.get()['Body']
+        # object_final = io.BytesIO(streaming_body_1.read())
+        # return json.loads(object_final.read().decode('utf-8'))
+        s3_client = boto3.client(
+            's3', aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key)
+
+        obj = s3_client.get_object(
+            Bucket=bucket_name,
+            Key=f"{aws_location}/{file_name}")
+        return json.loads(obj['Body'].read().decode('utf-8'))
+
     def divide_rows(self, data_rows):
         structured_data = []
         sample = data_rows[:50]
@@ -392,9 +451,8 @@ class MatchAws:
             error = "No se pudo decodificar el archivo"
             return [], [error], None
 
-        begin = self.row_start_data
-
-        for row_seq, row in enumerate(data_rows[begin+1:], start=begin+1):
+        # for row_seq, row in enumerate(data_rows[begin+1:], start=begin+1):
+        for row_seq, row in enumerate(data_rows, start=1):
             # print("Row: %s" % row_seq)
             self.last_missing_row = None
             if self.is_prepare:
@@ -414,21 +472,74 @@ class MatchAws:
 
         return structured_data
 
+    def get_built_cols(self):
+        built_cols = []
+        base_built_cols = [col for col in self.existing_fields
+                           if col["column_type"] == "built"]
+        for built_col in base_built_cols:
+            origin_cols = [col for col in self.existing_fields
+                           if col["child"] == built_col["name_column"]]
+            origin_cols = sorted(origin_cols, key=lambda x: x.get("t_value"))
+            built_col["origin_cols"] = origin_cols
+            built_cols.append(built_col)
+        return built_cols
+
+    def get_divided_cols(self):
+        divided_cols = []
+        base_divided_cols = [col for col in self.existing_fields
+                             if col["column_type"] == "divided"]
+        unique_parents = list(set([col["name_column"]
+                                   for col in base_divided_cols]))
+        for parent in unique_parents:
+            try:
+                parent_col = [col for col in self.existing_fields
+                              if col["name_column"] == parent][0]
+            except IndexError:
+                continue
+            destiny_cols = [col for col in base_divided_cols
+                            if col["name_column"] == parent]
+            destiny_cols = sorted(destiny_cols, key=lambda x: x.get("t_value"))
+            parent_col["destiny_cols"] = destiny_cols
+            divided_cols.append(parent_col)
+        return divided_cols
+
+    def get_ceil_cols(self, all_data):
+        ceil_cols = []
+        ceil_excel_cols = [col for col in self.existing_fields
+                           if col["column_type"] == 'ceil_excel']
+        for col in ceil_excel_cols:
+            ceil = col.get("t_value")
+            if not ceil:
+                continue
+            row_position = int(ceil[1:])
+            col_position = ord(ceil[0]) - 64
+            col["final_value"] = all_data[row_position - 1][col_position]
+            ceil_cols.append(col)
+        return ceil_cols
+
     def complement_available_data(self, available_data, row):
         import re
-        from datetime import datetime
+        from datetime import datetime, timedelta
         some_date = None
         uuid = available_data.get("uuid")
-        for field in self.existing_fields:
+        fields_with_name = [field for field in self.existing_fields
+                            if field["name"] and field["position"]]
+        for field in fields_with_name:
             error = None
             value = row[field["position"]]
             try:
                 if field["data_type"] == "Datetime":  # and not is_same_date:
                     if value == self.last_date and value:
                         value = self.last_date_formatted
+                    elif self.string_date == "EXCEL":
+                        self.last_date = value
+                        days = int(value)
+                        seconds = (value - days) * 86400
+                        seconds = round(seconds)
+                        value = datetime(1899, 12, 30) + timedelta(days=days, seconds=seconds)
+                        self.last_date_formatted = value
                     else:
                         self.last_date = value
-                        # value = value.strftime(self.string_date)
                         value = datetime.strptime(value, self.string_date)
                         self.last_date_formatted = value
                     if not some_date:

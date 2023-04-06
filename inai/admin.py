@@ -74,6 +74,7 @@ class LapSheetAdmin(admin.ModelAdmin):
         "inserted",
         "prescription_count",
         "drug_count",
+        "total_count",
     ]
     raw_id_fields = ["sheet_file"]
 

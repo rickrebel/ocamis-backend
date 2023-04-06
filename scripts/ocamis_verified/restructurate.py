@@ -145,3 +145,15 @@ def delete_child_data_files():
     all_data_files = DataFile.objects.filter(origin_file__isnull=False)
     all_data_files.delete()
 
+
+def assign_column_to_special_transforms():
+    from data_param.models import NameColumn, FinalField
+    special_transforms = ["fragmented", "concatenated"]
+    columns = NameColumn.objects.filter(
+        column_transformations__clean_function__name__in=special_transforms)
+    final_field = FinalField.objects.get(name="*concat_or_fragment")
+    columns.update(final_field=final_field)
+
+
+
+
