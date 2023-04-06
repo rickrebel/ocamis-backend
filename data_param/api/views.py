@@ -31,12 +31,13 @@ def build_common_filters(limiters, available_filters):
                 limiters.get(filter_item["name"])
     if limiters.get("has_notes"):
         final_filters["notes__isnull"] = not limiters.get("has_notes")
-    if limiters.get("status_task") or limiters.get("has_task"):
+    if limiters.get("status_task"):
         final_filters["id__in"] = limiters.get("related_ids", [])
     if limiters.get("agency_type"):
         if limiters.get("agency_type") == 'Hospital Federal':
             final_filters["agency__clues__isnull"] = False
         elif limiters.get("agency_type") == 'Estatal':
+            final_filters["agency__clues__isnull"] = True
             final_filters["agency__state__isnull"] = False
         else:
             final_filters["agency__clues__isnull"] = True
