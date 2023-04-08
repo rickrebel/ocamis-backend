@@ -9,7 +9,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0004_auto_20220309_2240'),
+        ('geo', '0004_auto_20220309_2240'),
         ('report', '0002_auto_20220308_1908'),
     ]
 
@@ -47,9 +47,9 @@ class Migration(migrations.Migration):
                 ('pending', models.BooleanField(default=False)),
                 ('sent_email', models.BooleanField()),
                 ('session_ga', models.CharField(blank=True, max_length=255, null=True)),
-                ('municipality', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.Municipality', verbose_name='Municipio residencia')),
+                ('municipality', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.Municipality', verbose_name='Municipio residencia')),
                 ('persona', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='report.Persona', verbose_name='Persona reportante')),
-                ('state', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.State', verbose_name='Entidad')),
+                ('state', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.State', verbose_name='Entidad')),
             ],
             options={
                 'verbose_name': 'Reporte COVID',
@@ -66,8 +66,8 @@ class Migration(migrations.Migration):
                 ('round_dosis', models.CharField(blank=True, max_length=60, null=True, verbose_name='Número de dosis')),
                 ('date', models.DateTimeField(blank=True, null=True, verbose_name='Fecha')),
                 ('reason_negative', models.TextField(blank=True, null=True, verbose_name='Razón de negativa')),
-                ('municipality', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.Municipality', verbose_name='Municipio')),
-                ('state', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.State', verbose_name='Entidad')),
+                ('municipality', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.Municipality', verbose_name='Municipio')),
+                ('state', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.State', verbose_name='Entidad')),
             ],
             options={
                 'verbose_name': 'Dosis',

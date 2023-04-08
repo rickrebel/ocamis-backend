@@ -14,32 +14,32 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='report',
             name='clues',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.CLUES'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.CLUES'),
         ),
         migrations.AlterField(
             model_name='report',
             name='institution',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.Institution', verbose_name='Institución'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.Institution', verbose_name='Institución'),
         ),
         migrations.AlterField(
             model_name='report',
             name='state',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.State', verbose_name='Entidad'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.State', verbose_name='Entidad'),
         ),
         migrations.AlterField(
             model_name='responsable',
             name='clues',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='catalog.CLUES'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='geo.CLUES'),
         ),
         migrations.AlterField(
             model_name='responsable',
             name='institution',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='catalog.Institution'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='geo.Institution'),
         ),
         migrations.AlterField(
             model_name='responsable',
             name='state',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='catalog.State'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='geo.State'),
         ),
         migrations.AlterField(
             model_name='supply',
@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='supply',
             name='disease',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.Disease', verbose_name='Padecimiento'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.Disease', verbose_name='Padecimiento'),
         ),
         migrations.AlterField(
             model_name='supply',

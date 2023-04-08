@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('catalog', '0008_auto_20220719_1927'),
+        ('geo', '0008_auto_20220719_1927'),
     ]
 
     operations = [
@@ -97,8 +97,8 @@ class Migration(migrations.Migration):
                 ('fecha_emision', models.DateTimeField(blank=True, null=True)),
                 ('fecha_entrega', models.DateTimeField(blank=True, null=True)),
                 ('clave_presupuestal', models.CharField(blank=True, max_length=20, null=True)),
-                ('clues', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.CLUES')),
-                ('delegacion', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.Delegation')),
+                ('clues', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.CLUES')),
+                ('delegacion', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.Delegation')),
                 ('delivered', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='formula.Delivered')),
                 ('doctor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='formula.Doctor')),
                 ('type_document', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='formula.DocumentType')),

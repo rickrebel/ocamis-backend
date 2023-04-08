@@ -7,17 +7,16 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('geo', '0037_remove_area_state_area_delegation'),
-        ('formula', '0020_missingrow_sheet_file'),
+        ('geo', '0036_remove_area_delegation_area_institution_area_state'),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='doctor',
+            model_name='area',
             name='state',
         ),
         migrations.AddField(
-            model_name='doctor',
+            model_name='area',
             name='delegation',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.delegation'),
         ),

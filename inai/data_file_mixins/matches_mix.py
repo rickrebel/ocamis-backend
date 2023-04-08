@@ -105,7 +105,7 @@ class Match:
 
             {"name": "doctor", "model": "Doctor"},
             {"name": "diagnosis", "model": "Diagnosis"},
-            {"name": "area", "model": "Area", "app": "catalog"},
+            {"name": "area", "model": "Area", "app": "geo"},
         ]
         self.model_fields = {curr_list["name"]: field_of_models_all(curr_list)
                              for curr_list in self.editable_models}
@@ -388,7 +388,7 @@ class Match:
                 "value_list": ["motive", "cie10", "text"],
             },
             "area": {
-                "model2": "catalog:Area",
+                "model2": "geo:Area",
                 "only_unique": False,
                 "required": False,
                 "by_agency": True,
@@ -408,7 +408,7 @@ class Match:
         }
         if not self.global_clues:
             catalogs["clues"] = {
-                "model2": "catalog:CLUES",
+                "model2": "geo:CLUES",
                 "only_unique": True,
                 "required": True,
                 "by_agency": True,
@@ -418,7 +418,7 @@ class Match:
             }
         if not self.global_delegation:
             catalogs["delegation"] = {
-                "model2": "catalog:Delegation",
+                "model2": "geo:Delegation",
                 "only_unique": True,
                 "required": True,
                 "by_agency": True,
@@ -426,11 +426,11 @@ class Match:
                 "value_list": ['name', 'state__short_name', 'clues'],
             }
         for [catalog_name, catalog] in catalogs.items():
-            # if catalog.get("by_agency", False):
-            #     catalog["agency"] = self.agency
+            # if geo.get("by_agency", False):
+            #     geo["agency"] = self.agency
             dict_file = self.build_catalog(catalog_name, **catalog)
             # file_name = dict_file.file.name if dict_file else None
-            # file_name = self.build_catalog(catalog_name, **catalog)
+            # file_name = self.build_catalog(catalog_name, **geo)
             if dict_file:
                 self.catalogs[catalog_name] = {
                     "name": catalog_name,
@@ -611,7 +611,7 @@ class Match:
     #     return dict_file.file.name
     #
     # def build_catalog_delegation_by_id(self, key_field='name'):
-    #     from catalog.models import Delegation
+    #     from geo.models import Delegation
     #     curr_delegations = Delegation.objects.filter(institution=self.institution)
     #     if self.global_state:
     #         curr_delegations = curr_delegations.filter(state=self.global_state)
@@ -632,7 +632,7 @@ class Match:
     #     return file_name, errors
     #
     # def build_catalog_clues_by_id(self, key_field):
-    #     from catalog.models import CLUES
+    #     from geo.models import CLUES
     #     clues_data_query = CLUES.objects.filter(institution=self.institution)
     #     if self.global_state:
     #         clues_data_query.filter(state=self.global_state)
@@ -746,7 +746,7 @@ class Match:
     #     return dict_file.file.name
     #
     # def build_catalog_area_by_id(self, key_field):
-    #     from catalog.models import Area
+    #     from geo.models import Area
     #     query_filter = {f"{key_field}__isnull": False, "agency": self.agency}
     #     areas_query = Area.objects.filter(**query_filter)
     #     areas_list = list(areas_query.values("id", key_field))

@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0027_alter_delegation_clues'),
+        ('geo', '0027_alter_delegation_clues'),
         ('data_param', '0026_alter_filecontrol_table_alter_namecolumn_table_and_more'),
     ]
 
@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='filecontrol',
             name='entity',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.entity', verbose_name='Entidad'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.entity', verbose_name='Entidad'),
         ),
     ]

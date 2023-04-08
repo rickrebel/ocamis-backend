@@ -21,7 +21,7 @@ router.register(r'medicine', ReportView2)
 router.register(r"", ReportView)
 
 urlpatterns = [
-    path('catalog/', CatalogView.as_view()),
+    path('geo/', CatalogView.as_view()),
     path('medicine_report/', ReportMedicineView.as_view()),
     path('export/', ReportExportView.as_view()),
     path('export_covid/', CovidReportExportView.as_view()),

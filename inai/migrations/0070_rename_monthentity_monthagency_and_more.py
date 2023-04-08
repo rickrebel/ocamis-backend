@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('category', '0032_remove_filetype_id_alter_filetype_name'),
-        ('catalog', '0038_rename_entity_agency'),
+        ('geo', '0038_rename_entity_agency'),
         ('classify_task', '0012_alter_taskfunction_model_name'),
         ('inai', '0069_rename_is_valid_sheetfile_valid_insert_and_more'),
     ]

@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0036_remove_area_delegation_area_institution_area_state'),
+        ('geo', '0036_remove_area_delegation_area_institution_area_state'),
         ('formula', '0016_remove_drug_rn_remove_prescription_is_valid_and_more'),
     ]
 
@@ -30,11 +30,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='doctor',
             name='state',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.state'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.state'),
         ),
         migrations.AlterField(
             model_name='doctor',
             name='institution',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='catalog.institution'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='geo.institution'),
         ),
     ]

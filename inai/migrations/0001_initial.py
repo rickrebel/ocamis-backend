@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('data_param', '0001_initial'),
         ('category', '0001_initial'),
-        ('catalog', '0008_auto_20220719_1927'),
+        ('geo', '0008_auto_20220719_1927'),
     ]
 
     operations = [
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('year_month', models.CharField(max_length=10)),
-                ('entity', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='months', to='catalog.Entity')),
+                ('entity', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='months', to='geo.Entity')),
             ],
             options={
                 'verbose_name': 'Mes de entidad',
@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
                 ('notes', models.TextField(blank=True, null=True)),
                 ('folio_petition', models.IntegerField(blank=True, null=True, verbose_name='Folio de la solicitud')),
                 ('folio_queja', models.IntegerField(blank=True, null=True, verbose_name='Folio de la queja')),
-                ('entity', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='petitions', to='catalog.Entity')),
+                ('entity', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='petitions', to='geo.Entity')),
                 ('status_data', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='petitions_data', to='category.StatusControl', verbose_name='Status de los datos entregados')),
                 ('status_petition', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='petitions_petition', to='category.StatusControl', verbose_name='Status de la petición')),
             ],

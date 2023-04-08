@@ -57,9 +57,9 @@ def generate_file(app_name, model_name):
         json.dump(final_data, json_file)
         json_file.close()
 
-#generate_file('catalog', 'Agency')
-#generate_file('catalog', 'State')
-#sincronize_entities('catalog', 'State')
+#generate_file('geo', 'Agency')
+#generate_file('geo', 'State')
+#sincronize_entities('geo', 'State')
 
 def sincronize_entities(app_name, model_name, field_id="id"):
     from django.apps import apps

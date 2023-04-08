@@ -11,7 +11,7 @@ url(r'^reports/$', ReportList.as_view()),
 url(r'^reports/state_count/$', ReportStateInstitutionCountList.as_view()),
 url(r'^public_export/$', PublicReportExportView.as_view()),
 url(r'^reports/$', ReportListView.as_view()),"""
-path('catalog/', CatalogView.as_view()),
+path('geo/', CatalogView.as_view()),
 urlpatterns = [
     path('', include(router.urls)),
 ]

@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0037_remove_area_state_area_delegation'),
+        ('geo', '0037_remove_area_state_area_delegation'),
         ('data_param', '0034_finalfield_included_alter_finalfield_is_common_and_more'),
     ]
 
@@ -24,11 +24,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='dictionaryfile',
             name='delegation',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.delegation'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.delegation'),
         ),
         migrations.AddField(
             model_name='dictionaryfile',
             name='institution',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.institution'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.institution'),
         ),
     ]

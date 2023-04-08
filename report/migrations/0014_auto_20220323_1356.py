@@ -24,16 +24,16 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='responsable',
             name='clues',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='catalog.CLUES', verbose_name='Clínica u Hospital'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='geo.CLUES', verbose_name='Clínica u Hospital'),
         ),
         migrations.AlterField(
             model_name='responsable',
             name='institution',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='catalog.Institution', verbose_name='Institución'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='geo.Institution', verbose_name='Institución'),
         ),
         migrations.AlterField(
             model_name='responsable',
             name='state',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='catalog.State', verbose_name='Entidad'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='responsables', to='geo.State', verbose_name='Entidad'),
         ),
     ]

@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0024_clues_key_issste'),
+        ('geo', '0024_clues_key_issste'),
         ('formula', '0006_initial'),
     ]
 
@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='prescription',
             name='delegation',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='catalog.delegation'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='geo.delegation'),
         ),
         migrations.AlterField(
             model_name='prescription',

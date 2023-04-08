@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
         ('formula', '0001_initial'),
         ('inai', '0001_initial'),
         ('medicine', '0002_auto_20220308_1847'),
-        ('catalog', '0008_auto_20220719_1927'),
+        ('geo', '0008_auto_20220719_1927'),
     ]
 
     operations = [
@@ -64,6 +64,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='doctor',
             name='institution',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.Institution'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.Institution'),
         ),
     ]

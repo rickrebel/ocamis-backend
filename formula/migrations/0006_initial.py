@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('catalog', '0023_area_rename_tipology_typology_and_more'),
+        ('geo', '0023_area_rename_tipology_typology_and_more'),
         ('medicine', '0002_auto_20220308_1847'),
         ('inai', '0047_filecontrol_all_results'),
         ('formula', '0005_remove_doctor_especialidad_medico_and_more'),
@@ -110,9 +110,9 @@ class Migration(migrations.Migration):
                 ('date_delivery', models.DateTimeField(blank=True, null=True)),
                 ('date_visit', models.DateTimeField(blank=True, null=True)),
                 ('budget_key', models.CharField(blank=True, max_length=20, null=True)),
-                ('area', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.area')),
-                ('clues', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.clues')),
-                ('delegation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.delegation')),
+                ('area', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.area')),
+                ('clues', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.clues')),
+                ('delegation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.delegation')),
                 ('delivered', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='formula.delivered')),
                 ('doctor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='formula.doctor')),
                 ('type_document', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='formula.documenttype')),
@@ -167,6 +167,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='doctor',
             name='institution',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.institution'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.institution'),
         ),
     ]

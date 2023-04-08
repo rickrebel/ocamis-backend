@@ -816,7 +816,7 @@ for row in prueba_clues.iterrows():
 #[field.name for field in User._meta.get_fields()]
 
 #from django.utils.dateparse import parse_datetime 
-#from catalog.models import (State, Institution, CLUES)
+#from geo.models import (State, Institution, CLUES)
 
 #    try:
 #       for row in pr_st:

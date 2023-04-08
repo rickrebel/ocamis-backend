@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0034_remove_area_id_area_delegation_area_uuid'),
+        ('geo', '0034_remove_area_id_area_delegation_area_uuid'),
         ('data_param', '0030_rename_requiered_row_namecolumn_required_row_and_more'),
     ]
 
@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('file', models.FileField(upload_to='dictionary_files')),
                 ('collection', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='data_param.collection')),
-                ('entity', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='catalog.entity')),
+                ('entity', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='geo.entity')),
                 ('final_fields', models.ManyToManyField(blank=True, related_name='m2m_dictionary_files', to='data_param.finalfield', verbose_name='Campos finales')),
                 ('unique_field', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='dictionary_files', to='data_param.finalfield')),
             ],

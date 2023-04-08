@@ -459,7 +459,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
             {
                 "inai_open_search": "Institución",
                 "model_name": "Agency",
-                "app_name": "catalog",
+                "app_name": "geo",
                 "final_field": "nombreSujetoObligado",
                 "insert": True,
                 "related": 'agency',
@@ -544,14 +544,14 @@ class OpenDataInaiViewSet(ListRetrieveView):
             {
                 "inai_open_search": "idSujetoObligado",
                 "model_name": "Agency",
-                "app_name": "catalog",
+                "app_name": "geo",
                 "final_field": "idSujetoObligado",
                 "related": 'agency',
             },
             {
                 "inai_open_search": "nombreSujetoObligado",
                 "model_name": "Agency",
-                "app_name": "catalog",
+                "app_name": "geo",
                 "final_field": "nombreSujetoObligado",
                 # "insert": True,
                 "related": 'agency',
