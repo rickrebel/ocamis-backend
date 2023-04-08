@@ -13,17 +13,17 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         # "function_name",
         "task_function",
         "status_task",
+        "date",
+        "display_other_dates",
         "is_massive",
         "is_current",
-        "display_other_dates",
         # "date_start",
-        "start_simple",
         # "date_end",
     ]
     raw_id_fields = [
         "petition", "file_control", "data_file", "reply_file", "sheet_file",
         "parent_task", "user"]
-    list_filter = ["status_task", "task_function", "is_current"]
+    list_filter = ["status_task", "is_current", "is_massive", "task_function"]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
 
     @staticmethod
@@ -33,12 +33,12 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         return obj.id
 
     @staticmethod
-    def start_simple(obj):
+    def date(obj):
         from datetime import datetime
         from django.utils.timezone import get_current_timezone, make_aware
         tz = get_current_timezone()
         date = make_aware(datetime.fromtimestamp(obj.date_start.timestamp()), tz)
-        date_string = date.strftime("%d-%m-%Y <br> <b>%H:%M</b>")
+        date_string = date.strftime("%d-%b <br> <b>%H:%M</b>")
         return format_html(date_string)
 
     def display_other_dates(self, obj):

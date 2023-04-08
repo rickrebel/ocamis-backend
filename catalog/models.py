@@ -384,6 +384,11 @@ class Area(models.Model):
 
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
+    hex_hash = models.CharField(max_length=40, blank=True, null=True)
+    institution = models.ForeignKey(
+        Institution, on_delete=models.CASCADE)
+    delegation = models.ForeignKey(
+        Delegation, null=True, blank=True, on_delete=models.CASCADE)
     key = models.CharField(
         max_length=255, verbose_name="Clave del área",
         blank=True, null=True)
@@ -393,10 +398,6 @@ class Area(models.Model):
     description = models.TextField(
         verbose_name="Descripción del área",
         blank=True, null=True)
-    institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE)
-    delegation = models.ForeignKey(
-        Delegation, null=True, blank=True, on_delete=models.CASCADE)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(default=False)

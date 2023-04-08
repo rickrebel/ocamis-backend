@@ -110,6 +110,7 @@ class FileControlSerializer(FileControlSimpleSerializer):
     #     write_only=True, source="status_register",
     #     queryset=StatusControl.objects.all())
     summary_status = serializers.SerializerMethodField(read_only=True)
+    example_file_id = serializers.SerializerMethodField(read_only=True)
     failed_files = serializers.SerializerMethodField(read_only=True)
 
     def get_summary_status(self, obj):
@@ -120,6 +121,21 @@ class FileControlSerializer(FileControlSimpleSerializer):
             .values("status_id", "stage_id")\
             .annotate(total=Count("id"))
         return list(files)
+
+    def get_example_file_id(self, obj):
+        from inai.models import SheetFile
+        last_sheet_file = SheetFile.objects\
+            .filter(data_file__petition_file_control__file_control=obj)\
+            .order_by(
+                "matched",
+                "-data_file__stage__order",
+                "-data_file__status__order",
+            )\
+            .first()
+        print("last_sheet_file", last_sheet_file)
+        if last_sheet_file:
+            return last_sheet_file.data_file_id
+        return None
 
     def get_failed_files(self, obj):
         from inai.models import DataFile

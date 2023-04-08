@@ -247,6 +247,7 @@ class ExploreMix:
         current_pfc = data_file.petition_file_control_id
         only_cols_with_headers = file_ctrl.file_transformations\
             .filter(clean_function__name="only_cols_with_headers").exists()
+        sheets_matched_ids = []
 
         for sheet_name in sorted_sheet_names:
             # headers = validated_rows[row_headers-1] if row_headers else []
@@ -272,24 +273,27 @@ class ExploreMix:
                     headers = [head for head in headers if head]
                 name_columns_list = [
                     name.strip().upper() for name in list(name_columns)]
+                print("name_columns_list", name_columns_list, "\n")
+                print("headers", headers)
                 same_headers = name_columns_list == headers
 
             def save_sheet_file(d_f=data_file, save_sample_data=False):
-                table_s = d_f.sheet_files.filter(sheet_name=sheet_name).first()
-                if table_s:
+                try:
+                    table_s = d_f.sheet_files.filter(sheet_name=sheet_name).first()
                     if save_sample_data:
                         table_s.sample_data = structured_data[sheet_name]
                     table_s.matched = True
                     table_s.save()
-                else:
+                    sheets_matched_ids.append(table_s.id)
+                except Exception as e:
                     raise Exception(f"No se encontró el archivo con el "
-                                    f"nombre de hoja {sheet_name}")
+                                    f"nombre de hoja {sheet_name} \n {e}")
 
             if not same_headers:
                 continue
             if sheet_name not in current_sheets:
                 if data_file.petition_file_control_id in all_data_files:
-                    save_sheet_file()
+                    save_sheet_file(data_file)
                     data_file.add_warning(
                         "Hay pestañas con el mismo formato, no incluidas en "
                         "por los filtros de inclusión y exclusión")
@@ -324,6 +328,9 @@ class ExploreMix:
                     sheet_file.data_file = new_data_file
                     if sheet_file.sheet_name == sheet_name:
                         sheet_file.sample_data = structured_data[sheet_name]
+                        sheet_file.matched = True
+                    elif sheet_file.matched == None:
+                        sheet_file.matched = False
                     sheet_file.save()
             else:
                 current_file = all_data_files.get(current_pfc, data_file)
@@ -340,6 +347,8 @@ class ExploreMix:
                 current_file.save()
                 all_data_files[current_pfc] = current_file
         if current_pfc in all_data_files:
+            data_file.sheet_files.exclude(id__in=sheets_matched_ids)\
+                                 .update(matched=False)
             is_match_ready = data_file.has_exact_matches(current_sheets)
             if not is_match_ready:
                 errors = ["No todas las pestañas filtradas coinciden con "
@@ -362,10 +371,10 @@ class ExploreMix:
         # print("suffixes", suffixes)
         all_errors = []
         if '.gz' in suffixes:
-            #print("path", self.file.path)
-            #print("name", self.file.name)
-            #print("url", self.file.url)
-            #Se llama a la función que descomprime el arhivo
+            # print("path", self.file.path)
+            # print("name", self.file.name)
+            # print("url", self.file.url)
+            # Se llama a la función que descomprime el archivo
             if not self.child_files.all().count():
                 success_decompress, example_file = self.decompress_file_gz(
                     task_params=task_params)

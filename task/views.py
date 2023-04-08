@@ -231,13 +231,13 @@ def camel_to_snake(name):
 def build_task_params(
         model, function_name, request, subgroup=None, parent_task=None):
     from datetime import datetime
-    print("build_task_params 1: ", datetime.now())
+    # print("build_task_params 1: ", datetime.now())
     model_name = camel_to_snake(model.__class__.__name__)
     kwargs = {model_name: model}
     is_massive = bool(subgroup)
 
     def update_previous_tasks(tasks):
-        print("TASKS: ", tasks)
+        print("TASKS Previous: ", tasks)
         # tasks.update(is_current=False)
         for task in tasks:
             if task.is_current:
@@ -247,34 +247,34 @@ def build_task_params(
                 update_previous_tasks(task.child_tasks.all())
 
     if not is_massive:
-        print("build_task_params 2.0: ", datetime.now())
+        # print("build_task_params 2.0: ", datetime.now())
         update_previous_tasks(AsyncTask.objects.filter(**kwargs))
-    print("build_task_params 2.1: ", datetime.now())
+    # print("build_task_params 2.1: ", datetime.now())
     # print("function_name: ", function_name)
     if is_massive:
         kwargs["is_massive"] = True
         kwargs["subgroup"] = subgroup
-    print("build_task_params 3: ", datetime.now())
+    # print("build_task_params 3: ", datetime.now())
     task_function, created = TaskFunction.objects.get_or_create(
         name=function_name)
     if created:
         task_function.public_name = function_name
         task_function.save()
-    print("build_task_params 4: ", datetime.now())
+    # print("build_task_params 4: ", datetime.now())
     if model_name == "data_file":
         stage = task_function.stages.first()
         if stage:
             model.stage = stage
             model.status_id = "pending"
             model.save()
-    print("build_task_params 5: ", datetime.now())
+    # print("build_task_params 5: ", datetime.now())
     if parent_task:
         kwargs["parent_task"] = parent_task
     key_task = AsyncTask.objects.create(
         user=request.user, task_function=task_function,
         date_start=datetime.now(), status_task_id="created", **kwargs
     )
-    print("build_task_params 6: ", datetime.now())
+    # print("build_task_params 6: ", datetime.now())
     return key_task, {"parent_task": key_task}
 
 

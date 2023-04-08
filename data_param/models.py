@@ -311,6 +311,9 @@ class NameColumn (models.Model):
         verbose_name="Nombre de la columna real", blank=True, null=True)
     position_in_data = models.IntegerField(
         blank=True, null=True, verbose_name="idx")
+    alternative_names = JSONField(
+        blank=True, null=True,
+        verbose_name="Nombres alternativos")
     # column_type = models.IntegerField(blank=True, null=True)
     column_type = models.ForeignKey(
         ColumnType, on_delete=models.CASCADE)
