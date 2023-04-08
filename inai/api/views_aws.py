@@ -14,7 +14,7 @@ from api.mixins import (
     MultiSerializerListRetrieveMix as ListRetrieveView)
 
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
-from catalog.api.serializers import AgencyFileControlsSerializer
+from geo.api.serializers import AgencyFileControlsSerializer
 from task.views import comprobate_status, build_task_params
 
 last_final_path = None

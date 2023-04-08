@@ -27,8 +27,8 @@ from category.api.serializers import (
 from task.api.serializers import (
     StatusTaskSimpleSerializer, TaskFunctionSerializer, StageSimpleSerializer)
 
-from catalog.models import Agency
-from catalog.api.serializers import AgencySerializer
+from geo.models import Agency
+from geo.api.serializers import AgencySerializer
 
 
 class CatalogView(views.APIView):

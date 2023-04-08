@@ -1,7 +1,7 @@
 
 @action(methods=["get"], detail=False, url_path='data_viz')
 def data_viz(self, request, **kwargs):
-    from catalog.api.final_viz import fetch_agencies
+    from geo.api.final_viz import fetch_agencies
     #import json
 
     operability = {

@@ -1,6 +1,6 @@
 # ######## DEPRECATED #########
 def build_catalog_state(self):
-    from catalog.models import State
+    from geo.models import State
     import unidecode
     catalog_state = { }
     curr_states = State.objects.all()
@@ -37,7 +37,7 @@ def build_catalogs_prev(self, columns):
 
 def build_catalog_clues(self):
     # RICK 16: adaptar a CLAVE CLUES POR LO PRONTO, también key_issste
-    from catalog.models import CLUES
+    from geo.models import CLUES
     import unidecode
 
     clues_data_query = CLUES.objects.filter(institution=self.institution)

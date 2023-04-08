@@ -7,7 +7,7 @@ from report.models import (
 from medicine.api.serializers import (
     ComponentFullSerializer, PresentationSerializer, 
     PresentationSimpleSerializer, ComponentSerializer)
-from catalog.api.serializers import (
+from geo.api.serializers import (
     InstitutionSerializer, CLUESSerializer, StateSerializer,
     CLUESFullSerializer, StateSimpleSerializer, DiseaseSerializer)
 

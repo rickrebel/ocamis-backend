@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from rest_framework.pagination import PageNumberPagination
 
-from catalog.models import State, Institution, Alliances, Disease
-from catalog.api.serializers import (
+from geo.models import State, Institution, Alliances, Disease
+from geo.api.serializers import (
     StateSerializer, InstitutionSerializer, AlliancesSerializer,
     DiseaseSerializer)
 from rest_framework import (permissions, views)

@@ -19,7 +19,7 @@ urlpatterns = [
     # Endpoints
     re_path(r'^auth/', include('auth.api.urls')),
     re_path(r'^desabasto/', include('desabasto.api.urls')),
-    re_path(r'^geo/', include('catalog.api.urls')),
+    re_path(r'^geo/', include('geo.api.urls')),
     re_path(r'^medicine/', include('medicine.api.urls')),
     re_path(r'^report/', include('report.api.urls')),
     re_path(r'^formula/', include('formula.api.urls')),

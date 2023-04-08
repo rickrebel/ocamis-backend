@@ -79,7 +79,7 @@ def massive_upload_csv_to_db(
         update_files=True):
     import os
     from formula.models import PrescriptionLog
-    from catalog.models import Institution
+    from geo.models import Institution
     global institution_obj
     months = [
         "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -177,7 +177,7 @@ def get_type_document(type_document):
 
 
 def get_state(state_name):
-    from catalog.models import State
+    from geo.models import State
 
     try:
         state_name = unidecode.unidecode(state_name).upper()
@@ -293,7 +293,7 @@ def get_clues_id(entidad, unidad_medica, institution):
         print(splited)"""
 
 
-    from catalog.models import CLUES
+    from geo.models import CLUES
     if not catalog_clues:
         institution_upper = institution.upper()
         clues_data_query = list(

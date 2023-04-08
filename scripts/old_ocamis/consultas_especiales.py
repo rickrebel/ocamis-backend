@@ -3,7 +3,7 @@
 from category.models import NegativeReason
 from inai.models import PetitionNegativeReason
 from data_param.models import FileControl
-from catalog.models import Agency, CLUES
+from geo.models import Agency, CLUES
 from django.db.models import Count
 
 NegativeReason.objects.all()\

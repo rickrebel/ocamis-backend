@@ -93,7 +93,7 @@ datalist = dataxl
 #Funcion para identificar clues nuevas
 def new_clues(tot_list):
     import pandas as pd
-    from catalog.models import CLUES
+    from geo.models import CLUES
     new_clue = ()
     old_clue = list(CLUES.objects.values_list('clues', flat=True))
     for row in tot_list:
@@ -111,10 +111,10 @@ news_clues = new_clues(tot_list)
 # Funcion para cargar clues nuevas identificadas con new_clues
 # Esta funcion se está probando...
 def import_new_clues(tot_list):
-    from catalog.models import State
-    from catalog.models import Institution
-    from catalog.models import CLUES
-    from catalog.models import Municipality
+    from geo.models import State
+    from geo.models import Institution
+    from geo.models import CLUES
+    from geo.models import Municipality
     new_clues = tot_list
     # new_clues = new_clues(tot_list)
     for row in new_clues:
@@ -195,8 +195,8 @@ tot_list = ejemplo
 ###ANALISIS DE DATOS
 ###Consultas CLUES
 
-from catalog.models import CLUES
-from catalog.models import Institution
+from geo.models import CLUES
+from geo.models import Institution
 from django.db.models import Count, Sum, Max, Min, Avg
 from django.db.models import F, Q, When, FilteredRelation
 

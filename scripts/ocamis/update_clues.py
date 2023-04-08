@@ -7,7 +7,7 @@ def clean_na(row):
 
 
 def convert_municipality_code():
-    from catalog.models import Municipality
+    from geo.models import Municipality
     all_municipalities = Municipality.objects.all()
     for municipality in all_municipalities:
         initial_code = int(municipality.inegi_code)
@@ -55,7 +55,7 @@ integers_equivalences = [
 def read_excel(data_excel):
     from datetime import datetime
     from django.utils import timezone
-    from catalog.models import CLUES, State, Institution, Municipality
+    from geo.models import CLUES, State, Institution, Municipality
     iter_data = data_excel.apply(clean_na, axis=1)
     # rows = data_excel.iterrows()
     list_val = iter_data.tolist()
@@ -141,7 +141,7 @@ read_excel(data_excel)
 
 
 def clean_repeated_clues():
-    from catalog.models import CLUES
+    from geo.models import CLUES
     from django.db.models import Count
     repeated_clues = CLUES.objects.values('clues').annotate(
         count=Count('clues')).filter(count__gt=1)

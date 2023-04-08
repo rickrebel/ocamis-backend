@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from catalog.models import Agency
+from geo.models import Agency
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)

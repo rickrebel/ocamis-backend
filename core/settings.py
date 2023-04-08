@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     #"desabasto.apps.DesabastoConfig",
-    "catalog.apps.CatalogConfig",
+    "geo.apps.GeoConfig",
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",
     "intl_medicine.apps.IntlMedicineConfig",

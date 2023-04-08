@@ -6,7 +6,7 @@ from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 from desabasto.api.views import StandardResultsSetPagination
 
-from catalog.models import Institution, State, CLUES, Agency
+from geo.models import Institution, State, CLUES, Agency
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
@@ -76,7 +76,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
     
     @action(methods=["get"], detail=False, url_path='data_viz')
     def data_viz(self, request, **kwargs):
-        from catalog.api.final_viz import (
+        from geo.api.final_viz import (
             fetch_agencies, build_quality_simple)
         from transparency.models import TransparencyLevel
         from transparency.models import TransparencyIndex

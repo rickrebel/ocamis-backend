@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class CatalogConfig(AppConfig):
-    name = 'catalog'
+class GeoConfig(AppConfig):
+    name = 'geo'
     verbose_name = 'C. Catálogos Generales'

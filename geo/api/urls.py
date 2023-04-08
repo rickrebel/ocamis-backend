@@ -1,7 +1,7 @@
 from rest_framework import routers
 from django.urls import path, include
 
-from catalog.api.views import (
+from geo.api.views import (
     # StateList,
     InstitutionList,
     CLUESList,

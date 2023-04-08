@@ -80,7 +80,7 @@ INSTALLED_APPS = [
     "channels_redis",
     "corsheaders",
     # "desabasto.apps.DesabastoConfig",
-    "catalog.apps.CatalogConfig",
+    "geo.apps.GeoConfig",
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",
     "intl_medicine.apps.IntlMedicineConfig",

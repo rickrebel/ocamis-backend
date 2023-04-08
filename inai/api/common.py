@@ -1,5 +1,5 @@
 from inai.api import serializers
-from catalog.api.serializers import AgencyFileControlsSerializer
+from geo.api.serializers import AgencyFileControlsSerializer
 from rest_framework.response import Response
 from rest_framework import status
 

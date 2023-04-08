@@ -5,7 +5,7 @@ from django.db.models import JSONField
 
 from category.models import ColumnType, FileFormat, StatusControl
 from transparency.models import Anomaly
-from catalog.models import Institution, Delegation, Agency
+from geo.models import Institution, Delegation, Agency
 
 
 class DataGroup(models.Model):

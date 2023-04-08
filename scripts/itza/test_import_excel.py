@@ -276,7 +276,7 @@ for ret in returns:
        obj.save() 
 
 
-from catalog.models import CLUES
+from geo.models import CLUES
 returns = CLUES.objects.all()
 for ret in returns:
     return_db = CLUES.objects.filter(name = 'AAABCEJEMPLO').exists()
@@ -325,7 +325,7 @@ for ret in returns:
         obj.save()
 
 
-from catalog.models import CLUES
+from geo.models import CLUES
 for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
     if i == "False":
         cluesjem= CLUES.objects.get_or_create(
@@ -374,7 +374,7 @@ for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
         cluesjem.save()
 
 #Otra prueba (field individual)
-from catalog.models import CLUES
+from geo.models import CLUES
 for i in ejmdta['FECHA ULTIMO MOVIMIENTO']:
     if i == "False":
         cluesjem= CLUES.objects.create()
@@ -394,7 +394,7 @@ for i in dtaclues['ID']:
 
 
 #Condicional de registro
-from catalog.models import CLUES
+from geo.models import CLUES
 for i in dtaclues['FECHA ULTIMO MOVIMIENTO']:
     if i == "True":
         clues = CLUES.objects.update(
@@ -462,7 +462,7 @@ State.objects.filter(inegi_code ='98').delete()
 #Diccionario
 
 
-from catalog.models import State
+from geo.models import State
 states = State.objects.all()
 for state in states:
     try:
@@ -619,7 +619,7 @@ def import_clues_p():
     import unidecode
     #from pprint import pprint  #visualice the data with more structure
     from django.utils.dateparse import parse_datetime #parse_datime converts text to a datetime with time
-    from catalog.models import (State, Institution, CLUES)
+    from geo.models import (State, Institution, CLUES)
     #with pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx') as prueba_clues:
     prueba_clues = pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx', dtype ="string") ###
     prueba_clues['ID'].isna().sum() #No hay NAs ###
@@ -667,7 +667,7 @@ def import_clues_p01():
     #from pprint import pprint  #visualice the data with more structure
     #parse_datime converts text to a datetime with time
     from django.utils.dateparse import parse_datetime 
-    from catalog.models import (State, Institution, CLUES)
+    from geo.models import (State, Institution, CLUES)
     #Se carga archivo xlsx y desde el comienzo todas se declaran string para prueba
     #se puede asignar el datatype de cada variable con el comand pd.read_excel
     prueba_clues = pd.read_excel('D:\\Documents\\desabasto_ocamis\\pruebas_scripts\\prueba_clues.xlsx', dtype ="string", nrows= 50)
@@ -869,7 +869,7 @@ import pandas as pd
 import unidecode
 
 from django.utils.dateparse import parse_datetime #parse_datime converts text to a datetime with time
-from catalog.models import (State, Institution, CLUES)
+from geo.models import (State, Institution, CLUES)
 
 
 for idx, row in enumerate(csv_reader):
@@ -919,7 +919,7 @@ empty_row= sum(line.isspace() for line in f) #Esto era para contar las filas vac
 #Esta parte se puede hacer una funcion para caragar todo de manera automatizada
 one_path= #direcciones donde se encuntran los archivos
 mes= #lista de meses
-from catalog.models import Delegation
+from geo.models import Delegation
 from files_rows.models import GroupFile
 from parameter.models import TypeData #obtencion del nombre de la delagacion, el cual esta contenido en el nombre del archivo
     deleg_nom = Delegation.objects.filter(name=name).first()
@@ -928,7 +928,7 @@ from parameter.models import TypeData #obtencion del nombre de la delagacion, el
 #PS: python -m pip install pandas
 import pandas as pd
 
-from catalog.models import Delegation
+from geo.models import Delegation
 reporte_recetas= "C:\\Users\\iakar\\Desktop\\desabasto\\pruebas_scripts\\Agosto 2021-Pediatria SXXI.xlsx"
 reporte= pd.read_excel(reporte_recetas)
 

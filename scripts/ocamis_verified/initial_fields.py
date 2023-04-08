@@ -1,7 +1,7 @@
 
 def generate_months():
     from inai.models import MonthAgency
-    from catalog.models import Agency
+    from geo.models import Agency
     for agency in Agency.objects.all():
         for sum_year in range(6):
             year = sum_year + 2017
@@ -14,7 +14,7 @@ def generate_months():
 
 def generate_months_one_year(year):
     from inai.models import MonthAgency
-    from catalog.models import Agency
+    from geo.models import Agency
     for agency in Agency.objects.all():
         for month in range(12):
             month += 1
@@ -25,7 +25,7 @@ def generate_months_one_year(year):
 
 def generate_months_agency(acronym):
     from inai.models import MonthAgency
-    from catalog.models import Agency
+    from geo.models import Agency
     for agency in Agency.objects.filter(acronym=acronym):
         for sum_year in range(6):
             year = sum_year + 2017
@@ -41,7 +41,7 @@ def generate_months_agency(acronym):
 
         
 def insert_populations():
-    from catalog.models import Agency
+    from geo.models import Agency
     pob_states2 = [
         ["01", 955242],
         ["02", 1195226],

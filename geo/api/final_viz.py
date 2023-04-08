@@ -1,7 +1,7 @@
 
 def fetch_agencies(include_groups):
     from django.db.models import Prefetch
-    from catalog.models import Agency
+    from geo.models import Agency
     from inai.models import (
         Petition, PetitionMonth, MonthAgency)
     from data_param.models import NameColumn

@@ -86,7 +86,7 @@ def intento_de_limpieza():
         
 def adivinar_nombre():
     import re
-    from catalog.models import Agency
+    from geo.models import Agency
 
     unique_agencies = [
         'Centro Regional de Alta Especialidad de Chiapas (CRAE)',

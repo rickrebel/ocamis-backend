@@ -16,8 +16,8 @@ from report.models import (
 from api.mixins import (MultiSerializerListCreateRetrieveUpdateMix as
                         ListCreateRetrieveUpdateMix, ListMix)
 
-from catalog.models import State, Institution, Alliances, Disease
-from catalog.api.serializers import (
+from geo.models import State, Institution, Alliances, Disease
+from geo.api.serializers import (
     StateListSerializer, InstitutionSerializer, AlliancesSerializer,
     DiseaseSerializer)
 # --------Paginacion-----------------------------------------------------------

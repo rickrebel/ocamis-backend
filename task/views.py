@@ -15,7 +15,7 @@ def text_normalizer(text):
 
 def calculate_special_function(special_function):
     import json
-    from catalog.models import Delegation, CLUES
+    from geo.models import Delegation, CLUES
 
     # print("SPECIAL FUNCTION", special_function)
     delegation_value_list = [

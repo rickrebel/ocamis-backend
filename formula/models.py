@@ -43,7 +43,7 @@ class Delivered(models.Model):
 
 
 class Doctor(models.Model):
-    from catalog.models import Institution, Delegation
+    from geo.models import Institution, Delegation
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     hex_hash = models.CharField(max_length=40, blank=True, null=True)
@@ -88,7 +88,7 @@ class Diagnosis(models.Model):
 
 
 class Prescription(models.Model):
-    from catalog.models import CLUES, Delegation, Area
+    from geo.models import CLUES, Delegation, Area
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     folio_ocamis = models.CharField(max_length=60)

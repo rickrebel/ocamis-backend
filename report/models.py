@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.core.validators import validate_email
 from django.db import models
-from catalog.models import Institution, State, CLUES, Municipality, Disease
+from geo.models import Institution, State, CLUES, Municipality, Disease
 from medicine.models import Component, Presentation
 from django.db.models import JSONField
 

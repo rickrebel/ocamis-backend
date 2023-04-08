@@ -59,7 +59,7 @@ class Match:
 
     def __init__(self, data_file: DataFile, task_params=None):
         from inai.models import set_upload_path
-        from catalog.models import Delegation
+        from geo.models import Delegation
         from data_param.models import NameColumn
         self.data_file = data_file
         self.lap = self.data_file.next_lap

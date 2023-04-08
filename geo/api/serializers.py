@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from report.models import Responsable
-from catalog.models import (
+from geo.models import (
     State, Institution, CLUES, Alliances, Municipality, Disease, Agency
 )
 #from report.api.serializers import ResponsableListSerializer

@@ -1,6 +1,6 @@
 import re
 from django.db.models import Q
-from catalog.models import State, Institution, CLUES
+from geo.models import State, Institution, CLUES
 
 # ------------EJEMPLO HIDRATED---------------- #
 

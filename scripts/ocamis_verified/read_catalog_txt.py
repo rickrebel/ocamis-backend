@@ -13,7 +13,7 @@ def get_file_csv(file_path):
 
 
 def find_lines_with_regex(file_path="fixture/catalogo_clues_issste.txt"):
-    from catalog.models import CLUES
+    from geo.models import CLUES
     all_lines = get_file_csv(file_path)
     matched_lines = []
     not_found_clues = []
@@ -76,7 +76,7 @@ ISSSTE_DELEGATIONS = [
 
 
 def import_delegations():
-    from catalog.models import Delegation, State, Institution
+    from geo.models import Delegation, State, Institution
     issste = Institution.objects.get(code="ISSSTE")
     Delegation.objects.filter(institution=issste).delete()
     for delegation in ISSSTE_DELEGATIONS:
@@ -100,7 +100,7 @@ def import_delegations():
 
 
 def generate_insabi_delegations():
-    from catalog.models import Delegation, State, Institution
+    from geo.models import Delegation, State, Institution
     insabi = Institution.objects.get(code="INSABI")
     states = State.objects.all()
     for state in states:
@@ -110,7 +110,7 @@ def generate_insabi_delegations():
 
 
 def generate_agency_delegations():
-    from catalog.models import Delegation, Agency
+    from geo.models import Delegation, Agency
     agencies_with_clues = Agency.objects.filter(clues__isnull=False).distinct()
     for agency in agencies_with_clues:
         name = f"{agency.name}"

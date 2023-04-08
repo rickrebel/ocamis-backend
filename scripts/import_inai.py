@@ -146,7 +146,7 @@ def insert_from_json(
     from django.apps import apps
     for row in all_array:
         #from inai.models import Petition, ReplyFile
-        from catalog.models import Agency
+        from geo.models import Agency
         MainModel = apps.get_model(main_app, main_model)
         related_elem = None
         if "idSujetoObligado" in row:
