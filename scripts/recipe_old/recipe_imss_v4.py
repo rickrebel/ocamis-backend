@@ -454,7 +454,7 @@ def get_especialidad_medico_id(especialidad_medico):
 
 
 def check_clave_doctor(clave_doctor, nombre_medico, especialidad_medico):
-    from formula.models import Doctor
+    from med_cat.models import Doctor
     global data_file_medico
     global claves_medico_dicc
     if not claves_medico_dicc:

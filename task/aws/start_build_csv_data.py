@@ -127,6 +127,13 @@ class MatchAws:
         self.columns_count = init_data["columns_count"]
         self.editable_models = init_data["editable_models"]
         self.model_fields = init_data["model_fields"]
+        med_cat_models = ["doctor", "diagnosis", "area"]
+        self.med_cat_fields = {}
+        for model in med_cat_models:
+            self.med_cat_fields[model] = [
+                field for field in self.model_fields[model]
+                if field["is_str"] and field["name"] != "hex_hash"]
+
         self.existing_fields = init_data["existing_fields"]
         self.special_fields = [field for field in self.existing_fields
                                if field["is_special"]]
@@ -222,13 +229,13 @@ class MatchAws:
             # is_same_date = False
             uuid = str(uuid_lib.uuid4())
 
-            def generic_match_row(av_data, c_data):
-                c_name = c_data["name"]
-                el_id, orig_val = self.generic_match(c_data, av_data)
-                av_data[f"{c_name}_id"] = el_id
+            def generic_match_row(av_data, catalog_data):
+                catalog_name = catalog_data["name"]
+                el_id, orig_val = self.generic_match(catalog_data, av_data)
+                av_data[f"{catalog_name}_id"] = el_id
                 if not el_id:
-                    err = f"No se encontró el {c_name}"
-                    name_col = c_data["unique_field"].get("name_column")
+                    err = f"No se encontró el {catalog_name}"
+                    name_col = catalog_data["unique_field"].get("name_column")
                     self.append_missing_field(
                         row, name_col, orig_val, err, drug_uuid=uuid)
 
@@ -577,10 +584,14 @@ class MatchAws:
         if cat_name == "clues" and self.global_clues_id:
             return self.global_clues_id, None
         unique_field = cat_data.get("unique_field")
+        # self.med_cat_fields
+        # if cat_name != "clues":
+        #     unique_field = self.med_cat_fields[cat_name]
         if unique_field:
             params = cat_data.get("params", {})
             id_field = params.get("id", "id")
-            init_value = available_data[unique_field.get("name")]
+            unique_name = f"{cat_name}_{unique_field.get('name')}"
+            init_value = available_data[unique_name]
             if cat_name == "container":
                 init_value = init_value.replace(".", "")
             # available_data[unique_field] = unique_field
@@ -729,7 +740,8 @@ class MatchAws:
         new_row = []
         row_data = {}
         for field in self.model_fields[cat_name]:
-            value = available_data.get(field["name"], locals().get(field["name"]))
+            field_name = f"{cat_name}_{field['name']}"
+            value = available_data.get(field_name, locals().get(field_name))
             new_row.append(value)
             row_data[field["name"]] = value
         self.new_cat_rows[cat_name].append(new_row)

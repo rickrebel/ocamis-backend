@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     "formula.apps.FormulaConfig",
     "data_param.apps.DataParamConfig",
+    "med_cat.apps.MedCatConfig",
     "inai.apps.InaiConfig",
     "transparency.apps.TransparencyConfig",
     "category.apps.CategoryConfig",

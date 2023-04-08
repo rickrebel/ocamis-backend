@@ -1,6 +1,5 @@
 from django.db import models
 from django.db.models import JSONField
-import uuid as uuid_lib
 
 
 def default_alternative_names():
@@ -384,32 +383,3 @@ class Agency(models.Model):
         db_table = 'catalog_agency'
 
 
-class Area(models.Model):
-
-    uuid = models.UUIDField(
-        primary_key=True, default=uuid_lib.uuid4, editable=False)
-    hex_hash = models.CharField(max_length=40, blank=True, null=True)
-    institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE)
-    delegation = models.ForeignKey(
-        Delegation, null=True, blank=True, on_delete=models.CASCADE)
-    key = models.CharField(
-        max_length=255, verbose_name="Clave del área",
-        blank=True, null=True)
-    name = models.TextField(
-        verbose_name="Nombre del área",
-        blank=True, null=True)
-    description = models.TextField(
-        verbose_name="Descripción del área",
-        blank=True, null=True)
-    aggregate_to = models.ForeignKey(
-        "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.key or self.name
-
-    class Meta:
-        verbose_name = "Área"
-        verbose_name_plural = "Áreas"
-        db_table = 'catalog_area'

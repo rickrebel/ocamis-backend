@@ -6,10 +6,10 @@ from .models import (
     Drug,
     Prescription,
     DocumentType,
-    Doctor,
     MedicalSpeciality,
     Delivered
 )
+from med_cat.models import Doctor
 
 
 class DocumentTypeAdmin(admin.ModelAdmin):
