@@ -65,7 +65,6 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Área',
                 'verbose_name_plural': 'Áreas',
-                'db_table': 'catalog_area',
             },
         ),
     ]

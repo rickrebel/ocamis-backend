@@ -33,7 +33,6 @@ class Area(models.Model):
     class Meta:
         verbose_name = "Área"
         verbose_name_plural = "Áreas"
-        db_table = 'catalog_area'
 
 
 class Doctor(models.Model):
