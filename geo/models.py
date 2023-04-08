@@ -94,12 +94,41 @@ class Typology(models.Model):
         db_table = 'catalog_typology'
 
 
+class Entity(models.Model):
+    name = models.CharField(
+        max_length=255, verbose_name="Nombre de la entidad")
+    acronym = models.CharField(
+        max_length=20, verbose_name="Clave de la entidad")
+    state = models.ForeignKey(
+        State, verbose_name="Entidad",
+        null=True, on_delete=models.CASCADE,
+        related_name="entities")
+    institution = models.ForeignKey(
+        Institution, verbose_name="Institución",
+        null=True, on_delete=models.CASCADE,
+        related_name="entities")
+    is_clues = models.BooleanField(
+        default=False, verbose_name="Es solo un CLUES")
+    population = models.IntegerField(
+        default=0, verbose_name="Población")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Entidad"
+        verbose_name_plural = "Entidades"
+        db_table = u'desabasto_entity'
+
+
 class CLUES(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
-    #state = models.IntegerField()
+    # state = models.IntegerField()
     institution = models.ForeignKey(
         Institution, on_delete=models.CASCADE)
-    #institution = models.IntegerField()
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE, blank=True, null=True)
+    # institution = models.IntegerField()
     name = models.CharField(
         max_length=255, verbose_name="NOMBRE DE LA UNIDAD")
     key_issste = models.CharField(
@@ -108,6 +137,9 @@ class CLUES(models.Model):
     is_searchable = models.BooleanField(
         default=False, verbose_name="Activo",
         help_text="Puede buscarse por el usuario")
+    delegation = models.ForeignKey(
+        "Delegation", on_delete=models.CASCADE,
+        blank=True, null=True)
     municipality_name = models.CharField(
         max_length=255, verbose_name="NOMBRE DEL MUNICIPIO",
         blank=True, null=True)
@@ -137,10 +169,6 @@ class CLUES(models.Model):
         max_length=80, verbose_name="NOMBRE DE LA JURISDICCIÓN")
     jurisdiction_clave = models.CharField(
         max_length=5, verbose_name="CLAVE DE LA JURISDICCIÓN")
-    jurisdiction_obj = models.ForeignKey(
-        "Jurisdiction", verbose_name="Jurisdicción Sanitaria",
-        blank=True, null=True, on_delete=models.CASCADE,
-        related_name="jurisdictions")
     establishment_type = models.CharField(
         max_length=80, verbose_name="NOMBRE TIPO ESTABLECIMIENTO")
     consultings_general = models.IntegerField(
@@ -219,7 +247,14 @@ class CLUES(models.Model):
 
 
 class Delegation(models.Model):
+    entity = models.ForeignKey(
+        Entity, verbose_name="Entidad",
+        on_delete=models.CASCADE)
     name = models.CharField(max_length=255, verbose_name="Nombre")
+    is_clues = models.BooleanField(default=False)
+    other_names = JSONField(blank=True, null=True)
+    is_jurisdiction = models.BooleanField(default=False)
+    # RICK 21 Borrar en al futuro:
     institution = models.ForeignKey(
         Institution, verbose_name="Institución",
         on_delete=models.CASCADE)
@@ -230,7 +265,6 @@ class Delegation(models.Model):
         CLUES, blank=True, null=True,
         on_delete=models.CASCADE,
         related_name="related_delegation")
-    other_names = JSONField(blank=True, null=True)
 
     def __str__(self):
         return "%s -- %s --%s" % (

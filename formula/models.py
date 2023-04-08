@@ -45,7 +45,7 @@ class Delivered(models.Model):
 
 
 class Prescription(models.Model):
-    from geo.models import CLUES, Delegation
+    from geo.models import CLUES, Delegation, Entity
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     folio_ocamis = models.CharField(max_length=60)
@@ -54,8 +54,9 @@ class Prescription(models.Model):
     month = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
+    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
     delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE)
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
     clues = models.ForeignKey(
         CLUES, blank=True, null=True, on_delete=models.CASCADE)
     delivered_final = models.ForeignKey(
@@ -85,14 +86,6 @@ class Prescription(models.Model):
 
 class Drug(models.Model):
     from medicine.models import Container
-
-    TRAINING_CHOICES = (
-        ('medicine', 'Medicamentos'),
-        ('clues', 'CLUES'),
-        ('jurisdiction', 'Jurisdicción'),
-        ('delivered', 'Clasificación Entrega'),
-        ('diagnosis', 'Diagnóstico'),
-    )
 
     uuid = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
     prescription = models.ForeignKey(

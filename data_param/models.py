@@ -5,7 +5,7 @@ from django.db.models import JSONField
 
 from category.models import ColumnType, FileFormat, StatusControl
 from transparency.models import Anomaly
-from geo.models import Institution, Delegation, Agency
+from geo.models import Institution, Delegation, Agency, Entity
 
 
 class DataGroup(models.Model):
@@ -236,8 +236,8 @@ class FinalField(models.Model):
 
 
 class DictionaryFile(models.Model):
-    # agency = models.ForeignKey(
-    #     Agency, on_delete=models.CASCADE, blank=True, null=True)
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE, blank=True, null=True)
     institution = models.ForeignKey(
         Institution, on_delete=models.CASCADE, blank=True, null=True)
     delegation = models.ForeignKey(

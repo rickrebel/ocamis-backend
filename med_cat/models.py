@@ -2,7 +2,7 @@ import uuid as uuid_lib
 
 from django.db import models
 
-from geo.models import Institution, Delegation
+from geo.models import Institution, Delegation, Entity
 
 
 class Area(models.Model):
@@ -10,10 +10,11 @@ class Area(models.Model):
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     hex_hash = models.CharField(max_length=40, blank=True, null=True)
-    institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE)
-    delegation = models.ForeignKey(
-        Delegation, null=True, blank=True, on_delete=models.CASCADE)
+    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
+    # institution = models.ForeignKey(
+    #     Institution, on_delete=models.CASCADE)
+    # delegation = models.ForeignKey(
+    #     Delegation, null=True, blank=True, on_delete=models.CASCADE)
     key = models.CharField(
         max_length=255, verbose_name="Clave del área",
         blank=True, null=True)
@@ -40,10 +41,11 @@ class Doctor(models.Model):
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     hex_hash = models.CharField(max_length=40, blank=True, null=True)
-    institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE)
-    delegation = models.ForeignKey(
-        Delegation, null=True, blank=True, on_delete=models.CASCADE)
+    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
+    # institution = models.ForeignKey(
+    #     Institution, on_delete=models.CASCADE)
+    # delegation = models.ForeignKey(
+    #     Delegation, null=True, blank=True, on_delete=models.CASCADE)
     clave = models.CharField(max_length=30, blank=True, null=True)
     full_name = models.CharField(max_length=255)
     medical_speciality = models.CharField(max_length=255, blank=True, null=True)
