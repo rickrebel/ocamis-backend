@@ -50,7 +50,7 @@ def field_of_models_all(model_data):
         field_name = f"{field.name}{complement}"
         fields.append({
             "name": field_name,
-            "is_string": isinstance(field, (CharField, TextField)),
+            "is_str": isinstance(field, (CharField, TextField)),
         })
     return fields
 
@@ -103,9 +103,10 @@ class Match:
             {"name": "missing_field", "model": "MissingField"},
             {"name": "missing_row", "model": "MissingRow"},
 
-            {"name": "doctor", "model": "Doctor"},
-            {"name": "diagnosis", "model": "Diagnosis"},
-            {"name": "area", "model": "Area", "app": "geo"},
+            {"name": "doctor", "model": "Doctor", "app": "med_cat"},
+            {"name": "diagnosis", "model": "Diagnosis", "app": "med_cat"},
+            {"name": "area", "model": "Area", "app": "med_cat"},
+            {"name": "clues", "model": "CLUES", "app": "geo"},
         ]
         self.model_fields = {curr_list["name"]: field_of_models_all(curr_list)
                              for curr_list in self.editable_models}
@@ -224,22 +225,22 @@ class Match:
             ["price:Drug"],
             # Geográficos
             ["name:Delegation"],
-            ["clues:CLUES"],
-            ["key_issste:CLUES"],
-            ["id_clues:CLUES"],
-            # Diagnósticos
-            ["motive"],
-            ["cie10"],
-            ["text:Diagnosis", "diagnosis"],
-            # Doctores
-            ["professional_license"],
-            ["medical_speciality"],
-            ["clave:Doctor"],
-            ["full_name"],
-            # Areas
-            ["description:Area"],
-            ["name:Area"],
-            ["key:Area"],
+            # ["clues:CLUES"],
+            # ["key_issste:CLUES"],
+            # ["id_clues:CLUES"],
+            # # Diagnósticos
+            # ["motive"],
+            # ["cie10"],
+            # ["text:Diagnosis", "diagnosis"],
+            # # Doctores
+            # ["professional_license"],
+            # ["medical_speciality"],
+            # ["clave:Doctor"],
+            # ["full_name"],
+            # # Areas
+            # ["description:Area"],
+            # ["name:Area"],
+            # ["key:Area"],
         ]
 
         def build_column_data(column, final_name=None):
@@ -288,7 +289,10 @@ class Match:
         other_name_columns = self.name_columns\
             .exclude(id__in=included_columns)
         for name_column in other_name_columns:
-            new_name_column = build_column_data(name_column)
+            final_field = name_column.final_field
+            collection_name = final_field.collection.model_name.lower()
+            name_to_local = f"{collection_name}_{final_field.name}"
+            new_name_column = build_column_data(name_column, name_to_local)
             self.existing_fields.append(new_name_column)
 
         if not self.existing_fields:

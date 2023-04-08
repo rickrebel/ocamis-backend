@@ -5,6 +5,8 @@ from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
 
+from med_cat.models import Doctor, Diagnosis, Area
+
 
 class MedicalSpeciality(models.Model):
     name = models.CharField(max_length=255)
@@ -42,53 +44,8 @@ class Delivered(models.Model):
         return self.name
 
 
-class Doctor(models.Model):
-    from geo.models import Institution, Delegation
-    uuid = models.UUIDField(
-        primary_key=True, default=uuid_lib.uuid4, editable=False)
-    hex_hash = models.CharField(max_length=40, blank=True, null=True)
-    institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE)
-    delegation = models.ForeignKey(
-        Delegation, null=True, blank=True, on_delete=models.CASCADE)
-    clave = models.CharField(max_length=30, blank=True, null=True)
-    full_name = models.CharField(max_length=255)
-    medical_speciality = models.CharField(max_length=255, blank=True, null=True)
-    professional_license = models.CharField(max_length=20, blank=True, null=True)
-    aggregate_to = models.ForeignKey(
-        "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(default=False)
-
-    class Meta:
-        verbose_name = "Doctor"
-        verbose_name_plural = "Doctores"
-
-    def __str__(self):
-        return str(self.clave)
-
-
-class Diagnosis(models.Model):
-
-    uuid = models.UUIDField(
-        primary_key=True, default=uuid_lib.uuid4, editable=False)
-    hex_hash = models.CharField(max_length=40, blank=True, null=True)
-    cie10 = models.CharField(max_length=255, blank=True, null=True)
-    text = models.TextField(blank=True, null=True)
-    motive = models.TextField(blank=True, null=True)
-    aggregate_to = models.ForeignKey(
-        "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(default=False)
-
-    class Meta:
-        verbose_name = "Diagnóstico"
-        verbose_name_plural = "Diagnósticos"
-
-    def __str__(self):
-        return self.cie10 or self.text or self.motive
-
-
 class Prescription(models.Model):
-    from geo.models import CLUES, Delegation, Area
+    from geo.models import CLUES, Delegation
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     folio_ocamis = models.CharField(max_length=60)
