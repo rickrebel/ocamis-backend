@@ -34,6 +34,27 @@ def field_of_models(model_data):
     return field_names
 
 
+def field_of_models_all(model_data):
+    from django.apps import apps
+    from django.db.models import CharField, TextField
+    app_name = model_data.get('app', 'formula')
+    model_name = model_data['model']
+    my_model = apps.get_model(app_name, model_name)
+    all_fields = my_model._meta.get_fields(
+        include_parents=False, include_hidden=False)
+    fields = []
+    for field in all_fields:
+        if field.one_to_many:
+            continue
+        complement = "_id" if field.is_relation else ""
+        field_name = f"{field.name}{complement}"
+        fields.append({
+            "name": field_name,
+            "is_string": isinstance(field, (CharField, TextField)),
+        })
+    return fields
+
+
 class Match:
 
     def __init__(self, data_file: DataFile, task_params=None):
@@ -86,7 +107,7 @@ class Match:
             {"name": "diagnosis", "model": "Diagnosis"},
             {"name": "area", "model": "Area", "app": "catalog"},
         ]
-        self.model_fields = {curr_list["name"]: field_of_models(curr_list)
+        self.model_fields = {curr_list["name"]: field_of_models_all(curr_list)
                              for curr_list in self.editable_models}
 
         self.existing_fields = []
@@ -195,30 +216,30 @@ class Match:
             ["date_visit"],
             ["date_delivery"],
             ["folio_document"],
-            ["name:DocumentType", "document_type"],
+            ["document_type"],
             ["prescribed_amount"],
             ["delivered_amount"],
             # Medicamento
-            ["key2:Container", "key2"],
-            ["price:Drug", "price"],
+            ["key2:Container"],
+            ["price:Drug"],
+            # Geográficos
+            ["name:Delegation"],
+            ["clues:CLUES"],
+            ["key_issste:CLUES"],
+            ["id_clues:CLUES"],
             # Diagnósticos
             ["motive"],
             ["cie10"],
             ["text:Diagnosis", "diagnosis"],
-            # Geográficos
-            ["name:Delegation", "delegation_name"],
-            ["clues:CLUES", "clave_clues"],
-            ["key_issste:CLUES", "key_issste"],
-            ["id_clues:CLUES", "id_clues"],
             # Doctores
             ["professional_license"],
             ["medical_speciality"],
-            ["clave:Doctor", "clave"],
+            ["clave:Doctor"],
             ["full_name"],
             # Areas
-            ["description:Area", "area_description"],
-            ["name:Area", "area_name"],
-            ["key:Area", "area_key"],
+            ["description:Area"],
+            ["name:Area"],
+            ["key:Area"],
         ]
 
         def build_column_data(column, final_name=None):
@@ -228,6 +249,7 @@ class Match:
                 "name_column": column.id,
                 "position": column.position_in_data,
                 "required_row": column.required_row,
+                "name_field": column.final_field.name,
                 "final_field_id": column.final_field.id,
                 "collection": column.final_field.collection.model_name,
                 "is_unique": column.final_field.is_unique,
@@ -505,7 +527,8 @@ class Match:
 
         model_in_db = f"formula_{model_name.lower()}"
         columns = self.model_fields[model_name]
-        columns_join = ",".join(columns)
+        field_names = [field["name"] for field in columns]
+        columns_join = ",".join(field_names)
         bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
         aws_location = getattr(settings, "AWS_LOCATION")
         region_name = getattr(settings, "AWS_S3_REGION_NAME")

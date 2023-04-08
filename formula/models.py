@@ -46,19 +46,18 @@ class Doctor(models.Model):
     from catalog.models import Institution, Delegation
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
-    clave = models.CharField(max_length=30, blank=True, null=True)
+    hex_hash = models.CharField(max_length=40, blank=True, null=True)
     institution = models.ForeignKey(
         Institution, on_delete=models.CASCADE)
     delegation = models.ForeignKey(
         Delegation, null=True, blank=True, on_delete=models.CASCADE)
+    clave = models.CharField(max_length=30, blank=True, null=True)
     full_name = models.CharField(max_length=255)
-    # especialidad_medico = models.CharField(max_length=255, blank=True, null=True)
     medical_speciality = models.CharField(max_length=255, blank=True, null=True)
     professional_license = models.CharField(max_length=20, blank=True, null=True)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(default=False)
-    #especialidad_medico = models.IntegerField()
 
     class Meta:
         verbose_name = "Doctor"
@@ -72,6 +71,7 @@ class Diagnosis(models.Model):
 
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
+    hex_hash = models.CharField(max_length=40, blank=True, null=True)
     cie10 = models.CharField(max_length=255, blank=True, null=True)
     text = models.TextField(blank=True, null=True)
     motive = models.TextField(blank=True, null=True)

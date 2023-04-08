@@ -86,14 +86,14 @@ class ExtractorsMix:
         new_validated_data = {}
 
         def calculate_aislated(headers):
-            not_null_aislated = []
+            not_null_allone = []
             some_null = False
             for header in headers[1:]:
                 if not header:
                     some_null = True
                 if some_null and header:
-                    not_null_aislated.append(header)
-            return not_null_aislated
+                    not_null_allone.append(header)
+            return not_null_allone
 
         for sheet_name in validated_data.keys():
             try:

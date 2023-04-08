@@ -210,7 +210,7 @@ class MatchAws:
         success_drugs_count = 0
         total_count = 0
         discarded_count = self.row_start_data - 1
-        for row in all_data[discarded_count:]:
+        for row in all_data[self.row_start_data - 1:]:
             required_cols_in_null = [col for col in required_cols
                                      if not row[col["position"]]]
             if required_cols_in_null:
@@ -345,9 +345,9 @@ class MatchAws:
 
             current_drug_data = []
             for drug_field in self.model_fields["drug"]:
-                value = available_data.pop(drug_field, None)
+                value = available_data.pop(drug_field["name"], None)
                 if value is None:
-                    value = locals().get(drug_field)
+                    value = locals().get(drug_field["name"])
                 # value = available_data.get(drug_field, locals().get(drug_field))
                 current_drug_data.append(value)
             csv_buffer["drug"].writerow(current_drug_data)
@@ -380,8 +380,8 @@ class MatchAws:
         for curr_prescription in all_prescriptions.values():
             current_prescription_data = []
             # curr_prescription = all_prescriptions.get(folio)
-            for field_name in self.model_fields["prescription"]:
-                value = curr_prescription.get(field_name)
+            for field_p in self.model_fields["prescription"]:
+                value = curr_prescription.get(field_p["name"])
                 current_prescription_data.append(value)
             csv_buffer["prescription"].writerow(current_prescription_data)
 
@@ -589,7 +589,7 @@ class MatchAws:
                 if complete_values else None
             # available_data["container_id"] = final_value
             if not final_value and not params.get("only_unique"):
-                final_value = self.append_catalog_row(cat_name, available_data)
+                final_value = self.append_catalog_row(cat_data, available_data)
             if not final_value:
                 print(f"No se encontró init: {init_value} en {cat_name} \n "
                       f"unique_field: {unique_field}\n")
@@ -600,18 +600,6 @@ class MatchAws:
         #     return None, None
         #     # return self.append_catalog_row(cat_name, available_data), None
         return None, None
-
-    def clues_match(self, clave_clues):
-        if self.global_clues_id:
-            return self.global_clues_id
-        clues = None
-        catalog_clues = self.catalogs["clues"]
-        if clave_clues and catalog_clues:
-            try:
-                clues = self.cats["clues"].get(clave_clues)
-            except KeyError:
-                pass
-        return clues
 
     def delegation_match(self, available_data, clues_id):
         delegation_name = available_data.pop("delegation_name", None)
@@ -707,8 +695,8 @@ class MatchAws:
         missing_data = []
         uuid = str(uuid_lib.uuid4())
         data_file_id = self.data_file_id
-        for field_name in self.model_fields["missing_row"]:
-            value = locals().get(field_name)
+        for field in self.model_fields["missing_row"]:
+            value = locals().get(field["name"])
             missing_data.append(value)
         self.last_missing_row = missing_data
         self.all_missing_rows.append(missing_data)
@@ -724,12 +712,14 @@ class MatchAws:
         # if name_column:
         #     name_column = name_column.id
         # print("error: %s" % error)
-        for field_name in self.model_fields["missing_field"]:
-            value = locals().get(field_name)
+        for field in self.model_fields["missing_field"]:
+            value = locals().get(field["name"])
             missing_field.append(value)
         self.all_missing_fields.append(missing_field)
 
-    def append_catalog_row(self, cat_name, available_data):
+    def append_catalog_row(self, cat_data, available_data):
+        cat_name = cat_data["name"]
+        params = cat_data.get("params", {})
         uuid = str(uuid_lib.uuid4())
         inserted = False
         last_revised = self.last_revised
@@ -738,10 +728,10 @@ class MatchAws:
         delegation_id = self.global_delegation_id
         new_row = []
         row_data = {}
-        for field_name in self.model_fields[cat_name]:
-            value = available_data.get(field_name, locals().get(field_name))
+        for field in self.model_fields[cat_name]:
+            value = available_data.get(field["name"], locals().get(field["name"]))
             new_row.append(value)
-            row_data[field_name] = value
+            row_data[field["name"]] = value
         self.new_cat_rows[cat_name].append(new_row)
         self.cats[cat_name][uuid] = row_data
         return uuid
@@ -826,3 +816,15 @@ class MatchAws:
         if not report_data.get("missing_rows") and not report_data.get("missing_fields"):
             report_data["general_errors"] = "No se encontraron errores"
         return report_data
+
+    # def clues_match(self, clave_clues):
+    #     if self.global_clues_id:
+    #         return self.global_clues_id
+    #     clues = None
+    #     catalog_clues = self.catalogs["clues"]
+    #     if clave_clues and catalog_clues:
+    #         try:
+    #             clues = self.cats["clues"].get(clave_clues)
+    #         except KeyError:
+    #             pass
+    #     return clues

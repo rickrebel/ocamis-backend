@@ -313,7 +313,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         # status_req = request.data.get("status", { })
         # status_id = status_req.get("id", False)
         # status_name = status_req.get("name", False)
-        print("rdata:", request.data)
         stage_init = request.data.get("stage_init")
         status_init = request.data.get("status_init")
         all_data_files = DataFile.objects.filter(
