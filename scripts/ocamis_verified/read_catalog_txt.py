@@ -117,3 +117,63 @@ def generate_agency_delegations():
         Delegation.objects.get_or_create(
             name=name, state=agency.state,
             institution=agency.institution, clues=agency.clues)
+
+
+def create_entity_by_agency():
+    from geo.models import Agency, Entity
+    agencies = Agency.objects.all()
+    for agency in agencies:
+        if agency.clues:
+            entity, created = Entity.objects.get_or_create(
+                name=agency.name, acronym=agency.acronym, state=agency.state,
+                institution=agency.institution,
+                population=agency.population or 0, is_clues=True
+            )
+            clues = agency.clues
+            clues.entity = entity
+            clues.save()
+        elif agency.state:
+            entity, created = Entity.objects.get_or_create(
+                state=agency.state, institution=agency.institution,
+                is_clues=False)
+            if created:
+                entity.population = agency.population or 0
+                state_code = agency.state.code_name.upper().replace(".", "")
+                entity.acronym = f"SSA-{state_code}"
+                entity.name = f"{agency.institution.name} {agency.state.short_name}"
+                entity.save()
+        else:
+            entity, created = Entity.objects.get_or_create(
+                name=agency.institution.name, acronym=agency.acronym,
+                institution=agency.institution, population=agency.population or 0,
+                is_clues=False)
+        agency.entity = entity
+        agency.save()
+
+
+# create_entity_by_agency()
+
+
+def move_delegation_clues():
+    from geo.models import Delegation, CLUES, Entity
+    all_delegations = Delegation.objects.all()
+    for delegation in all_delegations:
+        clues = delegation.clues
+        if clues:
+            clues.delegation = delegation
+            delegation.is_clues = True
+            if clues.entity:
+                delegation.entity = clues.entity
+        elif not delegation.entity:
+            try:
+                delegation.entity = Entity.objects.get(
+                    institution=delegation.institution,
+                    state=delegation.state, clues__isnull=True)
+            except Entity.DoesNotExist:
+                print("Entity not found: ", delegation)
+            except Entity.MultipleObjectsReturned:
+                print("Multiple entities found: ", delegation)
+        delegation.save()
+
+
+move_delegation_clues()

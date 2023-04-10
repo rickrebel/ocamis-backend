@@ -1,11 +1,9 @@
 from django.contrib import admin
 from django.contrib.admin import AdminSite
 
-# from data_param.admin import PetitionFileControlInline, NameColumnAdmin, FileControlAdmin, TransformationAdmin
-# Register your models here.
 from .models import (
     Petition, PetitionFileControl, DataFile,
-    PetitionMonth, ReplyFile, SheetFile, LapSheet)
+    PetitionMonth, ReplyFile, SheetFile, LapSheet, TableFile)
 
 
 class OcamisAdminSite(AdminSite):
@@ -17,6 +15,17 @@ class OcamisAdminSite(AdminSite):
 ocamis_admin_site = OcamisAdminSite(name='ocamis_admin')
 
 
+class ReplyFileAdmin(admin.ModelAdmin):
+    list_display = [
+        "petition",
+        "file",
+        "file_type",
+        "url_download",
+    ]
+    raw_id_fields = ["petition"]
+    list_filter = ["petition__agency"]
+
+
 class DataFileInline(admin.TabularInline):
     model = DataFile
     raw_id_fields = [
@@ -24,17 +33,6 @@ class DataFileInline(admin.TabularInline):
         "reply_file"]
     extra = 0
     show_change_link = True
-
-
-class PetitionFileControlAdmin(admin.ModelAdmin):
-    list_display = [
-        "petition",
-        "file_control",
-    ]
-    list_filter = ["petition__agency"]
-    inlines = [DataFileInline]
-
-ocamis_admin_site.register(PetitionFileControl, PetitionFileControlAdmin)
 
 
 class PetitionMonthInline(admin.TabularInline):
@@ -60,39 +58,13 @@ class PetitionAdmin(admin.ModelAdmin):
     list_filter = ["agency"]
 
 
-class LapSheetInline(admin.TabularInline):
-    model = LapSheet
-    extra = 0
-    show_change_link = True
-    raw_id_fields = ["sheet_file"]
-
-
-class LapSheetAdmin(admin.ModelAdmin):
+class PetitionFileControlAdmin(admin.ModelAdmin):
     list_display = [
-        "sheet_file",
-        "lap",
-        "inserted",
-        "prescription_count",
-        "drug_count",
-        "total_count",
+        "petition",
+        "file_control",
     ]
-    raw_id_fields = ["sheet_file"]
-
-
-class SheetFileAdmin(admin.ModelAdmin):
-    list_display = [
-        "file",
-        "file_type",
-        "matched",
-        "sheet_name",
-    ]
-    list_filter = [
-        "file_type", "matched"]
-    search_fields = [
-        "file", "data_file__petition__agency__acronym",
-        "data_file__petition__folio_petition"]
-    inlines = [LapSheetInline]
-    raw_id_fields = ["data_file"]
+    list_filter = ["petition__agency"]
+    inlines = [DataFileInline]
 
 
 class SheetFileInline(admin.StackedInline):
@@ -128,20 +100,63 @@ class DataFileAdmin(admin.ModelAdmin):
         return list_filter  # + ['origin_file__isnull']
 
 
-class ReplyFileAdmin(admin.ModelAdmin):
+class TableFileInline(admin.TabularInline):
+    model = TableFile
+    extra = 0
+    raw_id_fields = ["lap_sheet"]
+
+
+class LapSheetInline(admin.TabularInline):
+    model = LapSheet
+    extra = 0
+    # show_change_link = True
+    raw_id_fields = ["sheet_file"]
+    inlines = [TableFileInline]
+
+
+class SheetFileAdmin(admin.ModelAdmin):
     list_display = [
-        "petition",
         "file",
         "file_type",
-        "url_download",
+        "matched",
+        "sheet_name",
     ]
-    raw_id_fields = ["petition"]
-    list_filter = ["petition__agency"]
+    list_filter = [
+        "file_type", "matched"]
+    search_fields = [
+        "file", "data_file__petition__agency__acronym",
+        "data_file__petition__folio_petition"]
+    inlines = [LapSheetInline]
+    raw_id_fields = ["data_file"]
 
 
-ocamis_admin_site.register(LapSheet, LapSheetAdmin)
-ocamis_admin_site.register(Petition, PetitionAdmin)
+class LapSheetAdmin(admin.ModelAdmin):
+    list_display = [
+        "sheet_file",
+        "lap",
+        "inserted",
+        "prescription_count",
+        "drug_count",
+        "total_count",
+    ]
+    raw_id_fields = ["sheet_file"]
+
+
+class TableFileAdmin(admin.ModelAdmin):
+
+    list_display = [
+        "lap_sheet",
+        "file",
+        "collection",
+    ]
+    list_filter = ["collection"]
+    raw_id_fields = ["lap_sheet"]
+
+
 ocamis_admin_site.register(ReplyFile, ReplyFileAdmin)
+ocamis_admin_site.register(Petition, PetitionAdmin)
+ocamis_admin_site.register(PetitionFileControl, PetitionFileControlAdmin)
 ocamis_admin_site.register(DataFile, DataFileAdmin)
 ocamis_admin_site.register(SheetFile, SheetFileAdmin)
-
+ocamis_admin_site.register(LapSheet, LapSheetAdmin)
+ocamis_admin_site.register(TableFile, TableFileAdmin)

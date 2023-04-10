@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
+from inai.admin import ocamis_admin_site
 from django.contrib import admin
 
 from .models import (
@@ -17,49 +17,6 @@ class PresentationTypeAdmin(admin.ModelAdmin):
     list_filter = ["origen_cvmei"]
     raw_id_fields = ["agrupated_in"]
     search_fields = ["name", "common_name", "alias"]
-
-
-admin.site.register(PresentationType, PresentationTypeAdmin)
-
-
-admin.site.register(Group)
-
-
-class ContainerAdmin(admin.ModelAdmin):
-    list_display = [
-        "presentation",
-        "name",
-        "key",
-        "is_current",
-        "short_name",
-    ]
-    list_filter = ["is_current", "origen_cvmei"]
-    raw_id_fields = ["presentation"]
-    search_fields = ["name", "key", "short_name"]
-
-
-admin.site.register(Container, ContainerAdmin)
-
-
-class PresentationAdmin(admin.ModelAdmin):
-    list_display = [
-        "description",
-        "component",
-        "presentation_type",
-    ]
-    list_filter = ["origen_cvmei"]
-    raw_id_fields = ["component"]
-    search_fields = [
-        "description",
-        "presentation_type_raw",
-        "clave",
-        "official_name",
-        "official_attributes",
-        "short_attributes",
-    ]
-
-
-admin.site.register(Presentation, PresentationAdmin)
 
 
 class PresentationInline(admin.StackedInline):
@@ -82,4 +39,45 @@ class ComponentAdmin(admin.ModelAdmin):
     len_short_name_display.short_display = "Largo del nombre"
 
 
-admin.site.register(Component, ComponentAdmin)
+class ContainerInline(admin.StackedInline):
+    model = Container
+    extra = 0
+
+
+class PresentationAdmin(admin.ModelAdmin):
+    list_display = [
+        "description",
+        "component",
+        "presentation_type",
+    ]
+    list_filter = ["origen_cvmei"]
+    raw_id_fields = ["component"]
+    search_fields = [
+        "description",
+        "presentation_type_raw",
+        "clave",
+        "official_name",
+        "official_attributes",
+        "short_attributes",
+    ]
+    inlines = [ContainerInline]
+
+
+class ContainerAdmin(admin.ModelAdmin):
+    list_display = [
+        "presentation",
+        "name",
+        "key",
+        "is_current",
+        "short_name",
+    ]
+    list_filter = ["is_current", "origen_cvmei"]
+    raw_id_fields = ["presentation"]
+    search_fields = ["name", "key", "short_name"]
+
+
+ocamis_admin_site.register(PresentationType, PresentationTypeAdmin)
+ocamis_admin_site.register(Group)
+ocamis_admin_site.register(Component, ComponentAdmin)
+ocamis_admin_site.register(Presentation, PresentationAdmin)
+ocamis_admin_site.register(Container, ContainerAdmin)

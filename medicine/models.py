@@ -14,13 +14,15 @@ class Group(models.Model):
 
     class Meta:
         verbose_name = "Grupo Terapeútico"
-        verbose_name_plural = "Grupos Terapeúticos"
+        verbose_name_plural = "1. Grupos Terapeúticos"
         db_table = u'desabasto_group'
 
 
 class Component(models.Model):
     name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=255, blank=True, null=True)
+    medicine_type = models.CharField(
+        max_length=255, blank=True, null=True)
     alias = models.CharField(
         max_length=255,
         verbose_name="Nombres alternativos y comerciales",
@@ -59,7 +61,7 @@ class Component(models.Model):
 
     class Meta:
         verbose_name = "Componente"
-        verbose_name_plural = "Componentes"
+        verbose_name_plural = "2. Componentes"
         db_table = u'desabasto_component'
 
 
@@ -71,7 +73,6 @@ class PresentationType(models.Model):
     agrupated_in = models.ForeignKey(
         "PresentationType", blank=True, null=True, on_delete=models.CASCADE)
     #agrupated_in = models.IntegerField(blank=True, null=True)
-
     origen_cvmei = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -88,7 +89,7 @@ class PresentationType(models.Model):
 
     class Meta:
         verbose_name = "Tipo de presentación"
-        verbose_name_plural = "Tipos de presentación"
+        verbose_name_plural = "0. Tipos de presentación"
         ordering = ["name"]
         db_table = u'desabasto_presentationtype'
 
@@ -108,19 +109,17 @@ class Presentation(models.Model):
     official_name = models.TextField(blank=True, null=True)
     official_attributes = models.TextField(blank=True, null=True)
     short_attributes = models.TextField(blank=True, null=True)
-
     origen_cvmei = models.BooleanField(default=False)
 
     group = models.ForeignKey(
         Group, blank=True, null=True, on_delete=models.CASCADE)
-    #group = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return " ".join([self.component.name, self.short_attributes or ""])
 
     class Meta:
         verbose_name = "Presentación del componente"
-        verbose_name_plural = "Presentaciones del componente"
+        verbose_name_plural = "3. Presentaciones del componente"
         db_table = u'desabasto_presentation'
 
 
@@ -156,5 +155,5 @@ class Container(models.Model):
 
     class Meta:
         verbose_name = "Recipiente (Contenedor)"
-        verbose_name_plural = "Recipientes (Contenedores)"
+        verbose_name_plural = "4. Recipientes (Contenedores)"
         db_table = u'desabasto_container'

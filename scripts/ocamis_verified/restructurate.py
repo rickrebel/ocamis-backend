@@ -154,6 +154,3 @@ def assign_column_to_special_transforms():
     final_field = FinalField.objects.get(name="*concat_or_fragment")
     columns.update(final_field=final_field)
 
-
-
-

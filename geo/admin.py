@@ -14,6 +14,7 @@ from .models import (
     Disease,
     Agency,
     Delegation,
+    Entity
 )
 
 
@@ -54,6 +55,18 @@ class InstitutionAdmin(admin.ModelAdmin):
         "public_name",
         "public_code",
         "relevance"]
+
+
+class EntityAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "acronym",
+        "state",
+        "institution",
+        "is_clues",
+        "population",
+    ]
+    list_filter = ["is_clues", "institution"]
 
 
 class CLUESAdmin(admin.ModelAdmin):
@@ -147,6 +160,7 @@ ocamis_admin_site.register(State, StateAdmin)
 admin.site.register(Municipality, MunicipalityAdmin)
 admin.site.register(Institution, InstitutionAdmin)
 ocamis_admin_site.register(Institution, InstitutionAdmin)
+ocamis_admin_site.register(Entity, EntityAdmin)
 admin.site.register(CLUES, CLUESAdmin)
 ocamis_admin_site.register(CLUES, CLUESAdmin)
 admin.site.register(Alliances, AlliancesAdmin)

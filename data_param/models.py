@@ -24,7 +24,7 @@ class DataGroup(models.Model):
 
     class Meta:
         verbose_name = "Grupo de datos solicitados"
-        verbose_name_plural = "Grupos de datos solicitados"
+        verbose_name_plural = "1.1 Grupos de datos solicitados"
         ordering = ['order']
 
 
@@ -50,7 +50,7 @@ class Collection(models.Model):
 
     class Meta:
         verbose_name = "Modelo (Tabla)"
-        verbose_name_plural = "Modelos o Tablas"
+        verbose_name_plural = "1.3 Modelos o Tablas"
         ordering = ['data_group', 'name']
 
 
@@ -73,7 +73,7 @@ class DataType(models.Model):
 
     class Meta:
         verbose_name = "Tipo de dato"
-        verbose_name_plural = "Tipos de datos"
+        verbose_name_plural = "2.CAT. Tipos de datos"
 
 
 class ParameterGroup(models.Model):
@@ -87,7 +87,7 @@ class ParameterGroup(models.Model):
 
     class Meta:
         verbose_name = "Agrupación de campos finales"
-        verbose_name_plural = "Agrupaciones de campos finales"
+        verbose_name_plural = "1.2 Agrupaciones de campos finales"
 
 
 def default_addl_params():
@@ -157,7 +157,7 @@ class FileControl(models.Model):
     class Meta:
         #unique_together = ["data_group", "name"]
         verbose_name = "Grupo de control de archivos"
-        verbose_name_plural = "Grupos de control de archivos"
+        verbose_name_plural = "3.1 Grupos de control de archivos"
         db_table = "data_param_filecontrol"
 
 
@@ -232,7 +232,7 @@ class FinalField(models.Model):
     class Meta:
         ordering = ["parameter_group", "-is_common", "verbose_name"]
         verbose_name = "Campo final"
-        verbose_name_plural = "Campos finales (en DB)"
+        verbose_name_plural = "1.4 Campos finales (en DB)"
 
 
 class DictionaryFile(models.Model):
@@ -265,7 +265,7 @@ class DictionaryFile(models.Model):
 
     class Meta:
         verbose_name = "Catálogo para match"
-        verbose_name_plural = "Catálogos para match"
+        verbose_name_plural = "4.2 Diccionarios para match"
 
 
 class CleanFunction(models.Model):
@@ -299,7 +299,7 @@ class CleanFunction(models.Model):
     class Meta:
         ordering = ["priority", "public_name"]
         verbose_name = "Función de limpieza y transformación"
-        verbose_name_plural = "Funciones de limpieza y transformación"
+        verbose_name_plural = "2.CAT. Funciones de limpieza y transformación"
 
 
 def default_params():
@@ -367,7 +367,7 @@ class NameColumn (models.Model):
     class Meta:
         ordering = ["seq"]
         verbose_name = "Nombre de Columna"
-        verbose_name_plural = "Nombres de Columnas"
+        verbose_name_plural = "3.2 Nombres de Columnas"
         db_table = "data_param_namecolumn"
 
 
@@ -411,6 +411,6 @@ class Transformation(models.Model):
 
     class Meta:
         verbose_name = "Transformación a aplicar"
-        verbose_name_plural = "Transformaciones a aplicar"
+        verbose_name_plural = "4.1 Transformaciones a aplicar"
         db_table = "data_param_transformation"
 

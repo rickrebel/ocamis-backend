@@ -28,15 +28,6 @@ class MedicalSpecialityAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(MedicalSpeciality, MedicalSpecialityAdmin)
 
 
-class DoctorAdmin(admin.ModelAdmin):
-
-    list_display = ["clave", "full_name", "medical_speciality"]
-    search_fields = ["clave", "full_name"]
-
-
-ocamis_admin_site.register(Doctor, DoctorAdmin)
-
-
 class DrugInline(admin.TabularInline):
     model = Drug
     extra = 0
@@ -46,16 +37,22 @@ class DrugInline(admin.TabularInline):
 class PrescriptionAdmin(admin.ModelAdmin):
 
     list_display = [
-        #"year_month",
-        "clues",
-        "document_type",
+        "entity",
         "folio_document",
+        "delivered_final",
+        "iso_year",
+        "month",
+        "medical_unity",
+        "document_type",
+        "doctor",
+        "diagnosis",
     ]
     inlines = [
         DrugInline,
     ]
-    raw_id_fields = ["clues"]
-    search_fields = ["document_type", ]
+    raw_id_fields = ["entity", "medical_unity", "area", "doctor", "diagnosis"]
+    list_filter = ["entity", "iso_year", "month"]
+    search_fields = ["folio_document", ]
 
 
 ocamis_admin_site.register(Prescription, PrescriptionAdmin)

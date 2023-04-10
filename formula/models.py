@@ -5,7 +5,7 @@ from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
 
-from med_cat.models import Doctor, Diagnosis, Area
+from med_cat.models import Doctor, Diagnosis, Area, MedicalUnity
 
 
 class MedicalSpeciality(models.Model):
@@ -48,21 +48,22 @@ class Prescription(models.Model):
     from geo.models import CLUES, Delegation, Entity
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
+    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
     folio_ocamis = models.CharField(max_length=60)
     folio_document = models.CharField(max_length=40)
     iso_year = models.PositiveSmallIntegerField()
     month = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
-    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
-    delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    clues = models.ForeignKey(
-        CLUES, blank=True, null=True, on_delete=models.CASCADE)
-    delivered_final = models.ForeignKey(
-        Delivered, on_delete=models.CASCADE, blank=True, null=True)
+    medical_unity = models.ForeignKey(MedicalUnity, on_delete=models.CASCADE)
     area = models.ForeignKey(
         Area, on_delete=models.CASCADE, blank=True, null=True)
+    # delegation = models.ForeignKey(
+    #     Delegation, on_delete=models.CASCADE, blank=True, null=True)
+    # clues = models.ForeignKey(
+    #     CLUES, blank=True, null=True, on_delete=models.CASCADE)
+    delivered_final = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE, blank=True, null=True)
     # EXTENSION: COSAS NO TAN RELEVANTES:
     # document_type = models.ForeignKey(
     #     DocumentType, on_delete=models.CASCADE, blank=True, null=True)
@@ -74,7 +75,6 @@ class Prescription(models.Model):
         Doctor, blank=True, null=True, on_delete=models.CASCADE)
     diagnosis = models.ForeignKey(
         Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
-    # is_valid = models.BooleanField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Receta"

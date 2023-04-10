@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class InaiConfig(AppConfig):
     name = 'inai'
-    verbose_name = 'D. Solicitudes INAI y archivos'
+    verbose_name = 'B. Solicitudes INAI y archivos'

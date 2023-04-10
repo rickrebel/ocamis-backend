@@ -21,38 +21,37 @@ from .petition_mixins.petition_mix import PetitionTransformsMix
 
 
 def set_upload_path(instance, filename):
-    #from django.conf import settings
-    #files_path = getattr(settings, "FILES_PATH")
+    # from django.conf import settings
+    # files_path = getattr(settings, "FILES_PATH")
     is_sheet_file = getattr(instance, "data_file", False)
     if is_sheet_file:
         instance = instance.data_file
     try:
         petition = instance.petition_file_control.petition
-    except:
+    except AttributeError:
         try:
             petition = instance.petition
-        except Exception as e:
+        except AttributeError:
             return "/".join(["sin_instance", filename])
 
     agency_type = petition.agency.agency_type[:8].lower()
     try:
         acronym = petition.agency.acronym.lower()
-
-    except:
+    except AttributeError:
         acronym = 'others'
     try:
         last_year_month = instance.month_agency.year_month
     except AttributeError:
         try:
-            #last_year_month = petition.petition_months[-1].month_agency.year_month
             last_year_month = petition.last_year_month()
-        except :
+        except IndexError:
             last_year_month = "others"
-    except:
+    except Exception as e:
+        print(e)
         last_year_month = "others"
-    #final_path = "/".join([agency_type, acronym, last_year_month, filename])
-    #print(os.path.join('/media/%s/' % instance.id, filename))
-    #print(os.path.join(files_path, final_path))
+    # final_path = "/".join([agency_type, acronym, last_year_month, filename])
+    # print(os.path.join('/media/%s/' % instance.id, filename))
+    # print(os.path.join(files_path, final_path))
     return "/".join([agency_type, acronym, last_year_month, filename])
 
 
@@ -119,7 +118,7 @@ class Petition(models.Model, PetitionTransformsMix):
 
     class Meta:
         verbose_name = "Solicitud - Petición"
-        verbose_name_plural = "Solicitudes (Peticiones)"
+        verbose_name_plural = "1. Solicitudes (Peticiones)"
 
 
 class PetitionBreak(models.Model):
@@ -171,7 +170,7 @@ class PetitionFileControl(models.Model):
 
     class Meta:
         verbose_name = "Relacional: petición -- Grupo de Control"
-        verbose_name_plural = "Relacional: Petición -- Grupos de Control"
+        verbose_name_plural = "7. Relacional: Petición -- Grupos de Control"
 
 
 class MonthAgency(models.Model):
@@ -259,7 +258,7 @@ class ReplyFile(models.Model, ReplyFileMix):
 
     class Meta:
         verbose_name = "Archivo sin datos finales"
-        verbose_name_plural = "Archivos sin datos finales"
+        verbose_name_plural = "2. Archivos sin datos finales"
 
 
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
@@ -382,18 +381,13 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
         return more_than_x_minutes
 
-    # def save(self, *args, **kwargs):
-    #     from django.utils import timezone
-    #     self.last_update = timezone.now()
-    #     super(DataFile, self).save(*args, **kwargs)
-
     def __str__(self):
         return "%s %s" % (str(self.file), self.petition_file_control)
 
     class Meta:
         ordering = ["-id"]
         verbose_name = "Archivo con datos"
-        verbose_name_plural = "Archivos con datos"
+        verbose_name_plural = "3. Archivos con datos"
 
 
 class SheetFile(models.Model):
@@ -452,7 +446,7 @@ class SheetFile(models.Model):
 
     class Meta:
         verbose_name = "Archivo csv"
-        verbose_name_plural = "Archivos csv"
+        verbose_name_plural = "4. Archivos csv"
         ordering = ["id"]
         unique_together = ("data_file", "sheet_name", "file_type")
 
@@ -495,7 +489,7 @@ class LapSheet(models.Model):
 
     class Meta:
         verbose_name = "Lap de archivo csv"
-        verbose_name_plural = "Laps de archivo csv"
+        verbose_name_plural = "5. Laps de archivo csv"
         ordering = ["id"]
         unique_together = ("sheet_file", "lap")
 
@@ -518,6 +512,6 @@ class TableFile(models.Model):
 
     class Meta:
         verbose_name = "Archivo para insertar"
-        verbose_name_plural = "Archivos para insertar"
+        verbose_name_plural = "6. Archivos para insertar"
         ordering = ["id"]
         unique_together = ("lap_sheet", "collection", "is_for_edition")
