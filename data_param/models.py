@@ -38,19 +38,21 @@ class Collection(models.Model):
     model_name = models.CharField(
         max_length=225,
         verbose_name="Nombre en el código")
+    app_label = models.CharField(
+        max_length=40, verbose_name="App label", default="null")
     description = models.TextField(
         blank=True, null=True)
     open_insertion = models.BooleanField(
-        default=False, verbose_name="Permitir inserción de datos")
+        default=False, verbose_name="Permitir inserción")
     cat_params = JSONField(
         default=dict, verbose_name="Parámetros para catálogo")
 
     def __str__(self):
-        return f"{self.model_name}"
+        return f"{self.app_label}-{self.model_name}"
 
     class Meta:
-        verbose_name = "Modelo (Tabla)"
-        verbose_name_plural = "1.3 Modelos o Tablas"
+        verbose_name = "Modelo (Colección)"
+        verbose_name_plural = "1.3 Modelos (Colecciones)"
         ordering = ['data_group', 'name']
 
 
@@ -238,10 +240,10 @@ class FinalField(models.Model):
 class DictionaryFile(models.Model):
     entity = models.ForeignKey(
         Entity, on_delete=models.CASCADE, blank=True, null=True)
-    institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE, blank=True, null=True)
-    delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE, blank=True, null=True)
+    # institution = models.ForeignKey(
+    #     Institution, on_delete=models.CASCADE, blank=True, null=True)
+    # delegation = models.ForeignKey(
+    #     Delegation, on_delete=models.CASCADE, blank=True, null=True)
     file_control = models.ForeignKey(
         FileControl, on_delete=models.CASCADE, blank=True, null=True)
     collection = models.ForeignKey(
@@ -413,4 +415,3 @@ class Transformation(models.Model):
         verbose_name = "Transformación a aplicar"
         verbose_name_plural = "4.1 Transformaciones a aplicar"
         db_table = "data_param_transformation"
-

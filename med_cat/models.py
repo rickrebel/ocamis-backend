@@ -7,8 +7,8 @@ from geo.models import Institution, Delegation, Entity, Typology, CLUES
 from medicine.models import Component, Presentation, Container
 
 
-class MedicalUnity(models.Model):
-    hash = models.CharField(max_length=32, primary_key=True)
+class MedicalUnit(models.Model):
+    hex_hash = models.CharField(max_length=32, primary_key=True)
     entity = models.ForeignKey(
         Entity, verbose_name="Entity", on_delete=models.CASCADE)
     delegation = models.ForeignKey(
@@ -37,7 +37,7 @@ class MedicalUnity(models.Model):
         max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return self.hash
+        return self.hex_hash
 
     class Meta:
         verbose_name = "Unidad Médica"
@@ -46,7 +46,7 @@ class MedicalUnity(models.Model):
 
 class Area(models.Model):
 
-    hash = models.CharField(max_length=32, primary_key=True)
+    hex_hash = models.CharField(max_length=32, primary_key=True)
     # hex_hash = models.CharField(max_length=40, blank=True, null=True)
     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
     # institution = models.ForeignKey(
@@ -67,7 +67,7 @@ class Area(models.Model):
     is_aggregate = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.hash
+        return self.hex_hash
 
     class Meta:
         verbose_name = "Área"
@@ -77,7 +77,7 @@ class Area(models.Model):
 class Doctor(models.Model):
     from geo.models import Institution, Delegation
 
-    hash = models.CharField(max_length=32, primary_key=True)
+    hex_hash = models.CharField(max_length=32, primary_key=True)
     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
     # institution = models.ForeignKey(
     #     Institution, on_delete=models.CASCADE)
@@ -96,12 +96,12 @@ class Doctor(models.Model):
         verbose_name_plural = "Doctores"
 
     def __str__(self):
-        return self.hash
+        return self.hex_hash
 
 
 class Diagnosis(models.Model):
 
-    hash = models.CharField(max_length=32, primary_key=True)
+    hex_hash = models.CharField(max_length=32, primary_key=True)
     cie10 = models.CharField(max_length=40, blank=True, null=True)
     own_key = models.CharField(max_length=255, blank=True, null=True)
     text = models.TextField(blank=True, null=True)
@@ -115,24 +115,24 @@ class Diagnosis(models.Model):
         verbose_name_plural = "Diagnósticos"
 
     def __str__(self):
-        return self.hash
+        return self.hex_hash
 
 
 class Medicament(models.Model):
 
-    hash = models.CharField(max_length=32, primary_key=True)
+    hex_hash = models.CharField(max_length=32, primary_key=True)
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE, blank=True, null=True,
+        help_text="ent")
     component = models.ForeignKey(
         Component, on_delete=models.CASCADE, blank=True, null=True)
     presentation = models.ForeignKey(
         Presentation, on_delete=models.CASCADE, blank=True, null=True)
     container = models.ForeignKey(
         Container, on_delete=models.CASCADE, blank=True, null=True)
-    entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True,
-        help_text="ent")
     key2 = models.CharField(
         max_length=20, help_text="key2")
-    own_key = models.CharField(
+    own_key2 = models.CharField(
         max_length=255, blank=True, null=True,
         help_text="own")
     medicine_type = models.CharField(
@@ -150,4 +150,4 @@ class Medicament(models.Model):
         verbose_name_plural = "Medicamentos"
 
     def __str__(self):
-        return self.hash
+        return self.hex_hash

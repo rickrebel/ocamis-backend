@@ -2,12 +2,10 @@ import io
 from django.conf import settings
 from scripts.common import start_session, create_file
 import json
+from task.serverless import camel_to_snake
 import csv
-import uuid as uuid_lib
 
 from inai.models import DataFile
-delegation_value_list = [
-    'name', 'other_names', 'state__short_name', 'id', 'clues']
 
 
 def text_normalizer(text):
@@ -16,6 +14,31 @@ def text_normalizer(text):
     text = text.upper().strip()
     text = unidecode.unidecode(text)
     return re.sub(r'[^a-zA-Z\s]', '', text)
+
+
+def sheet_name_to_file_name(sheet_name):
+    import re
+    valid_characters = re.sub(r'[\\/:*?"<>|]', '_', sheet_name)
+    valid_characters = valid_characters.strip()
+    valid_characters = re.sub(r'\s+', ' ', valid_characters)
+    valid_characters = valid_characters.replace(' ', '_')
+
+    return valid_characters
+
+
+def get_models_of_app(app_label):
+    from django.apps import apps
+    app = apps.get_app_config(app_label)
+    models = app.get_models()
+    all_models = []
+    for model in models:
+        model_name = model.__name__
+        all_models.append({
+            'app': app_label,
+            'model': model_name,
+            'name': camel_to_snake(model_name),
+        })
+    return all_models
 
 
 def field_of_models(model_data):
@@ -37,7 +60,9 @@ def field_of_models(model_data):
 def field_of_models_all(model_data):
     from django.apps import apps
     from django.db.models import CharField, TextField
-    app_name = model_data.get('app', 'formula')
+    app_name = model_data.get('app')
+    if not app_name:
+        raise Exception("app_name is required")
     model_name = model_data['model']
     my_model = apps.get_model(app_name, model_name)
     all_fields = my_model._meta.get_fields(
@@ -48,9 +73,13 @@ def field_of_models_all(model_data):
             continue
         complement = "_id" if field.is_relation else ""
         field_name = f"{field.name}{complement}"
+        is_char = isinstance(field, CharField)
+        is_string = isinstance(field, TextField) or is_char
         fields.append({
             "name": field_name,
-            "is_str": isinstance(field, (CharField, TextField)),
+            "is_string": is_string,
+            "is_relation": field.is_relation,
+            "max_length": field.max_length if is_char else None,
         })
     return fields
 
@@ -66,21 +95,14 @@ class Match:
         petition = data_file.petition_file_control.petition
         self.file_control = data_file.petition_file_control.file_control
         self.agency = petition.agency
-        self.institution = self.agency.institution
-        self.global_state = self.agency.state
-        self.global_clues = self.agency.clues
-        self.global_delegation = None
-        print("self.institution.code", self.institution.code)
-        if self.institution.code == "INSABI":
-            print("INSABI")
-            if self.global_state:
-                delegation_name = f"{self.global_state.short_name} - INSABI"
-                self.global_delegation = Delegation.objects.filter(
-                    name=delegation_name).first()
-        elif self.global_clues:
-            self.global_delegation = self.global_clues.related_delegation
-        print("global_delegation", self.global_delegation)
-        only_name = f"NEW_ELEM_NAME_{self.data_file.id}_lap{self.lap}.csv"
+        entity = self.agency.entity
+        self.institution = entity.institution
+        self.global_clues = entity.ent_clues.first() if entity.is_clues else None
+        # print("self.institution.code", self.institution.code)
+        self.global_delegation = self.global_clues.delegation \
+            if self.global_clues else None
+        # print("global_delegation", self.global_delegation)
+        only_name = f"NEW_ELEM_NAME_{self.data_file.id}_SHEET_NAME_lap{self.lap}.csv"
         self.final_path = set_upload_path(self.data_file, only_name)
         self.name_columns = NameColumn.objects \
             .filter(file_control=self.file_control) \
@@ -94,40 +116,24 @@ class Match:
 
         original_columns = self.name_columns.filter(
             position_in_data__isnull=False)
-        self.delimiter = self.file_control.delimiter or ','
+        self.delimiter = self.file_control.delimiter
         self.columns_count = original_columns.count()
 
-        self.editable_models = [
-            {"name": "prescription", "model": "Prescription"},
-            {"name": "drug", "model": "Drug"},
-            {"name": "missing_field", "model": "MissingField"},
-            {"name": "missing_row", "model": "MissingRow"},
-
-            {"name": "doctor", "model": "Doctor", "app": "med_cat"},
-            {"name": "diagnosis", "model": "Diagnosis", "app": "med_cat"},
-            {"name": "area", "model": "Area", "app": "med_cat"},
-            {"name": "clues", "model": "CLUES", "app": "geo"},
-        ]
-        self.model_fields = {curr_list["name"]: field_of_models_all(curr_list)
-                             for curr_list in self.editable_models}
+        self.editable_models = get_models_of_app("formula")
+        self.editable_models += get_models_of_app("med_cat")
+        self.model_fields = {model["name"]: field_of_models_all(model)
+                             for model in self.editable_models}
 
         self.existing_fields = []
-        self.catalogs = {}
-        # self.catalog_clues_by_id = None
-        # self.catalog_delegation_by_id = {}
-        # self.catalog_container = {}
         self.task_params = task_params
 
         s3_client, dev_resource = start_session()
         self.s3_client = s3_client
 
-        # self.claves_medico_dict = {}
-        # self.catalog_clues = {}
-        # self.catalog_state = {}
-
     def build_csv_converted(self, is_prepare=False):
         from scripts.common import build_s3
         from task.serverless import async_in_lambda
+        import hashlib
 
         string_date = self.get_date_format()
         missing_criteria = self.calculate_minimals_criteria()
@@ -139,56 +145,56 @@ class Match:
                 f"Elementos faltantes: {missing_criteria}"
             return [], [error], self.data_file
 
-        self.build_all_catalogs()
         self.build_existing_fields()
 
-        # print("string_date", string_date)
-        # unique_clues = {}
-        # for existing_field in self.existing_fields:
-        #     if existing_field["collection"] == "CLUES" and \
-        #             existing_field["is_unique"]:
-        #         unique_clues = existing_field
-        #         break
+        value_null = "".encode(self.file_control.decode or "utf-8")
+        hash_null = hashlib.md5(value_null).hexdigest()
+
+        def build_global_geo(global_obj):
+            if not global_obj:
+                return None
+            is_clues = global_obj.__class__.__name__ == "CLUES"
+            final_dict = {"id": global_obj.id}
+            if is_clues:
+                final_dict["clues_key"] = global_obj.clues,
+            else:
+                final_dict["name"] = global_obj.name,
+            return final_dict
 
         init_data = {
-            "data_file_id": self.data_file.id,
             "file_name": self.data_file.file.name,
-            # "file_control_id": self.file_control.id,
-            "global_delegation_id": self.global_delegation.id if self.global_delegation else None,
+            "global_clues": build_global_geo(self.global_clues),
+            "global_delegation": build_global_geo(self.global_delegation),
             "decode": self.file_control.decode,
+            "hash_null": hash_null,
             "delimiter": self.delimiter,
-            "final_path": self.final_path,
             "row_start_data": self.file_control.row_start_data,
-            "agency_id": self.agency.id if self.agency else None,
-            "institution_id": self.institution.id if self.institution else None,
-            "global_clues_id": self.global_clues.id if self.global_clues else None,
+            "entity_id": self.agency.entity.id if self.agency else None,
             "columns_count": self.columns_count,
             "editable_models": self.editable_models,
             "model_fields": self.model_fields,
             "existing_fields": self.existing_fields,
-            "catalogs": self.catalogs,
             "is_prepare": is_prepare,
             "lap": -1 if is_prepare else self.lap,
-            # "catalog_delegation": self.catalog_delegation_by_id,
-            # "catalog_clues_by_id": self.catalog_clues_by_id,
-            # "catalog_container": self.catalog_container,
             "string_date": string_date,
-            # "unique_clues": unique_clues,
         }
-        # result = start_build_csv_data(params, None)
         self.task_params["function_after"] = "finish_build_csv_data"
         all_tasks = []
-        # print("is_prepare", is_prepare)
+
         for sheet_file in self.data_file.sheet_files.filter(matched=True):
 
             if sheet_file.sheet_name not in self.data_file.filtered_sheets:
                 continue
+            init_data["sheet_name"] = sheet_file.sheet_name
+            init_data["sheet_file_id"] = sheet_file.id
+            sheet_name2 = sheet_name_to_file_name(sheet_file.sheet_name)
+            init_data["final_path"] = self.final_path.replace(
+                "SHEET_NAME", sheet_name2)
             self.task_params["models"] = [sheet_file]
             params = {
                 "init_data": init_data,
                 "s3": build_s3(),
                 "file": sheet_file.file.name,
-                "sheet_name": sheet_file.sheet_name,
             }
             if is_prepare:
                 dump_sample = json.dumps(sheet_file.sample_data)
@@ -214,33 +220,13 @@ class Match:
         simple_fields = [
             # Generales receta
             ["date_release"],
-            ["date_visit"],
             ["date_delivery"],
+            ["date_visit"],
             ["folio_document"],
             ["document_type"],
             ["prescribed_amount"],
             ["delivered_amount"],
-            # Medicamento
-            ["key2:Container"],
             ["price:Drug"],
-            # Geográficos
-            ["name:Delegation"],
-            # ["clues:CLUES"],
-            # ["key_issste:CLUES"],
-            # ["id_clues:CLUES"],
-            # # Diagnósticos
-            # ["motive"],
-            # ["cie10"],
-            # ["text:Diagnosis", "diagnosis"],
-            # # Doctores
-            # ["professional_license"],
-            # ["medical_speciality"],
-            # ["clave:Doctor"],
-            # ["full_name"],
-            # # Areas
-            # ["description:Area"],
-            # ["name:Area"],
-            # ["key:Area"],
         ]
 
         def build_column_data(column, final_name=None):
@@ -303,33 +289,37 @@ class Match:
 
         existing_fields = self.build_existing_fields()
 
-        def has_matching_dict(key, value):
+        def has_matching_dict(key, val):
             for dict_item in existing_fields:
-                if dict_item[key] == value:
+                if dict_item[key] == val:
                     return True
             return False
 
-        has_delegation = bool(self.global_delegation)
-        if not has_delegation:
-            has_delegation = has_matching_dict("collection", "Delegation")
+        # has_delegation = bool(self.global_delegation)
+        # if not has_delegation:
+        #     has_delegation = has_matching_dict("collection", "Delegation")
         some_data_time = has_matching_dict("data_type", "Datetime")
         has_folio = has_matching_dict("name", "folio_document")
         some_amount = self.name_columns\
             .filter(final_field__name__contains="amount").exists()
-        key_medicine = has_matching_dict("name", "key2")
-        some_medicine = has_matching_dict("name", "_own_key")
-        if not some_medicine:
-            for field in existing_fields:
-                if field["name"] == "name" and field["collection"] == "Container":
-                    some_medicine = True
+        # key_medicine = has_matching_dict("name", "key2")
+        some_medicine = has_matching_dict("collection", "Medicament")
+        some_clues = has_matching_dict("collection", "MedicalUnit")
+        if not some_clues:
+            some_clues = bool(self.global_clues)
+        # if not some_medicine:
+        #     for field in existing_fields:
+        #         if field["name"] == "name" and field["collection"] == "Container":
+        #             some_medicine = True
 
         detailed_criteria = {
-            "Datos de delegación": has_delegation,
+            # "Datos de delegación": has_delegation,
             "Alguna fecha": some_data_time,
             "Folio de receta": has_folio,
             "Alguna cantidad": some_amount,
-            "Clave de medicamento": key_medicine,
-            # "Identificador de medicamento": some_medicine,
+            # "Clave de medicamento": key_medicine,
+            "Algún dato de medicamentos": some_medicine,
+            "Algún dato geográfico": some_clues,
         }
         missing_criteria = []
         for criteria_name, value in detailed_criteria.items():
@@ -373,146 +363,6 @@ class Match:
             add_transformation_error(transformation)
         return missing_criteria
 
-    def build_all_catalogs(self):
-        catalogs = {
-            "container": {
-                "model2": "medicine:Container",
-                "only_unique": True,
-                "required": False,
-                "value_list": [
-                    "name", "presentation__description",
-                    "presentation__presentation_type__name",
-                    "presentation__component__name"]
-            },
-            "diagnosis": {
-                "model2": "formula:Diagnosis",
-                "only_unique": False,
-                "required": False,
-                "id": "uuid",
-                "value_list": ["motive", "cie10", "text"],
-            },
-            "area": {
-                "model2": "geo:Area",
-                "only_unique": False,
-                "required": False,
-                "by_agency": True,
-                "id": "uuid",
-                "value_list": ["description", "name", "key"],
-            },
-            "doctor": {
-                "model2": "formula:Doctor",
-                "only_unique": False,
-                "required": False,
-                "by_agency": True,
-                "id": "uuid",
-                "value_list": [
-                    "full_name", "professional_license",
-                    "clave", "medical_speciality"],
-            },
-        }
-        if not self.global_clues:
-            catalogs["clues"] = {
-                "model2": "geo:CLUES",
-                "only_unique": True,
-                "required": True,
-                "by_agency": True,
-                "value_list": [
-                    'name', 'state__short_name', 'typology', 'typology_cve',
-                    'jurisdiction', 'atention_level'],
-            }
-        if not self.global_delegation:
-            catalogs["delegation"] = {
-                "model2": "geo:Delegation",
-                "only_unique": True,
-                "required": True,
-                "by_agency": True,
-                "complement_field": "other_names",
-                "value_list": ['name', 'state__short_name', 'clues'],
-            }
-        for [catalog_name, catalog] in catalogs.items():
-            # if geo.get("by_agency", False):
-            #     geo["agency"] = self.agency
-            dict_file = self.build_catalog(catalog_name, **catalog)
-            # file_name = dict_file.file.name if dict_file else None
-            # file_name = self.build_catalog(catalog_name, **geo)
-            if dict_file:
-                self.catalogs[catalog_name] = {
-                    "name": catalog_name,
-                    "file": dict_file.file.name,
-                    "unique_field": dict_file.unique_field.name,
-                    "unique_field_id": dict_file.unique_field.id,
-                    "collection": dict_file.collection.model_name,
-                    "params": catalog,
-                }
-            elif catalog["required"]:
-                print("dict_file", dict_file)
-                raise Exception(f"Error al crear el catálogo de {catalog_name}")
-
-    def build_catalog(self, catalog_name, model2, only_unique, **kwargs):
-        from data_param.models import DictionaryFile
-        from django.apps import apps
-        [app_name, model_name] = model2.split(":", 1)
-        model = apps.get_model(app_name, model_name)
-        query_unique = {"final_field__collection__model_name": model_name}
-        if only_unique:
-            query_unique["final_field__is_unique"] = True
-        model_unique = self.name_columns.filter(**query_unique)\
-            .order_by('-final_field__is_unique').first()
-        if not model_unique:
-            return None
-        query_dict_file = {"collection": model_unique.final_field.collection,
-                           "unique_field": model_unique.final_field}
-        # agency = kwargs.get("agency")
-        if kwargs.get("by_agency"):
-            # query_dict_file["agency"] = self.agency
-            query_dict_file["institution"] = self.institution
-            if self.global_delegation:
-                query_dict_file["delegation"] = self.global_delegation
-        dict_file = DictionaryFile.objects.filter(**query_dict_file).first()
-        if not dict_file:
-            query_dict_file["file"] = self.build_catalog_by_id(
-                model, model_unique.final_field.name, catalog_name, **kwargs)
-            dict_file = DictionaryFile.objects.create(**query_dict_file)
-        return dict_file
-
-    def build_catalog_by_id(
-            self, model, key_field, catalog_name, **kwargs):
-        query_filter = {f"{key_field}__isnull": False}
-        if kwargs.get("by_agency"):
-            query_filter["institution"] = self.institution
-            if catalog_name == "clues":
-                if self.global_clues:
-                    query_filter["clues"] = self.global_clues
-                if self.global_state:
-                    query_filter["state"] = self.global_state
-            elif self.global_delegation:
-                query_filter["delegation"] = self.global_delegation
-        model_query = model.objects.filter(**query_filter)
-        complement_field = kwargs.get("complement_field")
-        value_list = kwargs.get("value_list")
-        field_id = kwargs.get("id", "id")
-        list_values = value_list + [key_field, field_id]
-        if complement_field:
-            list_values.append(complement_field)
-        model_list = list(model_query.values(*list_values))
-        catalog_model = {}
-        for elem in model_list:
-            catalog_model[elem[key_field]] = elem
-            if complement_field:
-                complement_list = elem[complement_field] or []
-                for name in complement_list:
-                    if name not in catalog_model:
-                        catalog_model[name] = elem
-        final_path = f"catalogs/{model.__name__.lower()}_by_{key_field}.json"
-        if kwargs.get("by_agency"):
-            final_path = f"{self.agency.acronym}/{final_path}"
-        dumb_catalog = json.dumps(catalog_model)
-        file_model, errors = create_file(
-            dumb_catalog, self.s3_client, final_path=final_path)
-        if errors:
-            raise Exception(f"Error creando catálogo {catalog_name}: {errors}")
-        return file_model
-
     def get_date_format(self):
         from data_param.models import Transformation
         transformation = Transformation.objects.filter(
@@ -528,8 +378,8 @@ class Match:
     # ########## FUNCIONES AUXILIARES #############
     def send_csv_to_db(self, path, model_name):
         from task.serverless import async_in_lambda
-
-        model_in_db = f"formula_{model_name.lower()}"
+        model_data = self.editable_models[model_name]
+        model_in_db = f"{model_data['app']}_{model_data['model'].lower()}"
         columns = self.model_fields[model_name]
         field_names = [field["name"] for field in columns]
         columns_join = ",".join(field_names)
@@ -538,11 +388,12 @@ class Match:
         region_name = getattr(settings, "AWS_S3_REGION_NAME")
         access_key = getattr(settings, "AWS_ACCESS_KEY_ID")
         secret_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
+        encoding = "LATIN1" if self.file_control.decode == "latin-1" else "UTF8"
         sql_query = f"""
             SELECT aws_s3.table_import_from_s3(
                 '{model_in_db}',
                 '{columns_join}',
-                '(format csv, header false, delimiter "|", encoding "LATIN1")',
+                '(format csv, header true, delimiter "|", encoding "{encoding}")',
                 '{bucket_name}',
                 '{aws_location}/{path}',
                 '{region_name}',
@@ -559,3 +410,10 @@ class Match:
         self.task_params["models"] = [self.data_file]
         self.task_params["function_after"] = "check_success_insert"
         return async_in_lambda("save_csv_in_db", params, self.task_params)
+
+    def save_catalog_csv(self, path, model_name):
+        from task.serverless import async_in_lambda
+        from scripts.common import get_file, start_session
+        s3_client, dev_resource = start_session()
+        complete_file = get_file(self, dev_resource)
+        complete_file = complete_file.read()

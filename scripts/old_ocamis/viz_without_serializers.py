@@ -121,7 +121,7 @@ def data_viz(self, request, **kwargs):
                     official_key = ("Container", "key2") in final_fields
                     prescrita = ("Drug", "prescribed_amount") in final_fields
                     entregada = ("Drug", "delivered_amount") in final_fields
-                    own_key = ("Container", "_own_key") in final_fields
+                    own_key = ("Container", "own_key2") in final_fields
                     other_names = (("Drug", "drug_name") in final_fields or
                         ("Presentation", "description") in final_fields or
                         ("Container", "name") in final_fields)

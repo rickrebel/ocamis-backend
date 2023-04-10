@@ -5,7 +5,7 @@ from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
 
-from med_cat.models import Doctor, Diagnosis, Area, MedicalUnity
+from med_cat.models import Doctor, Diagnosis, Area, MedicalUnit, Medicament
 
 
 class MedicalSpeciality(models.Model):
@@ -55,7 +55,7 @@ class Prescription(models.Model):
     month = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
-    medical_unity = models.ForeignKey(MedicalUnity, on_delete=models.CASCADE)
+    medical_unit = models.ForeignKey(MedicalUnit, on_delete=models.CASCADE)
     area = models.ForeignKey(
         Area, on_delete=models.CASCADE, blank=True, null=True)
     # delegation = models.ForeignKey(
@@ -85,7 +85,6 @@ class Prescription(models.Model):
 
 
 class Drug(models.Model):
-    from medicine.models import Container
 
     uuid = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
     prescription = models.ForeignKey(
@@ -95,8 +94,11 @@ class Drug(models.Model):
     sheet_name = models.CharField(max_length=255, blank=True, null=True)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
 
-    container = models.ForeignKey(
-        Container, blank=True, null=True, on_delete=models.CASCADE)
+    # container = models.ForeignKey(
+    #     Container, blank=True, null=True, on_delete=models.CASCADE)
+    medicament = models.ForeignKey(
+        Medicament, blank=True, null=True,
+        on_delete=models.CASCADE)
     prescribed_amount = models.PositiveSmallIntegerField(
         blank=True, null=True)
     delivered_amount = models.PositiveSmallIntegerField(

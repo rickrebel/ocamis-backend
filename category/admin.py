@@ -9,7 +9,7 @@ from .models import (
 
 class StatusControlAdmin(admin.ModelAdmin):
     list_display = [
-         "name", "public_name", "group", "order","description",
+        "public_name", "name", "group", "order",
         "color", "icon", "addl_params"]
     list_editable = ["order", "color"]
     list_filter = ["group"]
@@ -19,8 +19,8 @@ ocamis_admin_site.register(StatusControl, StatusControlAdmin)
 
 
 class FileTypeAdmin(admin.ModelAdmin):
-    list_display = ["public_name", "name", "group", "is_default", "has_data", "order",
-        "addl_params"]
+    list_display = ["public_name", "name", "group", "is_default", "has_data",
+                    "order", "addl_params"]
     list_filter = ["has_data", "group"]
 
 

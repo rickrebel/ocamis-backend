@@ -42,7 +42,7 @@ class PrescriptionAdmin(admin.ModelAdmin):
         "delivered_final",
         "iso_year",
         "month",
-        "medical_unity",
+        "medical_unit",
         "document_type",
         "doctor",
         "diagnosis",
@@ -50,7 +50,7 @@ class PrescriptionAdmin(admin.ModelAdmin):
     inlines = [
         DrugInline,
     ]
-    raw_id_fields = ["entity", "medical_unity", "area", "doctor", "diagnosis"]
+    raw_id_fields = ["entity", "medical_unit", "area", "doctor", "diagnosis"]
     list_filter = ["entity", "iso_year", "month"]
     search_fields = ["folio_document", ]
 

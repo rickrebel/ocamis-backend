@@ -6,6 +6,12 @@ from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
 from task.aws.xls_to_csv import lambda_handler as xls_to_csv
 
 
+def camel_to_snake(name):
+    import re
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
 def execute_in_lambda(function_name, params, in_lambda=True):
     from scripts.common import start_session
     s3_client, dev_resource = start_session("lambda")
@@ -51,11 +57,6 @@ def async_in_lambda(function_name, params, task_params):
     for field in ["parent_task", "params_after"]:
         if field in task_params:
             query_kwargs[field] = task_params[field]
-
-    def camel_to_snake(name):
-        import re
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     for model in task_params["models"]:
         query_kwargs[camel_to_snake(model.__class__.__name__)] = model

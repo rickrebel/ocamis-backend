@@ -97,11 +97,9 @@ def get_file(file_obj, dev_resource=None):
                 key=f"{aws_location}/{file_obj.file.name}"
                 )
             # RICK AWS corroborar el cambio:
-            """
-            content_object_prev = dev_resource.Object(
-                #bucket_name, "data_files/%s" % self.file.name)
-                bucket_name, f"{aws_location}\\{self.file.name}")
-            """
+            # content_object_prev = dev_resource.Object(
+            #     #bucket_name, "data_files/%s" % self.file.name)
+            #     bucket_name, f"{aws_location}\\{self.file.name}")
             return content_object.get()['Body']
             # RICK AWS corroborar el cambio:
             # return BytesIO(content_object.get()["Body"].read())

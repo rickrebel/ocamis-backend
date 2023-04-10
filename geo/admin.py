@@ -153,6 +153,7 @@ class DelegationAdmin(admin.ModelAdmin):
         "institution__name",
         "state__short_name"
     ]
+    list_filter = ["state", "institution"]
 
 
 admin.site.register(State, StateAdmin)

@@ -97,7 +97,7 @@ def build_quality_simple(file_ctrl):
     entregada = has_field("Drug:delivered_amount")
     no_entregada = has_field("Drug:not_delivered_amount")
     assortment = has_field("Drug:clasif_assortment")
-    own_key = has_field("Container:_own_key")
+    own_key = has_field("Container:own_key2")
     other_names = (
         has_field("Component:name") or
         has_field("Presentation:description") or

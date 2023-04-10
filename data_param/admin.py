@@ -42,9 +42,6 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "verbose_name", "parameter_group__name"]
 
 
-ocamis_admin_site.register(FinalField, FinalFieldAdmin)
-
-
 class FinalFieldInLine(admin.StackedInline):
     model = FinalField
     extra = 0
@@ -70,14 +67,12 @@ class CollectionAdmin(admin.ModelAdmin):
     list_display = [
         "name",
         "model_name",
+        "app_label",
         "data_group",
-        "description",
+        "open_insertion",
     ]
-    inlines = [
-        FinalFieldInLine,
-    ]
-
-ocamis_admin_site.register(Collection, CollectionAdmin)
+    inlines = [FinalFieldInLine]
+    list_editable = ["app_label", "open_insertion"]
 
 
 class ParameterGroupAdmin(admin.ModelAdmin):
@@ -89,9 +84,6 @@ class ParameterGroupAdmin(admin.ModelAdmin):
     inlines = [
         FinalFieldInLine,
     ]
-
-
-ocamis_admin_site.register(ParameterGroup, ParameterGroupAdmin)
 
 
 class CollectionInline(admin.TabularInline):
@@ -111,9 +103,6 @@ class DataGroupAdmin(admin.ModelAdmin):
     inlines = [ CollectionInline ]
 
 
-ocamis_admin_site.register(DataGroup, DataGroupAdmin)
-
-
 class DataTypeAdmin(admin.ModelAdmin):
     list_display = [
         "name",
@@ -125,18 +114,12 @@ class DataTypeAdmin(admin.ModelAdmin):
     list_editable = ["public_name", "description", "is_common", "order"]
 
 
-ocamis_admin_site.register(DataType, DataTypeAdmin)
-
-
 class CleanFunctionAdmin(admin.ModelAdmin):
     list_display = [
         "name", "public_name", "for_all_data", 
         "description", "priority", "column_type"]
     list_editable = ["public_name", "priority"]
     ordering = ["for_all_data", "priority", "public_name"]
-
-
-ocamis_admin_site.register(CleanFunction, CleanFunctionAdmin)
 
 
 class PetitionFileControlInline(admin.TabularInline):
@@ -195,15 +178,20 @@ class TransformationAdmin(admin.ModelAdmin):
 
 class DictionaryFileAdmin(admin.ModelAdmin):
     list_display = [
-        "institution",
-        "delegation",
+        "entity",
         "file_control",
         "file",
         "unique_field",
     ]
 
 
-ocamis_admin_site.register(Transformation, TransformationAdmin)
+ocamis_admin_site.register(FinalField, FinalFieldAdmin)
+ocamis_admin_site.register(Collection, CollectionAdmin)
+ocamis_admin_site.register(ParameterGroup, ParameterGroupAdmin)
+ocamis_admin_site.register(DataGroup, DataGroupAdmin)
+ocamis_admin_site.register(DataType, DataTypeAdmin)
+ocamis_admin_site.register(CleanFunction, CleanFunctionAdmin)
 ocamis_admin_site.register(NameColumn, NameColumnAdmin)
 ocamis_admin_site.register(FileControl, FileControlAdmin)
+ocamis_admin_site.register(Transformation, TransformationAdmin)
 ocamis_admin_site.register(DictionaryFile, DictionaryFileAdmin)

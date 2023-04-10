@@ -130,7 +130,8 @@ class CLUES(models.Model):
     institution = models.ForeignKey(
         Institution, on_delete=models.CASCADE)
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True)
+        Entity, on_delete=models.CASCADE, blank=True, null=True,
+        related_name="ent_clues")
     # institution = models.IntegerField()
     name = models.CharField(
         max_length=255, verbose_name="NOMBRE DE LA UNIDAD")
@@ -350,6 +351,9 @@ class Alliances(models.Model):
 
 
 class Agency(models.Model):
+    entity = models.ForeignKey(
+        Entity, verbose_name="Entidad",
+        on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(
         max_length=120, blank=True, null=True,
         verbose_name="Nombre",

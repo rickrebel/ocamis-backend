@@ -176,4 +176,12 @@ def move_delegation_clues():
         delegation.save()
 
 
-move_delegation_clues()
+# Borrar todas las delegaciones del INSABI sin clues
+def delete_insabi_delegations():
+    from geo.models import Delegation, Institution
+    insabi = Institution.objects.get(code="INSABI")
+    Delegation.objects.filter(institution=insabi, clues__isnull=True).delete()
+
+
+# move_delegation_clues()
+# delete_insabi_delegations()

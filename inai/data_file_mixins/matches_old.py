@@ -317,7 +317,7 @@ class Match:
         some_amount = self.name_columns\
             .filter(final_field__name__contains="amount").exists()
         key_medicine = has_matching_dict("name", "key2")
-        some_medicine = has_matching_dict("name", "_own_key")
+        some_medicine = has_matching_dict("name", "own_key")
         if not some_medicine:
             for field in existing_fields:
                 if field["name"] == "name" and field["collection"] == "Container":
@@ -524,41 +524,6 @@ class Match:
                 name_column__file_control=self.file_control).first()
         return transformation.addl_params.get("value") \
             if transformation else None  # '%Y-%m-%d %H:%M:%S.%fYYY'
-
-    # ########## FUNCIONES AUXILIARES #############
-    def send_csv_to_db(self, path, model_name):
-        from task.serverless import async_in_lambda
-
-        model_in_db = f"formula_{model_name.lower()}"
-        columns = self.model_fields[model_name]
-        field_names = [field["name"] for field in columns]
-        columns_join = ",".join(field_names)
-        bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-        aws_location = getattr(settings, "AWS_LOCATION")
-        region_name = getattr(settings, "AWS_S3_REGION_NAME")
-        access_key = getattr(settings, "AWS_ACCESS_KEY_ID")
-        secret_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
-        sql_query = f"""
-            SELECT aws_s3.table_import_from_s3(
-                '{model_in_db}',
-                '{columns_join}',
-                '(format csv, header false, delimiter "|", encoding "LATIN1")',
-                '{bucket_name}',
-                '{aws_location}/{path}',
-                '{region_name}',
-                '{access_key}',
-                '{secret_key}'
-            )
-        """
-        desabasto_db = getattr(settings, "DATABASES", {}).get("default")
-        # save_csv_in_db(sql_query, desabasto_db)
-        params = {
-            "sql_query": sql_query,
-            "db_config": desabasto_db,
-        }
-        self.task_params["models"] = [self.data_file]
-        self.task_params["function_after"] = "check_success_insert"
-        return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     # def build_catalog_clues(self):
     #     from data_param.models import DictionaryFile
