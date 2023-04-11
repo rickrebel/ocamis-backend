@@ -119,6 +119,7 @@ class ExploreMix:
             for table_file in table_files:
                 new_task = my_match.send_csv_to_db(table_file)
                 new_tasks.append(new_task)
+        return new_tasks, [], self
 
     def count_file_rows(self):
         from inai.models import SheetFile

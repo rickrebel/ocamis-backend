@@ -90,8 +90,8 @@ class Drug(models.Model):
     prescription = models.ForeignKey(
         Prescription, on_delete=models.CASCADE,
         related_name='drugs')
-    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
-    sheet_name = models.CharField(max_length=255, blank=True, null=True)
+    sheet_file = models.ForeignKey(
+        SheetFile, on_delete=models.CASCADE, blank=True, null=True)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
 
     # container = models.ForeignKey(

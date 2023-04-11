@@ -136,7 +136,7 @@ class Medicament(models.Model):
     container = models.ForeignKey(
         Container, on_delete=models.CASCADE, blank=True, null=True)
     key2 = models.CharField(
-        max_length=20, help_text="key2")
+        max_length=20, help_text="key2", blank=True, null=True)
     own_key2 = models.CharField(
         max_length=255, blank=True, null=True,
         help_text="own")

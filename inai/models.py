@@ -450,7 +450,7 @@ class SheetFile(models.Model):
     def check_success_insert(self, task_params=None, **kwargs):
         table_file_id = kwargs.get("table_file_id", None)
         if not table_file_id:
-            return None, ["No se encontró el id de la tabla"], None
+            return [], ["No se encontró el id de la tabla"], True
         table_file = TableFile.objects.filter(id=table_file_id).first()
         table_file.inserted = True
         table_file.save()

@@ -16,3 +16,7 @@ def lambda_handler(event, context):
     connection.commit()
     cursor.close()
     connection.close()
+
+
+# data_files/nacional/issste/202107/medicament_3772_default_lap0.csv
+# nacional/issste/202107/reporte_recetas_primer_nivel_202105_3.csv

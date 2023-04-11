@@ -466,8 +466,8 @@ class Match:
                             WHERE {model_in_db}.hex_hash = {temp_table}.hex_hash
                         );
             """)
-        # desabasto_db = getattr(settings, "DATABASES", {}).get("default")
-        desabasto_db = getattr(settings, "DATABASES", {}).get("default_prod")
+        desabasto_db = getattr(settings, "DATABASES", {}).get("default")
+        # desabasto_db = getattr(settings, "DATABASES", {}).get("default_prod")
         # save_csv_in_db(sql_query, desabasto_db)
         params = {
             "sql_queries": sql_queries,
