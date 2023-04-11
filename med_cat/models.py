@@ -66,7 +66,8 @@ class Area(models.Model):
         blank=True, null=True)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(default=False)
+    is_aggregate = models.BooleanField(
+        default=False, blank=True, null=True)
 
     def __str__(self):
         return self.hex_hash
@@ -91,7 +92,8 @@ class Doctor(models.Model):
     professional_license = models.CharField(max_length=20, blank=True, null=True)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(default=False)
+    is_aggregate = models.BooleanField(
+        default=False, blank=True, null=True)
 
     class Meta:
         verbose_name = "Doctor"
@@ -110,7 +112,8 @@ class Diagnosis(models.Model):
     motive = models.TextField(blank=True, null=True)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(default=False)
+    is_aggregate = models.BooleanField(
+        default=False, blank=True, null=True)
 
     class Meta:
         verbose_name = "Diagnóstico"

@@ -134,11 +134,11 @@ class MissingRow(models.Model):
     drug = models.ForeignKey(
         Drug, blank=True, null=True,
         on_delete=models.CASCADE)
-    original_data = JSONField(blank=True, null=True)
     # row_seq = models.IntegerField(default=1)
     # tab = models.CharField(max_length=255, blank=True, null=True)
 
     # ¡ÚLTIMOS CAMPOS SIEMPRE!
+    original_data = JSONField(blank=True, null=True)
     inserted = models.BooleanField(blank=True, null=True)
     # errors = JSONField(blank=True, null=True, default=list)
     error = models.TextField(blank=True, null=True)
@@ -146,7 +146,7 @@ class MissingRow(models.Model):
 
     def __str__(self):
         #return "%s -- %s" % (self.file, self.recipe_report or self.recipe_medicine)
-        return self.data_file
+        return self.sheet_file
 
     class Meta:
         verbose_name = "Renglón faltante"

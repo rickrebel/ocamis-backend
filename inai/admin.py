@@ -132,12 +132,12 @@ class SheetFileAdmin(admin.ModelAdmin):
 
 class LapSheetAdmin(admin.ModelAdmin):
     list_display = [
-        "sheet_file",
         "lap",
         "inserted",
         "prescription_count",
         "drug_count",
         "total_count",
+        "sheet_file",
     ]
     raw_id_fields = ["sheet_file"]
 
@@ -145,9 +145,9 @@ class LapSheetAdmin(admin.ModelAdmin):
 class TableFileAdmin(admin.ModelAdmin):
 
     list_display = [
-        "lap_sheet",
-        "file",
         "collection",
+        "file",
+        "lap_sheet",
     ]
     list_filter = ["collection"]
     raw_id_fields = ["lap_sheet"]

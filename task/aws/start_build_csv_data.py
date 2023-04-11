@@ -19,7 +19,8 @@ def text_normalizer(text):
 def calculate_delivered(available_data):
     prescribed_amount = available_data.get("prescribed_amount")
     if not prescribed_amount:
-        error = "No se pudo determinar si se entregó o no"
+        error = "No se puede determinar el status de entrega;" \
+                "no existe cantidad prescrita"
         return available_data, error
 
     delivered = "unknown"
@@ -38,7 +39,8 @@ def calculate_delivered(available_data):
         elif prescribed_amount > delivered_amount:
             delivered = "partial"
     else:
-        error = "No se pudo determinar si se entregó o no"
+        error = "No se puede determinar el status de entrega;" \
+                "no existe cantidad entregada"
         return available_data, error
     available_data["delivered_id"] = delivered
     return available_data, None
@@ -121,14 +123,18 @@ class MatchAws:
         self.delimiter = init_data["delimiter"]
         self.string_date = init_data["string_date"]
         self.columns_count = init_data["columns_count"]
+        print("string_date", self.string_date)
 
         self.editable_models = init_data["editable_models"]
+        self.real_models = init_data["real_models"]
         self.model_fields = init_data["model_fields"]
         self.hash_null = init_data["hash_null"]
         self.med_cat_models = [cat["name"] for cat in self.editable_models
                                if cat.get("app") == "med_cat"]
+        self.real_med_cat_models = [cat["name"] for cat in self.med_cat_models
+                                    if cat["model"] in self.real_models]
         self.med_cat_fields = {}
-        for model in self.med_cat_models:
+        for model in self.real_med_cat_models:
             self.med_cat_fields[model] = [
                 field for field in self.model_fields[model]
                 if field["name"] != "hex_hash"]
@@ -143,10 +149,8 @@ class MatchAws:
         self.special_fields = [field for field in self.existing_fields
                                if field["is_special"]]
         self.lap = init_data["lap"]
-        self.cats = {}
         self.cat_keys = {}
-        for cat in self.med_cat_models:
-            self.cats[cat] = {}
+        for cat in self.real_med_cat_models:
             self.cat_keys[cat] = set()
         self.webhook_url = init_data.get("webhook_url")
 
@@ -184,7 +188,7 @@ class MatchAws:
                         if cat["app"] == "formula"]
         for cat in formula_cats:
             self.build_headers(cat["name"])
-        prescription_cats = [cat for cat in self.med_cat_models
+        prescription_cats = [cat for cat in self.real_med_cat_models
                              if cat != "medicament"]
 
         special_cols = self.build_special_cols(all_data)
@@ -216,12 +220,11 @@ class MatchAws:
                 "row_seq": int(row[0]),
                 "uuid": uuid,
             }
+            available_data = self.special_available_data(
+                available_data, row, special_cols)
 
             available_data, some_date = self.complement_available_data(
                 available_data, row)
-
-            available_data = self.special_available_data(
-                available_data, row, special_cols)
 
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"
@@ -243,7 +246,7 @@ class MatchAws:
                 continue
             delivered = available_data.get("delivered_id")
 
-            available_data = self.generic_match("container", available_data)
+            available_data = self.generic_match("medicament", available_data)
 
             folio_document = available_data.get("folio_document")
             folio_ocamis = "%s|%s|%s|%s" % (
@@ -290,7 +293,8 @@ class MatchAws:
         report_errors["total_count"] = total_count
         report_errors["discarded_count"] = discarded_count
         for cat_name in self.med_cat_models:
-            report_errors[f"{cat_name}_count"] = len(self.cat_keys[cat_name])
+            report_errors[f"{cat_name}_count"] = len(self.cat_keys[cat_name]) \
+                if self.cat_keys.get(cat_name) else 0
         if self.is_prepare:
             result_data = {
                 "result": {
@@ -325,6 +329,7 @@ class MatchAws:
             only_name = self.final_path.replace("NEW_ELEM_NAME", elem_list['name'])
             all_final_paths.append({
                 "name": elem_list["name"],
+                "model": elem_list["model"],
                 "path": only_name,
             })
             s3_client.put_object(
@@ -492,11 +497,18 @@ class MatchAws:
 
         some_date = None
         uuid = available_data.get("uuid")
+        # fields_with_name = [field for field in self.existing_fields
+        #                     if field["name"] and field["position"]]
         fields_with_name = [field for field in self.existing_fields
-                            if field["name"] and field["position"]]
+                            if field["name"]]
         for field in fields_with_name:
             error = None
-            value = row[field["position"]]
+            if field.get("position"):
+                value = row[field["position"]]
+            else:
+                value = available_data.get(field["name"])
+                if not value:
+                    continue
             try:
                 if field["data_type"] == "Datetime":  # and not is_same_date:
                     if value == self.last_date and value:
@@ -525,7 +537,7 @@ class MatchAws:
                 regex_format = field.get("regex_format")
                 if regex_format:
                     if not re.match(regex_format, value):
-                        error = "No se pudo validar con el formato %s" % regex_format
+                        error = "No se validó con el formato de %s" % field["name"]
                 elif field.get("max_length"):
                     if len(value) > field["max_length"]:
                         error = "El valor tiene más de los caracteres permitidos"
@@ -670,7 +682,7 @@ class MatchAws:
                     [error_type, error_detail] = error.split(";", 1)
                 except Exception as e:
                     # print("error report:", e)
-                    [error_type, error_detail] = [error, error]
+                    [error_type, error_detail] = [error, "GENERAL"]
                 if error_type in row_errors:
                     row_errors[error_type]["count"] += 1
                     if error_detail in row_errors[error_type]:
@@ -679,23 +691,26 @@ class MatchAws:
                             row_errors[error_type][error_detail]["examples"])
                         if example_count < 4:
                             row_errors[error_type][error_detail]["examples"].append(
-                                missing_row)
+                                missing_row[-3])
                     elif len(row_errors[error_type]) < 20:
                         row_errors[error_type][error_detail] = {
-                            "count": 1, "examples": [missing_row]}
+                            "count": 1, "examples": [missing_row[-3]]}
                 elif error_types_count < 40:
                     row_errors[error_type] = {
                         "count": 1,
                         error_detail: {
-                            "count": 1, "examples": [missing_row]}
+                            "count": 1, "examples": [missing_row[-3]]}
                     }
                     error_types_count += 1
-            row_errors = sorted(row_errors.items(), key=lambda x: x[1], reverse=True)
-            row_errors = row_errors[:50]
+            # row_errors = sorted(row_errors.items(), key=lambda x: x[1], reverse=True)
+            # row_errors = row_errors[:50]
             report_data["row_errors"] = row_errors
             if len(row_errors) > 50:
                 report_data["general_errors"] += \
                     "Se encontraron más de 50 tipos de errores en las filas"
+        else:
+            report_data["missing_rows"] = 0
+            report_data["row_errors"] = {}
 
         if self.all_missing_fields:
             report_data["missing_fields"] = len(self.all_missing_fields)
@@ -732,6 +747,9 @@ class MatchAws:
             #     field_errors.items(), key=lambda x: sum(x["count"].values()),
             #     reverse=True)
             report_data["field_errors"] = field_errors
+        else:
+            report_data["missing_fields"] = 0
+            report_data["field_errors"] = {}
 
         if not report_data.get("missing_rows") and not report_data.get("missing_fields"):
             report_data["general_errors"] = "No se encontraron errores"

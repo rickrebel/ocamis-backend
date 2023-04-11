@@ -87,7 +87,8 @@ class Typology(models.Model):
     alternative_names = JSONField(blank=True, null=True)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(default=False)
+    is_aggregate = models.BooleanField(
+        default=False, blank=True, null=True)
 
     def __str__(self):
         return "%s (%s)" % (self.clave, self.name)

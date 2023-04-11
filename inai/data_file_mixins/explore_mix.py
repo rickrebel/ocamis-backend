@@ -101,6 +101,25 @@ class ExploreMix:
         my_match = Match(data_file, task_params)
         return my_match.build_csv_converted(is_prepare=True)
 
+    def insert_data(self, task_params, **kwargs):
+        from inai.data_file_mixins.matches_mix import Match
+        from inai.models import LapSheet
+        if not self.stage == 'transform' and self.status == 'finished':
+            errors = ["El archivo tiene concluido el proceso de transformación"]
+            return [], errors, None
+        my_match = Match(self, task_params)
+        lap_sheets = LapSheet.objects.filter(
+            sheet_file__data_file=self, lap=0, inserted=False)
+        if not lap_sheets.exists():
+            errors = ["No existen registros para insertar"]
+            return [], errors, None
+        new_tasks = []
+        for lap_sheet in lap_sheets:
+            table_files = lap_sheet.table_files.all()
+            for table_file in table_files:
+                new_task = my_match.send_csv_to_db(table_file)
+                new_tasks.append(new_task)
+
     def count_file_rows(self):
         from inai.models import SheetFile
         from django.db.models import Sum

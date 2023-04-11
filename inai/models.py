@@ -351,11 +351,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     @property
     def next_lap(self):
+        lap_number = 0
         last_lap = LapSheet.objects.filter(sheet_file__data_file=self)\
             .order_by("-inserted", "lap").last()
         if last_lap:
-            return last_lap.lap + 1 if last_lap.inserted else last_lap.lap
-        return 0
+            lap_number = last_lap.lap + 1 if last_lap.inserted else last_lap.lap
+        return lap_number if lap_number >= 0 else 0
 
     @property
     def can_repeat(self):
@@ -408,17 +409,21 @@ class SheetFile(models.Model):
 
     @property
     def next_lap(self):
+        lap_number = 0
         last_lap = self.laps.all().order_by("-inserted", "lap").last()
         if last_lap:
-            return last_lap.lap + 1 if last_lap.inserted else last_lap.lap
-        return 0
+            lap_number = last_lap.lap + 1 if last_lap.inserted else last_lap.lap
+        return lap_number if lap_number >= 0 else 0
 
     def finish_build_csv_data(self, task_params=None, **kwargs):
         print("FINISH BUILD CSV DATA")
         data_file = self.data_file
         is_prepare = kwargs.get("is_prepare", False)
+        print("is_prepare", is_prepare)
         final_paths = kwargs.get("final_paths", []) or []
         next_lap = self.next_lap if not is_prepare else -1
+        print("next_lap", next_lap)
+        print("next_lap", self.next_lap)
         # print("final_paths", final_paths)
         report_errors = kwargs.get("report_errors", {})
         lap_sheet, created = LapSheet.objects.get_or_create(
@@ -438,8 +443,22 @@ class SheetFile(models.Model):
         if errors:
             data_file.save_errors(errors, "prepare|with_errors")
         else:
-            data_file.change_status(f"prepare|finished")
+            stage_name = "prepare" if is_prepare else "transform"
+            data_file.change_status(f"{stage_name}|finished")
         return new_task, errors, data
+
+    def check_success_insert(self, task_params=None, **kwargs):
+        table_file_id = kwargs.get("table_file_id", None)
+        if not table_file_id:
+            return None, ["No se encontró el id de la tabla"], None
+        table_file = TableFile.objects.filter(id=table_file_id).first()
+        table_file.inserted = True
+        table_file.save()
+        all_inserted = table_file.lap_sheet.confirm_all_inserted()
+        if all_inserted:
+            self.valid_insert = True
+            self.save()
+        return [], [], True
 
     def __str__(self):
         return f">{self.file_type}< {self.sheet_name}- {self.data_file}"
@@ -456,7 +475,7 @@ class LapSheet(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, related_name="laps", on_delete=models.CASCADE)
     lap = models.IntegerField(default=0)
-    inserted = models.BooleanField(default=False)
+    inserted = models.BooleanField(default=False, blank=True, null=True)
     general_error = models.CharField(max_length=255, blank=True, null=True)
     total_count = models.IntegerField(default=0)
     prescription_count = models.IntegerField(default=0)
@@ -476,18 +495,26 @@ class LapSheet(models.Model):
         all_new_files = []
         new_tasks = []
         for result_file in result_files:
-            model_name = result_file["name"]
+            model_name = result_file["model"]
+            print("model_name", model_name)
             collection = Collection.objects.get(model_name=model_name)
-            new_file = TableFile.objects.create(
-                file=result_file["path"],
+            new_file, created = TableFile.objects.get_or_create(
                 lap_sheet=self,
                 collection=collection,
             )
+            new_file.file = result_file["path"]
+            new_file.save()
             # new_file.change_status('initial|finished')
             all_new_files.append(new_file)
             # new_tasks = self.send_csv_to_db(result_file["path"], model_name)
             # new_tasks.append(new_tasks)
         return new_tasks, [], all_new_files
+
+    def confirm_all_inserted(self):
+        pending_tables = self.table_files.filter(inserted=False).exists()
+        self.inserted = None if pending_tables else True
+        self.save()
+        return not pending_tables
 
     def __str__(self):
         return "%s %s" % (str(self.sheet_file), self.lap)
@@ -511,6 +538,7 @@ class TableFile(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, blank=True, null=True)
     is_for_edition = models.BooleanField(default=False)
+    inserted = models.BooleanField(default=False)
 
     def __str__(self):
         return "%s %s" % (self.collection, self.lap_sheet)

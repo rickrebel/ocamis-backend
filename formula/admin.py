@@ -5,27 +5,19 @@ from django.contrib import admin
 from .models import (
     Drug,
     Prescription,
-    DocumentType,
-    MedicalSpeciality,
+    # DocumentType,
+    # MedicalSpeciality,
     Delivered
 )
 from med_cat.models import Doctor
 
 
-class DocumentTypeAdmin(admin.ModelAdmin):
-    list_display = ["name"]
-    search_fields = ["name"]
-
-
-ocamis_admin_site.register(DocumentType, DocumentTypeAdmin)
-
-
-class MedicalSpecialityAdmin(admin.ModelAdmin):
-    list_display = ["name"]
-    search_fields = ["name"]
-
-
-ocamis_admin_site.register(MedicalSpeciality, MedicalSpecialityAdmin)
+# class DocumentTypeAdmin(admin.ModelAdmin):
+#     list_display = ["name"]
+#     search_fields = ["name"]
+#
+#
+# ocamis_admin_site.register(DocumentType, DocumentTypeAdmin)
 
 
 class DrugInline(admin.TabularInline):
