@@ -21,16 +21,18 @@ class MedicalUnit(models.Model):
         max_length=255, blank=True, null=True)
     state_name = models.CharField(
         max_length=255, blank=True, null=True)
+    jurisdiction_key = models.CharField(
+        max_length=50, blank=True, null=True)
     name = models.CharField(
         max_length=255, blank=True, null=True)
     attention_level = models.CharField(
-        max_length=255, blank=True, null=True)
+        max_length=80, blank=True, null=True)
     clues_key = models.CharField(
         max_length=12, blank=True, null=True)
     own_key = models.CharField(
         max_length=255, blank=True, null=True)
     key_issste = models.CharField(
-        max_length=30, blank=True, null=True)
+        max_length=12, blank=True, null=True)
     typology_key = models.CharField(
         max_length=18, blank=True, null=True)
     typology_name = models.CharField(
@@ -140,6 +142,9 @@ class Medicament(models.Model):
         help_text="mt")
     component_name = models.TextField(
         blank=True, null=True, help_text="comp")
+    presentation_type = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="pt")
     presentation_description = models.TextField(
         blank=True, null=True, help_text="pres")
     container_name = models.TextField(

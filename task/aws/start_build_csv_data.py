@@ -116,6 +116,7 @@ class MatchAws:
         self.global_clues = init_data["global_clues"]
 
         self.decode = init_data["decode"]
+        self.decode_final = 'utf-8'
         self.row_start_data = init_data["row_start_data"]
         self.delimiter = init_data["delimiter"]
         self.string_date = init_data["string_date"]
@@ -364,6 +365,8 @@ class MatchAws:
         structured_data = []
         sample = data_rows[:50]
         self.decode = self.obtain_decode(sample)
+        if self.decode == "latin-1":
+            self.decode_final = 'latin-1'
 
         if self.decode == "unknown":
             error = "No se pudo decodificar el archivo"
@@ -588,7 +591,7 @@ class MatchAws:
                 self.buffers[cat_name].writerow(headers)
                 add_hash_to_cat(hash_id, all_values)
         else:
-            value_string = value_string.encode(self.decode or "utf-8")
+            value_string = value_string.encode(self.decode_final)
             hash_id = hashlib.md5(value_string).hexdigest()
             add_hash_to_cat(hash_id, all_values)
         available_data[f"{cat_name}_id"] = hash_id
@@ -611,7 +614,7 @@ class MatchAws:
                         row.decode("latin-1")
                         return "latin-1"
                     except Exception as e:
-                        print(e)
+                        print("Error de codificación", e)
                         return "unknown"
             else:
                 return "str"
@@ -666,7 +669,7 @@ class MatchAws:
                 try:
                     [error_type, error_detail] = error.split(";", 1)
                 except Exception as e:
-                    print("error", e)
+                    # print("error report:", e)
                     [error_type, error_detail] = [error, error]
                 if error_type in row_errors:
                     row_errors[error_type]["count"] += 1

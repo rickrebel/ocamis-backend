@@ -184,10 +184,12 @@ class DataFileViewSet(CreateRetrievView):
 
     @action(methods=["get"], detail=True, url_path="change_stage")
     def change_stage(self, request, **kwargs):
+        from django.conf import settings
         from classify_task.models import Stage
 
         data_file = self.get_object()
-        if not data_file.can_repeat:
+        is_local = settings.IS_LOCAL
+        if not data_file.can_repeat and not is_local:
             return Response({
                 "errors": ["Aún se está procesando; espera máx. 15 minutos"]
             }, status=status.HTTP_404_NOT_FOUND)

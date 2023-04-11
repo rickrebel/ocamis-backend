@@ -1,5 +1,7 @@
 import io
 from django.conf import settings
+
+from data_param.models import Transformation
 from scripts.common import start_session, create_file
 import json
 from task.serverless import camel_to_snake
@@ -156,7 +158,8 @@ class Match:
             is_clues = global_obj.__class__.__name__ == "CLUES"
             final_dict = {"id": global_obj.id}
             if is_clues:
-                final_dict["clues_key"] = global_obj.clues,
+                is_tuple = isinstance(global_obj.clues, tuple)
+                final_dict["clues_key"] = global_obj.clues
             else:
                 final_dict["name"] = global_obj.name,
             return final_dict
@@ -169,7 +172,7 @@ class Match:
             "hash_null": hash_null,
             "delimiter": self.delimiter,
             "row_start_data": self.file_control.row_start_data,
-            "entity_id": self.agency.entity.id if self.agency else None,
+            "entity_id": self.agency.entity_id,
             "columns_count": self.columns_count,
             "editable_models": self.editable_models,
             "model_fields": self.model_fields,
@@ -240,7 +243,8 @@ class Match:
                 "final_field_id": column.final_field.id,
                 "collection": column.final_field.collection.model_name,
                 "is_unique": column.final_field.is_unique,
-                "data_type": column.final_field.data_type.name,
+                "data_type": column.final_field.data_type.name if \
+                             column.final_field.data_type else None,
                 "regex_format": column.final_field.regex_format,
                 "is_special": is_special_column,
                 "column_type": column.column_type.name,
@@ -252,7 +256,7 @@ class Match:
                 "fragmented", "concatenated", "only_params_parent",
                 "only_params_child"]
             transformation = column.column_transformations \
-                .filter(clean_function__in=special_functions).first()
+                .filter(clean_function__name__in=special_functions).first()
             if transformation:
                 new_column["clean_function"] = transformation.clean_function.name
                 new_column["t_value"] = transformation.addl_params.get("value")
@@ -325,12 +329,12 @@ class Match:
         for criteria_name, value in detailed_criteria.items():
             if not value:
                 missing_criteria.append(criteria_name)
-        if not key_medicine:
-            if some_medicine:
-                missing_criteria.append(
-                    "Hay campos de medicamento, pero aún no los procesamos")
-            else:
-                missing_criteria.append("Algún medicamentos")
+        # if not key_medicine:
+        #     if some_medicine:
+        #         missing_criteria.append(
+        #             "Hay campos de medicamento, pero aún no los procesamos")
+        #     else:
+        #         missing_criteria.append("Algún medicamentos")
         special_columns = self.name_columns.filter(
             column_type__clean_functions__isnull=False,
             column_transformations__isnull=True)
@@ -349,8 +353,11 @@ class Match:
             "fragmented", "concatenated", "format_date", "clean_key_container",
             "get_ceil", "only_params_parent", "only_params_child",
             "global_variable"]
-        column_transformations = self.name_columns\
+        related_transformations = Transformation.objects\
+            .filter(name_column__file_control=self.file_control)\
             .exclude(clean_function__name__in=valid_column_trans)
+        # column_transformations = self.name_columns.column_transformations\
+        #     .exclude(clean_function__name__in=valid_column_trans)
 
         def add_transformation_error(transform):
             public_name = transform.clean_function.public_name
@@ -359,7 +366,7 @@ class Match:
 
         for transformation in control_transformations:
             add_transformation_error(transformation)
-        for transformation in column_transformations:
+        for transformation in related_transformations:
             add_transformation_error(transformation)
         return missing_criteria
 

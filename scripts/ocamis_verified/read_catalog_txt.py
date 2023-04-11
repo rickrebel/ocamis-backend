@@ -168,7 +168,7 @@ def move_delegation_clues():
             try:
                 delegation.entity = Entity.objects.get(
                     institution=delegation.institution,
-                    state=delegation.state, clues__isnull=True)
+                    state=delegation.state, ent_clues__isnull=True)
             except Entity.DoesNotExist:
                 print("Entity not found: ", delegation)
             except Entity.MultipleObjectsReturned:

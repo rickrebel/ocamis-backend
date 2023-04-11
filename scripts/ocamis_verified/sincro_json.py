@@ -49,7 +49,11 @@ def generate_file(app_name, model_name):
     final_data = list(all_objects)
     final_data.insert(0, fields)
     base_dir = settings.BASE_DIR
-    json_path = f"{base_dir}\\fixture\\sincronize\\{model_name}.json"
+    is_local = settings.IS_LOCAL
+    if is_local:
+        json_path = f"{base_dir}\\fixture\\sincronize\\{model_name}.json"
+    else:
+        json_path = f"{base_dir}/fixture/sincronize/{model_name}.json"
     # json_path = 'fixture/sincronize/%s.json' % model_name
     print("json_path: %s" % json_path)
     print("final_data: %s" % final_data)
@@ -92,8 +96,11 @@ print("HOLI")
 
 # from scripts.ocamis_verified.sincro_json import sincronize_entities, generate_file
 
-# generate_file('classify_task', 'TaskFunction')
-# sincronize_entities('classify_task', 'TaskFunction', field_id='name')
+# generate_file('data_param', 'Collection')
+# sincronize_entities('data_param', 'Collection')
+
+# generate_file('data_param', 'FinalField')
+# sincronize_entities('data_param', 'FinalField')
 
 # generate_file('category', 'FileType')
 # sincronize_entities('category', 'FileType', field_id='name')
