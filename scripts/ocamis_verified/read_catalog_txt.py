@@ -185,3 +185,10 @@ def delete_insabi_delegations():
 
 # move_delegation_clues()
 # delete_insabi_delegations()
+
+
+# unknown	Desconocido	True
+# partial	Parcialmente	No se entregaron todos los archivos	True
+# denied	Negada	No se dieron los medicamentos recetados	True
+# complete	Completa	Efectivamente entregada	True
+# unavailable	No disponible	No existió información para calcularlo	True

@@ -416,6 +416,7 @@ class SheetFile(models.Model):
         return lap_number if lap_number >= 0 else 0
 
     def finish_build_csv_data(self, task_params=None, **kwargs):
+        from django.utils import timezone
         print("FINISH BUILD CSV DATA")
         data_file = self.data_file
         is_prepare = kwargs.get("is_prepare", False)
@@ -431,6 +432,7 @@ class SheetFile(models.Model):
         fields_in_report = report_errors.keys()
         for field in fields_in_report:
             setattr(lap_sheet, field, report_errors[field])
+        lap_sheet.last_edit = timezone.now()
         lap_sheet.save()
         # data_file.all_results = kwargs.get("report_errors", {})
         # data_file.save()
@@ -475,6 +477,7 @@ class LapSheet(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, related_name="laps", on_delete=models.CASCADE)
     lap = models.IntegerField(default=0)
+    last_edit = models.DateTimeField(auto_now=True)
     inserted = models.BooleanField(default=False, blank=True, null=True)
     general_error = models.CharField(max_length=255, blank=True, null=True)
     total_count = models.IntegerField(default=0)

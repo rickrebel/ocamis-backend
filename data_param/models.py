@@ -165,9 +165,10 @@ class FileControl(models.Model):
 
 class FinalField(models.Model):
     INCLUDED_CHOICES = (
-        ("yes", "Sí"),
-        ("no", "No"),
-        ("wait", "En espera de inclusión"),
+        ("complete", "Completo"),
+        ("complement", "Complementario"),
+        ("wait", "En espera de inclusión; pausar"),
+        ("invalid", "No válido, debe revisarse"),
     )
     MATCHING_CHOICES = (
         ("as_unique", "Como único"),
@@ -200,9 +201,12 @@ class FinalField(models.Model):
     regex_format = models.CharField(max_length=255, blank=True, null=True)
     is_required = models.BooleanField(
         default=False, verbose_name="Es indispensable para registrar fila")
-    included = models.BooleanField(
-        verbose_name="valid", blank=True, null=True,
-        help_text="¿La inserción lo incluye?")
+    # included = models.BooleanField(
+    #     verbose_name="valid", blank=True, null=True,
+    #     help_text="¿La inserción lo incluye?")
+    included_code = models.CharField(
+        max_length=12, choices=INCLUDED_CHOICES, default="complement",
+        verbose_name="included")
     is_unique = models.BooleanField(
         default=False, help_text="Puede ser una llave única",
         verbose_name="Único")

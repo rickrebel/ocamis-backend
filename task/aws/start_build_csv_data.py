@@ -5,6 +5,7 @@ import uuid as uuid_lib
 import json
 import requests
 import unidecode
+from .common import obtain_decode
 
 request_headers = {"Content-Type": "application/json"}
 
@@ -20,7 +21,7 @@ def calculate_delivered(available_data):
     prescribed_amount = available_data.get("prescribed_amount")
     if not prescribed_amount:
         error = "No se puede determinar el status de entrega;" \
-                "no existe cantidad prescrita"
+                "No existe cantidad prescrita"
         return available_data, error
 
     delivered = "unknown"
@@ -40,7 +41,7 @@ def calculate_delivered(available_data):
             delivered = "partial"
     else:
         error = "No se puede determinar el status de entrega;" \
-                "no existe cantidad entregada"
+                "No existe cantidad entregada"
         return available_data, error
     available_data["delivered_id"] = delivered
     return available_data, None
@@ -112,6 +113,8 @@ class MatchAws:
         self.file_name_simple = self.file_name.split(".")[0]
         self.sheet_name = init_data["sheet_name"]
         self.final_path = init_data["final_path"]
+        # RICK 21 BORRAR
+        self.example_prints = 0
 
         self.entity_id = init_data["entity_id"]
         self.global_delegation = init_data["global_delegation"]
@@ -129,15 +132,46 @@ class MatchAws:
         self.real_models = init_data["real_models"]
         self.model_fields = init_data["model_fields"]
         self.hash_null = init_data["hash_null"]
-        self.med_cat_models = [cat["name"] for cat in self.editable_models
+        self.med_cat_models = [cat for cat in self.editable_models
                                if cat.get("app") == "med_cat"]
         self.real_med_cat_models = [cat["name"] for cat in self.med_cat_models
                                     if cat["model"] in self.real_models]
-        self.med_cat_fields = {}
-        for model in self.real_med_cat_models:
-            self.med_cat_fields[model] = [
-                field for field in self.model_fields[model]
-                if field["name"] != "hex_hash"]
+        self.med_cat_flat_fields = {}
+        self.initial_data = {}
+        for cat_name in self.real_med_cat_models:
+            is_med_unit = cat_name == "medical_unit"
+            is_medicament = cat_name == "medicament"
+            fields = []
+            data_values = []
+            all_values = []
+            for field in self.model_fields[cat_name]:
+                field_name = field["name"]
+                if field_name == "hex_hash":
+                    continue
+                value = None
+                field["name"] = field_name
+                field["default_value"] = None
+                if field["is_relation"]:
+                    if field_name == "entity_id" and not is_medicament:
+                        value = self.entity_id
+                        data_values.append(str(value))
+                    if is_med_unit:
+                        if field_name == "delegation_id" and self.global_delegation:
+                            value = self.global_delegation["id"]
+                        elif field_name == "clues_id" and self.global_clues:
+                            value = self.global_clues["id"]
+                    all_values.append(value)
+                elif is_med_unit:
+                    if field_name == "clues_key" and self.global_clues:
+                        field["default_value"] = self.global_clues["clues_key"]
+                    elif field_name == "delegation_name" and self.global_delegation:
+                        field["default_value"] = self.global_delegation["name"]
+                fields.append(field)
+            flat_fields = [field for field in fields if not field["is_relation"]]
+            self.med_cat_flat_fields[cat_name] = flat_fields
+            self.initial_data[cat_name] = {"data_values": data_values,
+                                           "all_values": all_values}
+        # print("med_cat_flat_fields: \n", self.med_cat_flat_fields)
         self.buffers = {}
         self.csvs = {}
         for model in self.editable_models:
@@ -150,8 +184,8 @@ class MatchAws:
                                if field["is_special"]]
         self.lap = init_data["lap"]
         self.cat_keys = {}
-        for cat in self.real_med_cat_models:
-            self.cat_keys[cat] = set()
+        for med_cat in self.real_med_cat_models:
+            self.cat_keys[med_cat] = set()
         self.webhook_url = init_data.get("webhook_url")
 
         self.last_revised = datetime.now()
@@ -181,15 +215,14 @@ class MatchAws:
         else:
             data_rows = complete_file.readlines()
         all_data = self.divide_rows(data_rows)
-
-        for cat_name in self.med_cat_models:
-            self.generic_match(cat_name, {}, True)
-        formula_cats = [cat for cat in self.editable_models
-                        if cat["app"] == "formula"]
-        for cat in formula_cats:
+        for cat in self.editable_models:
             self.build_headers(cat["name"])
-        prescription_cats = [cat for cat in self.real_med_cat_models
-                             if cat != "medicament"]
+        for cat_name in self.real_med_cat_models:
+            self.generic_match(cat_name, {}, True)
+        # formula_cats = [cat for cat in self.editable_models
+        #                 if cat["app"] == "formula"]
+        prescription_cats = [cat_name for cat_name in self.real_med_cat_models
+                             if cat_name != "medicament"]
 
         special_cols = self.build_special_cols(all_data)
         required_cols = [col for col in self.existing_fields
@@ -225,6 +258,9 @@ class MatchAws:
 
             available_data, some_date = self.complement_available_data(
                 available_data, row)
+            if self.example_prints < 10:
+                print("available_data \t", available_data)
+                self.example_prints += 1
 
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"
@@ -292,7 +328,8 @@ class MatchAws:
         report_errors["drug_count"] = success_drugs_count
         report_errors["total_count"] = total_count
         report_errors["discarded_count"] = discarded_count
-        for cat_name in self.med_cat_models:
+        for med_cat in self.med_cat_models:
+            cat_name = med_cat["name"]
             report_errors[f"{cat_name}_count"] = len(self.cat_keys[cat_name]) \
                 if self.cat_keys.get(cat_name) else 0
         if self.is_prepare:
@@ -369,7 +406,7 @@ class MatchAws:
     def divide_rows(self, data_rows):
         structured_data = []
         sample = data_rows[:50]
-        self.decode = self.obtain_decode(sample)
+        self.decode = self.decode or obtain_decode(sample)
         if self.decode == "latin-1":
             self.decode_final = 'latin-1'
 
@@ -555,82 +592,47 @@ class MatchAws:
 
     def generic_match(self, cat_name, available_data, is_first=False):
         import hashlib
-        fields = self.med_cat_fields[cat_name]
-        data_values = []
+        flat_fields = self.med_cat_flat_fields.get(cat_name, {})
+        init_values = self.initial_data.get(cat_name, {})
+        initial_all_values = init_values.get("all_values", []).copy()
+        initial_data_values = init_values.get("data_values", []).copy()
         all_values = []
+        data_values = []
         is_med_unit = cat_name == "medical_unit"
         is_medicament = cat_name == "medicament"
-        for field in fields:
-            field_name = field["name"]
-            value = None
-            if field["is_relation"]:
-                if field_name == "entity_id" and not is_medicament:
-                    value = self.entity_id
-                    data_values.append(str(value))
-                if is_med_unit:
-                    if field_name == "delegation_id" and self.global_delegation:
-                        value = self.global_delegation["id"]
-                    elif field_name == "clues_id" and self.global_clues:
-                        value = self.global_clues["id"]
-            else:
-                value = available_data.pop(f"{cat_name}_{field['name']}", None)
-                if value and is_medicament:
-                    if field_name == "key2":
-                        value = value.replace(".", "")
-                    if field_name == "own_key2":
-                        all_values[0] = self.entity_id
-                elif is_med_unit and not value:
-                    if field_name == "clues_key" and self.global_clues:
-                        value = self.global_clues["clues_key"]
-                    elif field_name == "delegation_name" and self.global_delegation:
-                        value = self.global_delegation["name"]
-                if value is not None:
-                    str_value = value if field["is_string"] else str(value)
-                    data_values.append(str_value)
+        for flat_field in flat_fields:
+            field_name = flat_field["name"]
+            value = available_data.pop(f"{cat_name}_{field_name}", None)
+            if value and is_medicament:
+                if field_name == "key2":
+                    value = value.replace(".", "")
+                if field_name == "own_key2":
+                    all_values[0] = self.entity_id
+            elif is_med_unit and not value:
+                value = flat_field["default_value"]
+            if value is not None:
+                str_value = value if flat_field["is_string"] else str(value)
+                data_values.append(str_value)
             all_values.append(value)
 
-        def add_hash_to_cat(hash_key, every_values):
+        def add_hash_to_cat(hash_key, flat_values):
             if is_first or hash_key not in self.cat_keys[cat_name]:
-                every_values.insert(0, hash_key)
+                every_values = [hash_key] + initial_all_values + flat_values
                 self.buffers[cat_name].writerow(every_values)
                 self.cat_keys[cat_name].add(hash_key)
 
-        value_string = "".join(data_values)
-        if not value_string:
-            hash_id = self.hash_null
+        if not data_values:
+            hash_id = None
             if is_first:
-                headers = ["hex_hash"] + [field["name"] for field in fields]
-                self.buffers[cat_name].writerow(headers)
-                add_hash_to_cat(hash_id, all_values)
+                add_hash_to_cat(self.hash_null, all_values)
         else:
+            final_data_values = initial_data_values + data_values
+            value_string = "".join(final_data_values)
             value_string = value_string.encode(self.decode_final)
             hash_id = hashlib.md5(value_string).hexdigest()
             add_hash_to_cat(hash_id, all_values)
         available_data[f"{cat_name}_id"] = hash_id
         return available_data
-
-    def obtain_decode(self, sample):
-        if self.decode:
-            return self.decode
-
-        for row in sample:
-            is_byte = isinstance(row, bytes)
-            posible_latin = False
-            if is_byte:
-                try:
-                    row.decode("utf-8")
-                except Exception:
-                    posible_latin = True
-                if posible_latin:
-                    try:
-                        row.decode("latin-1")
-                        return "latin-1"
-                    except Exception as e:
-                        print("Error de codificación", e)
-                        return "unknown"
-            else:
-                return "str"
-        return "utf-8"
 
     def append_missing_row(self, row_data, error=None, drug_id=None):
         if self.last_missing_row:

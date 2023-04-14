@@ -49,12 +49,11 @@ class MedicalUnit(models.Model):
 class Area(models.Model):
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    # hex_hash = models.CharField(max_length=40, blank=True, null=True)
     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
-    # institution = models.ForeignKey(
-    #     Institution, on_delete=models.CASCADE)
-    # delegation = models.ForeignKey(
-    #     Delegation, null=True, blank=True, on_delete=models.CASCADE)
+    aggregate_to = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE)
+    is_aggregate = models.BooleanField(
+        default=False, blank=True, null=True)
     key = models.CharField(
         max_length=255, verbose_name="Clave del área",
         blank=True, null=True)
@@ -64,10 +63,6 @@ class Area(models.Model):
     description = models.TextField(
         verbose_name="Descripción del área",
         blank=True, null=True)
-    aggregate_to = models.ForeignKey(
-        "self", null=True, blank=True, on_delete=models.CASCADE)
-    is_aggregate = models.BooleanField(
-        default=False, blank=True, null=True)
 
     def __str__(self):
         return self.hex_hash
@@ -82,18 +77,14 @@ class Doctor(models.Model):
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
-    # institution = models.ForeignKey(
-    #     Institution, on_delete=models.CASCADE)
-    # delegation = models.ForeignKey(
-    #     Delegation, null=True, blank=True, on_delete=models.CASCADE)
-    clave = models.CharField(max_length=30, blank=True, null=True)
-    full_name = models.CharField(max_length=255)
-    medical_speciality = models.CharField(max_length=255, blank=True, null=True)
-    professional_license = models.CharField(max_length=20, blank=True, null=True)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(
         default=False, blank=True, null=True)
+    clave = models.CharField(max_length=30, blank=True, null=True)
+    full_name = models.CharField(max_length=255)
+    medical_speciality = models.CharField(max_length=255, blank=True, null=True)
+    professional_license = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
         verbose_name = "Doctor"
@@ -106,14 +97,14 @@ class Doctor(models.Model):
 class Diagnosis(models.Model):
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    cie10 = models.CharField(max_length=40, blank=True, null=True)
-    own_key = models.CharField(max_length=255, blank=True, null=True)
-    text = models.TextField(blank=True, null=True)
-    motive = models.TextField(blank=True, null=True)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(
         default=False, blank=True, null=True)
+    cie10 = models.CharField(max_length=40, blank=True, null=True)
+    own_key = models.CharField(max_length=255, blank=True, null=True)
+    text = models.TextField(blank=True, null=True)
+    motive = models.TextField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Diagnóstico"
@@ -129,6 +120,7 @@ class Medicament(models.Model):
     entity = models.ForeignKey(
         Entity, on_delete=models.CASCADE, blank=True, null=True,
         help_text="ent")
+    # ⚠️ No mover los campos de arriba
     component = models.ForeignKey(
         Component, on_delete=models.CASCADE, blank=True, null=True)
     presentation = models.ForeignKey(
@@ -159,3 +151,22 @@ class Medicament(models.Model):
 
     def __str__(self):
         return self.hex_hash
+
+
+class Delivered(models.Model):
+
+    hex_hash = models.CharField(max_length=32, primary_key=True)
+    aggregate_to = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE)
+    is_aggregate = models.BooleanField(
+        default=False, blank=True, null=True)
+    # short_name = models.CharField(max_length=32, primary_key=True)
+    name = models.CharField(max_length=80)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Clasificación de entrega"
+        verbose_name_plural = "Clasificaciones de Entrega"
+
+    def __str__(self):
+        return self.name

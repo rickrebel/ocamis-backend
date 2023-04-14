@@ -1,32 +1,20 @@
-import zipfile
-import tempfile
-import shutil
-import os
-import boto3
-from io import BytesIO
-import re
 from django.conf import settings
-
-
-def random_string(len=6):
-    import random
-    import string
-    return ''.join(random.choices(string.ascii_letters, k=len))
+from io import BytesIO
+import os
+import re
+import zipfile
+from lambda_aws import start_session_lambda, upload_to_s3, random_string
 
 
 def create_zip_file(function_name, packages, function_text=None):
     # Create a temporary directory
     base_dir = settings.BASE_DIR
-    temp_dir_prev = tempfile.mkdtemp()
     current_string = random_string(6)
     temp_dir = f"{base_dir}/fixture/packages/{current_string}"
     # Install the packages
     for package in packages:
         os.system(f"pip3 install {package} -t {temp_dir}")
-    #new_root = "python"
     new_root = "python"
-    # Create the zip file
-    #zip_file2 = f'{function_name}.zip'
     with BytesIO() as zip_bytes:
         with zipfile.ZipFile(zip_bytes, 'w') as zip_ref:
             if function_text:
@@ -46,32 +34,6 @@ def create_zip_file(function_name, packages, function_text=None):
         return zip_bytes.read()
 
 
-
-def upload_to_s3(zip_file, function_name):
-    from scripts.common import start_session
-    bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-    aws_location = getattr(settings, "AWS_LOCATION")
-    final_path = f"experiment/{function_name}.zip"
-    s3_client, dev_resource = start_session()
-    success_file = s3_client.put_object(
-        Key=f"{aws_location}/{final_path}",
-        Body=zip_file,
-        Bucket=bucket_name,
-        #ACL='public-read',
-    )
-    return success_file, final_path
-
-
-def start_session_lambda():
-    aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
-    aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
-    return boto3.client(
-        'lambda', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region_name=getattr(settings, "AWS_S3_REGION_NAME")
-    )
-
-
 def create_lambda_function(function_name, final_path):
     aws_location = getattr(settings, "AWS_LOCATION")
     s3_key = f"{aws_location}/{final_path}"
@@ -89,6 +51,7 @@ def create_lambda_function(function_name, final_path):
     )
     return response_create
 
+
 function_text_simple = '''
 #import numpy as np
 
@@ -101,7 +64,6 @@ def lambda_handler(event, context):
     # result = np.sum(list_of_integers)
     return {"result": result}
     '''
-
 
 function_text_original = '''
 import numpy as np
@@ -120,7 +82,7 @@ def definitive_function():
     create_lambda_function(current_function, my_path)
 
 
-def definitive_function_real():
+def definitive_function_real_prev():
     base_dir = settings.BASE_DIR
     file_path = os.path.join(base_dir, "scripts/count_excel_rows.py")
     print(file_path)
@@ -130,39 +92,3 @@ def definitive_function_real():
     response, my_path = upload_to_s3(new_zip, current_function)
     create_lambda_function(current_function, my_path)
 
-
-def create_lambda_layer(layer_name, final_path):
-    lambda_client = start_session_lambda()
-    aws_location = getattr(settings, "AWS_LOCATION")
-    s3_key = f"{aws_location}/{final_path}"
-    response = lambda_client.publish_layer_version(
-        LayerName=layer_name,
-        Content={
-            'S3Bucket': getattr(settings, "AWS_STORAGE_BUCKET_NAME"),
-            'S3Key': s3_key
-        },
-        CompatibleRuntimes=['python3.9'],
-        CompatibleArchitectures=['x86_64']
-    )
-    return response
-
-
-def definitive_lambda(layer_name="my_layer1", packages=[]):
-    zip_layer = create_zip_file(layer_name, packages)
-    resp, layer_path = upload_to_s3(zip_layer, layer_name)
-    create_lambda_layer(layer_name, layer_path)
-
-
-# from scripts.ocamis_verified.lambda import definitive_lambda
-# definitive_function()
-# definitive_function_real()
-# definitive_lambda("pandas_with_complements",
-#                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pandas",
-#                    "numpy", "pyxlsb"])
-#
-# definitive_lambda("pandas_complements",
-#                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pyxlsb"])
-# definitive_lambda("other_complements_psycopg2_and_unidecode",
-#                   ["psycopg2", "unidecode"])
-# definitive_lambda("csv_complements", ["csv", "uuid"])
-# definitive_lambda("request_package", ["requests"])

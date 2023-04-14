@@ -131,8 +131,8 @@ class Match:
 
         self.editable_models = get_models_of_app("formula")
         self.editable_models += get_models_of_app("med_cat")
-        self.real_models = self.name_columns.values_list(
-            "final_field__collection__model_name", flat=True)
+        self.real_models = list(set(self.name_columns.values_list(
+            "final_field__collection__model_name", flat=True)))
         self.model_fields = {model["name"]: field_of_models_all(model)
                              for model in self.editable_models}
 
@@ -293,7 +293,8 @@ class Match:
             .exclude(id__in=included_columns)
         for name_column in other_name_columns:
             final_field = name_column.final_field
-            collection_name = final_field.collection.model_name.lower()
+            collection_name = final_field.collection.model_name
+            collection_name = camel_to_snake(collection_name)
             name_to_local = f"{collection_name}_{final_field.name}"
             new_name_column = build_column_data(name_column, name_to_local)
             self.existing_fields.append(new_name_column)
@@ -394,89 +395,6 @@ class Match:
                 name_column__file_control=self.file_control).first()
         return transformation.addl_params.get("value") \
             if transformation else None  # '%Y-%m-%d %H:%M:%S.%fYYY'
-
-    # ########## FUNCIONES AUXILIARES #############
-    def send_csv_to_db(self, table_file: TableFile):
-        from task.serverless import async_in_lambda
-        path = table_file.file.name
-        model_name = table_file.collection.model_name
-        # print("editable_models", self.editable_models)
-        try:
-            model_data = [model for model in self.editable_models
-                          if model["model"] == model_name][0]
-            snake_name = model_data["name"]
-        except IndexError:
-            print(f"MODELO: {model_name}")
-            raise Exception("No se encontró el modelo en la lista de modelos")
-        model_lower = model_name.lower()
-        model_in_db = f"{model_data['app']}_{model_lower}"
-        columns = self.model_fields[snake_name]
-        field_names = [field["name"] for field in columns]
-        columns_join = ",".join(field_names)
-        bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-        aws_location = getattr(settings, "AWS_LOCATION")
-        region_name = getattr(settings, "AWS_S3_REGION_NAME")
-        access_key = getattr(settings, "AWS_ACCESS_KEY_ID")
-        secret_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
-        encoding = "LATIN1" if self.file_control.decode == "latin-1" else "UTF8"
-        entity_optional_models = ["Diagnosis", "Medicament"]
-        if model_data["app"] == "formula":
-            sql_queries = [f"""
-                SELECT aws_s3.table_import_from_s3(
-                    '{model_in_db}',
-                    '{columns_join}',
-                    '(format csv, header true, delimiter "|", encoding "{encoding}")',
-                    '{bucket_name}',
-                    '{aws_location}/{path}',
-                    '{region_name}',
-                    '{access_key}',
-                    '{secret_key}'
-                )
-            """]
-        else:
-            sql_queries = []
-            temp_table = f"temp_{model_lower}"
-            sql_queries.append(f"""
-                CREATE TEMP TABLE {temp_table} AS SELECT * 
-                FROM {model_in_db} WITH NO DATA;
-            """)
-            sql_queries.append(f"""
-                SELECT aws_s3.table_import_from_s3(
-                    '{temp_table}',
-                    '{columns_join}',
-                    '(format csv, header true, delimiter "|", encoding "{encoding}")',
-                    '{bucket_name}',
-                    '{aws_location}/{path}',
-                    '{region_name}',
-                    '{access_key}',
-                    '{secret_key}'
-                )
-            """)
-            optional_condition = "WHERE "
-            if model_name not in entity_optional_models:
-                entity_id = self.agency.entity_id
-                optional_condition = f"{model_in_db}.entity_id = {entity_id} AND "
-            # final_condition += f"{model_in_db}.hex_hash = {temp_table}.hex_hash"
-            sql_queries.append(f"""
-                INSERT INTO {model_in_db} ({columns_join})
-                        SELECT {columns_join}
-                        FROM {temp_table}
-                        {optional_condition} NOT EXISTS (
-                            SELECT 1 FROM {model_in_db} 
-                            WHERE {model_in_db}.hex_hash = {temp_table}.hex_hash
-                        );
-            """)
-        desabasto_db = getattr(settings, "DATABASES", {}).get("default")
-        # desabasto_db = getattr(settings, "DATABASES", {}).get("default_prod")
-        # save_csv_in_db(sql_query, desabasto_db)
-        params = {
-            "sql_queries": sql_queries,
-            "db_config": desabasto_db,
-            "table_file_id": table_file.id,
-        }
-        self.task_params["models"] = [table_file.lap_sheet.sheet_file]
-        self.task_params["function_after"] = "check_success_insert"
-        return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def save_catalog_csv(self, path, model_name):
         from task.serverless import async_in_lambda

@@ -5,25 +5,24 @@ from django.contrib import admin
 from .models import (
     Drug,
     Prescription,
-    # DocumentType,
+    DocumentType,
     # MedicalSpeciality,
-    Delivered
 )
-from med_cat.models import Doctor
+from med_cat.models import Doctor, Delivered
 
 
-# class DocumentTypeAdmin(admin.ModelAdmin):
-#     list_display = ["name"]
-#     search_fields = ["name"]
-#
-#
-# ocamis_admin_site.register(DocumentType, DocumentTypeAdmin)
+class DocumentTypeAdmin(admin.ModelAdmin):
+    list_display = ["name"]
+    search_fields = ["name"]
+
+
+ocamis_admin_site.register(DocumentType, DocumentTypeAdmin)
 
 
 class DrugInline(admin.TabularInline):
     model = Drug
     extra = 0
-    #raw_id_fields = ["container"]
+    # raw_id_fields = ["container"]
 
 
 class PrescriptionAdmin(admin.ModelAdmin):
@@ -52,12 +51,14 @@ ocamis_admin_site.register(Prescription, PrescriptionAdmin)
 
 class DrugAdmin(admin.ModelAdmin):
     list_display = [
-        #"prescription",
+        "uuid",
+        "prescription",
+        "sheet_file",
         "prescribed_amount",
         "delivered_amount",
         "price",
-        ]
-    #readonly_fields = ["prescription"]
+    ]
+    readonly_fields = ["prescription", "sheet_file", "medicament"]
 
 
 ocamis_admin_site.register(Drug, DrugAdmin)
@@ -65,7 +66,7 @@ ocamis_admin_site.register(Drug, DrugAdmin)
 
 class DeliveredAdmin(admin.ModelAdmin):
     list_display = [
-        "short_name",
+        "hex_hash",
         "name",
         "description",
     ]

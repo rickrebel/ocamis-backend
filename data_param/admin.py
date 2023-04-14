@@ -25,6 +25,7 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "in_data_base",
         "verified",
         "need_for_viz",
+        "included_code"
     ]
     list_filter = ["parameter_group", "collection", "verified", "data_type"]
     inlines = [CleanFunctionInLine]
@@ -34,6 +35,7 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "need_for_viz",
         "is_unique",
         "is_common",
+        "included_code",
     ]
     ordering = [
         "parameter_group", "collection", "verbose_name"]

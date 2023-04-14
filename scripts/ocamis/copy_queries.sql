@@ -153,3 +153,86 @@ create index formula_missingfield_missing_row_id_8903ee88
 
 create index formula_missingfield_name_column_id_d2bc6a65
     on public.formula_missingfield (name_column_id);
+
+
+-- doctor:
+
+create table if not exists public.med_cat_doctor
+(
+    clave                varchar(30),
+    full_name            varchar(255) not null,
+    medical_speciality   varchar(255),
+    professional_license varchar(20),
+    is_aggregate         boolean,
+    aggregate_to_id      uuid,
+    entity_id            integer      not null
+        constraint med_cat_doctor_entity_id_5dc5343d_fk_geo_entity_id
+            references public.geo_entity
+            deferrable initially deferred,
+    hex_hash             varchar(32)  not null
+        primary key
+);
+
+alter table public.med_cat_doctor
+    owner to postgres;
+
+create index if not exists med_cat_doctor_aggregate_to_id_9e802d23
+    on public.med_cat_doctor (aggregate_to_id);
+
+create index if not exists med_cat_doctor_entity_id_5dc5343d
+    on public.med_cat_doctor (entity_id);
+
+create index if not exists med_cat_doctor_hash_5ed55034_like
+    on public.med_cat_doctor (hex_hash varchar_pattern_ops);
+
+
+ALTER TABLE med_cat_doctor DROP CONSTRAINT med_cat_doctor_pkey;
+ALTER TABLE med_cat_doctor ADD CONSTRAINT med_cat_doctor_entity_id_5dc5343d_fk_geo_entity_id;
+DROP INDEX med_cat_doctor_aggregate_to_id_9e802d23;
+DROP INDEX med_cat_doctor_entity_id_5dc5343d;
+DROP INDEX med_cat_doctor_hash_5ed55034_like;
+
+
+--mising rows
+
+create table if not exists public.formula_missingfield
+(
+    uuid           uuid                     not null
+        primary key,
+    original_value text,
+    final_value    text,
+    other_values   jsonb,
+    missing_row_id uuid                     not null
+        constraint formula_missingfield_missing_row_id_8903ee88_fk_formula_m
+            references public.formula_missingrow
+            deferrable initially deferred,
+    name_column_id integer                  not null
+        constraint formula_missingfield_name_column_id_d2bc6a65_fk_inai_name
+            references public.data_param_namecolumn
+            deferrable initially deferred,
+    error          text,
+    inserted       boolean,
+    last_revised   timestamp with time zone not null
+);
+
+alter table public.formula_missingfield
+    owner to user_desabasto;
+
+create index if not exists formula_missingfield_missing_row_id_8903ee88
+    on public.formula_missingfield (missing_row_id);
+
+create index if not exists formula_missingfield_name_column_id_d2bc6a65
+    on public.formula_missingfield (name_column_id);
+
+
+ALTER TABLE formula_missingfield DROP CONSTRAINT formula_missingfield_pkey;
+ALTER TABLE formula_missingfield DROP CONSTRAINT formula_missingfield_name_column_id_d2bc6a65_fk_inai_name;
+ALTER TABLE formula_missingfield DROP CONSTRAINT formula_missingfield_missing_row_id_8903ee88_fk_formula_m;
+DROP INDEX formula_missingfield_missing_row_id_8903ee88;
+DROP INDEX formula_missingfield_name_column_id_d2bc6a65;
+
+
+create index if not exists formula_missingfield_missing_row_id_8903ee88
+    on public.formula_missingfield (missing_row_id);
+create index if not exists formula_missingfield_name_column_id_d2bc6a65
+    on public.formula_missingfield (name_column_id);

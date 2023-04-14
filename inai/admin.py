@@ -132,6 +132,7 @@ class SheetFileAdmin(admin.ModelAdmin):
 
 class LapSheetAdmin(admin.ModelAdmin):
     list_display = [
+        "last_edit",
         "lap",
         "inserted",
         "prescription_count",
@@ -139,6 +140,7 @@ class LapSheetAdmin(admin.ModelAdmin):
         "total_count",
         "sheet_file",
     ]
+    inlines = [TableFileInline]
     raw_id_fields = ["sheet_file"]
 
 

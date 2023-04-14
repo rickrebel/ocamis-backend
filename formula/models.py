@@ -5,7 +5,8 @@ from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
 
-from med_cat.models import Doctor, Diagnosis, Area, MedicalUnit, Medicament
+from med_cat.models import (
+    Doctor, Diagnosis, Area, MedicalUnit, Medicament, Delivered)
 
 
 class MedicalSpeciality(models.Model):
@@ -30,20 +31,6 @@ class DocumentType(models.Model):
         return self.name
 
 
-class Delivered(models.Model):
-    short_name = models.CharField(
-        max_length=20, primary_key=True)
-    name = models.CharField(max_length=80)
-    description = models.TextField(blank=True, null=True)
-
-    class Meta:
-        verbose_name = "Clasificación de entrega"
-        verbose_name_plural = "Clasificaciones de Entrega"
-
-    def __str__(self):
-        return self.name
-
-
 class Prescription(models.Model):
     from geo.models import CLUES, Delegation, Entity
     uuid_folio = models.UUIDField(
@@ -55,13 +42,10 @@ class Prescription(models.Model):
     month = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
-    medical_unit = models.ForeignKey(MedicalUnit, on_delete=models.CASCADE)
+    medical_unit = models.ForeignKey(
+        MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
     area = models.ForeignKey(
         Area, on_delete=models.CASCADE, blank=True, null=True)
-    # delegation = models.ForeignKey(
-    #     Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    # clues = models.ForeignKey(
-    #     CLUES, blank=True, null=True, on_delete=models.CASCADE)
     delivered_final = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     # EXTENSION: COSAS NO TAN RELEVANTES:
@@ -94,8 +78,6 @@ class Drug(models.Model):
         SheetFile, on_delete=models.CASCADE, blank=True, null=True)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
 
-    # container = models.ForeignKey(
-    #     Container, blank=True, null=True, on_delete=models.CASCADE)
     medicament = models.ForeignKey(
         Medicament, blank=True, null=True,
         on_delete=models.CASCADE)
@@ -105,11 +87,7 @@ class Drug(models.Model):
         blank=True, null=True)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
-    # OTROS DATOS NO TAN RELEVANTES:
     price = models.FloatField(blank=True, null=True)
-    # rn = models.CharField(max_length=80, blank=True, null=True)
-    # for_training = models.CharField(
-    #     max_length=20, choices=TRAINING_CHOICES, blank=True, null=True)
 
     class Meta:
         verbose_name = "Insumos"
@@ -124,17 +102,10 @@ class MissingRow(models.Model):
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     sheet_file = models.ForeignKey(
         SheetFile, on_delete=models.CASCADE, related_name='missing_rows')
-    # data_file = models.ForeignKey(
-    #     DataFile, on_delete=models.CASCADE)
-    # sheet_name = models.CharField(max_length=255, blank=True, null=True)
-    # prescription = models.ForeignKey(
-    #     Prescription,
-    #     blank=True, null=True,
-    #     on_delete=models.CASCADE, related_name='missing_rows')
+    # row_seq = models.IntegerField(default=1)
     drug = models.ForeignKey(
         Drug, blank=True, null=True,
         on_delete=models.CASCADE)
-    # row_seq = models.IntegerField(default=1)
     # tab = models.CharField(max_length=255, blank=True, null=True)
 
     # ¡ÚLTIMOS CAMPOS SIEMPRE!
