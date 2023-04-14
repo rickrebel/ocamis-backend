@@ -82,7 +82,7 @@ class Doctor(models.Model):
     is_aggregate = models.BooleanField(
         default=False, blank=True, null=True)
     clave = models.CharField(max_length=30, blank=True, null=True)
-    full_name = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=255, blank=True, null=True)
     medical_speciality = models.CharField(max_length=255, blank=True, null=True)
     professional_license = models.CharField(max_length=20, blank=True, null=True)
 

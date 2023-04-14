@@ -113,8 +113,6 @@ class MatchAws:
         self.file_name_simple = self.file_name.split(".")[0]
         self.sheet_name = init_data["sheet_name"]
         self.final_path = init_data["final_path"]
-        # RICK 21 BORRAR
-        self.example_prints = 0
 
         self.entity_id = init_data["entity_id"]
         self.global_delegation = init_data["global_delegation"]
@@ -258,9 +256,6 @@ class MatchAws:
 
             available_data, some_date = self.complement_available_data(
                 available_data, row)
-            if self.example_prints < 10:
-                print("available_data \t", available_data)
-                self.example_prints += 1
 
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"

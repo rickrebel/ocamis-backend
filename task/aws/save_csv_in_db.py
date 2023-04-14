@@ -2,6 +2,7 @@
 # def save_csv_in_db(event, context):
 def lambda_handler(event, context):
     import psycopg2
+    print("model_name", event.get("model_name"))
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries")
     connection = psycopg2.connect(

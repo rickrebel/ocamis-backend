@@ -129,8 +129,8 @@ class Match:
         self.delimiter = self.file_control.delimiter
         self.columns_count = original_columns.count()
 
-        self.editable_models = get_models_of_app("formula")
-        self.editable_models += get_models_of_app("med_cat")
+        self.editable_models = get_models_of_app("med_cat")
+        self.editable_models += get_models_of_app("formula")
         self.real_models = list(set(self.name_columns.values_list(
             "final_field__collection__model_name", flat=True)))
         self.model_fields = {model["name"]: field_of_models_all(model)

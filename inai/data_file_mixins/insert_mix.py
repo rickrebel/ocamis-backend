@@ -124,16 +124,18 @@ class Insert:
                             {optional_condition}
                     );
             """)
-        desabasto_db = getattr(settings, "DATABASES", {}).get("default")
-        # desabasto_db = getattr(settings, "DATABASES", {}).get("default_prod")
+        # desabasto_db = getattr(settings, "DATABASES", {}).get("default")
+        desabasto_db = getattr(settings, "DATABASES", {}).get("default_prod")
         # save_csv_in_db(sql_query, desabasto_db)
         params = {
             "sql_queries": sql_queries,
             "db_config": desabasto_db,
             "table_file_id": table_file.id,
+            "model_name": model_name,
         }
         self.task_params["models"] = [table_file.lap_sheet.sheet_file]
         self.task_params["function_after"] = "check_success_insert"
+        print("MODELO: ----------- ", model_name.upper())
         return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def build_copy_sql_aws(self, table_file, model_in_db, columns_join):
