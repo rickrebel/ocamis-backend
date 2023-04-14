@@ -211,6 +211,7 @@ class DataFileViewSet(CreateRetrievView):
             new_tasks, all_errors, data_file = method(task_params, **curr_kwargs)
             if all_errors or new_tasks:
                 if all_errors:
+                    print("all_errors", all_errors)
                     data_file.save_errors(
                         all_errors, f"{stage.name}|with_errors")
                 return comprobate_status(

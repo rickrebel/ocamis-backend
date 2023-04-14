@@ -358,14 +358,21 @@ class MatchAws:
         all_final_paths = []
 
         for elem_list in self.editable_models:
-            only_name = self.final_path.replace("NEW_ELEM_NAME", elem_list['name'])
+            cat_name = elem_list["name"]
+            if "missing" in cat_name:
+                cat_count = report_errors.get(f"{cat_name}s", 0)
+            else:
+                cat_count = report_errors.get(f"{cat_name}_count", 0)
+            if cat_count == 0:
+                continue
+            only_name = self.final_path.replace("NEW_ELEM_NAME", cat_name)
             all_final_paths.append({
-                "name": elem_list["name"],
+                "name": cat_name,
                 "model": elem_list["model"],
                 "path": only_name,
             })
             s3_client.put_object(
-                Body=self.csvs[elem_list["name"]].getvalue(),
+                Body=self.csvs[cat_name].getvalue(),
                 Bucket=bucket_name,
                 Key=f"{aws_location}/{only_name}",
                 ContentType="text/csv",
@@ -618,8 +625,8 @@ class MatchAws:
 
         if not data_values:
             hash_id = None
-            if is_first:
-                add_hash_to_cat(self.hash_null, all_values)
+            # if is_first:
+            #     add_hash_to_cat(self.hash_null, all_values)
         else:
             final_data_values = initial_data_values + data_values
             value_string = "".join(final_data_values)

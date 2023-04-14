@@ -112,7 +112,7 @@ class ExploreMix:
             sheet_file__data_file=self, lap=0, inserted=False)
         if not lap_sheets.exists():
             errors = ["No existen registros para insertar"]
-            return [], errors, None
+            return [], errors, self
         new_tasks = []
         for lap_sheet in lap_sheets:
             table_files = lap_sheet.table_files.all()

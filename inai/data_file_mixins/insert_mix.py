@@ -78,7 +78,6 @@ class Insert:
     # ########## FUNCIONES AUXILIARES #############
     def send_csv_to_db(self, table_file: TableFile):
         from task.serverless import async_in_lambda
-        path = table_file.file.name
         model_name = table_file.collection.model_name
         # print("editable_models", self.editable_models)
         try:
@@ -135,7 +134,7 @@ class Insert:
         }
         self.task_params["models"] = [table_file.lap_sheet.sheet_file]
         self.task_params["function_after"] = "check_success_insert"
-        print("MODELO: ----------- ", model_name.upper())
+        # print("MODELO: ----------- ", model_name.upper())
         return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def build_copy_sql_aws(self, table_file, model_in_db, columns_join):
@@ -145,7 +144,8 @@ class Insert:
         access_key = getattr(settings, "AWS_ACCESS_KEY_ID")
         secret_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
         path = table_file.file.name
-        encoding = "LATIN1" if self.file_control.decode == "latin-1" else "UTF8"
+        # encoding = "LATIN1" if self.file_control.decode == "latin-1" else "UTF8"
+        encoding = "UTF8"
         return f"""
             SELECT aws_s3.table_import_from_s3(
                 '{model_in_db}',

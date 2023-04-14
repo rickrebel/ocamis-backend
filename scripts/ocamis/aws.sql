@@ -97,3 +97,16 @@ TRUNCATE
     formula_missingrow,
     formula_missingfield, RESTART IDENTITY;
 
+TRUNCATE
+    formula_prescription,
+    formula_drug,
+    formula_missingrow,
+    formula_missingfield,
+    med_cat_doctor,
+    med_cat_medicalunit,
+    med_cat_area,
+    med_cat_medicament,
+    med_cat_diagnosis
+     RESTART IDENTITY;
+
+
