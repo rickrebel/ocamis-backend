@@ -93,11 +93,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
         return send_response(petition, task=key_task, errors=all_errors)
 
-    @action(detail=True, methods=["get"], url_path="finished")
-    def finished(self, request, pk=None):
-        petition = self.get_object()
-        return send_response(petition)
-
 
 def move_and_duplicate(data_files, petition, request):
     from rest_framework.exceptions import ParseError
@@ -225,162 +220,6 @@ class DataFileViewSet(CreateRetrievView):
         return Response(status=status.HTTP_404_NOT_FOUND, data={
             "errors": "Hubo un error inesperado"
         })
-        # new_tasks, all_errors, data_file = data_file.get_sample_data(
-        #     task_params, **curr_kwargs)
-        # if all_errors or new_tasks:
-        #     return comprobate_status(
-        #         key_task, all_errors, new_tasks, want_http_response=True)
-        # errors = []
-        # all_tasks = []
-        # if stage.order >= 3:
-        #     data_file, saved, errors = data_file.find_coincidences(
-        #         task_params=task_params)
-        #     if not saved and not errors:
-        #         errors = ["No coincide con el grupo de control (2)"]
-        # if not errors:
-        #     if stage_name == "prepare":
-        #         data_file = data_file.count_file_rows()
-        #     if stage_name in ["transform", "prepare"]:
-        #         my_match = Match(data_file, task_params)
-        #         is_prepare = stage_name == "prepare"
-        #         all_tasks, all_errors, new_files = my_match \
-        #             .build_csv_converted(is_prepare=is_prepare)
-        #     elif stage.order <= 3:
-        #         data_file = data_file.change_status(f"{stage_name}|finished")
-        # else:
-        #     data_file.save_errors(errors, "cluster|with_errors")
-        # resp = comprobate_status(
-        #     key_task, errors, all_tasks, want_http_response=True)
-        # if resp:
-        #     return resp
-        # elif data_file:
-        #     data = serializers.DataFileSerializer(data_file).data
-        #     response_body = {"data_file": data}
-        #     return Response(response_body, status=status.HTTP_200_OK)
-        # else:
-        #     return Response(status=status.HTTP_404_NOT_FOUND, data={
-        #         "detail": "Hubo un error inesperado"
-        #     })
-
-    @action(methods=["get"], detail=True, url_path="build_sample_data")
-    def build_sample_data(self, request, **kwargs):
-        data_file = self.get_object()
-        key_task, task_params = build_task_params(
-            data_file, "build_sample_data", request)
-        curr_kwargs = {
-            "after_if_empty": "find_coincidences_from_aws",
-        }
-        all_tasks, all_errors, data_file = data_file.get_sample_data(
-            task_params, **curr_kwargs)
-        # print("data_file", data_file)
-        resp = comprobate_status(
-            key_task, all_errors, all_tasks, want_http_response=True)
-        if resp:
-            return resp
-
-        data_file, saved, errors = data_file.find_coincidences()
-        if not saved and not errors:
-            errors = ["No coincide con el formato del archivo 2"]
-        response_body = {}
-        if errors:
-            data_file.save_errors(errors, "explore|with_errors")
-            response_body["errors"] = errors
-            final_status = status.HTTP_400_BAD_REQUEST
-        elif data_file:
-            data = serializers.DataFileSerializer(data_file).data
-            response_body["data_file"] = data
-            final_status = status.HTTP_200_OK
-
-        if response_body:
-            return Response(response_body, status=final_status)
-        #RICK 14
-        else:
-            if errors:
-                print("ANALIZAR")
-            else:
-                if new_data_file:
-                    new_data_file = new_data_file.change_status("explore|finished")
-                    final_status = status.HTTP_200_OK
-                else:
-                    new_data_file = data_file.change_status("explore|finished")
-                    final_status = status.HTTP_400_BAD_REQUEST
-            if new_data_file:
-                if new_data_file:
-                    data = serializers.DataFileSerializer(new_data_file).data
-                else:
-                    data = serializers.DataFileSerializer(data_file).data
-                response_body["data_file"] = data
-            child_data_files = DataFile.objects.filter(
-                origin_file=data_file)
-            # print("child_data_files: ", child_data_files.count())
-            key_task = task_params["parent_task"]
-            key_task = comprobate_status(
-                key_task, errors=[], new_tasks=new_tasks)
-            if key_task:
-                response_body["new_task"] = key_task.id
-            if new_ch:
-                response_body["new_files"] = serializers.DataFileSerializer(
-                    new_ch, many=True).data
-            return Response(response_body, status=final_status)
-
-    @action(methods=["get"], detail=True, url_path="counting")
-    def counting(self, request, **kwargs):
-        data_file = self.get_object()
-        key_task, task_params = build_task_params(
-            data_file, "counting", request)
-        curr_kwargs = {
-            "after_if_empty": "find_and_counting_from_aws",
-        }
-        all_tasks, all_errors, data_file = data_file.get_sample_data(
-            task_params, **curr_kwargs)
-
-        resp = comprobate_status(
-            key_task, all_errors, all_tasks, want_http_response=True)
-        if resp:
-            return resp
-
-        response_body = {}
-        final_status = status.HTTP_200_OK
-        if data_file:
-            data_rows = data_file.count_file_rows()
-            data = serializers.DataFileSerializer(data_file).data
-            response_body["data_file"] = data
-            if data_rows.get("errors", False):
-                response_body["errors"] = data_rows["errors"]
-                final_status = status.HTTP_400_BAD_REQUEST
-        if all_errors:
-            response_body["errors"] = response_body.get("errors", [])
-            final_status = status.HTTP_400_BAD_REQUEST
-        print("response_body: ", response_body)
-        return Response(response_body, status=final_status)
-
-    @action(methods=["get"], detail=True, url_path="transform_data_prev")
-    def transform_data_prev(self, request, **kwargs):
-        from inai.data_file_mixins.matches_mix import Match
-        data_file = self.get_object()
-        key_task, task_params = build_task_params(
-            data_file, "transform_data", request)
-        my_match = Match(data_file, task_params)
-        all_tasks, all_errors, new_files = my_match.build_csv_converted()
-        # Match.build_csv_converted(data_file, task_params)
-        comprobate_status(
-            key_task, all_errors, all_tasks, want_http_response=True)
-        data = {}
-        if all_errors:
-            data["errors"] = all_errors
-        if new_files:
-            data["new_files"] = serializers.DataFileSerializer(new_files, many=True).data
-            # if resp:
-            #     return resp
-            return Response(data, status=status.HTTP_200_OK)
-        else:
-            data["new_task"] = key_task.id
-            return Response(data, status=status.HTTP_200_OK)
-        # if data_file:
-        #     data = serializers.DataFileSerializer(data_file).data
-        #     return Response(data, status=status.HTTP_201_CREATED)
-        # return Response(
-        #     {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["get"], detail=True, url_path="build_columns")
     def build_columns(self, request, **kwargs):
@@ -393,15 +232,16 @@ class DataFileViewSet(CreateRetrievView):
         }
         all_tasks, all_errors, data_file = data_file.get_sample_data(
             task_params, **curr_kwargs)
-        resp = comprobate_status(
-            key_task, all_errors, all_tasks, want_http_response=True)
-        if resp:
-            return resp
-        if data_file:
+        if all_tasks or all_errors:
+            return comprobate_status(
+                key_task, all_errors, all_tasks, want_http_response=True)
+        elif data_file:
             new_tasks, errors, data = data_file.build_complex_headers()
             all_errors.extend(errors or [])
             if data:
                 return Response(data, status=status.HTTP_201_CREATED)
+        if not all_errors:
+            all_errors = ["Pasó algo extraño en build_columns, reportar a Rick"]
         return Response(
             {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -630,6 +470,3 @@ class OpenDataInaiViewSet(ListRetrieveView):
 
         return Response(
             data, status=status.HTTP_201_CREATED)
-
-
-

@@ -1,6 +1,6 @@
 from django.db import models
 
-from inai.models import DataFile, SheetFile
+from inai.models import DataFile, SheetFile, LapSheet
 from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
@@ -75,8 +75,10 @@ class Drug(models.Model):
         Prescription, on_delete=models.CASCADE,
         related_name='drugs')
     sheet_file = models.ForeignKey(
-        SheetFile, on_delete=models.CASCADE, blank=True, null=True)
+        SheetFile, on_delete=models.CASCADE)
     row_seq = models.PositiveIntegerField(blank=True, null=True)
+    lap_sheet = models.ForeignKey(
+        LapSheet, on_delete=models.CASCADE)
 
     medicament = models.ForeignKey(
         Medicament, blank=True, null=True,
@@ -136,8 +138,7 @@ class MissingField(models.Model):
     # SIEMPRE EN POSICIÓN 3:
     original_value = models.TextField(blank=True, null=True)
     final_value = models.TextField(blank=True, null=True)
-    other_values = JSONField(
-        blank=True, null=True)
+    other_values = JSONField(blank=True, null=True)
     last_revised = models.DateTimeField()
 
     # ¡ÚLTIMOS CAMPOS SIEMPRE!

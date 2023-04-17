@@ -18,22 +18,6 @@ def text_normalizer(text):
     return re.sub(r'[^a-zA-Z\s]', '', text)
 
 
-def field_of_models(model_data):
-    from django.apps import apps
-    app_name = model_data.get('app', 'formula')
-    model_name = model_data['model']
-    my_model = apps.get_model(app_name, model_name)
-    all_fields = my_model._meta.get_fields(
-        include_parents=False, include_hidden=False)
-    field_names = []
-    for field in all_fields:
-        if field.one_to_many:
-            continue
-        complement = "_id" if field.is_relation else ""
-        field_names.append(f"{field.name}{complement}")
-    return field_names
-
-
 def field_of_models_all(model_data):
     from django.apps import apps
     from django.db.models import CharField, TextField
@@ -176,7 +160,7 @@ class Match:
             # "unique_clues": unique_clues,
         }
         # result = start_build_csv_data(params, None)
-        self.task_params["function_after"] = "finish_build_csv_data"
+        self.task_params["function_after"] = "build_csv_data_from_aws"
         all_tasks = []
         # print("is_prepare", is_prepare)
         for sheet_file in self.data_file.sheet_files.filter(matched=True):

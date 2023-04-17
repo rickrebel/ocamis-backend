@@ -65,6 +65,8 @@ def async_in_lambda(function_name, params, task_params):
     # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
     function_final = f"{function_name}:normal"
     use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
+    if function_name == "save_csv_in_db":
+        current_task.status_task_id = "queue"
     if globals().get(function_name, False) and use_local_lambda:
         print("SE EJECUTA EN LOCAL")
         request_id = current_task.id
@@ -72,22 +74,17 @@ def async_in_lambda(function_name, params, task_params):
         current_task.request_id = request_id
         current_task.status_task_id = "running"
         current_task.save()
-        # print("SE GUARDÓ BIEN")
         # payload_response = json.loads(response['Payload'].read())
         # print("payload_response", payload_response)
 
         def run_in_thread():
-            print("ESTOY EN EL THREAD ASÍNCRONO")
-
             class Context:
                 def __init__(self, request_id):
                     self.aws_request_id = request_id
-
             globals()[function_name](params, Context(request_id))
 
         t = threading.Thread(target=run_in_thread)
         t.start()
-
         return current_task
     else:
         dumb_params = json.dumps(params)

@@ -146,3 +146,15 @@ def async_task_post_delete(sender, instance, **kwargs):
     )
 
 
+class Platform(models.Model):
+    version = models.CharField(max_length=10)
+    has_constrains = models.BooleanField(default=True)
+    create_constraints = JSONField(blank=True, null=True)
+    delete_constraints = JSONField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = u"Plataforma"
+        verbose_name_plural = "Plataformas"
+
+    def __str__(self):
+        return self.version

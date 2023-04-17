@@ -117,6 +117,15 @@ class Entity(models.Model):
     population = models.IntegerField(
         default=0, verbose_name="Población")
 
+    def delete(self, *args, **kwargs):
+        from inai.models import LapSheet
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control__petition__agency__entity=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.name
 
@@ -408,6 +417,15 @@ class Agency(models.Model):
                     month += 1
                     ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
                     MonthAgency.objects.get_or_create(agency=self, year_month=ye_mo)
+
+    def delete(self, *args, **kwargs):
+        from inai.models import LapSheet
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control__petition__agency=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.name or "%s -%s -%s" % (

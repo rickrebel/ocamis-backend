@@ -106,10 +106,10 @@ class TableFileInline(admin.TabularInline):
     raw_id_fields = ["lap_sheet"]
 
 
-class LapSheetInline(admin.TabularInline):
+class LapSheetInline(admin.StackedInline):
     model = LapSheet
     extra = 0
-    # show_change_link = True
+    show_change_link = True
     raw_id_fields = ["sheet_file"]
     inlines = [TableFileInline]
 

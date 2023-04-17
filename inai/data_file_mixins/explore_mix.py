@@ -3,12 +3,12 @@ class ExploreMix:
     final_path: str
     petition_file_control: None
 
+    # Guardado en funciones
     def get_sample_data(self, task_params=None, **kwargs):
         # from task.models import AsyncTask
         from django.utils import timezone
         from category.models import FileFormat
         from inai.models import SheetFile
-        # print("get_sample_data 1", timezone.now())
         data_file = self
         task_params = task_params or {}
         data_file.error_process = []
@@ -24,7 +24,6 @@ class ExploreMix:
         #     task.save()
         data_file.save()
         task_params["models"] = [data_file]
-        # print("get_sample_data 2", timezone.now())
         if not data_file.suffix:
             (data_file, errors, suffix), first_task = data_file.decompress_file(
                 task_params=task_params)
@@ -34,7 +33,6 @@ class ExploreMix:
             else:
                 self.save_errors(errors, 'explore|with_errors')
                 return [first_task], errors, None
-        # print("get_sample_data 3", timezone.now())
         forced_save = kwargs.get("forced_save", False)
         sheet_names = data_file.sheet_names_list
         if not sheet_names:
@@ -66,7 +64,6 @@ class ExploreMix:
                     forced_save = True
         new_errors = []
         # if not data_file.sample_data or forced_save:
-        # print("get_sample_data 4", timezone.now())
         if forced_save:
             # print("NO HAY SAMPLE DATA O NO HAY SHEET NAMES")
             task_params["function_after"] = kwargs.get("after_if_empty")
@@ -84,7 +81,6 @@ class ExploreMix:
                 task_params=task_params)
             if new_task:
                 return [new_task], new_errors, None
-        # print("get_sample_data 5", timezone.now())
         if new_errors:
             self.save_errors(new_errors, 'explore|with_errors')
             return [], new_errors, None
@@ -104,14 +100,30 @@ class ExploreMix:
     def insert_data(self, task_params, **kwargs):
         from inai.data_file_mixins.insert_mix import Insert
         from inai.models import LapSheet
+        from formula.models import Drug, MissingRow
         if not self.stage == 'transform' and self.status == 'finished':
             errors = ["El archivo tiene concluido el proceso de transformación"]
             return [], errors, None
         my_insert = Insert(self, task_params)
         lap_sheets = LapSheet.objects.filter(
-            sheet_file__data_file=self, lap=0, inserted=False)
+            sheet_file__data_file=self, lap=0).exclude(inserted=True)
         if not lap_sheets.exists():
-            errors = ["No existen registros para insertar"]
+            errors = ["No existen tablas por insertar"]
+            return [], errors, self
+        sheet_file_ids = lap_sheets.values_list("sheet_file_id", flat=True)
+        sheet_file_ids = list(set(sheet_file_ids))
+        some_drugs = Drug.objects.filter(
+            sheet_file_id__in=sheet_file_ids).exists()
+        error_already = "Algunas tablas relacionadas ya han sido insertadas"
+        errors = []
+        if some_drugs:
+            errors = [error_already]
+        else:
+            some_missing = MissingRow.objects.filter(
+                sheet_file_id__in=sheet_file_ids).exists()
+            if some_missing:
+                errors = [error_already]
+        if errors:
             return [], errors, self
         new_tasks = []
         for lap_sheet in lap_sheets:
@@ -697,6 +709,47 @@ class ExploreMix:
             print(e)
         # print(data["structured_data"][:6])
         return None, None, first_valid_sheet
+
+    def build_csv_data_from_aws(self, task_params=None, **kwargs):
+        from inai.models import SheetFile, LapSheet
+        from django.utils import timezone
+        # print("FINISH BUILD CSV DATA")
+        data_file = self
+        is_prepare = kwargs.get("is_prepare", False)
+        sheet_file_id = kwargs.get("sheet_file_id", None)
+        sheet_file = SheetFile.objects.get(id=sheet_file_id)
+        # print("is_prepare", is_prepare)
+        next_lap = sheet_file.next_lap if not is_prepare else -1
+        # print("next_lap", next_lap)
+        # print("next_lap", sheet_file.next_lap)
+        # print("final_paths", final_paths)
+        report_errors = kwargs.get("report_errors", {})
+        lap_sheet, created = LapSheet.objects.get_or_create(
+            sheet_file=sheet_file, lap=next_lap)
+        fields_in_report = report_errors.keys()
+        for field in fields_in_report:
+            setattr(lap_sheet, field, report_errors[field])
+        lap_sheet.last_edit = timezone.now()
+        lap_sheet.save()
+        if is_prepare:
+            stage_name = "prepare"
+            data_file.change_status(f"{stage_name}|finished")
+            return [], [], True
+        # data_file.all_results = kwargs.get("report_errors", {})
+        # data_file.save()
+        final_paths = kwargs.get("final_paths", []) or []
+        if not data_file.petition_file_control.file_control.decode:
+            decode = kwargs.get("decode", None)
+            if decode:
+                data_file.petition_file_control.file_control.decode = decode
+                data_file.petition_file_control.file_control.save()
+        new_task, errors, data = lap_sheet.save_result_csv(final_paths)
+        stage_name = "transform"
+        if errors:
+            data_file.save_errors(errors, f"{stage_name}|with_errors")
+        else:
+            data_file.change_status(f"{stage_name}|finished")
+        return new_task, errors, data
 
     #Comienzo del proceso de transformación.
     #Si es esploración (is_explore) solo va a obtener los headers y las

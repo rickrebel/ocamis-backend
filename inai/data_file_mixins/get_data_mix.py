@@ -3,7 +3,6 @@ raws = {}
 
 class ExtractorsMix:
     petition_file_control: None
-    save_errors: classmethod
     final_path: str
 
     # def every_has_total_rows(self, task_params=None, **kwargs):

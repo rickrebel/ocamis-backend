@@ -2,7 +2,7 @@ from django.contrib import admin
 from inai.admin import ocamis_admin_site
 from django.utils.html import format_html
 
-from .models import (AsyncTask)
+from .models import AsyncTask, Platform
 from classify_task.models import StatusTask, TaskFunction, Stage
 
 
@@ -113,7 +113,17 @@ class StageAdmin(admin.ModelAdmin):
     list_editable = ["order", "icon"]
 
 
+class PlatformAdmin(admin.ModelAdmin):
+    list_display = [
+        "version",
+        "has_constrains",
+    ]
+    list_editable = ["version", "has_constrains"]
+
+
 ocamis_admin_site.register(AsyncTask, AsyncTaskAdmin)
 ocamis_admin_site.register(StatusTask, StatusTaskAdmin)
 ocamis_admin_site.register(TaskFunction, TaskFunctionAdmin)
 ocamis_admin_site.register(Stage, StageAdmin)
+# ocamis_admin_site.register(Platform, PlatformAdmin)
+ocamis_admin_site.register(Platform)

@@ -236,3 +236,27 @@ create index if not exists formula_missingfield_missing_row_id_8903ee88
     on public.formula_missingfield (missing_row_id);
 create index if not exists formula_missingfield_name_column_id_d2bc6a65
     on public.formula_missingfield (name_column_id);
+
+
+
+
+alter table public.formula_missingrow
+add constraint formula_missingrow_pkey
+ primary key (uuid),
+add constraint formula_missingrow_sheet_file_id_e5292867_fk_inai_sheetfile_id
+   foreign key (sheet_file_id) references public.inai_sheetfile
+            deferrable initially deferred;
+
+
+
+alter table public.formula_missingfield
+            deferrable initially deferred
+add constraint formula_missingfield_pkey
+ primary key (uuid),
+add constraint formula_missingfield_missing_row_id_8903ee88_fk_formula_m
+   foreign key (missing_row_id) references public.formula_missingrow
+            deferrable initially deferred,
+add constraint formula_missingfield_name_column_id_d2bc6a65_fk_inai_name
+   foreign key (name_column_id) references public.data_param_namecolumn
+            deferrable initially deferred;
+

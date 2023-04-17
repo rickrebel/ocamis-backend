@@ -113,6 +113,14 @@ class Petition(models.Model, PetitionTransformsMix):
         help_text="Información de la queja en INAI Seach",
         blank=True, null=True)
 
+    def delete(self, *args, **kwargs):
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control__petition=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return "%s -- %s" % (self.agency, self.folio_petition or self.id)
 
@@ -164,6 +172,14 @@ class PetitionFileControl(models.Model):
     file_control = models.ForeignKey(
         FileControl, on_delete=models.CASCADE,
         related_name="petition_file_control",)
+
+    def delete(self, *args, **kwargs):
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return "%s - %s" % (self.petition, self.file_control)
@@ -245,6 +261,13 @@ class ReplyFile(models.Model, ReplyFileMix):
     has_data = models.BooleanField(
         default=False, verbose_name="Contiene los datos")
 
+    def delete(self, *args, **kwargs):
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__reply_file=self, inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
     @property
     def final_path(self):
         from django.conf import settings
@@ -320,6 +343,13 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True, verbose_name="Todos los resultados")
     completed_rows = models.IntegerField(default=0)
     inserted_rows = models.IntegerField(default=0)
+
+    def delete(self, *args, **kwargs):
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file=self, inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
 
     @property
     def final_path(self):
@@ -405,7 +435,19 @@ class SheetFile(models.Model):
     # completed_rows = models.IntegerField(default=0)
     # inserted_rows = models.IntegerField(default=0)
     # all_results = JSONField(blank=True, null=True)
-    valid_insert = models.BooleanField(default=True)
+
+    def delete(self, using=None, keep_parents=False):
+        some_inserted = self.laps.filter(inserted=True).exists()
+        if some_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(using, keep_parents)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            some_inserted = self.laps.filter(inserted=True).exists()
+            if some_inserted:
+                raise Exception("No se puede modificar un archivo con datos insertados")
+        super().save(*args, **kwargs)
 
     @property
     def next_lap(self):
@@ -415,44 +457,32 @@ class SheetFile(models.Model):
             lap_number = last_lap.lap + 1 if last_lap.inserted else last_lap.lap
         return lap_number if lap_number >= 0 else 0
 
-    def finish_build_csv_data(self, task_params=None, **kwargs):
-        from django.utils import timezone
-        print("FINISH BUILD CSV DATA")
-        data_file = self.data_file
-        is_prepare = kwargs.get("is_prepare", False)
-        print("is_prepare", is_prepare)
-        final_paths = kwargs.get("final_paths", []) or []
-        next_lap = self.next_lap if not is_prepare else -1
-        print("next_lap", next_lap)
-        print("next_lap", self.next_lap)
-        # print("final_paths", final_paths)
-        report_errors = kwargs.get("report_errors", {})
-        lap_sheet, created = LapSheet.objects.get_or_create(
-            sheet_file=self, lap=next_lap)
-        fields_in_report = report_errors.keys()
-        for field in fields_in_report:
-            setattr(lap_sheet, field, report_errors[field])
-        lap_sheet.last_edit = timezone.now()
-        lap_sheet.save()
-        # data_file.all_results = kwargs.get("report_errors", {})
-        # data_file.save()
-        if not data_file.petition_file_control.file_control.decode:
-            decode = kwargs.get("decode", None)
-            if decode:
-                data_file.petition_file_control.file_control.decode = decode
-                data_file.petition_file_control.file_control.save()
-        new_task, errors, data = lap_sheet.save_result_csv(final_paths)
-        if errors:
-            data_file.save_errors(errors, "prepare|with_errors")
-        else:
-            stage_name = "prepare" if is_prepare else "transform"
-            data_file.change_status(f"{stage_name}|finished")
-        return new_task, errors, data
-
     def check_success_insert(self, task_params=None, **kwargs):
+        from task.models import AsyncTask
+        from inai.data_file_mixins.insert_mix import modify_constraints
+        import threading
+        import time
+
+        def check_tasks_with_insert():
+            running_tasks = AsyncTask.objects.filter(
+                data_file__stage_id="insert",
+                data_file__status__is_completed=False)
+            if not running_tasks.exists():
+                modify_constraints(is_create=True)
+
+        def delay_check():
+            time.sleep(20)
+            check_tasks_with_insert()
+
+        t = threading.Thread(target=delay_check)
+        t.start()
+
         table_file_id = kwargs.get("table_file_id", None)
         if not table_file_id:
             return [], ["No se encontró el id de la tabla"], True
+        errors = kwargs.get("errors", [])
+        if errors:
+            return [], errors, True
         table_file = TableFile.objects.filter(id=table_file_id).first()
         table_file.inserted = True
         table_file.save()
@@ -460,6 +490,9 @@ class SheetFile(models.Model):
         if all_inserted:
             self.valid_insert = True
             self.save()
+            self.data_file.status_id = "finished"
+            self.data_file.stage_id = "insert"
+            self.data_file.save()
         return [], [], True
 
     def __str__(self):
@@ -477,10 +510,12 @@ class LapSheet(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, related_name="laps", on_delete=models.CASCADE)
     lap = models.IntegerField(default=0)
-    last_edit = models.DateTimeField(auto_now=True)
+    last_edit = models.DateTimeField(blank=True, null=True)
     inserted = models.BooleanField(default=False, blank=True, null=True)
+
     general_error = models.CharField(max_length=255, blank=True, null=True)
     total_count = models.IntegerField(default=0)
+    processed_count = models.IntegerField(default=0)
     prescription_count = models.IntegerField(default=0)
     drug_count = models.IntegerField(default=0)
     medical_unit_count = models.IntegerField(default=0)
@@ -493,6 +528,18 @@ class LapSheet(models.Model):
     missing_fields = models.IntegerField(default=0)
     row_errors = JSONField(blank=True, null=True)
     field_errors = JSONField(blank=True, null=True)
+    valid_insert = models.BooleanField(default=True)
+
+    def delete(self, using=None, keep_parents=False):
+        if self.inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        self.sheet_file.delete()
+        return super().delete(using=using, keep_parents=keep_parents)
+
+    def save(self, *args, **kwargs):
+        if self.inserted:
+            return
+        super().save(*args, **kwargs)
 
     def save_result_csv(self, result_files):
         all_new_files = []

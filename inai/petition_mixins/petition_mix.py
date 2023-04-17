@@ -79,7 +79,7 @@ class PetitionTransformsMix(PetitionMix):
             all_tasks, all_errors, data_file = data_file.get_sample_data(
                 task_params, **curr_kwargs)
             # print("Nuevos tasks y errors:", "\n", all_tasks, "\n", all_errors, "\n")
-            if not data_file:
+            if all_tasks or all_errors:
                 continue
             task_params["models"] = [data_file]
             new_body = {

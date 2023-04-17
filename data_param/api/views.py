@@ -347,20 +347,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 if not method:
                     break
                 new_tasks, new_errors, data_file = method(task_params, **curr_kwargs)
-                # if stage_name == "sample":
-                #     new_tasks, new_errors, data_file = data_file.get_sample_data(
-                #         task_params, **curr_kwargs)
-                # elif stage_name == "cluster":
-                #     new_tasks, new_errors, data_file = data_file.verify_coincidences(
-                #         task_params, **curr_kwargs)
-                # elif stage_name == "prepare":
-                #     new_tasks, new_errors, data_file = data_file.prepare_transform(
-                #         task_params, **curr_kwargs)
-                # elif stage_name == "prepare":
-                #     new_tasks, new_errors, data_file = data_file.transform_data(
-                #         task_params, **curr_kwargs)
-                # else:
-                #     break
+
                 if new_errors or new_tasks:
                     if new_errors:
                         data_file.save_errors(
@@ -379,65 +366,3 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
         data["new_task"] = key_task.id
         return Response(data, status=status.HTTP_200_OK)
-
-    @action(methods=["put"], detail=True, url_path='massive_action')
-    def massive_action(self, request, **kwargs):
-
-        file_control = self.get_object()
-        status_req = request.data.get("status", { })
-        status_id = status_req.get("id", False)
-        status_name = status_req.get("name", False)
-        all_data_files = DataFile.objects.filter(
-            petition_file_control__file_control=file_control,
-            status_process_id=status_id)
-        method = status_req.get("addl_params", {})\
-                           .get("next_step", {})\
-                           .get("method", False)
-        if method == "buildExploreDataFile" or method == "countFile":
-            function_name = "massive_explore" \
-                if method == "buildExploreDataFile" else "massive_count"
-            key_task, task_params = build_task_params(
-                file_control, function_name, request, subgroup=status_name)
-            all_tasks = []
-            all_errors = []
-
-            for data_file in all_data_files[:50]:
-                curr_kwargs = {
-                    "after_if_empty": "find_coincidences_from_aws",
-                    # "all_tasks": all_tasks,
-                }
-                new_tasks, new_errors, data_file = data_file.get_sample_data(
-                    task_params, **curr_kwargs)
-                all_tasks.extend(new_tasks)
-                if not data_file:
-                    continue
-                task_params["models"] = [data_file]
-                errors = []
-                if method == "buildExploreDataFile":
-                    process_error = "explore|with_errors"
-                    data_file, saved, errors = data_file.find_coincidences()
-                    if not saved and not errors:
-                        errors = ["No coincide con el formato del archivo 1"]
-                else:
-                    process_error = "prepare|with_errors"
-                    if data_file:
-                        data_rows = data_file.count_file_rows()
-                        errors = data_rows.get("errors", [])
-                if errors:
-                    all_errors.extend(errors)
-                    data_file.save_errors(errors, process_error)
-
-            data = {
-                "errors": all_errors,
-                "file_control": FileControlFullSerializer(
-                    file_control).data,
-            }
-            comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
-            data["new_task"] = key_task.id
-            return Response(data, status=status.HTTP_200_OK)
-            # elif method == 'countFile':
-
-        # print("STATUS", status_req)
-
-        return Response({"errors": ["No se encontró el método"]},
-                        status=status.HTTP_400_BAD_REQUEST)

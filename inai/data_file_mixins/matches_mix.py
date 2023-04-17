@@ -1,21 +1,9 @@
-import io
-from django.conf import settings
-
 from data_param.models import Transformation
 from scripts.common import start_session, create_file
 import json
 from task.serverless import camel_to_snake
-import csv
 
-from inai.models import DataFile, TableFile
-
-
-def text_normalizer(text):
-    import re
-    import unidecode
-    text = text.upper().strip()
-    text = unidecode.unidecode(text)
-    return re.sub(r'[^a-zA-Z\s]', '', text)
+from inai.models import DataFile, LapSheet
 
 
 def sheet_name_to_file_name(sheet_name):
@@ -53,22 +41,6 @@ def get_models_of_app(app_label):
 
 def field_of_models(model_data):
     from django.apps import apps
-    app_name = model_data.get('app', 'formula')
-    model_name = model_data['model']
-    my_model = apps.get_model(app_name, model_name)
-    all_fields = my_model._meta.get_fields(
-        include_parents=False, include_hidden=False)
-    field_names = []
-    for field in all_fields:
-        if field.one_to_many:
-            continue
-        complement = "_id" if field.is_relation else ""
-        field_names.append(f"{field.name}{complement}")
-    return field_names
-
-
-def field_of_models_all(model_data):
-    from django.apps import apps
     from django.db.models import CharField, TextField
     app_name = model_data.get('app')
     if not app_name:
@@ -98,7 +70,6 @@ class Match:
 
     def __init__(self, data_file: DataFile, task_params=None):
         from inai.models import set_upload_path
-        from geo.models import Delegation
         from data_param.models import NameColumn
         self.data_file = data_file
         self.lap = self.data_file.next_lap
@@ -133,7 +104,7 @@ class Match:
         self.editable_models += get_models_of_app("formula")
         self.real_models = list(set(self.name_columns.values_list(
             "final_field__collection__model_name", flat=True)))
-        self.model_fields = {model["name"]: field_of_models_all(model)
+        self.model_fields = {model["name"]: field_of_models(model)
                              for model in self.editable_models}
 
         self.existing_fields = []
@@ -153,13 +124,20 @@ class Match:
             missing_criteria.append("Sin formato de fecha")
         if self.lap > 0:
             missing_criteria.append("Ya se ha insertado este archivo")
+        invalid_fields = self.name_columns.filter(
+            final_field__included_code__in=["wait", "invalid"])
+        for invalid_field in invalid_fields:
+            ff = invalid_field.final_field
+            missing_criteria.append(
+                f"El campo '{ff.name_in_data} --> {ff.public_name}' "
+                f"aún no está listo para ser usado")
         if missing_criteria:
             print("missing_criteria", missing_criteria)
-            error = f"No se encontraron todas las columnas esenciales; " \
-                f"Elementos faltantes: {missing_criteria}"
+            error = f"No pasó la validación básica: " \
+                f"{missing_criteria}"
             return [], [error], self.data_file
 
-        self.build_existing_fields()
+        # self.build_existing_fields()
 
         value_null = "".encode(self.file_control.decode or "utf-8")
         hash_null = hashlib.md5(value_null).hexdigest()
@@ -176,8 +154,9 @@ class Match:
                 final_dict["name"] = global_obj.name,
             return final_dict
 
+        final_lap = -1 if is_prepare else self.lap
         init_data = {
-            "file_name": self.data_file.file.name,
+            "file_name_simple": self.data_file.file.name.split(".")[0],
             "global_clues": build_global_geo(self.global_clues),
             "global_delegation": build_global_geo(self.global_delegation),
             "decode": self.file_control.decode,
@@ -191,22 +170,25 @@ class Match:
             "model_fields": self.model_fields,
             "existing_fields": self.existing_fields,
             "is_prepare": is_prepare,
-            "lap": -1 if is_prepare else self.lap,
+            "lap": final_lap,
             "string_date": string_date,
         }
-        self.task_params["function_after"] = "finish_build_csv_data"
+        self.task_params["function_after"] = "build_csv_data_from_aws"
         all_tasks = []
 
         for sheet_file in self.data_file.sheet_files.filter(matched=True):
+            lap_sheet, created = LapSheet.objects.get_or_create(
+                sheet_file=sheet_file, lap=final_lap)
 
             if sheet_file.sheet_name not in self.data_file.filtered_sheets:
                 continue
             init_data["sheet_name"] = sheet_file.sheet_name
             init_data["sheet_file_id"] = sheet_file.id
+            init_data["lap_sheet_id"] = lap_sheet.id
             sheet_name2 = sheet_name_to_file_name(sheet_file.sheet_name)
             init_data["final_path"] = self.final_path.replace(
                 "SHEET_NAME", sheet_name2)
-            self.task_params["models"] = [sheet_file]
+            self.task_params["models"] = [self.data_file]
             params = {
                 "init_data": init_data,
                 "s3": build_s3(),
@@ -244,12 +226,14 @@ class Match:
             ["delivered_amount"],
             ["price:Drug"],
         ]
+        all_errors = []
 
         def build_column_data(column, final_name=None):
             is_special_column = column.column_type.name != "original_column"
             new_column = {
                 "name": final_name,
                 "name_column": column.id,
+                "name_in_data": column.name_in_data,
                 "position": column.position_in_data,
                 "required_row": column.required_row,
                 "name_field": column.final_field.name,
@@ -267,10 +251,14 @@ class Match:
             # if is_special_column:
             special_functions = [
                 "fragmented", "concatenated", "only_params_parent",
-                "only_params_child"]
+                "only_params_child", "text_nulls"]
             transformation = column.column_transformations \
-                .filter(clean_function__name__in=special_functions).first()
-            if transformation:
+                .filter(clean_function__name__in=special_functions)
+            if transformation.count() > 1:
+                error = f"La columna {column.name_in_data} tiene más de una " \
+                        f"función especial que no se pueden aplicar a la vez"
+                all_errors.append(error)
+            if transformation.first():
                 new_column["clean_function"] = transformation.clean_function.name
                 new_column["t_value"] = transformation.addl_params.get("value")
             return new_column
@@ -292,20 +280,33 @@ class Match:
         other_name_columns = self.name_columns\
             .exclude(id__in=included_columns)
         for name_column in other_name_columns:
+            if not name_column.final_field:
+                error = f"La columna {name_column.name_in_data} no tiene " \
+                        f"campo final referido"
+                all_errors.append(error)
+                continue
             final_field = name_column.final_field
+            duplicated_in = None
+            for prev_field in self.existing_fields:
+                if prev_field.get("final_field_id") == final_field.id:
+                    duplicated_in = prev_field
+                    break
             collection_name = final_field.collection.model_name
             collection_name = camel_to_snake(collection_name)
             name_to_local = f"{collection_name}_{final_field.name}"
             new_name_column = build_column_data(name_column, name_to_local)
             self.existing_fields.append(new_name_column)
+            if duplicated_in:
+                self.existing_fields[-1]["duplicated_in"] = duplicated_in
 
         if not self.existing_fields:
-            raise Exception("No se encontraron campos para crear las recetas")
-        return self.existing_fields
+            error = "No se encontraron campos para crear las recetas"
+            all_errors.append(error)
+        return self.existing_fields, all_errors
 
     def calculate_minimals_criteria(self):
 
-        existing_fields = self.build_existing_fields()
+        existing_fields, init_errors = self.build_existing_fields()
 
         def has_matching_dict(key, val):
             for dict_item in existing_fields:
@@ -332,14 +333,14 @@ class Match:
 
         detailed_criteria = {
             # "Datos de delegación": has_delegation,
-            "Alguna fecha": some_data_time,
-            "Folio de receta": has_folio,
-            "Alguna cantidad": some_amount,
+            "No tiene ninguna fecha": some_data_time,
+            "No contiene Folio de receta": has_folio,
+            "Falta alguna cantidad": some_amount,
             # "Clave de medicamento": key_medicine,
-            "Algún dato de medicamentos": some_medicine,
-            "Algún dato geográfico": some_clues,
+            "No tiene datos de medicamentos": some_medicine,
+            "No tiene datos geográficos": some_clues,
         }
-        missing_criteria = []
+        missing_criteria = init_errors
         for criteria_name, value in detailed_criteria.items():
             if not value:
                 missing_criteria.append(criteria_name)
@@ -366,7 +367,7 @@ class Match:
         valid_column_trans = [
             "fragmented", "concatenated", "format_date", "clean_key_container",
             "get_ceil", "only_params_parent", "only_params_child",
-            "global_variable"]
+            "global_variable", "text_nulls", "almost_empty"]
         related_transformations = Transformation.objects\
             .filter(name_column__file_control=self.file_control)\
             .exclude(clean_function__name__in=valid_column_trans)

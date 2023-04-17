@@ -19,6 +19,15 @@ class DataGroup(models.Model):
         default=False, verbose_name="Puede tener porcentajes")
     order = models.IntegerField(default=5)
 
+    def delete(self, *args, **kwargs):
+        from inai.models import LapSheet
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control__file_control__data_group=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.public_name
 
@@ -149,6 +158,15 @@ class FileControl(models.Model):
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
 
+    def delete(self, *args, **kwargs):
+        from inai.models import LapSheet
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control__file_control=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         #all_agencies = Agency.objects.filter(
         #    petitions__file_controls__petition__agency=self).distinct()\
@@ -206,7 +224,7 @@ class FinalField(models.Model):
     #     help_text="¿La inserción lo incluye?")
     included_code = models.CharField(
         max_length=12, choices=INCLUDED_CHOICES, default="complement",
-        verbose_name="included")
+        verbose_name="valid")
     is_unique = models.BooleanField(
         default=False, help_text="Puede ser una llave única",
         verbose_name="Único")
@@ -238,7 +256,7 @@ class FinalField(models.Model):
     class Meta:
         ordering = ["parameter_group", "-is_common", "verbose_name"]
         verbose_name = "Campo final"
-        verbose_name_plural = "1.4 Campos finales (en DB)"
+        verbose_name_plural = "1.4 Campos finales (DB)"
 
 
 class DictionaryFile(models.Model):

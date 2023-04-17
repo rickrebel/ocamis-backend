@@ -109,8 +109,8 @@ class MatchAws:
         for key, value in init_data.items():
             setattr(self, key, value)
         self.sheet_file_id = init_data["sheet_file_id"]
-        self.file_name = init_data["file_name"]
-        self.file_name_simple = self.file_name.split(".")[0]
+        self.lap_sheet_id = init_data["lap_sheet_id"]
+        self.file_name_simple = init_data["file_name_simple"]
         self.sheet_name = init_data["sheet_name"]
         self.final_path = init_data["final_path"]
 
@@ -230,7 +230,9 @@ class MatchAws:
         # first_iso = None
         all_prescriptions = {}
         success_drugs_count = 0
-        total_count = 0
+        total_count = len(all_data)
+        processed_count = 0
+
         discarded_count = self.row_start_data - 1
 
         for row in all_data[self.row_start_data - 1:]:
@@ -239,7 +241,7 @@ class MatchAws:
             if required_cols_in_null:
                 discarded_count += 1
                 continue
-            total_count += 1
+            processed_count += 1
             # print("data_row \t", data_row)
             self.last_missing_row = None
             # is_same_date = False
@@ -248,6 +250,7 @@ class MatchAws:
             available_data = {
                 "entity_id": self.entity_id,
                 "sheet_file_id": self.sheet_file_id,
+                "lap_sheet_id": self.lap_sheet_id,
                 "row_seq": int(row[0]),
                 "uuid": uuid,
             }
@@ -321,21 +324,23 @@ class MatchAws:
         report_errors = self.build_report()
         report_errors["prescription_count"] = len(all_prescriptions)
         report_errors["drug_count"] = success_drugs_count
+        report_errors["processed_count"] = processed_count
         report_errors["total_count"] = total_count
         report_errors["discarded_count"] = discarded_count
         for med_cat in self.med_cat_models:
             cat_name = med_cat["name"]
             report_errors[f"{cat_name}_count"] = len(self.cat_keys[cat_name]) \
                 if self.cat_keys.get(cat_name) else 0
+        result_data = {
+            "result": {
+                "report_errors": report_errors,
+                "is_prepare": self.is_prepare,
+                "sheet_file_id": self.sheet_file_id,
+                "lap_sheet_id": self.lap_sheet_id,
+            },
+            "request_id": final_request_id
+        }
         if self.is_prepare:
-            result_data = {
-                "result": {
-                    "final_paths": None,
-                    "report_errors": report_errors,
-                    "is_prepare": True
-                },
-                "request_id": final_request_id
-            }
             return json.dumps(result_data)
 
         self.buffers["missing_field"].writerows(self.all_missing_fields)
@@ -380,14 +385,8 @@ class MatchAws:
             )
             # self.send_csv_to_db(final_path, elem_list)
 
-        result_data = {
-            "result": {
-                "decode": self.decode,
-                "final_paths": all_final_paths,
-                "report_errors": report_errors,
-            },
-            "request_id": final_request_id
-        }
+        result_data["result"]["final_paths"] = all_final_paths
+        result_data["result"]["decode"] = self.decode
         return json.dumps(result_data)
 
     def get_json_file(self, file_name):
@@ -548,6 +547,12 @@ class MatchAws:
                 value = available_data.get(field["name"])
                 if not value:
                     continue
+            if field.get("duplicated_in"):
+                duplicated_in = field["duplicated_in"]
+                duplicated_value = row[duplicated_in["position"]]
+                if duplicated_value != value:
+                    error = f"El valor de las columnas que apuntan a " \
+                            f"{field['name']} no coinciden"
             try:
                 if field["data_type"] == "Datetime":  # and not is_same_date:
                     if value == self.last_date and value:
@@ -580,6 +585,13 @@ class MatchAws:
                 elif field.get("max_length"):
                     if len(value) > field["max_length"]:
                         error = "El valor tiene más de los caracteres permitidos"
+                clean_function = field.get("clean_function")
+                if clean_function:
+                    if clean_function == "almost_empty":
+                        value = None
+                    elif clean_function == "text_nulls":
+                        if value == field.get("t_value"):
+                            value = None
             if error:
                 self.append_missing_field(
                     row, field["name_column"], value, error=error, drug_uuid=uuid)
@@ -647,10 +659,12 @@ class MatchAws:
         inserted = False
         # row_seq = int(row_data[0])
         # original_data = row_data[1:]
-        original_data = row_data
+        original_data = json.dumps(row_data)
         missing_data = []
         uuid = str(uuid_lib.uuid4())
         sheet_file_id = self.sheet_file_id
+        lap_sheet_id = self.lap_sheet_id
+        lap_sheet_id = self.lap_sheet_id
         for field in self.model_fields["missing_row"]:
             value = locals().get(field["name"])
             missing_data.append(value)
