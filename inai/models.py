@@ -544,6 +544,7 @@ class LapSheet(models.Model):
     def save_result_csv(self, result_files):
         all_new_files = []
         new_tasks = []
+        new_file_ids = []
         for result_file in result_files:
             model_name = result_file["model"]
             print("model_name", model_name)
@@ -552,12 +553,15 @@ class LapSheet(models.Model):
                 lap_sheet=self,
                 collection=collection,
             )
+            new_file_ids.append(new_file.id)
             new_file.file = result_file["path"]
             new_file.save()
             # new_file.change_status('initial|finished')
             all_new_files.append(new_file)
             # new_tasks = self.send_csv_to_db(result_file["path"], model_name)
             # new_tasks.append(new_tasks)
+        TableFile.objects.filter(lap_sheet=self)\
+            .exclude(id__in=new_file_ids, inserted=True).delete()
         return new_tasks, [], all_new_files
 
     def confirm_all_inserted(self):

@@ -152,3 +152,4 @@ def build_lambda_layer(
 #                   ["psycopg2", "unidecode"])
 # build_lambda_layer("csv_complements", ["csv", "uuid"])
 # build_lambda_layer("request_package", ["requests"])
+# build_lambda_layer("psycopg2-binary", ["psycopg2-binary"])
