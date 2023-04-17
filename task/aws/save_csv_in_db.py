@@ -5,7 +5,6 @@ request_headers = {"Content-Type": "application/json"}
 
 # def save_csv_in_db(event, context):
 def lambda_handler(event, context):
-    from rest_framework.exceptions import ParseError
     import psycopg2
     print("model_name", event.get("model_name"))
     table_file_id = event.get("table_file_id")

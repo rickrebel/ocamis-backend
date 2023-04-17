@@ -48,7 +48,7 @@ def create_zip_files(function_name, function_files):
         return zip_bytes.read()
 
 
-def create_zip_packages(packages):
+def create_zip_packages(packages, python_version=3.9):
     # Create a temporary directory
     base_dir = settings.BASE_DIR
     current_string = random_string(6)
@@ -74,7 +74,7 @@ def create_zip_packages(packages):
         return zip_bytes.read()
 
 
-def create_lambda_function(function_name, final_path):
+def create_lambda_function(function_name, final_path, python_version=3.10):
     aws_location = getattr(settings, "AWS_LOCATION")
     s3_key = f"{aws_location}/{final_path}"
     s3_bucket = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
@@ -84,7 +84,7 @@ def create_lambda_function(function_name, final_path):
     if not response_get.get("FunctionArn"):
         response_create = lambda_client.create_function(
             FunctionName=function_name,
-            Runtime='python3.9',
+            Runtime=f'python{python_version}',
             Role="arn:aws:iam::032892915740:role/full_lambda",
             Handler=f"{function_name}.lambda_handler",
             Code={
@@ -104,7 +104,7 @@ def create_lambda_function(function_name, final_path):
         return response_update
 
 
-def definitive_function_real(function_name, layers):
+def definitive_function_real(function_name, layers, python_version=3.10):
     if not layers:
         layers = []
     base_dir = settings.BASE_DIR
@@ -114,10 +114,10 @@ def definitive_function_real(function_name, layers):
         function_files.append(open(file_path, "r"))
     new_zip = create_zip_files(function_name, function_files)
     response, my_path = upload_to_s3(new_zip, function_name)
-    create_lambda_function(function_name, my_path)
+    create_lambda_function(function_name, my_path, python_version)
 
 
-def create_lambda_layer(layer_name, final_path):
+def create_lambda_layer(layer_name, final_path, python_version):
     lambda_client = start_session_lambda()
     aws_location = getattr(settings, "AWS_LOCATION")
     s3_key = f"{aws_location}/{final_path}"
@@ -127,16 +127,17 @@ def create_lambda_layer(layer_name, final_path):
             'S3Bucket': getattr(settings, "AWS_STORAGE_BUCKET_NAME"),
             'S3Key': s3_key
         },
-        CompatibleRuntimes=['python3.9'],
+        CompatibleRuntimes=[f'python{python_version}'],
         CompatibleArchitectures=['x86_64']
     )
     return response
 
 
-def build_lambda_layer(layer_name="my_layer1", packages=[]):
+def build_lambda_layer(
+        layer_name="my_layer1", packages=[], python_version="3.10"):
     zip_layer = create_zip_packages(packages)
     resp, layer_path = upload_to_s3(zip_layer, layer_name)
-    create_lambda_layer(layer_name, layer_path)
+    create_lambda_layer(layer_name, layer_path, python_version)
 
 
 # from scripts.ocamis_verified.lambda import build_lambda_layer

@@ -28,14 +28,11 @@ def build_constraints_and_indexes(use_complement=False):
     last_function = None
     last_field = None
     current_command = None
-
     def add_block(commands):
         block = "\n".join(commands)
         create_commands.append(block)
-
     def add_delete_block(block):
         delete_commands.append(block)
-
     for row in rr_data_rows:
         constraint_name = None
         if not row or "alter table" in row or "owner to" in row:

@@ -107,8 +107,9 @@ class Insert:
                             {optional_condition}
                     );
             """)
-        # desabasto_db = getattr(settings, "DATABASES", {}).get("default")
         desabasto_db = getattr(settings, "DATABASES", {}).get("default_prod")
+        if not desabasto_db:
+            desabasto_db = getattr(settings, "DATABASES", { }).get("default")
         # save_csv_in_db(sql_query, desabasto_db)
         params = {
             "sql_queries": sql_queries,
