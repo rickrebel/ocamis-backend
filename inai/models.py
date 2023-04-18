@@ -442,12 +442,12 @@ class SheetFile(models.Model):
             raise Exception("No se puede eliminar un archivo con datos insertados")
         super().delete(using, keep_parents)
 
-    def save(self, *args, **kwargs):
-        if self.pk:
-            some_inserted = self.laps.filter(inserted=True).exists()
-            if some_inserted:
-                raise Exception("No se puede modificar un archivo con datos insertados")
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.pk:
+    #         some_inserted = self.laps.filter(inserted=True).exists()
+    #         if some_inserted:
+    #             raise Exception("No se puede modificar un archivo con datos insertados")
+    #     super().save(*args, **kwargs)
 
     @property
     def next_lap(self):
@@ -533,7 +533,6 @@ class LapSheet(models.Model):
     def delete(self, using=None, keep_parents=False):
         if self.inserted:
             raise Exception("No se puede eliminar un archivo con datos insertados")
-        self.sheet_file.delete()
         return super().delete(using=using, keep_parents=keep_parents)
 
     def save(self, *args, **kwargs):

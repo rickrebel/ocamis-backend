@@ -149,6 +149,7 @@ class TableFileAdmin(admin.ModelAdmin):
         "collection",
         "file",
         "lap_sheet",
+        "inserted",
     ]
     list_filter = ["collection"]
     raw_id_fields = ["lap_sheet"]

@@ -5,9 +5,30 @@ import uuid as uuid_lib
 import json
 import requests
 import unidecode
-from .common import obtain_decode
+# from .common import obtain_decode
 
 request_headers = {"Content-Type": "application/json"}
+
+
+def obtain_decode(sample):
+    for row in sample:
+        is_byte = isinstance(row, bytes)
+        posible_latin = False
+        if is_byte:
+            try:
+                row.decode("utf-8")
+            except Exception:
+                posible_latin = True
+            if posible_latin:
+                try:
+                    row.decode("latin-1")
+                    return "latin-1"
+                except Exception as e:
+                    print(e)
+                    return "unknown"
+        else:
+            return "str"
+    return "utf-8"
 
 
 def text_normalizer(text):
@@ -23,10 +44,22 @@ def calculate_delivered(available_data):
         error = "No se puede determinar el status de entrega;" \
                 "No existe cantidad prescrita"
         return available_data, error
+    elif prescribed_amount > 30000:
+        error = "Existe una cantidad inusualmente alta; cantidad prescrita"
+        return available_data, error
+    elif prescribed_amount < 0:
+        error = "Existe una cantidad negativa; cantidad prescrita"
+        return available_data, error
 
     delivered = "unknown"
 
     delivered_amount = available_data.get("delivered_amount")
+    if delivered_amount > 30000:
+        error = "Existe una cantidad inusualmente alta; cantidad entregada"
+        return available_data, error
+    elif delivered_amount < 0:
+        error = "Existe una cantidad negativa; cantidad entregada"
+        return available_data, error
     not_delivered_amount = available_data.pop("not_delivered_amount", None)
     if not_delivered_amount is not None and delivered_amount is None:
         delivered_amount = prescribed_amount - not_delivered_amount
