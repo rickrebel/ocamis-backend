@@ -537,8 +537,6 @@ class LapSheet(models.Model):
         return super().delete(using=using, keep_parents=keep_parents)
 
     def save(self, *args, **kwargs):
-        if self.inserted:
-            return
         super().save(*args, **kwargs)
 
     def save_result_csv(self, result_files):
