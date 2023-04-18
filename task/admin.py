@@ -36,6 +36,8 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     def date(obj):
         from datetime import datetime
         from django.utils.timezone import get_current_timezone, make_aware
+        if not obj.date_start:
+            return ""
         tz = get_current_timezone()
         date = make_aware(datetime.fromtimestamp(obj.date_start.timestamp()), tz)
         date_string = date.strftime("%d-%b <br> <b>%H:%M</b>")
