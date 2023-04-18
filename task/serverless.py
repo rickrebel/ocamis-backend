@@ -115,7 +115,7 @@ def async_in_lambda(function_name, params, task_params):
     if function_name == "save_csv_in_db":
         pending_tasks = AsyncTask.objects.filter(
             task_function_id=function_name,
-            macro_status="pending")
+            status_task__is_completed=False)
         if pending_tasks.count():
             current_task.date_start = None
             current_task.status_task_id = "queue"

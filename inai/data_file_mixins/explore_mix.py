@@ -112,19 +112,19 @@ class ExploreMix:
             return [], errors, self
         sheet_file_ids = lap_sheets.values_list("sheet_file_id", flat=True)
         sheet_file_ids = list(set(sheet_file_ids))
-        some_drugs = Drug.objects.filter(
-            sheet_file_id__in=sheet_file_ids).exists()
-        error_already = "Algunas tablas relacionadas ya han sido insertadas"
-        errors = []
-        if some_drugs:
-            errors = [error_already]
-        else:
-            some_missing = MissingRow.objects.filter(
-                sheet_file_id__in=sheet_file_ids).exists()
-            if some_missing:
-                errors = [error_already]
-        if errors:
-            return [], errors, self
+        # some_drugs = Drug.objects.filter(
+        #     sheet_file_id__in=sheet_file_ids).exists()
+        # error_already = "Algunas tablas relacionadas ya han sido insertadas"
+        # errors = []
+        # if some_drugs:
+        #     errors = [error_already]
+        # else:
+        #     some_missing = MissingRow.objects.filter(
+        #         sheet_file_id__in=sheet_file_ids).exists()
+        #     if some_missing:
+        #         errors = [error_already]
+        # if errors:
+        #     return [], errors, self
         new_tasks = []
         for lap_sheet in lap_sheets:
             table_files = lap_sheet.table_files.filter(inserted=False)
