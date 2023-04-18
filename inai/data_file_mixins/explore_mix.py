@@ -103,7 +103,7 @@ class ExploreMix:
         from formula.models import Drug, MissingRow
         if not self.stage == 'transform' and self.status == 'finished':
             errors = ["El archivo tiene concluido el proceso de transformación"]
-            return [], errors, None
+            return [], errors, self
         my_insert = Insert(self, task_params)
         lap_sheets = LapSheet.objects.filter(
             sheet_file__data_file=self, lap=0).exclude(inserted=True)

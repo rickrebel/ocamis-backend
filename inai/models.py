@@ -561,7 +561,8 @@ class LapSheet(models.Model):
             # new_tasks = self.send_csv_to_db(result_file["path"], model_name)
             # new_tasks.append(new_tasks)
         TableFile.objects.filter(lap_sheet=self)\
-            .exclude(id__in=new_file_ids, inserted=True).delete()
+                        .exclude(id__in=new_file_ids)\
+                        .exclude(inserted=True).delete()
         return new_tasks, [], all_new_files
 
     def confirm_all_inserted(self):
