@@ -75,20 +75,19 @@ class SheetFileInline(admin.StackedInline):
 
 class DataFileAdmin(admin.ModelAdmin):
     list_display = [
-        "petition_file_control",
-        "file",
         "file_type",
+        # "petition_file_control",
+        "file",
         "suffix",
-        "petition_month",
-        "origin_file",
-        "status_process",
+        "stage",
+        "status",
     ]
     raw_id_fields = [
         "petition_file_control", "petition_month", "origin_file",
         "reply_file"]
     list_filter = [
-        "file_type",
-        "status_process", ("origin_file", admin.EmptyFieldListFilter),
+        "file_type", "stage", "status",
+        # ("origin_file", admin.EmptyFieldListFilter),
         "petition_file_control__petition__agency"]
     search_fields = [
         "file", "petition_file_control__petition__agency__acronym",
