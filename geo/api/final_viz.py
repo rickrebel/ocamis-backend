@@ -74,8 +74,8 @@ def build_quality_simple(file_ctrl):
                 return True
         return False
 
-    has_clues_unique = has_unique_field("CLUES")
-    has_clues_other = has_unique_field("CLUES", False)
+    has_clues_unique = has_unique_field("MedicalUnit")
+    has_clues_other = has_unique_field("MedicalUnit", False)
     if has_clues_unique:
         clues = "enough"
     elif has_clues_other:
@@ -92,16 +92,16 @@ def build_quality_simple(file_ctrl):
         formula = "almost_enough"
     else:
         formula = "not_enough"
-    official_key = has_field("Container:key2")
+    official_key = has_field("Medicament:key2")
     prescrita = has_field("Drug:prescribed_amount")
     entregada = has_field("Drug:delivered_amount")
     no_entregada = has_field("Drug:not_delivered_amount")
     assortment = has_field("Drug:clasif_assortment")
-    own_key = has_field("Container:own_key2")
+    own_key = has_field("Medicament:own_key2")
     other_names = (
-        has_field("Component:name") or
-        has_field("Presentation:description") or
-        has_field("Container:name"))
+        has_field("Medicament:component_name") or
+        has_field("Medicament:presentation_description") or
+        has_field("Medicament:container_name"))
     if prescrita and (entregada or assortment or no_entregada):
         if official_key and (entregada or no_entregada):
             drug = "enough"
