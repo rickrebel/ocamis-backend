@@ -113,14 +113,14 @@ class ExtractorsMix:
                     headers = all_data[row_headers - 1]
                     # nulls = [header for header in headers[1:] if not header]
                     not_null_aislated = calculate_aislated(headers)
-                    few_nulls = len(not_null_aislated) < 2
-                    if not few_nulls and len(all_data) > row_headers:
-                        plus_rows = 1
-                        headers = all_data[row_headers]
-                        not_null_aislated = calculate_aislated(headers)
-                        # if nulls:
-                        #    continue
-                    few_nulls = len(not_null_aislated) < 2
+                    few_nulls = len(not_null_aislated) < 4
+                    # if not few_nulls and len(all_data) > row_headers:
+                    #     plus_rows = 1
+                    #     headers = all_data[row_headers]
+                    #     not_null_aislated = calculate_aislated(headers)
+                    #     # if nulls:
+                    #     #    continue
+                    # few_nulls = len(not_null_aislated) < 2
                 if (few_nulls and headers) or not row_headers:
                     # plus_cols = 0 if headers[0] else 1
                     # validated_data[sheet_name]["plus_columns"] = plus_cols

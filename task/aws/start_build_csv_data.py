@@ -54,24 +54,26 @@ def calculate_delivered(available_data):
     delivered = "unknown"
 
     delivered_amount = available_data.get("delivered_amount")
-    if delivered_amount > 30000:
-        error = "Existe una cantidad inusualmente alta; cantidad entregada"
-        return available_data, error
-    elif delivered_amount < 0:
-        error = "Existe una cantidad negativa; cantidad entregada"
-        return available_data, error
     not_delivered_amount = available_data.pop("not_delivered_amount", None)
     if not_delivered_amount is not None and delivered_amount is None:
         delivered_amount = prescribed_amount - not_delivered_amount
         available_data["delivered_amount"] = delivered_amount
 
-    if prescribed_amount and delivered_amount is not None:
+    if delivered_amount is not None:
         if prescribed_amount == delivered_amount:
             delivered = "complete"
         elif not delivered_amount:
             delivered = "denied"
+        elif delivered_amount > 30000:
+            error = "Existe una cantidad inusualmente alta; cantidad entregada"
+            return available_data, error
         elif prescribed_amount > delivered_amount:
             delivered = "partial"
+        elif delivered_amount > prescribed_amount:
+            delivered = "over_delivered"
+        elif delivered_amount < 0:
+            error = "Existe una cantidad negativa; cantidad entregada"
+            return available_data, error
     else:
         error = "No se puede determinar el status de entrega;" \
                 "No existe cantidad entregada"

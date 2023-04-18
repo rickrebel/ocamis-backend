@@ -240,6 +240,7 @@ class ExploreMix:
             task_params=None, **kwargs):
         from inai.models import PetitionFileControl, DataFile
         from data_param.models import NameColumn
+        from scripts.common import similar
         data_file = self
         already_cluster = not bool(file_ctrl)
         data, errors, new_task = data_file.transform_file_in_data(
@@ -305,9 +306,41 @@ class ExploreMix:
                     headers = [head for head in headers if head]
                 name_columns_list = [
                     name.strip().upper() for name in list(name_columns)]
-                print("name_columns_list", name_columns_list, "\n")
-                print("headers", headers)
+                print("name_columns_list", name_columns_list)
+                print("headers", headers, "\n")
                 same_headers = name_columns_list == headers
+                if not same_headers:
+                    total_cols = len(structured_data[sheet_name]["all_data"][0])
+                    if total_cols != len(name_columns_simple):
+                        continue
+                    coincidences = 0
+                    need_save = []
+                    for (idx, name_col) in enumerate(name_columns_simple):
+                        name_upper = name_col.name_in_data.strip().upper()
+                        if name_upper == headers[idx]:
+                            coincidences += 1
+                            continue
+                        if name_col.alternative_names:
+                            if headers[idx] in name_col.alternative_names:
+                                coincidences += 1
+                                continue
+                        if not already_cluster:
+                            continue
+                        if not name_upper or not name_upper:
+                            coincidences += 1
+                            continue
+                        if similar(name_upper, headers[idx]) > 0.8:
+                            alt_names = name_col.alternative_names or []
+                            name_col.alternative_names = alt_names + [headers[idx]]
+                            need_save.append(name_col)
+                            coincidences += 1
+                    if coincidences + 1 >= len(name_columns_simple):
+                        same_headers = True
+                        for name_col in need_save:
+                            name_col.save()
+
+            if not same_headers:
+                continue
 
             def save_sheet_file(d_f=data_file, save_sample_data=False):
                 try:
@@ -321,8 +354,6 @@ class ExploreMix:
                     raise Exception(f"No se encontró el archivo con el "
                                     f"nombre de hoja {sheet_name} \n {e}")
 
-            if not same_headers:
-                continue
             if sheet_name not in current_sheets:
                 if data_file.petition_file_control_id in all_data_files:
                     save_sheet_file(data_file)

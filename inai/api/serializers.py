@@ -153,7 +153,6 @@ class DataFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DataFile
-        #fields = "__all__"
         read_only_fields = ["has_sample_data"]
         exclude = ('sample_data', )
 
@@ -162,7 +161,8 @@ class DataFileEditSerializer(DataFileSerializer):
 
     class Meta:
         model = DataFile
-        fields = "__all__"
+        # fields = "__all__"
+        exclude = ('sample_data',)
         read_only_fields = ["petition_file_control", "file"]
 
 
@@ -171,7 +171,8 @@ class DataFileFullSerializer(DataFileSerializer):
 
     class Meta:
         model = DataFile
-        fields = "__all__"
+        # fields = "__all__"
+        exclude = ('sample_data',)
         read_only_fields = ["petition_file_control", "file"]
 
 

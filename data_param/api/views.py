@@ -190,6 +190,12 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                     all_filters["columns__final_field__isnull"] = True
                 else:
                     all_filters["columns__final_field_id"] = limiters["final_field"]
+            stage = limiters.get("stage", None)
+            if stage is not None:
+                all_filters["petition_file_control__data_files__stage_id"] = stage
+            status_id = limiters.get("status", None)
+            if status_id is not None:
+                all_filters["petition_file_control__data_files__status_id"] = status_id
             if all_filters:
                 controls = controls.filter(**all_filters).distinct()
             total_count = controls.count()

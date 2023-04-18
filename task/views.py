@@ -184,7 +184,7 @@ class AWSErrors(generic.View):
                 current_task.traceback = request.body
                 comprobate_status(current_task, error, [])
         except Exception as e:
-            print("ERROR AL GUARDAR: ", e)
+            print("ERROR AL GUARDAR 1: ", e)
             print("body: \n", body)
         return HttpResponse()
 
@@ -284,7 +284,7 @@ def comprobate_status(
     from rest_framework import status
 
     if not current_task:
-        return None
+        raise Exception("No se ha encontrado la tarea emviada")
     if errors:
         current_task.errors = errors
         if isinstance(errors, str):

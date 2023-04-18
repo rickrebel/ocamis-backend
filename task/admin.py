@@ -11,8 +11,10 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         # "request_id",
         "request_short",
         # "function_name",
-        "task_function",
-        "status_task",
+        # "task_function",
+        "display_function",
+        # "status_task",
+        "display_status",
         "date",
         "display_other_dates",
         "is_massive",
@@ -43,35 +45,76 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         date_string = date.strftime("%d-%b <br> <b>%H:%M</b>")
         return format_html(date_string)
 
+    def display_function(self, obj):
+        all_texts = [
+            f"<b>{obj.task_function.name}</b>",
+            f"({obj.task_function.model_name})",
+        ]
+        return format_html("<br>".join(all_texts))
+    display_function.short_description = "Función"
+
+    def display_status(self, obj):
+        # ▶️
+        macro_status = obj.status_task.macro_status
+        if macro_status == "finished":
+            icon = "🟢"
+        elif macro_status == "pending":
+            icon = "🟡"
+        elif macro_status == "with_errors":
+            icon = "🔴"
+        else:
+            icon = "❔"
+        return format_html(f"{icon} {obj.status_task.public_name}")
+    display_status.short_description = "Status"
+
     def display_other_dates(self, obj):
-        from datetime import datetime
 
         def calc_time_ago(date1, date2):
             try:
                 seconds = (date1 - date2).total_seconds()
-                if abs(seconds) < 60:
-                    return f"{round(seconds, 2)} sec"
-                minutes = round(seconds / 60, 1)
-                if abs(minutes) < 60:
-                    return f"{minutes} min"
-                hours = round(minutes / 60, 2)
-                return f"{hours} hrs"
+                abs_seconds = abs(seconds)
+                # if abs_seconds < 3:
+                #     return None
+                if abs_seconds < 5:
+                    return f"<span style='color: grey;'>" \
+                           f"{round(abs_seconds, 2)} secs </span>"
+                if abs_seconds < 60:
+                    return f"{round(abs_seconds, 2)} secs"
+                minutes = round(abs(seconds) / 60, 2)
+                if minutes < 60:
+                    return f"<b>{minutes} mins</b>"
+                hours = round(abs(minutes) / 60, 2)
+                return f"<b>{hours} hrs</b>"
             except TypeError as e:
                 print("e", e)
-                return "NADAAA"
-        if not obj.date_end and not obj.date_arrive:
-            return ""
-        end = getattr(obj, "date_end")
-        arrive = getattr(obj, "date_arrive")
+                return f"NADA, {e}"
         all_texts = []
+        fields2 = [
+            {"name": "date_sent", "display": "sent"},
+            {"name": "date_arrive", "display": "AWS"},
+            {"name": "date_end", "display": "end"}
+        ]
         last_date = getattr(obj, "date_start")
-        if arrive:
-            time_ago = calc_time_ago(arrive, obj.date_start)
-            all_texts.append(f"+{time_ago} (AWS)")
-            last_date = arrive
-        if end:
-            time_ago = calc_time_ago(end, last_date)
-            all_texts.append(f"+{time_ago} (end)")
+        for field in fields2:
+            value = getattr(obj, field["name"])
+            if value:
+                time_ago = calc_time_ago(value, last_date)
+                if time_ago:
+                    all_texts.append(f"{time_ago} -{field['display']}")
+                    last_date = value
+        # if not obj.date_end and not obj.date_arrive:
+        #     return ""
+        # end = getattr(obj, "date_end")
+        # arrive = getattr(obj, "date_arrive")
+        # all_texts = []
+        # last_date = getattr(obj, "date_start")
+        # if arrive:
+        #     time_ago = calc_time_ago(arrive, obj.date_start)
+        #     all_texts.append(f"+{time_ago} (AWS)")
+        #     last_date = arrive
+        # if end:
+        #     time_ago = calc_time_ago(end, last_date)
+        #     all_texts.append(f"+{time_ago} (end)")
 
         return format_html("<br>".join(all_texts))
     display_other_dates.short_description = "end"

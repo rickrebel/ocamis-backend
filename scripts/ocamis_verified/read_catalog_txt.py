@@ -183,6 +183,13 @@ def delete_insabi_delegations():
     Delegation.objects.filter(institution=insabi, clues__isnull=True).delete()
 
 
+def reverse_insert():
+    from inai.models import DataFile, TableFile, LapSheet
+    TableFile.objects.filter(inserted=True).update(inserted=False)
+    LapSheet.objects.filter(inserted=True).update(inserted=False)
+    DataFile.objects.filter(stage_id="insert")\
+        .update(stage_id="transform", status_id="finished")
+
 # move_delegation_clues()
 # delete_insabi_delegations()
 

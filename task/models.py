@@ -67,6 +67,7 @@ class AsyncTask(models.Model):
         default=True, verbose_name="last")
     traceback = models.TextField(blank=True, null=True)
     date_start = models.DateTimeField(blank=True, null=True)
+    date_sent = models.DateTimeField(blank=True, null=True)
     date_arrive = models.DateTimeField(blank=True, null=True)
     date_end = models.DateTimeField(blank=True, null=True)
 
@@ -76,7 +77,9 @@ class AsyncTask(models.Model):
             self.status_task_id = status_id
         else:
             self.status_task_id = self.status_task_id
-        if self.status_task.is_completed and not self.date_end:
+        is_completed = StatusTask.objects.filter(
+            name=self.status_task_id, is_completed=True).exists()
+        if is_completed and not self.date_end:
             self.date_end = datetime.now()
         self.save()
         return self

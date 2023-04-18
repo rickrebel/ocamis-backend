@@ -1,5 +1,6 @@
 import json
 from django.conf import settings
+from datetime import datetime
 from task.aws.start_build_csv_data import lambda_handler as start_build_csv_data
 from task.aws.start_build_csv_data import lambda_handler as prepare_files
 from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
@@ -44,7 +45,7 @@ def execute_async(current_task, params):
     s3_client, dev_resource = start_session("lambda")
     use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
     if globals().get(function_name, False) and use_local_lambda:
-        print("SE EJECUTA EN LOCAL")
+        print("SE EJECUTA EN LOCAL:", function_name)
         request_id = current_task.id
         params["artificial_request_id"] = str(request_id)
         current_task.request_id = request_id
@@ -76,6 +77,7 @@ def execute_async(current_task, params):
             request_id = response["ResponseMetadata"]["RequestId"]
             current_task.request_id = request_id
             current_task.status_task_id = "running"
+            current_task.date_sent = datetime.now()
             current_task.save()
             # print("SE GUARDÓ BIEN")
             # payload_response = json.loads(response['Payload'].read())
@@ -91,7 +93,6 @@ def execute_async(current_task, params):
 
 def async_in_lambda(function_name, params, task_params):
     from task.models import AsyncTask
-    from datetime import datetime
 
     api_url = getattr(settings, "API_URL", False)
     params["webhook_url"] = f"{api_url}task/webhook_aws/"
@@ -110,17 +111,19 @@ def async_in_lambda(function_name, params, task_params):
     for model in task_params["models"]:
         query_kwargs[camel_to_snake(model.__class__.__name__)] = model
     # print("query_kwargs:\n", query_kwargs, "\n")
-    current_task = AsyncTask.objects.create(**query_kwargs)
+
     # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
+    is_pending = False
     if function_name == "save_csv_in_db":
         pending_tasks = AsyncTask.objects.filter(
             task_function_id=function_name,
             status_task__is_completed=False)
-        if pending_tasks.count() > 1:
-            current_task.date_start = None
-            current_task.status_task_id = "queue"
-            current_task.save()
-            return current_task
+        if pending_tasks.count() == 0:
+            query_kwargs["status_task_id"] = "queue"
+            is_pending = True
+    current_task = AsyncTask.objects.create(**query_kwargs)
+    if is_pending:
+        return current_task
     return execute_async(current_task, params)
 
 
