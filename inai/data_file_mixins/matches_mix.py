@@ -131,7 +131,7 @@ class Match:
         for invalid_field in invalid_fields:
             ff = invalid_field.final_field
             missing_criteria.append(
-                f"El campo '{invalid_field.name_in_data} --> {ff.public_name}' "
+                f"El campo '{invalid_field.name_in_data} --> {ff.verbose_name}' "
                 f"aún no está listo para ser usado")
         if missing_criteria:
             print("missing_criteria", missing_criteria)
