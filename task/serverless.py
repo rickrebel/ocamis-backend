@@ -121,8 +121,7 @@ def async_in_lambda(function_name, params, task_params):
             current_task.status_task_id = "queue"
             current_task.save()
             return current_task
-    else:
-        return execute_async(current_task, params)
+    return execute_async(current_task, params)
 
 
 def count_excel_rows(params):
