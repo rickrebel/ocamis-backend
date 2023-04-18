@@ -106,12 +106,11 @@ def move_and_duplicate(data_files, petition, request):
     #    name="initial", group="process")
     errors = []
     if destination == "reply_file":
-        file_type_no_final = FileType.objects.get(name="no_final_info")
         for data_file in data_files:
             ReplyFile.objects.create(
                 petition=petition,
                 file=data_file.file,
-                file_type=file_type_no_final)
+                file_type_id="no_final_info")
             if not is_dupl:
                 data_file.delete()
     elif destination:

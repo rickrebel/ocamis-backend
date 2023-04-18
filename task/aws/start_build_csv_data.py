@@ -175,7 +175,7 @@ class MatchAws:
         for model in self.editable_models:
             self.csvs[model["name"]] = io.StringIO()
             self.buffers[model["name"]] = csv.writer(
-                self.csvs[model["name"]], delimiter=self.delimiter)
+                self.csvs[model["name"]], delimiter="|")
 
         self.existing_fields = init_data["existing_fields"]
         self.special_fields = [field for field in self.existing_fields

@@ -71,6 +71,7 @@ class Match:
     def __init__(self, data_file: DataFile, task_params=None):
         from inai.models import set_upload_path
         from data_param.models import NameColumn
+        from category.models import FileFormat
         self.data_file = data_file
         self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
@@ -98,6 +99,7 @@ class Match:
         original_columns = self.name_columns.filter(
             position_in_data__isnull=False)
         self.delimiter = self.file_control.delimiter
+
         self.columns_count = original_columns.count()
 
         self.editable_models = get_models_of_app("med_cat")
@@ -129,7 +131,7 @@ class Match:
         for invalid_field in invalid_fields:
             ff = invalid_field.final_field
             missing_criteria.append(
-                f"El campo '{ff.name_in_data} --> {ff.public_name}' "
+                f"El campo '{invalid_field.name_in_data} --> {ff.public_name}' "
                 f"aún no está listo para ser usado")
         if missing_criteria:
             print("missing_criteria", missing_criteria)
