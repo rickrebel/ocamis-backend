@@ -116,7 +116,7 @@ def async_in_lambda(function_name, params, task_params):
         pending_tasks = AsyncTask.objects.filter(
             task_function_id=function_name,
             status_task__is_completed=False)
-        if pending_tasks.count():
+        if pending_tasks.count() > 1:
             current_task.date_start = None
             current_task.status_task_id = "queue"
             current_task.save()

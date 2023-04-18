@@ -339,6 +339,7 @@ def comprobate_queue(current_task):
         next_task = AsyncTask.objects.filter(
             task_function_id=current_task.task_function_id,
             status_task_id="queue").order_by("id").first()
-        execute_async(next_task, next_task.params)
-    else:
-        modify_constraints(is_create=True)
+        if next_task:
+            execute_async(next_task, next_task.original_request)
+        else:
+            modify_constraints(is_create=True)
