@@ -459,23 +459,23 @@ class SheetFile(models.Model):
 
     def check_success_insert(self, task_params=None, **kwargs):
         from task.models import AsyncTask
-        from inai.data_file_mixins.insert_mix import modify_constraints
-        import threading
-        import time
+        # from inai.data_file_mixins.insert_mix import modify_constraints
+        # import threading
+        # import time
 
-        def check_tasks_with_insert():
-            running_tasks = AsyncTask.objects.filter(
-                data_file__stage_id="insert",
-                data_file__status__is_completed=False)
-            if not running_tasks.exists():
-                modify_constraints(is_create=True)
-
-        def delay_check():
-            time.sleep(20)
-            check_tasks_with_insert()
-
-        t = threading.Thread(target=delay_check)
-        t.start()
+        # def check_tasks_with_insert():
+        #     running_tasks = AsyncTask.objects.filter(
+        #         data_file__stage_id="insert",
+        #         data_file__status__is_completed=False)
+        #     if not running_tasks.exists():
+        #         modify_constraints(is_create=True)
+        #
+        # def delay_check():
+        #     time.sleep(20)
+        #     check_tasks_with_insert()
+        #
+        # t = threading.Thread(target=delay_check)
+        # t.start()
 
         table_file_id = kwargs.get("table_file_id", None)
         if not table_file_id:

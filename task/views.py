@@ -115,8 +115,8 @@ class AWSMessage(generic.View):
             # print("CURRENT OBJ: ", current_obj)
             # name_model = current_obj.__class__.__name__
             # print("NAME MODEL: ", name_model)
-            method = getattr(current_obj, function_after)
             # print("METHOD: ", method)
+            method = getattr(current_obj, function_after)
             task_params = {"parent_task": current_task}
             new_result["from_aws"] = True
             try:
@@ -305,6 +305,7 @@ def comprobate_status(
             return Response(body_response, status=status.HTTP_200_OK)
         else:
             return None
+    comprobate_queue(current_task)
     return current_task
 
 
@@ -325,3 +326,19 @@ def comprobate_brothers(current_task, status_task_id):
             parent_status_task_id = "finished"
         comprobate_brothers(current_task.parent_task, parent_status_task_id)
     return current_task
+
+
+def comprobate_queue(current_task):
+    from task.serverless import execute_async
+    from inai.data_file_mixins.insert_mix import modify_constraints
+
+    is_queue = current_task.task_function_id in ["save_csv_in_db"]
+    if not is_queue:
+        return
+    if current_task.status_task.is_completed:
+        next_task = AsyncTask.objects.filter(
+            task_function_id=current_task.task_function_id,
+            status_task_id="queue").order_by("id").first()
+        execute_async(next_task, next_task.params)
+    else:
+        modify_constraints(is_create=True)

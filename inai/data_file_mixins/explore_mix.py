@@ -127,7 +127,7 @@ class ExploreMix:
             return [], errors, self
         new_tasks = []
         for lap_sheet in lap_sheets:
-            table_files = lap_sheet.table_files.all()
+            table_files = lap_sheet.table_files.filter(inserted=False)
             for table_file in table_files:
                 new_task = my_insert.send_csv_to_db(table_file)
                 new_tasks.append(new_task)

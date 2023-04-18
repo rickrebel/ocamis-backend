@@ -37,36 +37,12 @@ def execute_in_lambda(function_name, params, in_lambda=True):
         return globals()[function_name](params, context)
 
 
-def async_in_lambda(function_name, params, task_params):
-    from scripts.common import start_session
-    from task.models import AsyncTask
-    from datetime import datetime
+def execute_async(current_task, params):
     import threading
-
+    from scripts.common import start_session
+    function_name = current_task.task_function_id
     s3_client, dev_resource = start_session("lambda")
-    api_url = getattr(settings, "API_URL", False)
-    params["webhook_url"] = f"{api_url}task/webhook_aws/"
-    function_after = task_params.get("function_after", f"{function_name}_after")
-    query_kwargs = {
-        "task_function_id": function_name,
-        "function_after": function_after,
-        "original_request": params,
-        "status_task_id": "pending",
-        "date_start": datetime.now(),
-    }
-    for field in ["parent_task", "params_after"]:
-        if field in task_params:
-            query_kwargs[field] = task_params[field]
-
-    for model in task_params["models"]:
-        query_kwargs[camel_to_snake(model.__class__.__name__)] = model
-    # print("query_kwargs:\n", query_kwargs, "\n")
-    current_task = AsyncTask.objects.create(**query_kwargs)
-    # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
-    function_final = f"{function_name}:normal"
     use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
-    if function_name == "save_csv_in_db":
-        current_task.status_task_id = "queue"
     if globals().get(function_name, False) and use_local_lambda:
         print("SE EJECUTA EN LOCAL")
         request_id = current_task.id
@@ -87,6 +63,7 @@ def async_in_lambda(function_name, params, task_params):
         t.start()
         return current_task
     else:
+        function_final = f"{function_name}:normal"
         dumb_params = json.dumps(params)
         try:
             response = s3_client.invoke(
@@ -95,7 +72,7 @@ def async_in_lambda(function_name, params, task_params):
                 LogType='Tail',
                 Payload=dumb_params
             )
-            print("response", response, "\n")
+            # print("response", response, "\n")
             request_id = response["ResponseMetadata"]["RequestId"]
             current_task.request_id = request_id
             current_task.status_task_id = "running"
@@ -110,6 +87,42 @@ def async_in_lambda(function_name, params, task_params):
             current_task.errors = [str(e)]
             current_task.save()
             return None
+
+
+def async_in_lambda(function_name, params, task_params):
+    from task.models import AsyncTask
+    from datetime import datetime
+
+    api_url = getattr(settings, "API_URL", False)
+    params["webhook_url"] = f"{api_url}task/webhook_aws/"
+    function_after = task_params.get("function_after", f"{function_name}_after")
+    query_kwargs = {
+        "task_function_id": function_name,
+        "function_after": function_after,
+        "original_request": params,
+        "status_task_id": "pending",
+        "date_start": datetime.now(),
+    }
+    for field in ["parent_task", "params_after"]:
+        if field in task_params:
+            query_kwargs[field] = task_params[field]
+
+    for model in task_params["models"]:
+        query_kwargs[camel_to_snake(model.__class__.__name__)] = model
+    # print("query_kwargs:\n", query_kwargs, "\n")
+    current_task = AsyncTask.objects.create(**query_kwargs)
+    # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
+    if function_name == "save_csv_in_db":
+        pending_tasks = AsyncTask.objects.filter(
+            task_function_id=function_name,
+            macro_status="pending")
+        if pending_tasks.count():
+            current_task.date_start = None
+            current_task.status_task_id = "queue"
+            current_task.save()
+            return current_task
+    else:
+        return execute_async(current_task, params)
 
 
 def count_excel_rows(params):
