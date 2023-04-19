@@ -722,12 +722,13 @@ class MatchAws:
         self.all_missing_fields.append(missing_field)
 
     def build_report(self):
-        report_data = {"general_errors": ""}
-        if self.all_missing_rows:
-            report_data["missing_rows"] = len(self.all_missing_rows)
+        report_data = {"general_error": ""}
+        real_missing_rows = [row for row in self.all_missing_rows if row[-1]]
+        if real_missing_rows:
+            report_data["missing_rows"] = len(real_missing_rows)
             row_errors = {}
             error_types_count = 0
-            for missing_row in self.all_missing_rows:
+            for missing_row in real_missing_rows:
                 error = missing_row[-1]
                 if not error:
                     continue
@@ -759,7 +760,7 @@ class MatchAws:
             # row_errors = row_errors[:50]
             report_data["row_errors"] = row_errors
             if len(row_errors) > 50:
-                report_data["general_errors"] += \
+                report_data["general_error"] += \
                     "Se encontraron más de 50 tipos de errores en las filas"
         else:
             report_data["missing_rows"] = 0
@@ -805,5 +806,5 @@ class MatchAws:
             report_data["field_errors"] = {}
 
         if not report_data.get("missing_rows") and not report_data.get("missing_fields"):
-            report_data["general_errors"] = "No se encontraron errores"
+            report_data["general_error"] = "No se encontraron errores"
         return report_data

@@ -195,7 +195,6 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         }
         return Response(data, status=status.HTTP_200_OK)
 
-
     @action(methods=["post"], detail=True)
     def change_months(self, request, **kwargs):
         limiters = request.data.get("limiters")

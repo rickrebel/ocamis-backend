@@ -118,8 +118,9 @@ class FileControlSerializer(FileControlSimpleSerializer):
         from django.db.models import Count, F
         files = DataFile.objects\
             .filter(petition_file_control__file_control=obj)\
-            .values("status_id", "stage_id")\
+            .values("status_id", "stage_id", "status__order", "stage__order")\
             .annotate(total=Count("id"))
+        files = sorted(files, key=lambda x: (x["stage__order"], x["status__order"]))
         return list(files)
 
     def get_example_file_id(self, obj):

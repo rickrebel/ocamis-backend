@@ -749,7 +749,7 @@ class MatchAws:
         return uuid
 
     def build_report(self):
-        report_data = {"general_errors": ""}
+        report_data = {"general_error": ""}
         if self.all_missing_rows:
             report_data["missing_rows"] = len(self.all_missing_rows)
             row_errors = {}
@@ -786,7 +786,7 @@ class MatchAws:
             row_errors = row_errors[:50]
             report_data["row_errors"] = row_errors
             if len(row_errors) > 50:
-                report_data["general_errors"] += \
+                report_data["general_error"] += \
                     "Se encontraron más de 50 tipos de errores en las filas"
 
         if self.all_missing_fields:
@@ -826,7 +826,7 @@ class MatchAws:
             report_data["field_errors"] = field_errors
 
         if not report_data.get("missing_rows") and not report_data.get("missing_fields"):
-            report_data["general_errors"] = "No se encontraron errores"
+            report_data["general_error"] = "No se encontraron errores"
         return report_data
 
     # def clues_match(self, clave_clues):

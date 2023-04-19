@@ -7,6 +7,15 @@ from api.mixins import (
 from task.api import serializers
 from task.models import AsyncTask
 
+prefetch_async = [
+    "data_file",
+    "sheet_file",
+    "data_file__petition_file_control",
+    "reply_file",
+    "file_control",
+    "file_control__petition_file_control",
+]
+
 
 class AsyncTaskViewSet(ListRetrieveView):
     queryset = AsyncTask.objects.all()
@@ -26,6 +35,13 @@ class AsyncTaskViewSet(ListRetrieveView):
             "file_control__petition_file_control",
         )
 
+    @action(methods=["get"], detail=False, url_path='restart_queue')
+    def restart_queue(self, request, **kwargs):
+        from task.views import debug_queue
+        debug_queue()
+        return Response(
+            {"message": "Cola reiniciada"}, status=status.HTTP_200_OK)
+
     @action(methods=["get"], detail=False, url_path='last_hours')
     def last_hours(self, request, **kwargs):
         from datetime import datetime, timedelta
@@ -36,15 +52,11 @@ class AsyncTaskViewSet(ListRetrieveView):
         last_hours = now - timedelta(hours=int(total_hours))
         task_by_start = AsyncTask.objects\
             .filter(date_start__gte=last_hours)\
-            .prefetch_related(
-                "data_file",
-                "sheet_file",
-                "data_file__petition_file_control",
-                "reply_file",
-                "file_control",
-                "file_control__petition_file_control",
-            )
-        all_tasks = task_by_start
+            .prefetch_related(*prefetch_async)
+        task_by_end = AsyncTask.objects\
+            .filter(date_end__gte=last_hours)\
+            .prefetch_related(*prefetch_async)
+        all_tasks = task_by_start | task_by_end
         staff_users = User.objects.filter(is_staff=True)
         staff_data = UserProfileSerializer(staff_users, many=True).data
         data = {
@@ -75,14 +87,11 @@ class AsyncTaskViewSet(ListRetrieveView):
 
         task_by_start = AsyncTask.objects\
             .filter(date_start__gte=last_request)\
-            .prefetch_related(
-                "sheet_file",
-                "data_file",
-                "data_file__petition_file_control",
-                "reply_file",
-                "file_control",
-                "file_control__petition_file_control",
-            )
+            .prefetch_related(*prefetch_async)
+        task_by_end = AsyncTask.objects\
+            .filter(date_end__gte=last_request)\
+            .prefetch_related(*prefetch_async)
+        all_tasks = task_by_start | task_by_end
         all_tasks = task_by_start
         data = {
             "new_tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,

@@ -343,3 +343,14 @@ def comprobate_queue(current_task):
             execute_async(next_task, next_task.original_request)
         else:
             modify_constraints(is_create=True)
+
+
+def debug_queue():
+    from task.serverless import execute_async
+    from inai.data_file_mixins.insert_mix import modify_constraints
+    next_task = AsyncTask.objects.filter(
+        status_task_id="queue").order_by("id").first()
+    if next_task:
+        execute_async(next_task, next_task.original_request)
+    else:
+        modify_constraints(is_create=True)

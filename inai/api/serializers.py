@@ -3,7 +3,8 @@ from rest_framework import serializers
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
     Petition, PetitionFileControl, DataFile, MonthAgency, PetitionMonth,
-    ReplyFile, PetitionBreak, PetitionNegativeReason, SheetFile, LapSheet)
+    ReplyFile, PetitionBreak, PetitionNegativeReason, SheetFile, LapSheet,
+    TableFile)
 from data_param.models import Transformation, NameColumn, FileControl
 
 from category.models import FileType
@@ -86,6 +87,15 @@ class MonthEntitySimpleSerializer(serializers.ModelSerializer):
         fields = ["year_month", "human_name"]
 
 
+class TableFileSerializer(serializers.ModelSerializer):
+    # name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+
+    class Meta:
+        model = TableFile
+        fields = ["id", "url", "collection", "inserted"]
+
+
 class LapSheetSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -93,20 +103,18 @@ class LapSheetSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class LapSheetFullSerializer(serializers.ModelSerializer):
+    table_files = TableFileSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = LapSheet
+        fields = "__all__"
+
+
 class SheetFileSerializer(serializers.ModelSerializer):
-    name = serializers.ReadOnlyField(source="file.name")
+    # name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
-    short_name = serializers.SerializerMethodField(read_only=True)
-    real_name = serializers.SerializerMethodField(read_only=True)
-    laps = LapSheetSerializer(read_only=True, many=True)
-
-    def get_real_name(self, obj):
-        return obj.file.name.split("/")[-1]
-
-    def get_short_name(self, obj):
-        real_name = obj.file.name.split("/")[-1]
-        return f"{real_name[:25]}...{real_name[-15:]}" \
-            if len(real_name) > 42 else real_name
+    laps = LapSheetFullSerializer(read_only=True, many=True)
 
     class Meta:
         model = SheetFile
@@ -171,7 +179,6 @@ class DataFileFullSerializer(DataFileSerializer):
 
     class Meta:
         model = DataFile
-        # fields = "__all__"
         exclude = ('sample_data',)
         read_only_fields = ["petition_file_control", "file"]
 
@@ -211,6 +218,10 @@ class PetitionFileControlCreateSerializer(serializers.ModelSerializer):
 
 
 class PetitionFileControlSerializer(serializers.ModelSerializer):
+    data_files = serializers.SerializerMethodField(read_only=True)
+
+    def get_data_files(self, obj):
+        return []
 
     class Meta:
         model = PetitionFileControl
@@ -224,13 +235,7 @@ class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
     data_files = serializers.SerializerMethodField(read_only=True)
 
     def get_data_files(self, obj):
-        # return []
         return DataFileSerializer(obj.data_files.all(), many=True).data
-        data_files = DataFile.objects\
-            .filter(petition_file_control=obj)\
-            .prefetch_related("sheet_files")
-        return DataFileSerializer(data_files, many=True).data
-
 
     class Meta:
         model = PetitionFileControl
@@ -238,7 +243,7 @@ class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
 
 
 class FileControlFullSerializer(FileControlSerializer):
-    petition_file_control = PetitionFileControlFullSerializer(
+    petition_file_control = PetitionFileControlSerializer(
         many=True, read_only=True)
     columns = NameColumnSerializer(many=True)
 

@@ -68,7 +68,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         return context
 
     action_serializers = {
-        "list": FileControlFullSerializer,
+        "list": serializers.FileControlSemiFullSerializer,
         "retrieve": FileControlFullSerializer,
         "create": serializers.FileControlSerializer,
         "post": serializers.FileControlSerializer,
@@ -85,8 +85,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             "columns__column_transformations",
             "file_transformations",
             "petition_file_control",
-            "petition_file_control__data_files",
-            "petition_file_control__data_files__sheet_files",
+            # "petition_file_control__data_files",
+            # "petition_file_control__data_files__sheet_files",
             # "petition_file_control__data_files__origin_file",
         )
         if status_register:
@@ -98,7 +98,19 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         file_control = self.get_object()
         serializer = FileControlFullSerializer(
             file_control, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = serializer.data
+        data_files = DataFile.objects\
+            .filter(petition_file_control__file_control=file_control) \
+            .order_by("-id")\
+            .prefetch_related("sheet_files", "petition_file_control")
+        data["data_files_count"] = data_files.count()
+        data["filter_data_files"] = data["data_files_count"]
+        # data_files = data_files[:31]
+        # serializer_files = DataFileSerializer(data_files, many=True).data
+        # data["data_files"] = serializer_files
+        data["data_files"] = []
+        # data_files = serializers.SerializerMethodField(read_only=True)
+        return Response(data, status=status.HTTP_200_OK)
 
     def create(self, request, **kwargs):
         # print("ESTOY EN CREATE")
@@ -161,6 +173,61 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
         # return Response(
         #    serializer_file_control.data, status=status.HTTP_206_PARTIAL_CONTENT)
+
+    @action(methods=["get"], detail=True, url_path='data_files')
+    def data_files(self, request, **kwargs):
+        import json
+        file_control = self.get_object()
+        data_files = DataFile.objects\
+            .filter(petition_file_control__file_control=file_control) \
+            .order_by("-id")\
+            .prefetch_related("sheet_files", "petition_file_control")
+        limiters = request.query_params.get("limiters", None)
+        limiters = json.loads(limiters)
+        available_filters = [
+            {"name": "pfc", "field": "petition_file_control_id"},
+        ]
+        if limiters:
+            final_filters = {}
+            for filter_item in available_filters:
+                filter_value = limiters.get(filter_item["name"])
+                if filter_value:
+                    final_filters[filter_item["field"]] = filter_value
+            if final_filters:
+                data_files = data_files.filter(**final_filters)
+        sts = limiters.get("status_built", [])
+        final_files = None
+        for status_built in sts:
+            [status_id, stage_id] = status_built.split("-")
+            current_files = data_files\
+                .filter(status_id=status_id, stage_id=stage_id)
+            final_files = current_files if not final_files \
+                else final_files | current_files
+        if final_files:
+            final_files = final_files.distinct().order_by("-id")
+        else:
+            final_files = data_files
+        sts_process = limiters.get("status_process", [])
+        final_files2 = None
+        for status_process in sts_process:
+            current_files = final_files2\
+                .filter(status_process_id=status_process)
+            final_files2 = current_files if not final_files2 \
+                else final_files2 | current_files
+        if final_files2:
+            final_files2 = final_files2.distinct().order_by("-id")
+        else:
+            final_files2 = final_files
+        total_count = final_files2.count()
+        page_size = limiters.get("page_size", 30)
+        page = limiters.get("page", 1) - 1
+        final_files3 = final_files2[page * page_size:(page + 1) * page_size]
+        serializer_files = DataFileSerializer(final_files3, many=True).data
+        data = {
+            "total_count": total_count,
+            "data_files": serializer_files,
+        }
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(methods=["get"], detail=False, url_path='filter')
     def filter(self, request, **kwargs):
@@ -339,7 +406,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         for data_file in all_data_files[:100]:
             if not data_file.can_repeat:
                 continue
-            if final_count >= 50:
+            if final_count >= 30:
                 break
             final_count += 1
             df_task, task_params = build_task_params(

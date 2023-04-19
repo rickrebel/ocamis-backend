@@ -168,7 +168,10 @@ class DataFileViewSet(CreateRetrievView):
 
     def get_queryset(self):
         return DataFile.objects.all().prefetch_related(
-            "sheet_files", "sheet_files__laps")
+            "sheet_files",
+            "sheet_files__laps",
+            "sheet_files__laps__table_files",
+        )
 
     @action(methods=["put"], detail=True, url_path="move")
     def move(self, request, **kwargs):
