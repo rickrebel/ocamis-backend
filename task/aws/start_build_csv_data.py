@@ -320,7 +320,10 @@ class MatchAws:
             folio_document = available_data.get("folio_document")
             folio_ocamis = "%s|%s|%s|%s" % (
                 self.entity_id, iso_date[0], iso_date[1], folio_document)
-
+            if len(folio_ocamis) > 60:
+                error = "Folio Ocamis; El folio ocamis es muy largo"
+                self.append_missing_row(row, error)
+                continue
             curr_prescription = all_prescriptions.get(folio_ocamis)
             if curr_prescription:
                 available_data["prescription_id"] = curr_prescription["uuid_folio"]
@@ -459,6 +462,7 @@ class MatchAws:
                 row_decode = row.decode(self.decode) if self.decode != "str" else str(row)
                 # .replace('\r\n', '')
                 row_data = row_decode.replace('\r\n', '').split(self.delimiter or '|')
+                row_data = [col.strip() for col in row_data]
             current_count = len(row_data)
             row_data.insert(0, str(row_seq))
             if current_count == self.columns_count:
@@ -608,6 +612,8 @@ class MatchAws:
                         some_date = value
                 elif field["data_type"] == "Integer":
                     value = int(value)
+                    if value < 0:
+                        error = "El valor no puede ser negativo"
                 elif field["data_type"] == "Float":
                     value = float(value)
             except ValueError:

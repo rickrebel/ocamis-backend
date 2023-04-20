@@ -93,7 +93,7 @@ class TableFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TableFile
-        fields = ["id", "url", "collection", "inserted"]
+        fields = ["id", "url", "collection"]
 
 
 class LapSheetSerializer(serializers.ModelSerializer):

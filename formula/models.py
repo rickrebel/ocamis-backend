@@ -37,7 +37,7 @@ class Prescription(models.Model):
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
     folio_ocamis = models.CharField(max_length=60)
-    folio_document = models.CharField(max_length=40)
+    folio_document = models.CharField(max_length=46)
     iso_year = models.PositiveSmallIntegerField()
     month = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()

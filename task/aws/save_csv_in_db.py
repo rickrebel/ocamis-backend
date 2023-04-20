@@ -7,7 +7,7 @@ request_headers = {"Content-Type": "application/json"}
 def lambda_handler(event, context):
     import psycopg2
     print("model_name", event.get("model_name"))
-    table_file_id = event.get("table_file_id")
+    lap_sheet_id = event.get("lap_sheet_id")
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries")
     connection = psycopg2.connect(
@@ -16,23 +16,28 @@ def lambda_handler(event, context):
         password=db_config.get("PASSWORD"),
         host=db_config.get("HOST"),
         port=db_config.get("PORT"))
-
     final_result = {
-        "table_file_id": table_file_id,
+        "lap_sheet_id": lap_sheet_id,
     }
-    try:
-        cursor = connection.cursor()
-        for sql_query in sql_queries:
+    errors = []
+    cursor = connection.cursor()
+    for sql_query in sql_queries:
+        try:
             cursor.execute(sql_query)
+        except Exception as e:
+
+            print("model_name", event.get("model_name"))
+            # print("sql_query", sql_queries)
+            # print("error", e)
+            final_result["errors"] = [f"Hubo un error al guardar; {str(e)}"]
+            errors.append(f"Hubo un error al guardar; {str(e)}")
+            break
+    if not errors:
         connection.commit()
-        cursor.close()
-        connection.close()
-        final_result["success"] = True
-    except Exception as e:
-        print("model_name", event.get("model_name"))
-        # print("sql_query", sql_queries)
-        # print("error", e)
-        final_result["errors"] = [f"Hubo un error al guardar {str(e)}"]
+    final_result["errors"] = errors
+    cursor.close()
+    connection.close()
+    final_result["success"] = bool(not errors)
     result_data = {
         "result": final_result,
         "request_id": context.aws_request_id

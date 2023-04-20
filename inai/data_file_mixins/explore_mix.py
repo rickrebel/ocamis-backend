@@ -127,10 +127,12 @@ class ExploreMix:
         #     return [], errors, self
         new_tasks = []
         for lap_sheet in lap_sheets:
-            table_files = lap_sheet.table_files.filter(inserted=False)
-            for table_file in table_files:
-                new_task = my_insert.send_csv_to_db(table_file)
-                new_tasks.append(new_task)
+            new_task = my_insert.send_csv_to_db(lap_sheet)
+            new_tasks.append(new_task)
+            # table_files = lap_sheet.table_files.filter(inserted=False)
+            # for table_file in table_files:
+            #     new_task = my_insert.send_csv_to_db(table_file)
+            #     new_tasks.append(new_task)
         return new_tasks, [], self
 
     def count_file_rows(self):
@@ -762,20 +764,32 @@ class ExploreMix:
             setattr(lap_sheet, field, report_errors[field])
         lap_sheet.last_edit = timezone.now()
         lap_sheet.save()
-        if is_prepare:
-            stage_name = "prepare"
-            data_file.change_status(f"{stage_name}|finished")
-            return [], [], True
+
+        if not is_prepare:
+            if data_file.petition_file_control.file_control.decode:
+                decode = kwargs.get("decode", None)
+                if decode:
+                    data_file.petition_file_control.file_control.decode = decode
+                    data_file.petition_file_control.file_control.save()
+
+        error_fields = ["missing_rows", "missing_fields"]
+        errors_count = sum([report_errors[field] for field in error_fields])
+        total_rows = report_errors["total_count"] - report_errors["discarded_count"]
+        errors = []
+        if errors_count / total_rows > 0.05:
+            errors.append("Se encontraron demasiados errores en filas/campos")
+        stage_name = "prepare" if is_prepare else "transform"
+
+        if is_prepare or errors:
+            if errors:
+                data_file.save_errors(errors, f"{stage_name}|with_errors")
+            else:
+                data_file.change_status(f"{stage_name}|finished")
+            return [], errors, True
         # data_file.all_results = kwargs.get("report_errors", {})
         # data_file.save()
         final_paths = kwargs.get("final_paths", []) or []
-        if not data_file.petition_file_control.file_control.decode:
-            decode = kwargs.get("decode", None)
-            if decode:
-                data_file.petition_file_control.file_control.decode = decode
-                data_file.petition_file_control.file_control.save()
         new_task, errors, data = lap_sheet.save_result_csv(final_paths)
-        stage_name = "transform"
         if errors:
             data_file.save_errors(errors, f"{stage_name}|with_errors")
         else:

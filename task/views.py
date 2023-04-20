@@ -103,7 +103,7 @@ class AWSMessage(generic.View):
         current_task.result = result
         current_task.save()
         models = [
-            "petition", "file_control", "reply_file", "data_file", "sheet_file"]
+            "petition", "file_control", "reply_file", "sheet_file", "data_file"]
         function_after = current_task.function_after
         final_errors = []
         new_tasks = []
@@ -330,6 +330,7 @@ def comprobate_brothers(current_task, status_task_id):
 
 def comprobate_queue(current_task):
     from task.serverless import execute_async
+    from django.conf import settings
     from inai.data_file_mixins.insert_mix import modify_constraints
 
     is_queue = current_task.task_function_id in ["save_csv_in_db"]
@@ -341,7 +342,7 @@ def comprobate_queue(current_task):
             status_task_id="queue").order_by("id").first()
         if next_task:
             execute_async(next_task, next_task.original_request)
-        else:
+        elif not settings.IS_LOCAL:
             modify_constraints(is_create=True)
 
 

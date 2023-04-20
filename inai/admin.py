@@ -103,6 +103,7 @@ class TableFileInline(admin.TabularInline):
     model = TableFile
     extra = 0
     raw_id_fields = ["lap_sheet"]
+    show_change_link = True
 
 
 class LapSheetInline(admin.StackedInline):
@@ -149,7 +150,6 @@ class TableFileAdmin(admin.ModelAdmin):
         "collection",
         "file",
         "lap_sheet",
-        "inserted",
     ]
     list_filter = ["collection"]
     raw_id_fields = ["lap_sheet"]

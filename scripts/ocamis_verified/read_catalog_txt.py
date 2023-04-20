@@ -183,12 +183,18 @@ def delete_insabi_delegations():
     Delegation.objects.filter(institution=insabi, clues__isnull=True).delete()
 
 
-def reverse_insert():
+def reverse_insert(hard=False):
     from inai.models import DataFile, TableFile, LapSheet
-    TableFile.objects.filter(inserted=True).update(inserted=False)
+    from task.models import AsyncTask
+    # TableFile.objects.filter(inserted=True).update(inserted=False)
     LapSheet.objects.filter(inserted=True).update(inserted=False)
+    LapSheet.objects.filter(inserted=None).update(inserted=False)
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
+    if hard:
+        AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
+        AsyncTask.objects.filter(task_function_id="insert_data").delete()
+
 
 # move_delegation_clues()
 # delete_insabi_delegations()

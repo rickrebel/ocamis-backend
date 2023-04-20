@@ -477,22 +477,27 @@ class SheetFile(models.Model):
         # t = threading.Thread(target=delay_check)
         # t.start()
 
-        table_file_id = kwargs.get("table_file_id", None)
-        if not table_file_id:
-            return [], ["No se encontró el id de la tabla"], True
+        # table_file_id = kwargs.get("table_file_id", None)
+        # if not table_file_id:
+        #     return [], ["No se encontró el id de la tabla"], True
+        lap_sheet_id = kwargs.get("lap_sheet_id", None)
+        if not lap_sheet_id:
+            return [], ["No se encontró el id del lap_sheet"], True
         errors = kwargs.get("errors", [])
         if errors:
             return [], errors, True
-        table_file = TableFile.objects.filter(id=table_file_id).first()
-        table_file.inserted = True
-        table_file.save()
-        all_inserted = table_file.lap_sheet.confirm_all_inserted()
-        if all_inserted:
-            self.valid_insert = True
-            self.save()
-            self.data_file.status_id = "finished"
-            self.data_file.stage_id = "insert"
-            self.data_file.save()
+        lap_sheet = LapSheet.objects.filter(id=lap_sheet_id).first()
+        # table_file = TableFile.objects.filter(id=table_file_id).first()
+        # table_file.inserted = True
+        # table_file.save()
+        # all_inserted = lap_sheet.confirm_all_inserted()
+        # if all_inserted:
+        lap_sheet.inserted = True
+        lap_sheet.valid_insert = True
+        lap_sheet.save()
+        self.data_file.status_id = "finished"
+        self.data_file.stage_id = "insert"
+        self.data_file.save()
         return [], [], True
 
     def __str__(self):
@@ -558,15 +563,15 @@ class LapSheet(models.Model):
             # new_tasks = self.send_csv_to_db(result_file["path"], model_name)
             # new_tasks.append(new_tasks)
         TableFile.objects.filter(lap_sheet=self)\
-                        .exclude(id__in=new_file_ids)\
-                        .exclude(inserted=True).delete()
+                         .exclude(id__in=new_file_ids)\
+                         .delete()
         return new_tasks, [], all_new_files
 
-    def confirm_all_inserted(self):
-        pending_tables = self.table_files.filter(inserted=False).exists()
-        self.inserted = None if pending_tables else True
-        self.save()
-        return not pending_tables
+    # def confirm_all_inserted(self):
+    #     pending_tables = self.table_files.filter(inserted=False).exists()
+    #     self.inserted = None if pending_tables else True
+    #     self.save()
+    #     return not pending_tables
 
     def __str__(self):
         return "%s %s" % (str(self.sheet_file), self.lap)
@@ -590,7 +595,7 @@ class TableFile(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, blank=True, null=True)
     is_for_edition = models.BooleanField(default=False)
-    inserted = models.BooleanField(default=False)
+    # inserted = models.BooleanField(default=False)
 
     def __str__(self):
         return "%s %s" % (self.collection, self.lap_sheet)
