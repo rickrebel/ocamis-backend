@@ -342,8 +342,8 @@ def comprobate_queue(current_task):
             status_task_id="queue").order_by("id").first()
         if next_task:
             execute_async(next_task, next_task.original_request)
-        elif not settings.IS_LOCAL:
-            modify_constraints(is_create=True)
+        # elif not settings.IS_LOCAL:
+        #     modify_constraints(is_create=True)
 
 
 def debug_queue():
@@ -353,5 +353,5 @@ def debug_queue():
         status_task_id="queue").order_by("id").first()
     if next_task:
         execute_async(next_task, next_task.original_request)
-    else:
-        modify_constraints(is_create=True)
+    # else:
+    #     modify_constraints(is_create=True)

@@ -27,6 +27,13 @@ def build_copy_sql_aws(table_file, model_in_db, columns_join):
     """
 
 
+last_query = f"""
+    UPDATE public.task_platform
+    SET version = '2.6'
+    WHERE id = 1
+"""
+
+
 def modify_constraints(is_create=True):
     from scripts.ocamis_verified.contraints import get_constraints
     create_constrains, delete_constrains = get_constraints()
@@ -36,11 +43,14 @@ def modify_constraints(is_create=True):
     if is_create and not platform.has_constrains:
         with_change = True
         for constraint in create_constrains:
+            print("constraint", constraint)
             cursor.execute(constraint)
     elif not is_create and platform.has_constrains:
         with_change = True
         for constraint in reversed(delete_constrains):
+            print("constraint", constraint)
             cursor.execute(constraint)
+    # connection.commit()
     cursor.close()
     connection.close()
     if with_change:
@@ -64,6 +74,11 @@ class Insert:
     def send_csv_to_db(self, lap_sheet: LapSheet):
         from task.serverless import async_in_lambda
         table_files = lap_sheet.table_files.all()
+        first_query = f"""
+            SELECT inserted
+            FROM public.inai_lapsheet
+            WHERE id = {lap_sheet.id}
+        """
         all_queries = []
         for table_file in table_files:
             model_name = table_file.collection.model_name
@@ -97,11 +112,18 @@ class Insert:
                 sql_queries = self.build_catalog_queries(
                     table_file, columns_join, model_in_db, model_name)
                 all_queries += sql_queries
+        last_query = f"""
+            UPDATE public.inai_lapsheet
+            SET inserted = true
+            WHERE id = {lap_sheet.id}
+        """
+        all_queries.append(last_query)
         desabasto_db = getattr(settings, "DATABASES", {}).get("default_prod")
         if not desabasto_db:
             desabasto_db = getattr(settings, "DATABASES", {}).get("default")
         # save_csv_in_db(sql_query, desabasto_db)
         params = {
+            "first_query": first_query,
             "sql_queries": all_queries,
             "db_config": desabasto_db,
             # "table_file_id": table_file.id,

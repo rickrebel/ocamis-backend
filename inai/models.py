@@ -492,9 +492,9 @@ class SheetFile(models.Model):
         # table_file.save()
         # all_inserted = lap_sheet.confirm_all_inserted()
         # if all_inserted:
-        lap_sheet.inserted = True
-        lap_sheet.valid_insert = True
-        lap_sheet.save()
+        # lap_sheet.inserted = True
+        # lap_sheet.valid_insert = True
+        # lap_sheet.save()
         self.data_file.status_id = "finished"
         self.data_file.stage_id = "insert"
         self.data_file.save()
