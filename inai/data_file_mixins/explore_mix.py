@@ -776,7 +776,9 @@ class ExploreMix:
         errors_count = sum([report_errors[field] for field in error_fields])
         total_rows = report_errors["total_count"] - report_errors["discarded_count"]
         errors = []
-        if errors_count / total_rows > 0.05:
+        if not total_rows:
+            errors.append("No se encontraron filas")
+        elif errors_count / total_rows > 0.05:
             errors.append("Se encontraron demasiados errores en filas/campos")
         stage_name = "prepare" if is_prepare else "transform"
 

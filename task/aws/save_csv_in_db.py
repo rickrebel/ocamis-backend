@@ -6,7 +6,6 @@ request_headers = {"Content-Type": "application/json"}
 # def save_csv_in_db(event, context):
 def lambda_handler(event, context):
     import psycopg2
-    from django.db import transaction
     print("model_name", event.get("model_name"))
     lap_sheet_id = event.get("lap_sheet_id")
     db_config = event.get("db_config")
@@ -28,20 +27,15 @@ def lambda_handler(event, context):
     if result[0]:
         errors.append(f"Ya se había insertado la pestaña y su lap")
     else:
-        transaction.set_autocommit(False)
-        with transaction.atomic():
+        try:
             for sql_query in sql_queries:
-                try:
-                    cursor.execute(sql_query)
-                except Exception as e:
-                    errors.append(f"Hubo un error al guardar; {str(e)}")
-                    break
-        if not errors:
-            transaction.commit()
-        else:
-            transaction.rollback()
+                cursor.execute(sql_query)
+            cursor.close()
+            connection.commit()
+        except Exception as e:
+            connection.rollback()
+            errors.append(f"Hubo un error al guardar; {str(e)}")
     final_result["errors"] = errors
-    cursor.close()
     connection.close()
     final_result["success"] = bool(not errors)
     result_data = {
