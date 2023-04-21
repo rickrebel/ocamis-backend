@@ -133,7 +133,7 @@ class FileControlSerializer(FileControlSimpleSerializer):
                 "-data_file__status__order",
             )\
             .first()
-        print("last_sheet_file", last_sheet_file)
+        # print("last_sheet_file", last_sheet_file)
         if last_sheet_file:
             return last_sheet_file.data_file_id
         return None

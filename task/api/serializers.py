@@ -44,7 +44,7 @@ class AsyncTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = AsyncTask
         # fields = "__all__"
-        exclude = ["result", "original_request"]
+        exclude = ["result", "original_request", "traceback"]
 
 
 class AsyncTaskFullSerializer(AsyncTaskSerializer):

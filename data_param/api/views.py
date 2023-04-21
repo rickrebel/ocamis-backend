@@ -186,6 +186,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         limiters = json.loads(limiters)
         available_filters = [
             {"name": "pfc", "field": "petition_file_control_id"},
+            {"name": "stage", "field": "stage_id"},
+            {"name": "status", "field": "status_id"},
         ]
         if limiters:
             final_filters = {}
@@ -392,6 +394,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             petition_file_control__file_control=file_control,
             status_id=status_init, stage_id=stage_init)
         stage_final = request.data.get("stage_final")
+        batch_size = request.data.get("batch_size", 30)
+        batch_size = int(batch_size)
         target_stage = Stage.objects.get(name=stage_final)
         function_name = target_stage.main_function.name
         after_aws = "find_coincidences_from_aws" if \
@@ -403,10 +407,10 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         all_tasks = []
         all_errors = []
         final_count = 0
-        for data_file in all_data_files[:100]:
+        for data_file in all_data_files[:batch_size*2]:
             if not data_file.can_repeat:
                 continue
-            if final_count >= 30:
+            if final_count >= batch_size:
                 break
             final_count += 1
             df_task, task_params = build_task_params(

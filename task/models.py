@@ -18,26 +18,22 @@ class AsyncTask(models.Model):
     file_control = models.ForeignKey(
         FileControl, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    # file_control = models.IntegerField(blank=True, null=True)
     petition = models.ForeignKey(
         Petition, blank=True, null=True,
         related_name="async_tasks",
         on_delete=models.CASCADE)
+    reply_file = models.ForeignKey(
+        ReplyFile, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
     data_file = models.ForeignKey(
         DataFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     sheet_file = models.ForeignKey(
         SheetFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    reply_file = models.ForeignKey(
-        ReplyFile, related_name="async_tasks",
-        on_delete=models.CASCADE, blank=True, null=True)
     status_task = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Estado de la tarea")
-    # status_task = models.CharField(
-    #     max_length=100, blank=True, null=True,
-    #     verbose_name="Estado de la tarea")
     function_name = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Nombre de la función")
@@ -45,9 +41,6 @@ class AsyncTask(models.Model):
         TaskFunction, blank=True, null=True, on_delete=models.CASCADE,
         related_name="functions")
     is_massive = models.BooleanField(default=False)
-    # task_function = models.CharField(
-    #     max_length=100, blank=True, null=True,
-    #     verbose_name="Nombre de la función")
     subgroup = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Subtipo de la función")
@@ -61,7 +54,6 @@ class AsyncTask(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, blank=True, null=True)
     result = JSONField(blank=True, null=True)
-    # error = models.TextField(blank=True, null=True)
     errors = JSONField(blank=True, null=True)
     is_current = models.BooleanField(
         default=True, verbose_name="last")

@@ -116,8 +116,8 @@ class LapSheetInline(admin.StackedInline):
 
 class SheetFileAdmin(admin.ModelAdmin):
     list_display = [
-        "file",
         "file_type",
+        "file",
         "matched",
         "sheet_name",
     ]

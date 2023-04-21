@@ -81,7 +81,7 @@ class AWSMessage(generic.View):
         import json
         from datetime import datetime
         from task.models import AsyncTask
-        print("HOLA POST")
+        # print("HOLA POST")
         # print(request)
         try:
             body = json.loads(request.body)
@@ -94,7 +94,7 @@ class AWSMessage(generic.View):
         if special_function:
             return calculate_special_function(special_function)
         request_id = body.get("request_id")
-        print("request_id: ", request_id)
+        # print("request_id: ", request_id)
         result = body.get("result", {})
         errors = result.get("errors", [])
         current_task = AsyncTask.objects.get(request_id=str(request_id))
@@ -206,9 +206,9 @@ class AWSSuccess(generic.View):
         import json
         from datetime import datetime
         # from task.models import AsyncTask
-        print("HOLA SUCCESS")
+        # print("HOLA SUCCESS")
         # print(request)
-        print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
+        # print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
         try:
             body = json.loads(request.body)
             # print("body: \n", body)
@@ -237,7 +237,7 @@ def build_task_params(
     is_massive = bool(subgroup)
 
     def update_previous_tasks(tasks):
-        print("TASKS Previous: ", tasks)
+        # print("TASKS Previous: ", tasks)
         # tasks.update(is_current=False)
         for task in tasks:
             if task.is_current:

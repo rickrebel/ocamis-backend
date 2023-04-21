@@ -227,14 +227,18 @@ class ExploreMix:
         return [], new_errors, data_file
 
     def has_exact_matches(self, filtered_sheets=None):
+        print("filtered_sheets", filtered_sheets)
         if not filtered_sheets or not self.sheet_files.exists():
             return False
         sheets_matched = self.sheet_files.filter(matched=True)\
             .values_list("sheet_name", flat=True).distinct()
+        print("sheets_matched", sheets_matched)
         if not sheets_matched.exists():
             return False
         set_sheets_matched = set(sheets_matched)
         set_filtered_sheets = set(filtered_sheets)
+        print("set_filtered_sheets", set_filtered_sheets)
+        print("set_sheets_matched", set_sheets_matched)
         return set_filtered_sheets.issubset(set_sheets_matched)
 
     def find_coincidences(
@@ -311,6 +315,7 @@ class ExploreMix:
                 print("name_columns_list", name_columns_list)
                 print("headers", headers, "\n")
                 same_headers = name_columns_list == headers
+                print("same_headers", same_headers)
                 if not same_headers:
                     total_cols = len(structured_data[sheet_name]["all_data"][0])
                     if total_cols != len(name_columns_simple):
@@ -415,6 +420,7 @@ class ExploreMix:
             data_file.sheet_files.exclude(id__in=sheets_matched_ids)\
                                  .update(matched=False)
             is_match_ready = data_file.has_exact_matches(current_sheets)
+            print("is_match_ready", is_match_ready)
             if not is_match_ready:
                 errors = ["No todas las pestañas filtradas coinciden con "
                           "el grupo de control"]
