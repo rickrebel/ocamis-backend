@@ -1,7 +1,6 @@
 import requests
 import json
 import boto3
-import io
 request_headers = {"Content-Type": "application/json"}
 
 
@@ -43,11 +42,13 @@ def write_split_files(complete_file, simple_name, event):
     [base_name, extension] = simple_name.rsplit(".", 1)
     file_num = 0
     last_file = None
-    size_hint = 330 * 1000000
     new_files = []
     errors = []
     header_validated = []
     tail_validated = []
+    size_hint = 330 * 1000000
+    # size_hint = 110000
+
     while True and not errors:
         buf = complete_file.readlines(size_hint)
         if not buf:
@@ -76,6 +77,7 @@ def write_split_files(complete_file, simple_name, event):
         curr_only_name = f"{base_name}_{file_num}.{extension}"
         total_rows = len(buf)
         buf = b"".join(buf)
+        print("len buf", len(buf))
         print("rr_file_name", curr_only_name)
         s3_client.put_object(
             Body=buf,
@@ -92,6 +94,8 @@ def write_split_files(complete_file, simple_name, event):
             "sheet_name": file_num,
         }
         new_files.append(current_file)
+        # complete_file.seek(0, 1)
+
     result = {
         "new_files": new_files,
         "decode": decode,

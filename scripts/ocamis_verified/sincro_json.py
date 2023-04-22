@@ -61,16 +61,11 @@ def generate_file(app_name, model_name):
         json.dump(final_data, json_file)
         json_file.close()
 
-#generate_file('geo', 'Agency')
-#generate_file('geo', 'State')
-#sincronize_entities('geo', 'State')
 
 def sincronize_entities(app_name, model_name, field_id="id"):
     from django.apps import apps
     json_path = 'fixture/sincronize/%s.json' % model_name
     all_headers, rr_data_rows = getFileJson(json_path)
-    #print(all_headers)
-    #print(rr_data_rows)
     MyModel = apps.get_model(app_name, model_name)
     for idx, row in enumerate(rr_data_rows):
         if not row:

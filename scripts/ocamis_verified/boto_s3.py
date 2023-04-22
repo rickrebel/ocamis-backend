@@ -48,3 +48,19 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
 # obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
 
 
+def delete_paths_fromaws(path):
+    bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+    aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
+    aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
+    s3 = boto3.resource(
+        's3', aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key)
+    my_bucket = s3.Bucket(bucket_name)
+    count = 0
+    for object_summary in my_bucket.objects.filter(Prefix=path):
+        count += 1
+        # object_summary.delete()
+    print("count", count)
+
+
+delete_paths_fromaws("data_files/req_noviembre_2018_02_")

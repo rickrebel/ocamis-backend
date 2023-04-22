@@ -111,3 +111,17 @@ TRUNCATE
      RESTART IDENTITY;
 
 
+-- !!! BORRA EVERYTHING !!!
+DO $$DECLARE
+  table_name2 text;
+BEGIN
+  FOR table_name2 IN (
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+  )
+  LOOP
+    EXECUTE format('TRUNCATE TABLE %I RESTART IDENTITY CASCADE', table_name2);
+  END LOOP;
+END$$;
+
