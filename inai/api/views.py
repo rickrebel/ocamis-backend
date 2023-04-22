@@ -355,7 +355,7 @@ class AscertainableViewSet(CreateRetrievView):
             new_data_file, data=data_file)
         if serializer_data_file.is_valid():
             # control = serializer_data_file.save()
-            print("serializer_data_file", serializer_data_file)
+            # print("serializer_data_file", serializer_data_file)
             serializer_data_file.save()
         else:
             return Response({ "errors": serializer_data_file.errors },

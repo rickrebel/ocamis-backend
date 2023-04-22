@@ -308,10 +308,10 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     stage = models.ForeignKey(
         Stage, blank=True, null=True, on_delete=models.CASCADE,
-        verbose_name="Etapa actual")
+        default='initial', verbose_name="Etapa actual")
     status = models.ForeignKey(
         StatusTask, blank=True, null=True, on_delete=models.CASCADE,
-        verbose_name="Status actual")
+        default='finished', verbose_name="Status actual")
 
     file_type = models.ForeignKey(
         FileType, blank=True, null=True, on_delete=models.CASCADE,

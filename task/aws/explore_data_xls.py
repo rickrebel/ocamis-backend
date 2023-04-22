@@ -20,7 +20,7 @@ def lambda_handler(event, context):
     if not pending_sheets:
         all_sheet_names = excel_file.sheet_names
         pending_sheets = list(set(all_sheet_names) - set(ready_sheets))
-    all_sheets = { }
+    all_sheets = {}
     for sheet_name in pending_sheets:
         data_excel = excel_file.parse(
             sheet_name,

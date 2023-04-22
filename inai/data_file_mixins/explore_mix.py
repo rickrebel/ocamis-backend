@@ -26,13 +26,15 @@ class ExploreMix:
         task_params["models"] = [data_file]
         if not data_file.suffix:
             (data_file, errors, suffix), first_task = data_file.decompress_file(
-                task_params=task_params)
+                task_params=task_params, **kwargs)
             if data_file and suffix:
                 data_file.suffix = suffix
                 data_file.save()
+            elif first_task:
+                return [first_task], errors, self
             else:
                 self.save_errors(errors, 'explore|with_errors')
-                return [first_task], errors, None
+                return [], errors, self
         forced_save = kwargs.get("forced_save", False)
         sheet_names = data_file.sheet_names_list
         if not sheet_names:
@@ -80,10 +82,10 @@ class ExploreMix:
                 type_explor, file_control=current_file_ctrl,
                 task_params=task_params)
             if new_task:
-                return [new_task], new_errors, None
+                return [new_task], new_errors, data_file
         if new_errors:
             self.save_errors(new_errors, 'explore|with_errors')
-            return [], new_errors, None
+            return [], new_errors, data_file
         return [], [], data_file
 
     def transform_data(self, task_params, **kwargs):
@@ -108,10 +110,15 @@ class ExploreMix:
         lap_sheets = LapSheet.objects.filter(
             sheet_file__data_file=self, lap=0).exclude(inserted=True)
         if not lap_sheets.exists():
-            errors = ["No existen tablas por insertar"]
-            return [], errors, self
-        sheet_file_ids = lap_sheets.values_list("sheet_file_id", flat=True)
-        sheet_file_ids = list(set(sheet_file_ids))
+            already_inserted = LapSheet.objects.filter(
+                sheet_file__data_file=self, lap=0, inserted=True)
+            if already_inserted.exists():
+                return [], [], self
+            else:
+                errors = ["No existen tablas por insertar"]
+                return [], errors, self
+        # sheet_file_ids = lap_sheets.values_list("sheet_file_id", flat=True)
+        # sheet_file_ids = list(set(sheet_file_ids))
         # some_drugs = Drug.objects.filter(
         #     sheet_file_id__in=sheet_file_ids).exists()
         # error_already = "Algunas tablas relacionadas ya han sido insertadas"
@@ -261,6 +268,7 @@ class ExploreMix:
             return data_file, saved, errors
         if not data and not errors and not new_task:
             return data_file, saved, errors
+        # print("data", data)
         current_sheets = data["current_sheets"]
         structured_data = data["structured_data"]
         if already_cluster:
@@ -429,7 +437,7 @@ class ExploreMix:
         return data_file, saved, []
         #return all_data_files, saved, []
 
-    def decompress_file(self, task_params=None):
+    def decompress_file(self, task_params=None, **kwargs):
         import pathlib
         from category.models import FileFormat
         import re
@@ -442,20 +450,17 @@ class ExploreMix:
         # print("suffixes", suffixes)
         all_errors = []
         if '.gz' in suffixes:
-            # print("path", self.file.path)
-            # print("name", self.file.name)
-            # print("url", self.file.url)
-            # Se llama a la función que descomprime el archivo
-            if not self.child_files.all().count():
-                success_decompress, example_file = self.decompress_file_gz(
+            if not self.sheet_files.exists():
+                task_params["function_after"] = "decompress_gz_after"
+                new_task, errors, data_file = self.decompress_file_gz(
                     task_params=task_params)
-                if not success_decompress:
-                    print("error en success_decompress")
+                if errors:
                     errors = ['No se pudo descomprimir el archivo gz %s' % self.final_path]
-                    return (None, errors, None), None
+                    return (data_file, errors, None), None
+                elif new_task:
+                    return (data_file, errors, None), new_task
                 #Se vuelve a obtener la ubicación final del nuevo archivo
                 #Como el archivo ya está descomprimido, se guarda sus status
-            self = self.change_status('explore|finished')
             # Se realiza todito el proceso para guardar el nuevo objeto DataFinal,
             # manteniendo todas las características del archivo original
             suffixes.remove('.gz')
@@ -487,8 +492,8 @@ class ExploreMix:
         # print("Parece que todo está bien")
         return (self, [], list(real_suffixes)[0]), None
 
-    def decompress_file_gz(self, task_params=None):
-        print("decompress_file_gz")
+    def decompress_file_gz_prev(self, task_params=None):
+        # print("decompress_file_gz")
         import gzip
         from inai.models import DataFile
         from category.models import StatusControl

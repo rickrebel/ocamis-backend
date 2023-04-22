@@ -7,6 +7,7 @@ import requests
 import unidecode
 # from .common import obtain_decode
 
+available_delivered = ["ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL"]
 request_headers = {"Content-Type": "application/json"}
 
 
@@ -39,6 +40,11 @@ def text_normalizer(text):
 
 
 def calculate_delivered(available_data):
+    class_presc = available_data.get("clasif_assortment_presc")
+    if class_presc:
+        if class_presc not in available_delivered:
+            error = f"Clasificación no contemplada; {class_presc}"
+            return available_data, error
     prescribed_amount = available_data.get("prescribed_amount")
     if not prescribed_amount:
         error = "No se puede determinar el status de entrega;" \
@@ -82,20 +88,37 @@ def calculate_delivered(available_data):
     return available_data, None
 
 
-def calculate_delivered_final(all_delivered):
-    some_unknown = [d for d in all_delivered if d == "unknown"]
-    if some_unknown:
-        return "unknown"
-    partials = [d for d in all_delivered if d == "partial"]
-    if partials:
+def calculate_delivered_final(all_delivered, all_write):
+    write_text = None
+    if all_write:
+        all_write = set(all_write)
+        if len(all_write) > 1:
+            return f"Hay más de una clasificación de surtimiento;" \
+                   f" {list(all_write)}"
+        write_text = all_write.pop()
+        if write_text not in available_delivered:
+            return f"La clasificación de surtimiento no es válida;" \
+                   f" {write_text}"
+
+    def get_delivered_id(delivered):
+        some_unknown = [d for d in all_delivered if d == "unknown"]
+        if some_unknown:
+            return "unknown"
+        partials = [d for d in all_delivered if d == "partial"]
+        if partials:
+            return "partial"
+        completes = [d for d in all_delivered if d == "complete"]
+        if len(all_delivered) == len(completes):
+            return "complete"
+        only_denied = [d for d in all_delivered if d == "denied"]
+        if len(all_delivered) == len(only_denied):
+            if write_text == "CANCELADA":
+                return "cancelled"
+            return "denied"
         return "partial"
-    completes = [d for d in all_delivered if d == "complete"]
-    if len(all_delivered) == len(completes):
-        return "complete"
-    only_denied = [d for d in all_delivered if d == "denied"]
-    if len(all_delivered) == len(only_denied):
-        return "denied"
-    return "partial"
+
+    delivered_id = get_delivered_id(all_delivered)
+    return delivered_id
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
@@ -267,6 +290,9 @@ class MatchAws:
         success_drugs_count = 0
         total_count = len(all_data)
         processed_count = 0
+        clasif_cols = [col for col in self.existing_fields
+                      if col["name"] == "clasif_assortment_presc"]
+        clasif_id = clasif_cols[0]["name_column"] if clasif_cols else None
 
         discarded_count = self.row_start_data - 1
 
@@ -314,6 +340,9 @@ class MatchAws:
                 self.append_missing_row(row, error)
                 continue
             delivered = available_data.get("delivered_id")
+            delivered_write = None
+            if clasif_id:
+                delivered_write = available_data.get("clasif_assortment_presc")
 
             available_data = self.generic_match("medicament", available_data)
 
@@ -330,8 +359,22 @@ class MatchAws:
                 all_delivered = curr_prescription["all_delivered"]
                 all_delivered += [delivered]
                 curr_prescription["all_delivered"] = all_delivered
-                curr_prescription["delivered_final_id"] = calculate_delivered_final(
-                    all_delivered)
+                if clasif_id:
+                    all_delivered_write = curr_prescription.get("all_delivered_write", [])
+                    all_delivered_write += [delivered_write]
+                    curr_prescription["all_delivered_write"] = all_delivered_write
+                else:
+                    all_delivered_write = []
+                delivered_final_id = calculate_delivered_final(
+                    all_delivered, all_delivered_write)
+                if "clasificación" in delivered_final_id:
+                    value = delivered_final_id.split("; ")[1]
+                    self.append_missing_field(
+                        row, clasif_id, value, error=delivered_final_id,
+                        drug_uuid=uuid)
+
+                    delivered_final_id = "error"
+                curr_prescription["delivered_final_id"] = delivered_final_id
             else:
                 uuid_folio = str(uuid_lib.uuid4())
                 available_data["uuid_folio"] = uuid_folio
@@ -340,6 +383,8 @@ class MatchAws:
                 available_data["folio_ocamis"] = folio_ocamis
                 available_data["folio_document"] = folio_document
                 available_data["all_delivered"] = [delivered]
+                if delivered_write:
+                    available_data["all_delivered_write"] = [delivered_write]
 
                 for cat_name in prescription_cats:
                     available_data = self.generic_match(

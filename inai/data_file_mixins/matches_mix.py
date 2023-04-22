@@ -226,6 +226,7 @@ class Match:
             ["document_type"],
             ["prescribed_amount"],
             ["delivered_amount"],
+            ["clasif_assortment_presc"],
             ["price:Drug"],
         ]
         all_errors = []

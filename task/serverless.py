@@ -5,6 +5,7 @@ from task.aws.start_build_csv_data import lambda_handler as start_build_csv_data
 from task.aws.start_build_csv_data import lambda_handler as prepare_files
 from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
 from task.aws.xls_to_csv import lambda_handler as xls_to_csv
+from task.aws.decompress_gz import lambda_handler as decompress_gz
 
 
 def camel_to_snake(name):

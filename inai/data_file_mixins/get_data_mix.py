@@ -64,8 +64,9 @@ class ExtractorsMix:
                 type_explor, file_control=file_control, task_params=task_params)
             (validated_data, current_sheets, errors) = result
         elif data_file.suffix in ['.txt', '.csv']:
-            validated_data, errors, new_task = data_file.get_data_from_file_simple(
+             result = data_file.get_data_from_file_simple(
                 type_explor, file_control=file_control, task_params=task_params)
+             validated_data, current_sheets, errors, new_task = result
         else:
             errors = "No es un formato válido"
         if errors or new_task:
@@ -150,6 +151,24 @@ class ExtractorsMix:
         }
         return result, [], None
 
+    def decompress_file_gz(self, task_params=None):
+        from task.serverless import async_in_lambda
+        from scripts.common import build_s3
+
+        params = {
+            # "final_path": self.final_path,
+            "file": self.file.name,
+            "s3": build_s3(),
+        }
+        task_params = task_params or { }
+        # task_params[]
+        print("task_params", task_params)
+        task_params["models"] = [self]
+        # task_params["function_after"] = "decompress_gz_after"
+
+        new_task = async_in_lambda("decompress_gz", params, task_params)
+        return new_task, [], self
+
     def get_data_from_excel(
             self, type_explor, file_control=None, task_params=None):
         from task.serverless import async_in_lambda
@@ -207,6 +226,37 @@ class ExtractorsMix:
         print("SÍ LLEGAMOS A VOLVER A CALCULAR LAS PESTAÑAS", filtered_sheets)
         return (all_sheets, filtered_sheets, []), None
 
+    def decompress_gz_after(self, parent_task=None, **kwargs):
+        from inai.models import SheetFile
+        # import pathlib
+        new_files = kwargs.get("new_files", {})
+        # final_path = kwargs.get("final_path", {})
+        # suffixes = pathlib.Path(final_path).suffixes
+        generic_sample = {
+            "all_data": kwargs.pop("all_data", []),
+            "tail_data": kwargs.pop("tail_data", []),
+        }
+        for sheet_file in new_files:
+            final_path = sheet_file.pop("final_path")
+            total_rows = sheet_file.pop("total_rows")
+            sheet_name = sheet_file.pop("sheet_name")
+            SheetFile.objects.get_or_create(
+                data_file=self,
+                file=final_path,
+                file_type_id="split",
+                # matched=True,
+                sheet_name=sheet_name,
+                total_rows=total_rows,
+                sample_data=generic_sample,
+            )
+        decode = kwargs.get("decode")
+        if decode:
+            file_control = self.petition_file_control.file_control
+            if not file_control.decode and file_control.data_group.name != 'orphan':
+                file_control.decode = decode
+                file_control.save()
+        return [], [], self
+
     def explore_data_xls_after(self, parent_task=None, **kwargs):
         # params_after = {}
         # if parent_task:
@@ -245,7 +295,7 @@ class ExtractorsMix:
                 sheet_name=sheet_name,
                 sample_data=sheet_data,
                 file_type_id=file_type_id,
-                total_rows=total_rows,
+                total_rows=total_rows
             )
         decode = kwargs.get("decode")
         if decode:
@@ -285,12 +335,19 @@ class ExtractorsMix:
                 "explore_data_simple", params, task_params)
             if not async_task:
                 errors.append("No se pudo iniciar la tarea")
-            return errors, [], async_task
+            return errors, [], [], async_task
 
         all_sheets = self.all_sample_data
+        # print("all_sheets", all_sheets)
         if is_explore and isinstance(all_sheets, dict):
             if "all_data" in all_sheets.get("default", {}):
-                return all_sheets, errors, None
+                return all_sheets, ['default'], errors, None
+            # print("keys", all_sheets.keys())
+
+            all_keys = list(all_sheets.keys())
+            first_sheet = all_keys[0]
+            if "all_data" in all_sheets.get(first_sheet, {}):
+                return all_sheets, all_keys, errors, None
 
         print("ESTOY EN UN LUGAR QUE NO DEBERÍA DE ESTAR CSV")
         raise Exception("ESTOY EN UN LUGAR QUE NO DEBERÍA DE ESTAR CSV")

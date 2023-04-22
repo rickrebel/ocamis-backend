@@ -100,6 +100,7 @@ class AWSMessage(generic.View):
         current_task = AsyncTask.objects.get(request_id=str(request_id))
         current_task.status_task_id = "success"
         current_task.date_arrive = datetime.now()
+        # print("RESULT: ", result)
         current_task.result = result
         current_task.save()
         models = [
@@ -349,6 +350,13 @@ def comprobate_queue(current_task):
 def debug_queue():
     from task.serverless import execute_async
     from inai.data_file_mixins.insert_mix import modify_constraints
+    from datetime import datetime, timedelta
+    arrived_tasks = AsyncTask.objects.filter(
+        status_task_id="success", task_function_id="save_csv_in_db")
+    for task in arrived_tasks:
+        if task.date_arrive + timedelta(seconds=5) < datetime.now():
+            comprobate_status(task)
+
     next_task = AsyncTask.objects.filter(
         status_task_id="queue").order_by("id").first()
     if next_task:
