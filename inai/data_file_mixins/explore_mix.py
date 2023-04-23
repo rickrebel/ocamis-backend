@@ -216,7 +216,7 @@ class ExploreMix:
             data_file.save_errors(errors, "explore|with_errors")
             return [], errors, None
         elif data_file.stage_id == 'cluster':
-            data_file.change_status("cluster|finished")
+            data_file.finished_stage("cluster|finished")
         return [], errors, None
 
     def find_and_counting_from_aws(self, task_params=None, **kwargs):
@@ -234,18 +234,18 @@ class ExploreMix:
         return [], new_errors, data_file
 
     def has_exact_matches(self, filtered_sheets=None):
-        print("filtered_sheets", filtered_sheets)
+        # print("filtered_sheets", filtered_sheets)
         if not filtered_sheets or not self.sheet_files.exists():
             return False
         sheets_matched = self.sheet_files.filter(matched=True)\
             .values_list("sheet_name", flat=True).distinct()
-        print("sheets_matched", sheets_matched)
+        # print("sheets_matched", sheets_matched)
         if not sheets_matched.exists():
             return False
         set_sheets_matched = set(sheets_matched)
         set_filtered_sheets = set(filtered_sheets)
-        print("set_filtered_sheets", set_filtered_sheets)
-        print("set_sheets_matched", set_sheets_matched)
+        # print("set_filtered_sheets", set_filtered_sheets)
+        # print("set_sheets_matched", set_sheets_matched)
         return set_filtered_sheets.issubset(set_sheets_matched)
 
     def find_coincidences(
@@ -272,7 +272,7 @@ class ExploreMix:
         current_sheets = data["current_sheets"]
         structured_data = data["structured_data"]
         if already_cluster:
-            print("INTENTO GUARDAR current_sheets", current_sheets)
+            # print("INTENTO GUARDAR current_sheets", current_sheets)
             data_file.filtered_sheets = current_sheets
             data_file.save()
         is_match_ready = data_file.has_exact_matches(current_sheets)
@@ -295,6 +295,8 @@ class ExploreMix:
         only_cols_with_headers = file_ctrl.file_transformations\
             .filter(clean_function__name="only_cols_with_headers").exists()
         sheets_matched_ids = []
+
+        # is_gz_file = self.file.name.endswith(".gz")
 
         for sheet_name in sorted_sheet_names:
             # headers = validated_rows[row_headers-1] if row_headers else []
@@ -753,61 +755,6 @@ class ExploreMix:
             print(e)
         # print(data["structured_data"][:6])
         return None, None, first_valid_sheet
-
-    def build_csv_data_from_aws(self, task_params=None, **kwargs):
-        from inai.models import SheetFile, LapSheet
-        from django.utils import timezone
-        # print("FINISH BUILD CSV DATA")
-        data_file = self
-        is_prepare = kwargs.get("is_prepare", False)
-        sheet_file_id = kwargs.get("sheet_file_id", None)
-        sheet_file = SheetFile.objects.get(id=sheet_file_id)
-        # print("is_prepare", is_prepare)
-        next_lap = sheet_file.next_lap if not is_prepare else -1
-        # print("next_lap", next_lap)
-        # print("next_lap", sheet_file.next_lap)
-        # print("final_paths", final_paths)
-        report_errors = kwargs.get("report_errors", {})
-        lap_sheet, created = LapSheet.objects.get_or_create(
-            sheet_file=sheet_file, lap=next_lap)
-        fields_in_report = report_errors.keys()
-        for field in fields_in_report:
-            setattr(lap_sheet, field, report_errors[field])
-        lap_sheet.last_edit = timezone.now()
-        lap_sheet.save()
-
-        if not is_prepare:
-            if data_file.petition_file_control.file_control.decode:
-                decode = kwargs.get("decode", None)
-                if decode:
-                    data_file.petition_file_control.file_control.decode = decode
-                    data_file.petition_file_control.file_control.save()
-
-        error_fields = ["missing_rows", "missing_fields"]
-        errors_count = sum([report_errors[field] for field in error_fields])
-        total_rows = report_errors["total_count"] - report_errors["discarded_count"]
-        errors = []
-        if not total_rows:
-            errors.append("No se encontraron filas")
-        elif errors_count / total_rows > 0.05:
-            errors.append("Se encontraron demasiados errores en filas/campos")
-        stage_name = "prepare" if is_prepare else "transform"
-
-        if is_prepare or errors:
-            if errors:
-                data_file.save_errors(errors, f"{stage_name}|with_errors")
-            else:
-                data_file.change_status(f"{stage_name}|finished")
-            return [], errors, True
-        # data_file.all_results = kwargs.get("report_errors", {})
-        # data_file.save()
-        final_paths = kwargs.get("final_paths", []) or []
-        new_task, errors, data = lap_sheet.save_result_csv(final_paths)
-        if errors:
-            data_file.save_errors(errors, f"{stage_name}|with_errors")
-        else:
-            data_file.change_status(f"{stage_name}|finished")
-        return new_task, errors, data
 
     #Comienzo del proceso de transformación.
     #Si es esploración (is_explore) solo va a obtener los headers y las

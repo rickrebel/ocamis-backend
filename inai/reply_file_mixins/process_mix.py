@@ -62,7 +62,7 @@ class ReplyFileMix:
                 directory=data_file["directory"],
                 petition_file_control=pet_file_ctrl,
             )
-            new_file.change_status('initial|finished')
+            new_file.finished_stage('initial|finished')
             all_data_files_ids.append(new_file.id)
             # print("new_file", new_file)
         print("all_data_files_ids", all_data_files_ids)

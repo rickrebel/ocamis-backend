@@ -137,7 +137,7 @@ def move_and_duplicate(data_files, petition, request):
                 new_file.pk = None
                 new_file.petition_file_control = pet_file_ctrl
                 # new_file.save()
-                new_file.change_status('initial|finished')
+                new_file.finished_stage('initial|finished')
             #if not is_dupl:
             else:
                 data_file.petition_file_control = pet_file_ctrl
@@ -214,7 +214,7 @@ class DataFileViewSet(CreateRetrievView):
                 return comprobate_status(
                     key_task, all_errors, new_tasks, want_http_response=True)
             elif stage.name == target_name:
-                data_file = data_file.change_status(f"{target_name}|finished")
+                data_file = data_file.finished_stage(f"{target_name}|finished")
                 comprobate_status(key_task, all_errors, new_tasks)
                 data = serializers.DataFileSerializer(data_file).data
                 response_body = {"data_file": data}

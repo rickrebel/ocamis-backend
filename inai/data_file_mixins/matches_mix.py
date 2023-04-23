@@ -178,11 +178,13 @@ class Match:
         self.task_params["function_after"] = "build_csv_data_from_aws"
         all_tasks = []
 
+        filter_sheets = self.data_file.filtered_sheets
+        # test_count = 0
         for sheet_file in self.data_file.sheet_files.filter(matched=True):
             lap_sheet, created = LapSheet.objects.get_or_create(
                 sheet_file=sheet_file, lap=final_lap)
 
-            if sheet_file.sheet_name not in self.data_file.filtered_sheets:
+            if sheet_file.sheet_name not in filter_sheets:
                 continue
             init_data["sheet_name"] = sheet_file.sheet_name
             init_data["sheet_file_id"] = sheet_file.id
@@ -190,7 +192,7 @@ class Match:
             sheet_name2 = sheet_name_to_file_name(sheet_file.sheet_name)
             init_data["final_path"] = self.final_path.replace(
                 "SHEET_NAME", sheet_name2)
-            self.task_params["models"] = [self.data_file]
+            self.task_params["models"] = [self.data_file, sheet_file]
             params = {
                 "init_data": init_data,
                 "s3": build_s3(),
@@ -210,6 +212,10 @@ class Match:
                 "start_build_csv_data", params, self.task_params)
             if async_task:
                 all_tasks.append(async_task)
+            # # RICK 22: Pruebas
+            # test_count += 1
+            # if test_count > 2:
+            #     break
         return all_tasks, [], self.data_file
 
     def build_existing_fields(self):

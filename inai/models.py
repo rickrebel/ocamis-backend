@@ -110,7 +110,7 @@ class Petition(models.Model, PetitionTransformsMix):
         blank=True, null=True)
     info_queja_inai = JSONField(
         verbose_name="Datos de queja",
-        help_text="Información de la queja en INAI Seach",
+        help_text="Información de la queja en INAI Search",
         blank=True, null=True)
 
     def delete(self, *args, **kwargs):
@@ -228,8 +228,8 @@ class PetitionMonth(models.Model):
 
     class Meta:
         get_latest_by = "month_agency__year_month"
-        verbose_name = "Mes de peticion"
-        verbose_name_plural = "Meses de peticion"
+        verbose_name = "Mes de solicitud"
+        verbose_name_plural = "Meses de solicitud"
 
 
 def default_explore_data():
@@ -243,7 +243,7 @@ class ReplyFile(models.Model, ReplyFileMix):
         related_name="reply_files",
         on_delete=models.CASCADE)
     file = models.FileField(
-        verbose_name="arhivo",
+        verbose_name="archivo",
         max_length=150, upload_to=set_upload_path,
         blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
@@ -276,7 +276,7 @@ class ReplyFile(models.Model, ReplyFileMix):
 
     def __str__(self):
         first = (self.file or (self.text and self.text[:80])
-            or self.url_download or 'None')
+                 or self.url_download or 'None')
         return "%s -- %s" % (first, self.petition)
 
     class Meta:
@@ -317,7 +317,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         FileType, blank=True, null=True, on_delete=models.CASCADE,
         default='original_data',
         verbose_name="Tipo de archivo")
-    #jump_columns = models.IntegerField(
+    # jump_columns = models.IntegerField(
     #    default=0, verbose_name="Columnas vacías al comienzo")
     # {"name 1": {"all_data": [], "headers": [], "data_rows": [], "plus_rows": 1}, "name 2": {...}}
     filtered_sheets = JSONField(
@@ -432,6 +432,13 @@ class SheetFile(models.Model):
     sheet_name = models.CharField(max_length=255, blank=True, null=True)
     sample_data = JSONField(blank=True, null=True, default=default_explore_data)
     total_rows = models.IntegerField(default=0)
+    error_process = JSONField(blank=True, null=True)
+    warnings = JSONField(blank=True, null=True)
+    stage = models.ForeignKey(
+        Stage, on_delete=models.CASCADE,
+        default='explore', verbose_name="Etapa actual")
+    status = models.ForeignKey(
+        StatusTask, on_delete=models.CASCADE, default='finished')
     # completed_rows = models.IntegerField(default=0)
     # inserted_rows = models.IntegerField(default=0)
     # all_results = JSONField(blank=True, null=True)
@@ -457,6 +464,17 @@ class SheetFile(models.Model):
             lap_number = last_lap.lap + 1 if last_lap.inserted else last_lap.lap
         return lap_number if lap_number >= 0 else 0
 
+    def save_stage(self, status_id, errors):
+        self.stage_id = status_id
+        if errors:
+            self.status_id = "with_errors"
+            self.error_process = errors
+        else:
+            self.status_id = "finished"
+            self.error_process = []
+        self.save()
+        self.data_file.comprobate_sheets(status_id)
+
     def check_success_insert(self, task_params=None, **kwargs):
         from task.models import AsyncTask
         # from inai.data_file_mixins.insert_mix import modify_constraints
@@ -476,29 +494,57 @@ class SheetFile(models.Model):
         #
         # t = threading.Thread(target=delay_check)
         # t.start()
-
-        # table_file_id = kwargs.get("table_file_id", None)
-        # if not table_file_id:
-        #     return [], ["No se encontró el id de la tabla"], True
-        lap_sheet_id = kwargs.get("lap_sheet_id", None)
-        if not lap_sheet_id:
-            return [], ["No se encontró el id del lap_sheet"], True
         errors = kwargs.get("errors", [])
-        if errors:
+        self.save_stage('insert', errors)
+        return [], errors, True
+
+    def build_csv_data_from_aws(self, task_params=None, **kwargs):
+        from django.utils import timezone
+        # print("FINISH BUILD CSV DATA")
+        data_file = self.data_file
+        is_prepare = kwargs.get("is_prepare", False)
+        # sheet_file_id = kwargs.get("sheet_file_id", None)
+        # sheet_file = SheetFile.objects.get(id=sheet_file_id)
+        # print("is_prepare", is_prepare)
+        next_lap = self.next_lap if not is_prepare else -1
+        # print("next_lap", next_lap)
+        # print("next_lap", sheet_file.next_lap)
+        # print("final_paths", final_paths)
+        report_errors = kwargs.get("report_errors", {})
+        lap_sheet, created = LapSheet.objects.get_or_create(
+            sheet_file=self, lap=next_lap)
+        fields_in_report = report_errors.keys()
+        for field in fields_in_report:
+            setattr(lap_sheet, field, report_errors[field])
+        lap_sheet.last_edit = timezone.now()
+        lap_sheet.save()
+
+        if not is_prepare and not \
+                data_file.petition_file_control.file_control.decode:
+            decode = kwargs.get("decode", None)
+            if decode:
+                data_file.petition_file_control.file_control.decode = decode
+                data_file.petition_file_control.file_control.save()
+
+        error_fields = ["missing_rows", "missing_fields"]
+        errors_count = sum([report_errors[field] for field in error_fields])
+        total_rows = report_errors["total_count"] - report_errors["discarded_count"]
+        errors = []
+        if not total_rows:
+            errors.append("No se encontraron filas")
+        elif errors_count / total_rows > 0.05:
+            errors.append("Se encontraron demasiados errores en filas/campos")
+        stage_id = "prepare" if is_prepare else "transform"
+
+        if is_prepare or errors:
+            self.save_stage(stage_id, errors)
             return [], errors, True
-        lap_sheet = LapSheet.objects.filter(id=lap_sheet_id).first()
-        # table_file = TableFile.objects.filter(id=table_file_id).first()
-        # table_file.inserted = True
-        # table_file.save()
-        # all_inserted = lap_sheet.confirm_all_inserted()
-        # if all_inserted:
-        # lap_sheet.inserted = True
-        # lap_sheet.valid_insert = True
-        # lap_sheet.save()
-        self.data_file.status_id = "finished"
-        self.data_file.stage_id = "insert"
-        self.data_file.save()
-        return [], [], True
+        # data_file.all_results = kwargs.get("report_errors", {})
+        # data_file.save()
+        final_paths = kwargs.get("final_paths", []) or []
+        new_task, errors, data = lap_sheet.save_result_csv(final_paths)
+        self.save_stage(stage_id, errors)
+        return new_task, errors, data
 
     def __str__(self):
         return f">{self.file_type}< {self.sheet_name}- {self.data_file}"

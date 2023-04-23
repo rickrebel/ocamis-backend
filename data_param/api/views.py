@@ -434,7 +434,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                     comprobate_status(df_task, all_errors, new_tasks)
                     break
                 elif stage.name == stage_final:
-                    data_file = data_file.change_status(f"{stage.name}|finished")
+                    data_file = data_file.finished_stage(f"{stage.name}|finished")
                     comprobate_status(df_task, all_errors, new_tasks)
         data = {
             "errors": all_errors,
