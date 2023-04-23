@@ -2,7 +2,7 @@ from data_param.models import Transformation
 from scripts.common import start_session, create_file
 import json
 from task.serverless import camel_to_snake
-
+from classify_task.models import Stage, StatusTask
 from inai.models import DataFile, LapSheet
 
 
@@ -179,13 +179,24 @@ class Match:
         all_tasks = []
 
         filter_sheets = self.data_file.filtered_sheets
+        procesable_sheets = self.data_file.sheet_files.filter(
+            matched=True, sheet_name__in=filter_sheets)
+        transform_stage = Stage.objects.get(name="transform")
+        finish_status = StatusTask.objects.get(name="finished")
+        remaining_prev_stage = procesable_sheets.filter(
+            stage__order__lt=transform_stage.order)
+        remaining_same_stage = procesable_sheets.filter(
+            stage=transform_stage, status__order__lt=finish_status.order)
+        remaining_sheets = remaining_prev_stage | remaining_same_stage
+        if remaining_sheets.exists():
+            sheets_to_process = remaining_sheets
+        else:
+            sheets_to_process = procesable_sheets
         # test_count = 0
-        for sheet_file in self.data_file.sheet_files.filter(matched=True):
+        for sheet_file in sheets_to_process:
             lap_sheet, created = LapSheet.objects.get_or_create(
                 sheet_file=sheet_file, lap=final_lap)
 
-            if sheet_file.sheet_name not in filter_sheets:
-                continue
             init_data["sheet_name"] = sheet_file.sheet_name
             init_data["sheet_file_id"] = sheet_file.id
             init_data["lap_sheet_id"] = lap_sheet.id

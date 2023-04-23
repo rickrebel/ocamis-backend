@@ -27,13 +27,6 @@ def build_copy_sql_aws(table_file, model_in_db, columns_join):
     """
 
 
-last_query = f"""
-    UPDATE public.task_platform
-    SET version = '2.6'
-    WHERE id = 1
-"""
-
-
 def modify_constraints(is_create=True):
     from scripts.ocamis_verified.contraints import get_constraints
     create_constrains, delete_constrains = get_constraints()

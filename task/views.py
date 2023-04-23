@@ -350,11 +350,12 @@ def comprobate_queue(current_task):
 def debug_queue():
     from task.serverless import execute_async
     from inai.data_file_mixins.insert_mix import modify_constraints
-    from datetime import datetime, timedelta
+    from datetime import timedelta
+    from django.utils import timezone
     arrived_tasks = AsyncTask.objects.filter(
         status_task_id="success", task_function_id="save_csv_in_db")
     for task in arrived_tasks:
-        if task.date_arrive + timedelta(seconds=5) < datetime.now():
+        if task.date_arrive + timedelta(seconds=5) < timezone.now():
             comprobate_status(task)
 
     next_task = AsyncTask.objects.filter(
