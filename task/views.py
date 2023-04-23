@@ -1,4 +1,4 @@
-from .models import AsyncTask
+from task.models import AsyncTask
 from classify_task.models import TaskFunction
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
@@ -283,7 +283,6 @@ def comprobate_status(
         current_task, errors=None, new_tasks=None, want_http_response=False):
     from rest_framework.response import Response
     from rest_framework import status
-
     if not current_task:
         raise Exception("No se ha encontrado la tarea emviada")
     if errors:
@@ -357,7 +356,8 @@ def debug_queue():
     for task in arrived_tasks:
         if task.date_arrive + timedelta(seconds=5) < timezone.now():
             comprobate_status(task)
-
+            errors = task.errors
+            task.sheet_file.save_stage('transform', errors)
     next_task = AsyncTask.objects.filter(
         status_task_id="queue").order_by("id").first()
     if next_task:
