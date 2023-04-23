@@ -43,6 +43,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         prev_file_controls = FileControl.objects.filter(
             data_group=orphan_group,
             petition_file_control__petition=petition)
+        created = False
         if prev_file_controls.exists():
             file_control = prev_file_controls.first()
         else:
@@ -52,7 +53,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 final_data=False,
                 agency=petition.agency,
             )
-        pet_file_ctrl, created_pfc = PetitionFileControl.objects \
+        orphan_pfc, created_pfc = PetitionFileControl.objects \
             .get_or_create(file_control=file_control, petition=petition)
         all_tasks = []
         all_errors = []
@@ -86,8 +87,19 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     all_errors.extend(new_errors)
                 else:
                     async_task = reply_file.decompress(
-                        pet_file_ctrl, task_params=task_params)
+                        orphan_pfc, task_params=task_params)
                     all_tasks.append(async_task)
+            else:
+                orphan_files = orphan_pfc.data_files.all()
+                if not orphan_files.exists():
+                    all_errors.append(
+                        "No hay archivos huérfanos para explorar")
+                else:
+                    new_tasks, new_errors = petition.find_matches_in_children(
+                        orphan_files, current_file_ctrl=current_file_ctrl,
+                        task_params=task_params)
+                    all_tasks.extend(new_tasks)
+                    all_errors.extend(new_errors)
         key_task = comprobate_status(
             key_task, errors=all_errors, new_tasks=all_tasks)
 
