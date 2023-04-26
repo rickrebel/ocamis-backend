@@ -278,9 +278,10 @@ class Match:
                 error = f"La columna {column.name_in_data} tiene más de una " \
                         f"función especial que no se pueden aplicar a la vez"
                 all_errors.append(error)
-            if transformation.first():
-                new_column["clean_function"] = transformation.clean_function.name
-                new_column["t_value"] = transformation.addl_params.get("value")
+            elif transformation.exist():
+                first_t = transformation.first()
+                new_column["clean_function"] = first_t.clean_function.name
+                new_column["t_value"] = first_t.addl_params.get("value")
             return new_column
 
         included_columns = []
