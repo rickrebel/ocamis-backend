@@ -68,13 +68,18 @@ class DataUtilsMix:
                     all_errors = stage_sheets\
                         .filter(status__macro_status='with_errors')\
                         .values_list('error_process', flat=True)
-                    all_errors = list(set(all_errors or []))
+                    print("all_errors", all_errors)
+                    every_errors = []
+                    for error in all_errors:
+                        every_errors += error
+                    all_errors = list(set(every_errors))
                     if new_st == 'some_errors':
                         all_errors += self.warnings
                         all_errors.insert(0, f'Algunas hojas no se pudieron procesar en {stage}')
                         self.warnings = all_errors
                     elif new_st == 'with_errors':
-                        self.error_process = list(set(all_errors or []))
+                        print("all_errors", all_errors)
+                        self.error_process = list(set(list(all_errors)))
                 self.save()
             return self
 
