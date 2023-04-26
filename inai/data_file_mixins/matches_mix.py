@@ -375,9 +375,8 @@ class Match:
             column_type__clean_functions__isnull=False,
             column_transformations__isnull=True)
         for column in special_columns:
-            transformation = column.column_transformations.first()
             error_text = f"La columna de tipo {column.column_type.public_name}" \
-                f" no tiene la transformación {transformation.clean_function.public_name}"
+                f" no tiene la transformación que le corresponde"
             missing_criteria.append(error_text)
         valid_control_trans = [
             "include_tabs_by_name", "exclude_tabs_by_name",
