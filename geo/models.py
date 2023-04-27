@@ -50,7 +50,7 @@ class Municipality(models.Model):
     class Meta:
         verbose_name = "Municipio"
         verbose_name_plural = "Municipios"
-        db_table = 'catalog_municipality'
+        db_table = 'geo_municipality'
 
 
 class Institution(models.Model):
@@ -73,7 +73,7 @@ class Institution(models.Model):
     class Meta:
         verbose_name = "Institución"
         verbose_name_plural = "Instituciones"
-        db_table = u'desabasto_institution'
+        db_table = 'geo_institution'
 
 
 class Typology(models.Model):
@@ -96,7 +96,7 @@ class Typology(models.Model):
     class Meta:
         verbose_name = "Tipología"
         verbose_name_plural = "Tipologías"
-        db_table = 'catalog_typology'
+        db_table = 'geo_typology'
 
 
 class Entity(models.Model):
@@ -257,7 +257,7 @@ class CLUES(models.Model):
     class Meta:
         verbose_name = "Hospital o clínica CLUES"
         verbose_name_plural = "Catálogo CLUES"
-        db_table = u'desabasto_clues'
+        db_table = 'geo_clues'
 
 
 class Delegation(models.Model):
@@ -291,7 +291,7 @@ class Delegation(models.Model):
     class Meta:
         verbose_name = "Delegación"
         verbose_name_plural = "Delegaciones"
-        db_table = 'catalog_delegation'
+        db_table = 'geo_delegation'
 
 
 class Jurisdiction(models.Model):
@@ -311,7 +311,7 @@ class Jurisdiction(models.Model):
     class Meta:
         verbose_name = "Jurisdicción"
         verbose_name_plural = "Jurisdicciones"
-        db_table = 'catalog_jurisdiction'
+        db_table = 'geo_jurisdiction'
 
 
 class Disease(models.Model):

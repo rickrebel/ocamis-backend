@@ -39,6 +39,11 @@ def get_models_of_app(app_label):
     return all_models
 
 
+def get_name_in_data(column):
+    return column.name_in_data or \
+        f"en posición {column.position_in_data}"
+
+
 def field_of_models(model_data):
     from django.apps import apps
     from django.db.models import CharField, TextField
@@ -130,9 +135,10 @@ class Match:
             final_field__included_code__in=["wait", "invalid"])
         for invalid_field in invalid_fields:
             ff = invalid_field.final_field
+            name_in_data = get_name_in_data(invalid_field)
             missing_criteria.append(
-                f"El campo '{invalid_field.name_in_data} --> {ff.verbose_name}' "
-                f"aún no está listo para ser usado")
+                f"La columna '{name_in_data} --> {ff.verbose_name}' "
+                f"aún no está lista para ser usado")
         if missing_criteria:
             print("missing_criteria", missing_criteria)
             error = f"No pasó la validación básica: " \
@@ -271,12 +277,13 @@ class Match:
             # if is_special_column:
             special_functions = [
                 "fragmented", "concatenated", "only_params_parent",
-                "only_params_child", "text_nulls"]
+                "only_params_child", "text_nulls", "same_separator"]
             transformation = column.column_transformations \
                 .filter(clean_function__name__in=special_functions)
             if transformation.count() > 1:
-                error = f"La columna {column.name_in_data} tiene más de una " \
-                        f"función especial que no se pueden aplicar a la vez"
+                name_in_data = get_name_in_data(column)
+                error = f"La columna {name_in_data} tiene más de una " \
+                        f"transformación especial que no se pueden aplicar a la vez"
                 all_errors.append(error)
             elif transformation.exists():
                 first_t = transformation.first()
@@ -302,7 +309,8 @@ class Match:
             .exclude(id__in=included_columns)
         for name_column in other_name_columns:
             if not name_column.final_field:
-                error = f"La columna {name_column.name_in_data} no tiene " \
+                name_in_data = get_name_in_data(name_column)
+                error = f"La columna {name_in_data} no tiene " \
                         f"campo final referido"
                 all_errors.append(error)
                 continue
@@ -323,6 +331,8 @@ class Match:
         if not self.existing_fields:
             error = "No se encontraron campos para crear las recetas"
             all_errors.append(error)
+        self.existing_fields = sorted(
+            self.existing_fields, key=lambda x: x.get("position", 90))
         return self.existing_fields, all_errors
 
     def calculate_minimals_criteria(self):
@@ -387,7 +397,7 @@ class Match:
         valid_column_trans = [
             "fragmented", "concatenated", "format_date", "clean_key_container",
             "get_ceil", "only_params_parent", "only_params_child",
-            "global_variable", "text_nulls", "almost_empty"]
+            "global_variable", "text_nulls", "almost_empty", "same_separator"]
         related_transformations = Transformation.objects\
             .filter(name_column__file_control=self.file_control)\
             .exclude(clean_function__name__in=valid_column_trans)

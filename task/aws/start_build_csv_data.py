@@ -5,6 +5,7 @@ import uuid as uuid_lib
 import json
 import requests
 import unidecode
+import re
 # from .common import obtain_decode
 
 available_delivered = ["ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL"]
@@ -33,10 +34,31 @@ def obtain_decode(sample):
 
 
 def text_normalizer(text):
-    import re
     text = text.upper().strip()
     text = unidecode.unidecode(text)
     return re.sub(r'[^a-zA-Z\s]', '', text)
+
+
+def string_time_to_regex(string_time):
+    conversion_map = {
+        '%Y': r'\d{4}',
+        '%m': r'\d{2}',
+        '%d': r'\d{2}',
+        '%H': r'\d{2}',
+        '%M': r'\d{2}',
+        '%S': r'\d{2}',
+        '%f': r'\d{3,6}',
+        ' ': r'\s',
+        '-': r'-',
+        ':': r':',
+        '.': r'.',
+    }
+
+    regex_pattern = string_time
+    for key, value in conversion_map.items():
+        regex_pattern = regex_pattern.replace(key, value)
+
+    return regex_pattern
 
 
 def calculate_delivered(available_data):
@@ -228,6 +250,7 @@ class MatchAws:
             self.initial_data[cat_name] = {"data_values": data_values,
                                            "all_values": all_values}
         # print("med_cat_flat_fields: \n", self.med_cat_flat_fields)
+
         self.buffers = {}
         self.csvs = {}
         for model in self.editable_models:
@@ -236,8 +259,33 @@ class MatchAws:
                 self.csvs[model["name"]], delimiter="|")
 
         self.existing_fields = init_data["existing_fields"]
+        self.positioned_fields = [field for field in self.existing_fields
+                                  if field["position"] is not None]
         self.special_fields = [field for field in self.existing_fields
                                if field["is_special"]]
+
+        self.sep_fields = [field for field in self.existing_fields
+                           if field.get("clean_function") == "same_separator"]
+        self.some_same_separator = len(self.sep_fields) > 0
+        self.regex_fields = []
+        for field in self.existing_fields:
+            regex_string = None
+            if field["regex_format"] and len(field["regex_format"]) > 10:
+                regex_string = field["regex_format"][1:-1]
+            elif field["data_type"] == "Datetime":
+                if self.string_date != "EXCEL":
+                    regex_string = string_time_to_regex(self.string_date)
+            if regex_string:
+                regex_string = f",?({regex_string}),?"
+                field["regex"] = regex_string
+                self.regex_fields.append(field)
+        if self.regex_fields:
+            last_block = {
+                "position": self.positioned_fields[-1]["position"] + 1,
+                "regex": f"$"
+            }
+            self.regex_fields += [last_block]
+
         self.lap = init_data["lap"]
         self.cat_keys = {}
         for med_cat in self.real_med_cat_models:
@@ -487,6 +535,62 @@ class MatchAws:
             Key=f"{aws_location}/{file_name}")
         return json.loads(obj['Body'].read().decode('utf-8'))
 
+    def special_division(self, row_data):
+
+        delimiter = self.delimiter or '|'
+        fragments = []
+
+        def build_blocks(re_field, remain_data):
+            regex = re_field["regex"]
+            # print("regex", regex)
+            # print("remain_data", remain_data)
+            results = re.split(regex, remain_data, 1)
+            if len(results) == 2:
+                results.append("")
+            return results, re_field["position"]
+
+        prev_pos = None
+        next_pos = 1
+        remain_block = row_data
+        for idx, regex_field in enumerate(self.regex_fields):
+            prev_pos = next_pos if prev_pos is not None else 0
+            res, next_pos = build_blocks(regex_field, remain_block)
+
+            [current_block, same, remain_block] = res
+
+            block_fields = [field for field in self.positioned_fields
+                            if prev_pos < field["position"] < next_pos]
+            if not block_fields:
+                if same:
+                    fragments.append(same)
+                continue
+            fields_with_separator = [field for field in block_fields
+                                     if field.get("clean_function") == "same_separator"]
+            some_has_separator = any(fields_with_separator)
+            len_with_separator = len(fields_with_separator)
+
+            if not some_has_separator:
+                block_values = current_block.split(delimiter)
+            else:
+                sep_is_first = block_fields[0]["clean_function"] == "same_separator"
+                block_values = []
+                for seq in range(len(block_fields)):
+                    if seq + 1 == len(block_fields):
+                        block_values.append(current_block)
+                    elif sep_is_first:
+                        [current_block, block_value] = current_block.rsplit(delimiter, 1)
+                        block_values.append(block_value)
+                    else:
+                        [block_value, current_block] = current_block.split(delimiter, 1)
+                        block_values.append(block_value)
+                if sep_is_first:
+                    block_values = block_values[::-1]
+            fragments.extend(block_values)
+            if same:
+                fragments.append(same)
+
+        return fragments
+
     def divide_rows(self, data_rows):
         structured_data = []
         sample = data_rows[:50]
@@ -502,16 +606,23 @@ class MatchAws:
         for row_seq, row in enumerate(data_rows, start=1):
             self.last_missing_row = None
             if self.is_prepare:
-                row_data = [col.replace('\r\n', '').strip() for col in row]
+                row_final = [col.replace('\r\n', '').strip() for col in row]
+                row_data = row_final
             else:
                 row_decode = row.decode(self.decode) if self.decode != "str" else str(row)
                 # .replace('\r\n', '')
-                row_data = row_decode.replace('\r\n', '').split(self.delimiter or '|')
-                row_data = [col.strip() for col in row_data]
-            current_count = len(row_data)
-            row_data.insert(0, str(row_seq))
+                row_data = row_decode.replace('\r\n', '')
+                row_final = row_data.split(self.delimiter or '|')
+                row_final = [col.strip() for col in row_final]
+            current_count = len(row_final)
+
+            if self.some_same_separator and current_count > self.columns_count:
+                row_final = self.special_division(row_data)
+                current_count = len(row_final)
+
             if current_count == self.columns_count:
-                structured_data.append(row_data)
+                row_final.insert(0, str(row_seq))
+                structured_data.append(row_final)
             else:
                 error = "Conteo distinto de Columnas; %s de %s" % (
                     current_count, self.columns_count)

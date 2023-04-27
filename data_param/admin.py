@@ -25,7 +25,8 @@ class FinalFieldAdmin(admin.ModelAdmin):
         "in_data_base",
         "verified",
         "need_for_viz",
-        "included_code"
+        "included_code",
+        "regex_format",
     ]
     list_filter = ["parameter_group", "collection", "verified", "data_type"]
     inlines = [CleanFunctionInLine]
