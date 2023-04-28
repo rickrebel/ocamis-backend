@@ -595,9 +595,12 @@ class MatchAws:
                         return row_data
                     block_values.append(block_value)
                 for reverse_seq in range(reverse_way_count):
-                    [current_block, block_value] = current_block.rsplit(
-                        delimiter, 1)
-                    block_values.insert(normal_way_count, block_value)
+                    try:
+                        [current_block, block_value] = current_block.rsplit(
+                            delimiter, 1)
+                        block_values.insert(normal_way_count, block_value)
+                    except ValueError:
+                        return row_data
                 block_values.insert(normal_way_count, current_block)
                 # sep_is_first = block_fields[0]["clean_function"] == "same_separator"
                 # for seq in range(len(block_fields)):
@@ -654,6 +657,7 @@ class MatchAws:
             else:
                 error = "Conteo distinto de Columnas; %s de %s" % (
                     current_count, self.columns_count)
+                row_data = [str(row_seq), row_data]
                 self.append_missing_row(row_data, error)
 
         return structured_data
@@ -914,8 +918,9 @@ class MatchAws:
     def build_report(self):
         report_data = {"general_error": ""}
         real_missing_rows = [row for row in self.all_missing_rows if row[-1]]
+        report_data["missing_rows"] = len(self.all_missing_rows)
         if real_missing_rows:
-            report_data["missing_rows"] = len(real_missing_rows)
+            report_data["real_missing_rows"] = len(real_missing_rows)
             row_errors = {}
             error_types_count = 0
             for missing_row in real_missing_rows:
@@ -951,7 +956,7 @@ class MatchAws:
                 report_data["general_error"] += \
                     "Se encontraron más de 50 tipos de errores en las filas"
         else:
-            report_data["missing_rows"] = 0
+            report_data["real_missing_rows"] = 0
             report_data["row_errors"] = {}
 
         if self.all_missing_fields:
@@ -989,6 +994,6 @@ class MatchAws:
             report_data["missing_fields"] = 0
             report_data["field_errors"] = {}
 
-        if not report_data.get("missing_rows") and not report_data.get("missing_fields"):
+        if not report_data.get("missing_rows"):
             report_data["general_error"] = "No se encontraron errores"
         return report_data

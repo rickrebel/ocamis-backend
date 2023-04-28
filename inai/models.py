@@ -576,6 +576,7 @@ class LapSheet(models.Model):
     medicament_count = models.IntegerField(default=0)
     discarded_count = models.IntegerField(default=0)
     missing_rows = models.IntegerField(default=0)
+    real_missing_rows = models.IntegerField(default=0)
     missing_fields = models.IntegerField(default=0)
     row_errors = JSONField(blank=True, null=True)
     field_errors = JSONField(blank=True, null=True)
