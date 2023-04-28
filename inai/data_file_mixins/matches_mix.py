@@ -277,7 +277,8 @@ class Match:
             # if is_special_column:
             special_functions = [
                 "fragmented", "concatenated", "only_params_parent",
-                "only_params_child", "text_nulls", "same_separator"]
+                "only_params_child", "text_nulls", "same_separator",
+                "simple_regex"]
             transformation = column.column_transformations \
                 .filter(clean_function__name__in=special_functions)
             if transformation.count() > 1:
@@ -397,7 +398,8 @@ class Match:
         valid_column_trans = [
             "fragmented", "concatenated", "format_date", "clean_key_container",
             "get_ceil", "only_params_parent", "only_params_child",
-            "global_variable", "text_nulls", "almost_empty", "same_separator"]
+            "global_variable", "text_nulls", "almost_empty", "same_separator",
+            "simple_regex"]
         related_transformations = Transformation.objects\
             .filter(name_column__file_control=self.file_control)\
             .exclude(clean_function__name__in=valid_column_trans)

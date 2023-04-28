@@ -58,6 +58,7 @@ def string_time_to_regex(string_time):
     for key, value in conversion_map.items():
         regex_pattern = regex_pattern.replace(key, value)
 
+    regex_pattern = f",?({regex_pattern}),?"
     return regex_pattern
 
 
@@ -188,6 +189,7 @@ class MatchAws:
         from datetime import datetime
         for key, value in init_data.items():
             setattr(self, key, value)
+
         self.sheet_file_id = init_data["sheet_file_id"]
         self.lap_sheet_id = init_data["lap_sheet_id"]
         self.file_name_simple = init_data["file_name_simple"]
@@ -272,11 +274,14 @@ class MatchAws:
             regex_string = None
             if field["regex_format"] and len(field["regex_format"]) > 10:
                 regex_string = field["regex_format"][1:-1]
+                regex_string = f",?({regex_string}),?"
+            if field.get("clean_function") == "simple_regex":
+                regex_string = field["t_value"]
+                regex_string = f",({regex_string}),"
             elif field["data_type"] == "Datetime":
                 if self.string_date != "EXCEL":
                     regex_string = string_time_to_regex(self.string_date)
             if regex_string:
-                regex_string = f",?({regex_string}),?"
                 field["regex"] = regex_string
                 self.regex_fields.append(field)
         if self.regex_fields:
@@ -536,16 +541,15 @@ class MatchAws:
         return json.loads(obj['Body'].read().decode('utf-8'))
 
     def special_division(self, row_data):
-
         delimiter = self.delimiter or '|'
         fragments = []
 
         def build_blocks(re_field, remain_data):
             regex = re_field["regex"]
-            # print("regex", regex)
-            # print("remain_data", remain_data)
             results = re.split(regex, remain_data, 1)
-            if len(results) == 2:
+            if len(results) == 1:
+                results.extend(["", ""])
+            elif len(results) == 2:
                 results.append("")
             return results, re_field["position"]
 
@@ -557,34 +561,58 @@ class MatchAws:
             res, next_pos = build_blocks(regex_field, remain_block)
 
             [current_block, same, remain_block] = res
-
             block_fields = [field for field in self.positioned_fields
                             if prev_pos < field["position"] < next_pos]
-            if not block_fields:
+            len_block_fields = len(block_fields)
+            if len_block_fields == 0:
                 if same:
                     fragments.append(same)
                 continue
-            fields_with_separator = [field for field in block_fields
-                                     if field.get("clean_function") == "same_separator"]
-            some_has_separator = any(fields_with_separator)
-            len_with_separator = len(fields_with_separator)
-
-            if not some_has_separator:
+            position_separator = None
+            for idx_block, block_field in enumerate(block_fields):
+                if block_field.get("clean_function") == "same_separator":
+                    if position_separator is None:
+                        position_separator = idx_block
+                    else:
+                        return row_data
+            # fields_with_separator = [field for field in block_fields
+            #                          if field.get("clean_function") == "same_separator"]
+            # some_has_separator = any(fields_with_separator)
+            # len_with_separator = len(fields_with_separator)
+            if position_separator is None:
                 block_values = current_block.split(delimiter)
             else:
-                sep_is_first = block_fields[0]["clean_function"] == "same_separator"
+                normal_way_count = position_separator
+                reverse_way_count = len_block_fields - position_separator - 1
+                # total_processed = 0
                 block_values = []
-                for seq in range(len(block_fields)):
-                    if seq + 1 == len(block_fields):
-                        block_values.append(current_block)
-                    elif sep_is_first:
-                        [current_block, block_value] = current_block.rsplit(delimiter, 1)
-                        block_values.append(block_value)
-                    else:
-                        [block_value, current_block] = current_block.split(delimiter, 1)
-                        block_values.append(block_value)
-                if sep_is_first:
-                    block_values = block_values[::-1]
+                for normal_seq in range(normal_way_count):
+
+                    try:
+                        [block_value, current_block] = current_block.split(
+                            delimiter, 1)
+                    except ValueError:
+                        return row_data
+                    block_values.append(block_value)
+                for reverse_seq in range(reverse_way_count):
+                    [current_block, block_value] = current_block.rsplit(
+                        delimiter, 1)
+                    block_values.insert(normal_way_count, block_value)
+                block_values.insert(normal_way_count, current_block)
+                # sep_is_first = block_fields[0]["clean_function"] == "same_separator"
+                # for seq in range(len(block_fields)):
+                #     if seq + 1 == len(block_fields):
+                #         block_values.append(current_block)
+                #     elif sep_is_first:
+                #         [current_block, block_value] = current_block.rsplit(
+                #             delimiter, 1)
+                #         block_values.append(block_value)
+                #     else:
+                #         [block_value, current_block] = current_block.split(
+                #             delimiter, 1)
+                #         block_values.append(block_value)
+                # if sep_is_first:
+                #     block_values = block_values[::-1]
             fragments.extend(block_values)
             if same:
                 fragments.append(same)
@@ -918,8 +946,6 @@ class MatchAws:
                             "count": 1, "examples": [missing_row[-3]]}
                     }
                     error_types_count += 1
-            # row_errors = sorted(row_errors.items(), key=lambda x: x[1], reverse=True)
-            # row_errors = row_errors[:50]
             report_data["row_errors"] = row_errors
             if len(row_errors) > 50:
                 report_data["general_error"] += \
@@ -958,10 +984,6 @@ class MatchAws:
                             "examples": [original_value]
                         }
                     }
-            # field_errors = sorted(
-            #     # field_errors.items(), key=lambda x: sum(x[1].values()),
-            #     field_errors.items(), key=lambda x: sum(x["count"].values()),
-            #     reverse=True)
             report_data["field_errors"] = field_errors
         else:
             report_data["missing_fields"] = 0
