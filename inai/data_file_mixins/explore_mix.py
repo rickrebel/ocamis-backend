@@ -461,9 +461,9 @@ class ExploreMix:
             suffixes.remove('.gz')
         elif '.zip' in suffixes:
             errors = ["Mover a 'archivos no finales' para descomprimir desde allí"]
-        elif len(suffixes) == 1:
+        elif len(suffixes) == 1 and not self.sheet_files.filter(file_type_id='split').exists():
             file_size = self.file.size
-            if file_size > 320000000:
+            if file_size > 400000000:
                 real_suffix = suffixes[0]
                 xls_format = FileFormat.objects.get(short_name="xls")
                 if real_suffix in xls_format.suffixes:
