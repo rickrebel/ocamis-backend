@@ -452,9 +452,6 @@ class ExploreMix:
         main_error = None
         new_task = None
         data_file = None
-        # RICK 22
-        file_size = self.file.size
-        print("file_size", file_size)
         task_params["function_after"] = "decompress_gz_after"
         if '.gz' in suffixes:
             if not self.sheet_files.exists():
@@ -466,10 +463,7 @@ class ExploreMix:
             errors = ["Mover a 'archivos no finales' para descomprimir desde allí"]
         elif len(suffixes) == 1:
             file_size = self.file.size
-            # RICK 22 para pruebas:
-            size_hint = 110000
-            # if file_size > 320000000:
-            if file_size > size_hint:
+            if file_size > 320000000:
                 real_suffix = suffixes[0]
                 xls_format = FileFormat.objects.get(short_name="xls")
                 if real_suffix in xls_format.suffixes:

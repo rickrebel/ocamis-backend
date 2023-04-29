@@ -46,9 +46,7 @@ def write_split_files(complete_file, simple_name, event):
     errors = []
     header_validated = []
     tail_validated = []
-    # size_hint = 300 * 1000000
-    # RICK 22 para pruebas:
-    size_hint = 110000
+    size_hint = 300 * 1000000
 
     while True and not errors:
         print("size_hint", size_hint)
