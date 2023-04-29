@@ -53,8 +53,8 @@ class Prescription(models.Model):
     #     DocumentType, on_delete=models.CASCADE, blank=True, null=True)
     document_type = models.CharField(max_length=50, blank=True, null=True)
     date_release = models.DateTimeField(blank=True, null=True)
-    date_delivery = models.DateTimeField(blank=True, null=True)
     date_visit = models.DateTimeField(blank=True, null=True)
+    date_delivery = models.DateTimeField(blank=True, null=True)
     doctor = models.ForeignKey(
         Doctor, blank=True, null=True, on_delete=models.CASCADE)
     diagnosis = models.ForeignKey(

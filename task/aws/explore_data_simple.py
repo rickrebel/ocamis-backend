@@ -50,7 +50,7 @@ def lambda_handler(event, context):
     decode = event.get("decode")
     delimiter = event.get("delimiter")
 
-    message_response = { }
+    message_response = {}
     if not decode:
         decode = obtain_decode(data_rows)
         if decode == "unknown":

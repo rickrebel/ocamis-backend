@@ -229,10 +229,6 @@ class Match:
                 "start_build_csv_data", params, self.task_params)
             if async_task:
                 all_tasks.append(async_task)
-            # # RICK 22: Pruebas
-            # test_count += 1
-            # if test_count > 2:
-            #     break
         return all_tasks, [], self.data_file
 
     def build_existing_fields(self):

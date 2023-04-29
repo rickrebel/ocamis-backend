@@ -358,9 +358,13 @@ def debug_queue():
             comprobate_status(task)
             errors = task.errors
             task.sheet_file.save_stage('transform', errors)
-    next_task = AsyncTask.objects.filter(
-        status_task_id="queue").order_by("id").first()
-    if next_task:
-        execute_async(next_task, next_task.original_request)
-    # else:
-    #     modify_constraints(is_create=True)
+    every_completed = AsyncTask.objects.filter(
+        status_task__is_completed=True,
+        task_function_id="save_csv_in_db")
+    if every_completed.exists():
+        next_task = AsyncTask.objects.filter(
+            status_task_id="queue").order_by("id").first()
+        if next_task:
+            execute_async(next_task, next_task.original_request)
+        # else:
+        #     modify_constraints(is_create=True)

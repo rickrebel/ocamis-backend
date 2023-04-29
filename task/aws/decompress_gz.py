@@ -34,6 +34,7 @@ def write_split_files(complete_file, simple_name, event):
     bucket_name = s3["bucket_name"]
     decode = event.get("decode")
     delimiter = event.get("delimiter")
+    directory = event["directory"]
 
     s3_client = boto3.client(
         's3', aws_access_key_id=aws_access_key_id,
@@ -41,16 +42,16 @@ def write_split_files(complete_file, simple_name, event):
 
     [base_name, extension] = simple_name.rsplit(".", 1)
     file_num = 0
-    last_file = None
     new_files = []
     errors = []
     header_validated = []
     tail_validated = []
-    # size_hint = 330 * 1000000
-    size_hint = 300 * 1000000
-    # size_hint = 110000
+    # size_hint = 300 * 1000000
+    # RICK 22 para pruebas:
+    size_hint = 110000
 
     while True and not errors:
+        print("size_hint", size_hint)
         buf = complete_file.readlines(size_hint)
         if not buf:
             print("No hay más datos")
@@ -76,6 +77,7 @@ def write_split_files(complete_file, simple_name, event):
 
         file_num += 1
         curr_only_name = f"{base_name}_{file_num}.{extension}"
+        curr_only_name = directory.replace("NEW_FILE_NAME", curr_only_name)
         total_rows = len(buf)
         buf = b"".join(buf)
         print("len buf", len(buf))
@@ -115,14 +117,21 @@ def lambda_handler(event, context):
     file = event["file"]
     s3 = event["s3"]
 
-    gz_obj = get_object_file(s3, file)
+    is_gz = file.endswith(".gz")
+
+    file_obj = get_object_file(s3, file)
     decompressed_path = file.replace(".gz", "")
     pos_slash = decompressed_path.rfind("/")
     only_name = decompressed_path[pos_slash + 1:]
 
-    new_files = {}
-    with gzip.GzipFile(fileobj=gz_obj.get()['Body']) as gzip_file:
-        result, errors = write_split_files(gzip_file, only_name, event)
+    # new_files = {}
+    is_csv = file.endswith(".csv")
+    if is_gz:
+        with gzip.GzipFile(fileobj=file_obj.get()['Body']) as gzip_file:
+            result, errors = write_split_files(gzip_file, only_name, event)
+    elif is_csv:
+        with file_obj.get()['Body'] as csv_file:
+            result, errors = write_split_files(csv_file, only_name, event)
     result["matched"] = True
     result["file_type_id"] = "split"
 

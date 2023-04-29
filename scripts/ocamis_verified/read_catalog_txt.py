@@ -183,6 +183,37 @@ def delete_insabi_delegations():
     Delegation.objects.filter(institution=insabi, clues__isnull=True).delete()
 
 
+def reverse_transform(only_count=False, agency=None):
+    from inai.models import DataFile, LapSheet
+    finished_transform = DataFile.objects.filter(
+        stage_id="transform", status_id="finished")
+    if agency:
+        finished_transform = finished_transform.filter(
+            petition_file_control__petition__agency_id=agency)
+    print("Finished transform: ", finished_transform.count())
+    need_reverse = 0
+    for data_file in finished_transform:
+        if only_count:
+            with_missed = LapSheet.objects.filter(
+                sheet_file__data_file=data_file, lap=0,
+                missing_rows__gt=0, row_errors__icontains="Conteo distinto")
+        else:
+            with_missed = LapSheet.objects.filter(
+                sheet_file__data_file=data_file, lap=0,
+                missing_fields__gt=0, missing_rows=0)
+        if with_missed.exists():
+            need_reverse += 1
+            print("data_file: ", data_file)
+            data_file.stage_id = "cluster"
+            data_file.status_id = "finished"
+            data_file.save()
+            # with_missed.delete()
+    print("Need reverse: ", need_reverse)
+
+
+# reverse_transform(True, agency=7)
+
+
 def reverse_insert(hard=False):
     from inai.models import DataFile, TableFile, LapSheet
     from task.models import AsyncTask
@@ -194,6 +225,7 @@ def reverse_insert(hard=False):
     if hard:
         AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
         AsyncTask.objects.filter(task_function_id="insert_data").delete()
+
 
 
 # move_delegation_clues()

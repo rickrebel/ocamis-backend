@@ -197,6 +197,9 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                     final_filters[filter_item["field"]] = filter_value
             if final_filters:
                 data_files = data_files.filter(**final_filters)
+        txt = limiters.get("text", None)
+        if txt:
+            data_files = data_files.filter(file__icontains=txt)
         sts = limiters.get("status_built", [])
         final_files = None
         for status_built in sts:

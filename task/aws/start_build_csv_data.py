@@ -39,29 +39,6 @@ def text_normalizer(text):
     return re.sub(r'[^a-zA-Z\s]', '', text)
 
 
-def string_time_to_regex(string_time):
-    conversion_map = {
-        '%Y': r'\d{4}',
-        '%m': r'\d{2}',
-        '%d': r'\d{2}',
-        '%H': r'\d{2}',
-        '%M': r'\d{2}',
-        '%S': r'\d{2}',
-        '%f': r'\d{3,6}',
-        ' ': r'\s',
-        '-': r'-',
-        ':': r':',
-        '.': r'.',
-    }
-
-    regex_pattern = string_time
-    for key, value in conversion_map.items():
-        regex_pattern = regex_pattern.replace(key, value)
-
-    regex_pattern = f",?({regex_pattern}),?"
-    return regex_pattern
-
-
 def calculate_delivered(available_data):
     class_presc = available_data.get("clasif_assortment_presc")
     if class_presc:
@@ -204,6 +181,9 @@ class MatchAws:
         self.decode_final = 'utf-8'
         self.row_start_data = init_data["row_start_data"]
         self.delimiter = init_data["delimiter"]
+
+        self.delimit = self.delimiter or "|"
+        self.sep = "\|" if self.delimit == "|" else self.delimit
         self.string_date = init_data["string_date"]
         self.columns_count = init_data["columns_count"]
         print("string_date", self.string_date)
@@ -271,16 +251,17 @@ class MatchAws:
         self.some_same_separator = len(self.sep_fields) > 0
         self.regex_fields = []
         for field in self.existing_fields:
+            separator = field.get("separator")
             regex_string = None
             if field["regex_format"] and len(field["regex_format"]) > 10:
                 regex_string = field["regex_format"][1:-1]
-                regex_string = f",?({regex_string}),?"
+                regex_string = f"{self.sep}?({regex_string}){self.sep}?"
             if field.get("clean_function") == "simple_regex":
                 regex_string = field["t_value"]
-                regex_string = f",({regex_string}),"
+                regex_string = f"{self.sep}({regex_string}){self.sep}"
             elif field["data_type"] == "Datetime":
                 if self.string_date != "EXCEL":
-                    regex_string = string_time_to_regex(self.string_date)
+                    regex_string = self.string_time_to_regex(self.string_date)
             if regex_string:
                 field["regex"] = regex_string
                 self.regex_fields.append(field)
@@ -541,11 +522,12 @@ class MatchAws:
         return json.loads(obj['Body'].read().decode('utf-8'))
 
     def special_division(self, row_data):
-        delimiter = self.delimiter or '|'
         fragments = []
 
         def build_blocks(re_field, remain_data):
+            print("remain_data", remain_data)
             regex = re_field["regex"]
+            print("regex", regex)
             results = re.split(regex, remain_data, 1)
             if len(results) == 1:
                 results.extend(["", ""])
@@ -580,7 +562,7 @@ class MatchAws:
             # some_has_separator = any(fields_with_separator)
             # len_with_separator = len(fields_with_separator)
             if position_separator is None:
-                block_values = current_block.split(delimiter)
+                block_values = current_block.split(self.delimit)
             else:
                 normal_way_count = position_separator
                 reverse_way_count = len_block_fields - position_separator - 1
@@ -590,32 +572,18 @@ class MatchAws:
 
                     try:
                         [block_value, current_block] = current_block.split(
-                            delimiter, 1)
+                            self.delimit, 1)
                     except ValueError:
                         return row_data
                     block_values.append(block_value)
                 for reverse_seq in range(reverse_way_count):
                     try:
                         [current_block, block_value] = current_block.rsplit(
-                            delimiter, 1)
+                            self.delimit, 1)
                         block_values.insert(normal_way_count, block_value)
                     except ValueError:
                         return row_data
                 block_values.insert(normal_way_count, current_block)
-                # sep_is_first = block_fields[0]["clean_function"] == "same_separator"
-                # for seq in range(len(block_fields)):
-                #     if seq + 1 == len(block_fields):
-                #         block_values.append(current_block)
-                #     elif sep_is_first:
-                #         [current_block, block_value] = current_block.rsplit(
-                #             delimiter, 1)
-                #         block_values.append(block_value)
-                #     else:
-                #         [block_value, current_block] = current_block.split(
-                #             delimiter, 1)
-                #         block_values.append(block_value)
-                # if sep_is_first:
-                #     block_values = block_values[::-1]
             fragments.extend(block_values)
             if same:
                 fragments.append(same)
@@ -643,7 +611,7 @@ class MatchAws:
                 row_decode = row.decode(self.decode) if self.decode != "str" else str(row)
                 # .replace('\r\n', '')
                 row_data = row_decode.replace('\r\n', '')
-                row_final = row_data.split(self.delimiter or '|')
+                row_final = row_data.split(self.delimit)
                 row_final = [col.strip() for col in row_final]
             current_count = len(row_final)
 
@@ -676,6 +644,27 @@ class MatchAws:
             "file_name": get_columns_by_type("file_name"),
             "ceil": self.get_ceil_cols(all_data)
         }
+
+    def string_time_to_regex(self, string_time):
+        conversion_map = {
+            '%Y': r'\d{4}',
+            '%m': r'\d{2}',
+            '%d': r'\d{2}',
+            '%H': r'\d{2}',
+            '%M': r'\d{2}',
+            '%S': r'\d{2}',
+            '%f': r'\d{3,6}',
+            ' ': r'\s',
+            '-': r'-',
+            ':': r':',
+            '.': r'.',
+        }
+
+        regex_pattern = string_time
+        for key, value in conversion_map.items():
+            regex_pattern = regex_pattern.replace(key, value)
+        regex_pattern = f"{self.sep}?({regex_pattern}){self.sep}?"
+        return regex_pattern
 
     def get_built_cols(self):
         built_cols = []
@@ -764,9 +753,10 @@ class MatchAws:
         uuid = available_data.get("uuid")
         # fields_with_name = [field for field in self.existing_fields
         #                     if field["name"] and field["position"]]
-        fields_with_name = [field for field in self.existing_fields
-                            if field["name"]]
-        for field in fields_with_name:
+        # fields_with_name = [field for field in self.existing_fields
+        #                     if field["name"]]
+        # for field in fields_with_name:
+        for field in self.existing_fields:
             error = None
             if field.get("position"):
                 value = row[field["position"]]

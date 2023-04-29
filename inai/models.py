@@ -317,9 +317,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         FileType, blank=True, null=True, on_delete=models.CASCADE,
         default='original_data',
         verbose_name="Tipo de archivo")
-    # jump_columns = models.IntegerField(
-    #    default=0, verbose_name="Columnas vacías al comienzo")
-    # {"name 1": {"all_data": [], "headers": [], "data_rows": [], "plus_rows": 1}, "name 2": {...}}
+
     filtered_sheets = JSONField(
         blank=True, null=True, verbose_name="Nombres de las hojas filtradas")
     suffix = models.CharField(

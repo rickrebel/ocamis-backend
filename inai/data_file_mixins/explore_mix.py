@@ -296,8 +296,6 @@ class ExploreMix:
             .filter(clean_function__name="only_cols_with_headers").exists()
         sheets_matched_ids = []
 
-        # is_gz_file = self.file.name.endswith(".gz")
-
         for sheet_name in sorted_sheet_names:
             # headers = validated_rows[row_headers-1] if row_headers else []
             if not structured_data[sheet_name].get("headers"):
@@ -450,35 +448,47 @@ class ExploreMix:
         suffixes = [suffix.lower() for suffix in suffixes
                     if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
         # print("suffixes", suffixes)
-        all_errors = []
+        errors = []
+        main_error = None
+        new_task = None
+        data_file = None
+        # RICK 22
+        file_size = self.file.size
+        print("file_size", file_size)
+        task_params["function_after"] = "decompress_gz_after"
         if '.gz' in suffixes:
             if not self.sheet_files.exists():
-                task_params["function_after"] = "decompress_gz_after"
                 new_task, errors, data_file = self.decompress_file_gz(
                     task_params=task_params)
-                if errors:
-                    errors = ['No se pudo descomprimir el archivo gz %s' % self.final_path]
-                    return (data_file, errors, None), None
-                elif new_task:
-                    return (data_file, errors, None), new_task
-                #Se vuelve a obtener la ubicación final del nuevo archivo
-                #Como el archivo ya está descomprimido, se guarda sus status
-            # Se realiza todito el proceso para guardar el nuevo objeto DataFinal,
-            # manteniendo todas las características del archivo original
+                main_error = "descomprimir el archivo gz"
             suffixes.remove('.gz')
-            # print("new_suffixex",  suffixes)
         elif '.zip' in suffixes:
-            #[directory, only_name] = self.path.rsplit("/", 1)
-            #[base_name, extension] = only_name.rsplit(".", 1)
-            error_zip = "Mover a 'archivos no finales' para descomprimir desde allí"
-            return (None, [error_zip], None), None
+            errors = ["Mover a 'archivos no finales' para descomprimir desde allí"]
+        elif len(suffixes) == 1:
+            file_size = self.file.size
+            # RICK 22 para pruebas:
+            size_hint = 110000
+            # if file_size > 320000000:
+            if file_size > size_hint:
+                real_suffix = suffixes[0]
+                xls_format = FileFormat.objects.get(short_name="xls")
+                if real_suffix in xls_format.suffixes:
+                    errors = ["Archivo excel muy grande, NO se puede partir!!"]
+                else:
+                    new_task, errors, data_file = self.decompress_file_gz(
+                        task_params=task_params)
+                    main_error = "dividir el archivo gigante"
+        if errors or new_task:
+            if errors and main_error:
+                errors = [f"No se pudo {main_error}: {self.final_path}"]
+            return (data_file, errors, None), new_task
 
         # Obtener el tamaño
         # file_name = self.file_name
         real_suffixes = suffixes
         if len(real_suffixes) != 1:
             errors = [("Tiene más o menos extensiones de las que"
-                " podemos reconocer: %s" % real_suffixes)]
+                       " podemos reconocer: %s" % real_suffixes)]
             return (None, errors, None), None
         real_suffixes = set(real_suffixes)
         readable_suffixes = FileFormat.objects.filter(readable=True)\
@@ -493,69 +503,6 @@ class ExploreMix:
             return (None, errors, None), None
         # print("Parece que todo está bien")
         return (self, [], list(real_suffixes)[0]), None
-
-    def decompress_file_gz_prev(self, task_params=None):
-        # print("decompress_file_gz")
-        import gzip
-        from inai.models import DataFile
-        from category.models import StatusControl
-        from scripts.common import start_session, create_file
-        from django.conf import settings
-        size_hint = 330 * 1000000
-        initial_status = StatusControl.objects.get(
-            name='initial', group="process")
-
-        def write_split_files(complete_file, simple_name):
-            [base_name, extension] = simple_name.rsplit(".", 1)
-            file_num = 0
-            last_file = None
-            while True:
-                buf = complete_file.readlines(size_hint)
-                if not buf:
-                    print("No hay más datos")
-                    # we've read the entire file in, so we're done.
-                    break
-                file_num += 1
-                curr_only_name = f"{base_name}_{file_num + 1}.{extension}"
-                buf = b"".join(buf)
-                current_s3_client, dev_resource_2 = start_session()
-                print("rr_file_name", curr_only_name)
-                rr_file_name, errors = create_file(
-                    buf, current_s3_client, only_name=curr_only_name,
-                    file_obj=self)
-                print("exito en creación de archivo")
-                print("errors", errors)
-                DataFile.objects.create(
-                    file=rr_file_name,
-                    origin_file=self,
-                    date=self.date,
-                    status_process=initial_status,
-                    # FALTA EL STATUS Y STAGE
-                    #Revisar si lo más fácil es poner o no los siguientes:
-                    #file_control=original_file.file_control,
-                    petition_file_control=self.petition_file_control,
-                    #petition=original_file.petition,
-                    petition_month=self.petition_month)
-            return True
-
-        try:
-            decompressed_path = self.file.name.replace(".gz", "")
-            pos_slash = decompressed_path.rfind("/")
-            only_name = decompressed_path[pos_slash + 1:]
-            s3_client, dev_resource = start_session()
-            bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-            gz_obj = dev_resource.Object(
-                bucket_name=bucket_name,
-                key=f"{settings.AWS_LOCATION}/{self.file.name}"
-                )
-            with gzip.GzipFile(fileobj=gz_obj.get()["Body"]) as gzip_file:
-                #print(gzipfile.readlines(200))
-                success_gz = write_split_files(gzip_file, only_name)
-                return success_gz, None
-                #content = gzipfile.read()
-        except Exception as e:
-            print("error", e)
-            return False, e
 
     def split_file(self):
         from inai.models import DataFile
@@ -756,9 +703,10 @@ class ExploreMix:
         # print(data["structured_data"][:6])
         return None, None, first_valid_sheet
 
-    #Comienzo del proceso de transformación.
-    #Si es esploración (is_explore) solo va a obtener los headers y las
-    #primeras filas
+
+    # Comienzo del proceso de transformación.
+    # Si es esploración (is_explore) solo va a obtener los headers y las
+    # primeras filas
     # RICK 14
     def start_file_process(self, is_explore=False):
         from inai.models import DataFile

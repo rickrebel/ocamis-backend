@@ -28,20 +28,23 @@ def build_copy_sql_aws(table_file, model_in_db, columns_join):
 
 
 def modify_constraints(is_create=True):
-    from scripts.ocamis_verified.contraints import get_constraints
+    from scripts.ocamis_verified.constrains import get_constraints
     from datetime import datetime
     create_constrains, delete_constrains = get_constraints()
     with_change = False
     cursor = connection.cursor()
-    platform = Platform.objects.first()
-    if is_create and not platform.has_constrains:
+    # platform = Platform.objects.first()
+    print("START", datetime.now())
+    if is_create:  # and not platform.has_constrains:
+        print("create_constrains")
         with_change = True
         for constraint in create_constrains:
             print("time:", datetime.now())
             print("constraint", constraint)
             cursor.execute(constraint)
             print("--------------------------")
-    elif not is_create and platform.has_constrains:
+    elif not is_create:  # and platform.has_constrains:
+        print("delete_constrains")
         with_change = True
         for constraint in reversed(delete_constrains):
             print("constraint", constraint)

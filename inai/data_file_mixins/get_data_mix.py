@@ -154,10 +154,15 @@ class ExtractorsMix:
     def decompress_file_gz(self, task_params=None):
         from task.serverless import async_in_lambda
         from scripts.common import build_s3
+        from inai.models import set_upload_path
+
+        only_name = "split/NEW_FILE_NAME"
+        directory = set_upload_path(self, only_name)
 
         params = {
             # "final_path": self.final_path,
             "file": self.file.name,
+            "directory": directory,
             "s3": build_s3(),
         }
         task_params = task_params or { }

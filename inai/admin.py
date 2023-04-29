@@ -120,6 +120,7 @@ class SheetFileAdmin(admin.ModelAdmin):
         "file",
         "matched",
         "sheet_name",
+        "total_rows",
     ]
     list_filter = [
         "file_type", "matched"]

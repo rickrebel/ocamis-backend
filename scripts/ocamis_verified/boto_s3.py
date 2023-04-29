@@ -2,7 +2,6 @@ import boto3
 from django.conf import settings
 
 
-#obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821")
 def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
     from inai.models import (
         DataFile, PetitionFileControl, Petition, ReplyFile, FileType)
@@ -14,6 +13,7 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
         aws_secret_access_key=aws_secret_access_key)
     my_bucket = s3.Bucket(bucket_name)
     for object_summary in my_bucket.objects.filter(Prefix=path):
+        # Delimiter = '/', MaxKeys = 1000, StartAfter = f"{path}{folio_petition}"):
         print(object_summary.key)
         final_name = object_summary.key.replace(f"{settings.AWS_LOCATION}/", '')
         if not is_reply_file:
@@ -35,6 +35,7 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
                     petition=petition,
                     file=final_name,
                     file_type=default_type,
+                    has_data=True
                     )
                 print(f"{'Exitosamente' if created else 'Previamente'} creado: {petition}")
             except Exception as e:
@@ -46,9 +47,11 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
 # obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
 # obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)
 # obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
+# obtain_names_from_s3("data_files/nacional/issste/202107/2018-", "0063700513521", True)
+# obtain_names_from_s3("data_files/nacional/issste/202111/reporte_recetas_", "330017121001780", True)
 
 
-def delete_paths_fromaws(path):
+def delete_paths_from_aws(path):
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
@@ -63,4 +66,4 @@ def delete_paths_fromaws(path):
     print("count", count)
 
 
-delete_paths_fromaws("data_files/req_noviembre_2018_02_")
+# delete_paths_from_aws("data_files/req_noviembre_2018_02_")

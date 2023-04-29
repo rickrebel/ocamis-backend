@@ -1,8 +1,17 @@
 
 def calculate_delimiter(data):
+    error_count = 0
     for row in data:
-        if "|" in row:
-            return "|"
+        try:
+            if "|" in row:
+                return "|"
+        except Exception as e:
+            error_count += 1
+            if error_count > 3:
+                print("row:\n", row)
+                print("error", e)
+                if "|" in row:
+                    return "|"
     return ","
 
 
