@@ -153,59 +153,10 @@ class ExploreMix:
         ).aggregate(Sum("total_rows"))
         total_count = total_count_query.get("total_rows__sum", 0)
         minus_headers = len(self.filtered_sheets) * minus_headers
-        # if file_format.short_name == 'csv' or file_format.short_name == 'txt':
-        #     total_count = self.sample_data["default"]["total_rows"]
-        # elif file_format.short_name == 'xls':
-        #     total_count = self.count_xls_rows()
-        #     minus_headers = len(self.sample_data.keys()) * minus_headers
         total_count -= minus_headers
         self.total_rows = total_count
         self.save()
         return self
-        # self.change_status("success_counting")
-        # return {"total_rows": total_count}
-
-    # RICK 19: Según yo, esto ya no debería existir
-    def count_csv_rows(self):
-        from scripts.common import get_file, start_session
-        s3_client, dev_resource = start_session()
-        data = get_file(self, dev_resource)
-        final_count = len(data.readlines())
-        return final_count
-
-    # RICK 19: Según yo, esto ya no debería existir
-    def count_xls_rows(self):
-        from scripts.common import build_s3
-        from task.serverless import count_excel_rows
-        total_count = 0
-        sample_data = self.sample_data
-        explore_modificated = False
-
-        if isinstance(sample_data, dict):
-            current_sheets = sample_data.keys()
-            sheets_for_count = []
-            for sheet_name in current_sheets:
-                if "total_rows" in sample_data[sheet_name]:
-                    total_count += sample_data[sheet_name]["total_rows"]
-                else:
-                    sheets_for_count.append(sheet_name)
-                    #excel_file = pd.ExcelFile(self.file, sheet_name=sheet_name)
-            params = {
-                "sheets": sheets_for_count,
-                "file": self.file.name,
-                's3': build_s3(),
-            }
-            all_counts = count_excel_rows(params)
-            # print("all_counts", all_counts)
-            for sheet_name in current_sheets:
-                if sheet_name in all_counts:
-                    sample_data[sheet_name]["total_rows"] = all_counts[sheet_name]
-                    total_count += all_counts[sheet_name]
-                    explore_modificated = True
-        if explore_modificated:
-            self.sample_data = sample_data
-            self.save()
-        return total_count
 
     def find_coincidences_from_aws(self, task_params=None, **kwargs):
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
@@ -466,9 +417,7 @@ class ExploreMix:
             if file_size > 400000000:
                 real_suffix = suffixes[0]
                 xls_format = FileFormat.objects.get(short_name="xls")
-                if real_suffix in xls_format.suffixes:
-                    errors = ["Archivo excel muy grande, NO se puede partir!!"]
-                else:
+                if real_suffix not in xls_format.suffixes:
                     new_task, errors, data_file = self.decompress_file_gz(
                         task_params=task_params)
                     main_error = "dividir el archivo gigante"
@@ -696,142 +645,3 @@ class ExploreMix:
             print(e)
         # print(data["structured_data"][:6])
         return None, None, first_valid_sheet
-
-
-    # Comienzo del proceso de transformación.
-    # Si es esploración (is_explore) solo va a obtener los headers y las
-    # primeras filas
-    # RICK 14
-    def start_file_process(self, is_explore=False):
-        from inai.models import DataFile
-        from category.models import FileFormat
-        #FieldFile.open(mode='rb')
-        self.error_process = []
-        self.save()
-        #se llama a la función para descomprimir el archivo o archivos:
-        childs_count = self.child_files.count()
-        (new_self, errors, suffix), first_task = self.decompress_file()
-        # print("new_self: ", new_self)
-        if errors:
-            status_error = 'explore|with_errors' if is_explore else 'transform|with_errors'
-            self.save_errors(errors, status_error)
-            return None, errors, None
-        new_childs_count = self.child_files.count()
-        count_splited = 0
-        file_size = new_self.file.size
-        if file_size > 400000000:
-            if suffix in FileFormat.objects.get(short_name='xls').suffixes:
-                errors = ["Archivo excel muy grande, aún no se puede partir"]
-                return None, errors, None
-            count_splited = new_self.split_file()
-        if errors:
-            status_error = 'explore|with_errors' if is_explore else 'transform|with_errors'
-            new_self.save_errors(errors, status_error)
-            return None, errors, None
-        if count_splited and not is_explore:
-            warnings = ["Son muchos archivos y tardarán en procesarse, espera por favor"]
-            return None, warnings, None
-        if not is_explore:
-            new_self.build_catalogs()
-            new_errors = []
-            new_tasks = []
-        elif count_splited:
-            #FALTA AFINAR FUNCIÓN PARA ESTO
-            new_errors = []
-            new_tasks = []
-            all_children = DataFile.objects.filter(origin_file=new_self)
-            for ch_file in all_children:
-                data, current_errors, new_task = ch_file.transform_file_in_data(
-                    'is_explore')
-                new_errors.extend(current_errors)
-                new_tasks.append(new_task)
-        elif new_childs_count and childs_count < new_childs_count:
-            first_child = new_self.child_files.first()
-            data, new_errors, new_task = first_child.transform_file_in_data(
-                'is_explore')
-            new_tasks = [new_task]
-        else:
-            data, new_errors, new_task = new_self.transform_file_in_data(
-                'is_explore')
-            new_tasks = [new_task]
-        if is_explore:
-            #print(data["headers"])
-            #print(data["structured_data"][:6])
-            return data, new_errors, new_tasks
-        else:
-            print("POR ALGUNA RAZÓN NO ES EXPLORE")
-            return new_self, new_errors, new_tasks
-
-    #RICK 19; corroborar que esto ya no e llame, está muy desfasado
-    # def comprobate_coincidences(self, task_params=None, **kwargs):
-    #     from inai.models import DataFile
-    #     # print("new_children_ids: ", new_children_ids)
-    #     data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
-    #     from_aws = kwargs.get("from_aws", False)
-    #
-    #     file_ctrl = data_file.petition_file_control.file_control
-    #     petition = data_file.petition_file_control.petition
-    #
-    #     parent_task = task_params.get("parent_task", None)
-    #     if from_aws:
-    #         new_children_ids = kwargs.get("new_children_ids", [])
-    #         new_children = DataFile.objects.filter(id__in=new_children_ids)
-    #     else:
-    #         init_children = list(
-    #             self.child_files.all().values_list('id', flat=True))
-    #         # RICK 14
-    #         (data_file, errors, suffix), first_task = self.decompress_file()
-    #         if not data_file:
-    #             print("______data_file:\n", data_file, "\n", "errors:", errors, "\n")
-    #             return None, errors, 0
-    #         new_children = data_file.child_files.all()
-    #         if init_children:
-    #             new_children = new_children.exclude(id__in=init_children)
-    #         new_children_ids = new_children.values_list('id', flat=True)
-    #
-    #     task_params = task_params or {}
-    #     params_after = task_params.get("params_after", { })
-    #     params_after["new_children_ids"] = list(new_children_ids)
-    #     # params_after["all_file_controls_ids"] = [file_ctrl.id]
-    #     task_params["params_after"] = params_after
-    #     task_params["function_after"] = "comprobate_coincidences"
-    #     task_params["models"] = [data_file]
-    #
-    #     if not new_children_ids:
-    #         data_file, errors, new_task = data_file.transform_file_in_data(
-    #             'only_save', file_control=file_ctrl,
-    #             task_params=task_params)
-    #         if new_task:
-    #             return data_file, errors, 0
-    #         if not data_file:
-    #             print("NO ENTIENDO QUÉ PASÓ")
-    #             return None, errors, 0
-    #         data_file, saved, errors = data_file.find_coincidences(
-    #             False, petition=petition, file_ctrl=file_ctrl)
-    #     else:
-    #         print("HAY NUEVOS CHILDREN")
-    #         first_child = new_children.first()
-    #         first_child, errors, new_task = first_child.transform_file_in_data(
-    #             'only_save', file_control=file_ctrl,
-    #             task_params=task_params)
-    #         if new_task:
-    #             return first_child, errors, 0, new_task
-    #         first_child, saved, errors = first_child.find_coincidences(
-    #             False, petition=petition, file_ctrl=file_ctrl)
-    #         if saved:
-    #             for child in new_children:
-    #                 child.sample_data = first_child.sample_data
-    #                 child.status_process = first_child.status_process
-    #                 child.save()
-    #             data_file.sample_data = first_child.sample_data
-    #             data_file.status_process = first_child.status_process
-    #             data_file = data_file.save()
-    #
-    #     if not errors and not saved and file_ctrl.row_headers:
-    #         errors.append("Las columnas no coincide con el archivo")
-    #         # errors = ["No hay coincidencias con las columnas"]
-    #     if errors:
-    #         data_file = data_file.save_errors(errors, "explore_fail")
-    #         return data_file, errors, new_children
-    #     else:
-    #         return data_file, None, new_children

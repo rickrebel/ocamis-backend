@@ -35,6 +35,8 @@ def write_split_files(complete_file, simple_name, event):
     decode = event.get("decode")
     delimiter = event.get("delimiter")
     directory = event["directory"]
+    file = event["file"]
+    is_gz = file.endswith(".gz")
 
     s3_client = boto3.client(
         's3', aws_access_key_id=aws_access_key_id,
@@ -47,9 +49,9 @@ def write_split_files(complete_file, simple_name, event):
     header_validated = []
     tail_validated = []
     size_hint = 300 * 1000000
+    print("size_hint", size_hint)
 
     while True and not errors:
-        print("size_hint", size_hint)
         buf = complete_file.readlines(size_hint)
         if not buf:
             print("No hay más datos")
@@ -123,11 +125,11 @@ def lambda_handler(event, context):
     only_name = decompressed_path[pos_slash + 1:]
 
     # new_files = {}
-    is_csv = file.endswith(".csv")
+    # is_csv = file.endswith(".csv")
     if is_gz:
         with gzip.GzipFile(fileobj=file_obj.get()['Body']) as gzip_file:
             result, errors = write_split_files(gzip_file, only_name, event)
-    elif is_csv:
+    else:
         with file_obj.get()['Body'] as csv_file:
             result, errors = write_split_files(csv_file, only_name, event)
     result["matched"] = True

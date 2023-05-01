@@ -117,8 +117,7 @@ def get_csv_file(file_obj, s3_client=None):
         try:
             content_object = s3_client.get_object(
                 Bucket=bucket_name,
-                Key=f"{aws_location}/{file_obj.file.name}"
-                )
+                Key=f"{aws_location}/{file_obj.file.name}")
             # print(BytesIO(content_object['Body'].read()))
             csv_file = BytesIO(content_object['Body'].read())
             return pd.read_csv(csv_file, on_bad_lines='skip')

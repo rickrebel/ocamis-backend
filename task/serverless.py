@@ -128,17 +128,6 @@ def async_in_lambda(function_name, params, task_params):
     return execute_async(current_task, params)
 
 
-def count_excel_rows(params):
-    from scripts.common import start_session
-    s3_client, dev_resource = start_session("lambda")
-    response = s3_client.invoke(
-        FunctionName='simple_function_3:normal',
-        InvocationType='RequestResponse',
-        Payload=json.dumps(params)
-    )
-    return json.loads(response['Payload'].read())
-
-
 def create_file_lmd(file_bytes, upload_path, only_name, s3_vars):
     all_errors = []
     final_file = None

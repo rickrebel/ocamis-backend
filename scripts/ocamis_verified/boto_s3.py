@@ -47,8 +47,8 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
 # obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
 # obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)
 # obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
-# obtain_names_from_s3("data_files/nacional/issste/202107/2018-", "0063700513521", True)
-# obtain_names_from_s3("data_files/nacional/issste/202111/reporte_recetas_", "330017121001780", True)
+# obtain_names_from_s3("data_files/nacional/issste/202201/reporte_recetas_", "330017122000929", True)
+# obtain_names_from_s3("data_files/nacional/issste/202107/drive-download-20230429T102945Z-001", "0063700513521", True)
 
 
 def delete_paths_from_aws(path):

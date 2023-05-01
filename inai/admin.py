@@ -126,7 +126,7 @@ class SheetFileAdmin(admin.ModelAdmin):
         "file_type", "matched"]
     search_fields = [
         "file", "data_file__petition__agency__acronym",
-        "data_file__petition__folio_petition"]
+        "data_file__petition_file_control__petition__folio_petition"]
     inlines = [LapSheetInline]
     raw_id_fields = ["data_file"]
 

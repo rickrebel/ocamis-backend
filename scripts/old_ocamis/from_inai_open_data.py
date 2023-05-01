@@ -135,7 +135,7 @@ def join_url(row, main):
     compl_hash = row.get("archivoAdjuntoRespuesta", False)
     if compl_hash:
         try:
-            default_type = FileType.objects.get(name="Información no final")
+            default_type = FileType.objects.get(name="no_final_info")
         except Exception as e:
             print("No se encontró el tipo de archivo")
             print(e)

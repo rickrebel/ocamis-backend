@@ -41,15 +41,20 @@ def text_normalizer(text):
 
 def calculate_delivered(available_data):
     class_presc = available_data.get("clasif_assortment_presc")
+    is_cancelled = class_presc == "CANCELADA"
     if class_presc:
         if class_presc not in available_delivered:
             error = f"Clasificación no contemplada; {class_presc}"
             return available_data, error
     prescribed_amount = available_data.get("prescribed_amount")
-    if not prescribed_amount:
-        error = "No se puede determinar el status de entrega;" \
-                "No existe cantidad prescrita"
-        return available_data, error
+    if prescribed_amount is None:
+        if is_cancelled:
+            available_data["delivered_id"] = "cancelled"
+            return available_data, None
+        else:
+            error = "No se puede determinar el status de entrega;" \
+                    "No existe cantidad prescrita"
+            return available_data, error
     elif prescribed_amount > 30000:
         error = "Existe una cantidad inusualmente alta; cantidad prescrita"
         return available_data, error
@@ -67,19 +72,29 @@ def calculate_delivered(available_data):
 
     if delivered_amount is not None:
         if prescribed_amount == delivered_amount:
-            delivered = "complete"
+            if is_cancelled:
+                delivered = "cancelled"
+            elif prescribed_amount == 0:
+                delivered = "zero"
+            else:
+                delivered = "complete"
         elif not delivered_amount:
-            delivered = "denied"
+            if is_cancelled:
+                delivered = "cancelled"
+            else:
+                delivered = "denied"
         elif delivered_amount > 30000:
             error = "Existe una cantidad inusualmente alta; cantidad entregada"
             return available_data, error
-        elif prescribed_amount > delivered_amount:
-            delivered = "partial"
-        elif delivered_amount > prescribed_amount:
-            delivered = "over_delivered"
         elif delivered_amount < 0:
             error = "Existe una cantidad negativa; cantidad entregada"
             return available_data, error
+        elif delivered_amount < prescribed_amount:
+            delivered = "partial"
+        elif delivered_amount > prescribed_amount:
+            delivered = "over_delivered"
+        elif is_cancelled:
+            delivered = "cancelled"
     else:
         error = "No se puede determinar el status de entrega;" \
                 "No existe cantidad entregada"
@@ -100,25 +115,24 @@ def calculate_delivered_final(all_delivered, all_write):
             return f"La clasificación de surtimiento no es válida;" \
                    f" {write_text}"
 
-    def get_delivered_id(delivered):
-        some_unknown = [d for d in all_delivered if d == "unknown"]
-        if some_unknown:
-            return "unknown"
-        partials = [d for d in all_delivered if d == "partial"]
-        if partials:
-            return "partial"
-        completes = [d for d in all_delivered if d == "complete"]
-        if len(all_delivered) == len(completes):
-            return "complete"
-        only_denied = [d for d in all_delivered if d == "denied"]
-        if len(all_delivered) == len(only_denied):
-            if write_text == "CANCELADA":
-                return "cancelled"
-            return "denied"
+    some_unknown = [d for d in all_delivered if d == "unknown"]
+    if some_unknown:
+        return "unknown"
+    partials = [d for d in all_delivered if d == "partial"]
+    if partials:
         return "partial"
-
-    delivered_id = get_delivered_id(all_delivered)
-    return delivered_id
+    completes = [d for d in all_delivered if d == "complete"]
+    if len(all_delivered) == len(completes):
+        return "complete"
+    if write_text == "CANCELADA":
+        return "cancelled"
+    only_denied = [d for d in all_delivered if d == "denied"]
+    if len(all_delivered) == len(only_denied):
+        return "denied"
+    some_zero = [d for d in all_delivered if d == "zero"]
+    if some_zero:
+        return "zero"
+    return "unknown"
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
@@ -325,7 +339,7 @@ class MatchAws:
         total_count = len(all_data)
         processed_count = 0
         clasif_cols = [col for col in self.existing_fields
-                      if col["name"] == "clasif_assortment_presc"]
+                       if col["name"] == "clasif_assortment_presc"]
         clasif_id = clasif_cols[0]["name_column"] if clasif_cols else None
 
         discarded_count = self.row_start_data - 1
@@ -762,8 +776,8 @@ class MatchAws:
                 value = row[field["position"]]
             else:
                 value = available_data.get(field["name"])
-                if not value:
-                    continue
+            if not value:
+                continue
             if field.get("duplicated_in"):
                 duplicated_in = field["duplicated_in"]
                 duplicated_value = row[duplicated_in["position"]]
@@ -786,7 +800,7 @@ class MatchAws:
                         self.last_date = value
                         value = datetime.strptime(value, self.string_date)
                         self.last_date_formatted = value
-                    if not some_date:
+                    if not some_date or field["name"] == "date_delivery":
                         some_date = value
                 elif field["data_type"] == "Integer":
                     value = int(value)

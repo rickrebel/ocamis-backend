@@ -89,7 +89,11 @@ class Match:
         self.global_delegation = self.global_clues.delegation \
             if self.global_clues else None
         # print("global_delegation", self.global_delegation)
-        only_name = f"NEW_ELEM_NAME_{self.data_file.id}_SHEET_NAME_lap{self.lap}.csv"
+        file_name = data_file.file.name.rsplit('/', 1)[-1]
+        file_name = file_name.replace(".", "_")
+        # only_name = f"NEW_ELEM_NAME/{self.data_file.id}_SHEET_NAME_lap{self.lap}.csv"
+        only_name = f"NEW_ELEM_NAME/{file_name}_SHEET_NAME_NEW_ELEM_NAME" \
+                    f"_lap{self.lap}.csv"
         self.final_path = set_upload_path(self.data_file, only_name)
         self.name_columns = NameColumn.objects \
             .filter(file_control=self.file_control) \
@@ -198,11 +202,17 @@ class Match:
             sheets_to_process = remaining_sheets
         else:
             sheets_to_process = procesable_sheets
+        first_sheet = sheets_to_process.first()
+        is_split = False
+        if first_sheet:
+            file_type = first_sheet.file_type_id
+            is_split = file_type == 'split'
         # test_count = 0
-        for sheet_file in sheets_to_process:
+        for idx, sheet_file in enumerate(sheets_to_process):
             lap_sheet, created = LapSheet.objects.get_or_create(
                 sheet_file=sheet_file, lap=final_lap)
-
+            if idx and is_split:
+                init_data["row_start_data"] = 1
             init_data["sheet_name"] = sheet_file.sheet_name
             init_data["sheet_file_id"] = sheet_file.id
             init_data["lap_sheet_id"] = lap_sheet.id
@@ -239,8 +249,8 @@ class Match:
         simple_fields = [
             # Generales receta
             ["date_release"],
-            ["date_delivery"],
             ["date_visit"],
+            ["date_delivery"],
             ["folio_document"],
             ["document_type"],
             ["prescribed_amount"],
@@ -278,10 +288,10 @@ class Match:
             transformation = column.column_transformations \
                 .filter(clean_function__name__in=special_functions)
             if transformation.count() > 1:
-                name_in_data = get_name_in_data(column)
-                error = f"La columna {name_in_data} tiene más de una " \
-                        f"transformación especial que no se pueden aplicar a la vez"
-                all_errors.append(error)
+                name_in_data2 = get_name_in_data(column)
+                err = f"La columna {name_in_data2} tiene más de una " \
+                      f"transformación especial que no se pueden aplicar a la vez"
+                all_errors.append(err)
             elif transformation.exists():
                 first_t = transformation.first()
                 new_column["clean_function"] = first_t.clean_function.name

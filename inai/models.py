@@ -20,7 +20,7 @@ from .reply_file_mixins.process_mix import ReplyFileMix
 from .petition_mixins.petition_mix import PetitionTransformsMix
 
 
-def set_upload_path(instance, filename):
+def set_upload_path_old(instance, filename):
     # from django.conf import settings
     # files_path = getattr(settings, "FILES_PATH")
     is_sheet_file = getattr(instance, "data_file", False)
@@ -53,6 +53,33 @@ def set_upload_path(instance, filename):
     # print(os.path.join('/media/%s/' % instance.id, filename))
     # print(os.path.join(files_path, final_path))
     return "/".join([agency_type, acronym, last_year_month, filename])
+
+
+def set_upload_path(instance, filename):
+    # from django.conf import settings
+    # files_path = getattr(settings, "FILES_PATH")
+    is_sheet_file = getattr(instance, "data_file", False)
+    if is_sheet_file:
+        instance = instance.data_file
+    try:
+        petition = instance.petition_file_control.petition
+    except AttributeError:
+        try:
+            petition = instance.petition
+        except AttributeError:
+            return "/".join(["sin_instance", filename])
+
+    agency_type = petition.agency.agency_type[:8].lower()
+    try:
+        acronym = petition.agency.acronym.lower()
+    except AttributeError:
+        acronym = 'others'
+    folio_petition = petition.folio_petition
+
+    # final_path = "/".join([agency_type, acronym, last_year_month, filename])
+    # print(os.path.join('/media/%s/' % instance.id, filename))
+    # print(os.path.join(files_path, final_path))
+    return "/".join([agency_type, acronym, folio_petition, filename])
 
 
 class Petition(models.Model, PetitionTransformsMix):
@@ -248,7 +275,8 @@ class ReplyFile(models.Model, ReplyFileMix):
         blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE, blank=True, null=True)
+        FileType, on_delete=models.CASCADE,
+        default='no_final_info', blank=True, null=True)
     text = models.TextField(
         blank=True, null=True,
         verbose_name="Texto (en caso de no haber archivo)")

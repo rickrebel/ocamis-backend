@@ -183,7 +183,7 @@ def delete_insabi_delegations():
     Delegation.objects.filter(institution=insabi, clues__isnull=True).delete()
 
 
-def reverse_transform(only_count=False, agency=None):
+def reverse_transform(only_count=False, agency=None, every_files=False):
     from inai.models import DataFile, LapSheet
     finished_transform = DataFile.objects.filter(
         stage_id="transform", status_id="finished")
@@ -193,7 +193,10 @@ def reverse_transform(only_count=False, agency=None):
     print("Finished transform: ", finished_transform.count())
     need_reverse = 0
     for data_file in finished_transform:
-        if only_count:
+        if every_files:
+            with_missed = LapSheet.objects.filter(
+                sheet_file__data_file=data_file, lap=0)
+        elif only_count:
             with_missed = LapSheet.objects.filter(
                 sheet_file__data_file=data_file, lap=0,
                 missing_rows__gt=0, row_errors__icontains="Conteo distinto")
