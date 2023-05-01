@@ -74,7 +74,7 @@ class DataUtilsMix:
                         every_errors += error
                     all_errors = list(set(every_errors))
                     if new_st == 'some_errors':
-                        all_errors += self.warnings
+                        all_errors += (self.warnings or [])
                         all_errors.insert(0, f'Algunas hojas no se pudieron procesar en {stage}')
                         self.warnings = all_errors
                     elif new_st == 'with_errors':
