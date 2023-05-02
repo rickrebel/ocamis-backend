@@ -347,7 +347,8 @@ class ExploreMix:
                 new_data_file.pk = None
                 new_data_file.petition_file_control = succ_pet_file_ctrl
                 new_data_file.filtered_sheets = current_sheets
-                new_data_file.change_status("explore|finished")
+                # new_data_file.change_status("explore|finished")
+                new_data_file.finished_stage('explore|finished')
                 # new_data_file.sample_data = validated_data
                 new_data_file.save()
                 new_data_file.add_warning(info_text)

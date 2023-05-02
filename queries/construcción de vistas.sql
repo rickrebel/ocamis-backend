@@ -214,7 +214,7 @@ FROM (
   ON clues.clues_id = rec.clues_id
 
 GROUP BY rec.week, rec.year, med.med_key, med_cat.key2,
-  med_cat.comp_id, clues.state_id, med.delivered
+  med_cat.comp_id, clues.state_id, med.delivered;
 
 
 

@@ -105,33 +105,37 @@ def calculate_delivered(available_data):
 
 def calculate_delivered_final(all_delivered, all_write):
     write_text = None
+    error = None
     if all_write:
-        all_write = set(all_write)
         if len(all_write) > 1:
-            return f"Hay más de una clasificación de surtimiento;" \
-                   f" {list(all_write)}"
+            error = f"Hay más de una clasificación de surtimiento;" \
+                    f" {list(all_write)}"
         write_text = all_write.pop()
         if write_text not in available_delivered:
-            return f"La clasificación de surtimiento no es válida;" \
-                   f" {write_text}"
+            error = f"La clasificación de surtimiento no es válida;" \
+                    f" {write_text}"
 
-    some_unknown = [d for d in all_delivered if d == "unknown"]
-    if some_unknown:
-        return "unknown"
-    partials = [d for d in all_delivered if d == "partial"]
-    if partials:
-        return "partial"
-    completes = [d for d in all_delivered if d == "complete"]
-    if len(all_delivered) == len(completes):
-        return "complete"
-    if write_text == "CANCELADA":
-        return "cancelled"
-    only_denied = [d for d in all_delivered if d == "denied"]
-    if len(all_delivered) == len(only_denied):
-        return "denied"
-    some_zero = [d for d in all_delivered if d == "zero"]
-    if some_zero:
-        return "zero"
+    delivered = "unknown"
+    if len(all_delivered) == 1:
+        delivered = all_delivered.pop()
+        is_denied = delivered == "denied" or write_text == "cancelled"
+        if is_denied and write_text == 'CANCELADA':
+            delivered = 'cancelled'
+    else:
+        some_cases = ["unknown", "partial", "complete"]
+        for case in some_cases:
+            if case in all_delivered:
+                delivered = case
+                break
+        if not delivered:
+            if write_text == "CANCELADA":
+                delivered = "cancelled"
+            elif len(all_delivered) == 2:
+                some_denied = "denied" in all_delivered
+                some_zero = "zero" in all_delivered
+                if some_denied and some_zero:
+                    delivered = "denied"
+        if not
     return "unknown"
 
 
@@ -404,15 +408,16 @@ class MatchAws:
             curr_prescription = all_prescriptions.get(folio_ocamis)
             if curr_prescription:
                 available_data["prescription_id"] = curr_prescription["uuid_folio"]
-                all_delivered = curr_prescription["all_delivered"]
-                all_delivered += [delivered]
+                all_delivered = curr_prescription.get("all_delivered", set())
+                all_delivered.add(delivered)
                 curr_prescription["all_delivered"] = all_delivered
                 if clasif_id:
-                    all_delivered_write = curr_prescription.get("all_delivered_write", [])
-                    all_delivered_write += [delivered_write]
+                    all_delivered_write = curr_prescription.get(
+                        "all_delivered_write", set())
+                    all_delivered_write.add(delivered_write)
                     curr_prescription["all_delivered_write"] = all_delivered_write
                 else:
-                    all_delivered_write = []
+                    all_delivered_write = set()
                 delivered_final_id = calculate_delivered_final(
                     all_delivered, all_delivered_write)
                 if "clasificación" in delivered_final_id:
@@ -430,9 +435,9 @@ class MatchAws:
                 available_data["delivered_final_id"] = delivered
                 available_data["folio_ocamis"] = folio_ocamis
                 available_data["folio_document"] = folio_document
-                available_data["all_delivered"] = [delivered]
+                available_data["all_delivered"] = {delivered}
                 if delivered_write:
-                    available_data["all_delivered_write"] = [delivered_write]
+                    available_data["all_delivered_write"] = {delivered_write}
 
                 for cat_name in prescription_cats:
                     available_data = self.generic_match(

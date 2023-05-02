@@ -211,7 +211,7 @@ class Match:
         for idx, sheet_file in enumerate(sheets_to_process):
             lap_sheet, created = LapSheet.objects.get_or_create(
                 sheet_file=sheet_file, lap=final_lap)
-            if idx and is_split:
+            if idx and is_split and not is_prepare:
                 init_data["row_start_data"] = 1
             init_data["sheet_name"] = sheet_file.sheet_name
             init_data["sheet_file_id"] = sheet_file.id
