@@ -135,8 +135,7 @@ def calculate_delivered_final(all_delivered, all_write):
                 some_zero = "zero" in all_delivered
                 if some_denied and some_zero:
                     delivered = "denied"
-        if not
-    return "unknown"
+    return delivered, error
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
