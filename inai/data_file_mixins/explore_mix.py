@@ -309,13 +309,24 @@ class ExploreMix:
                 continue
 
             def save_sheet_file(d_f=data_file, save_sample_data=False):
+                from inai.models import SheetFile
+
                 try:
-                    table_s = d_f.sheet_files.filter(sheet_name=sheet_name).first()
+                    sheet_f = d_f.sheet_files\
+                        .filter(sheet_name=sheet_name).first()
+                    if not sheet_f:
+                        original_sheet_f = data_file.sheet_files\
+                            .filter(sheet_name=sheet_name).first()
+                        sheet_f = SheetFile.objects.create(
+                            data_file=d_f,
+                            sheet_name=sheet_name,
+                            total_rows=original_sheet_f.total_rows,
+                            sample_data=original_sheet_f.sample_data)
                     if save_sample_data:
-                        table_s.sample_data = structured_data[sheet_name]
-                    table_s.matched = True
-                    table_s.save()
-                    sheets_matched_ids.append(table_s.id)
+                        sheet_f.sample_data = structured_data[sheet_name]
+                    sheet_f.matched = True
+                    sheet_f.save()
+                    sheets_matched_ids.append(sheet_f.id)
                 except Exception as e:
                     raise Exception(f"No se encontró el archivo con el "
                                     f"nombre de hoja {sheet_name} \n {e}")
