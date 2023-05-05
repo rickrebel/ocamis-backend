@@ -460,6 +460,8 @@ class SheetFile(models.Model):
     total_rows = models.IntegerField(default=0)
     error_process = JSONField(blank=True, null=True)
     warnings = JSONField(blank=True, null=True)
+    # month = models.SmallIntegerField(blank=True, null=True)
+    # year = models.SmallIntegerField(blank=True, null=True)
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         default='explore', verbose_name="Etapa actual")

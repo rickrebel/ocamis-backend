@@ -177,6 +177,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     @action(methods=["get"], detail=True, url_path='data_files')
     def data_files(self, request, **kwargs):
         import json
+        from django.db.models import Q
         file_control = self.get_object()
         data_files = DataFile.objects\
             .filter(petition_file_control__file_control=file_control) \
@@ -199,7 +200,9 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 data_files = data_files.filter(**final_filters)
         txt = limiters.get("text", None)
         if txt:
-            data_files = data_files.filter(file__icontains=txt)
+            data_files = data_files.filter(
+                Q(file__icontains=txt) |
+                Q(petition_file_control__petition__folio_petition=txt))
         sts = limiters.get("status_built", [])
         final_files = None
         for status_built in sts:

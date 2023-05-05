@@ -44,33 +44,50 @@ def calculate_delivered(available_data):
     is_cancelled = class_presc == "CANCELADA"
     if class_presc:
         if class_presc not in available_delivered:
-            error = f"Clasificación no contemplada; {class_presc}"
+            error = f"Clasificación de surtimiento no contemplada; {class_presc}"
             return available_data, error
     prescribed_amount = available_data.get("prescribed_amount")
-    if prescribed_amount is None:
-        if is_cancelled:
-            available_data["delivered_id"] = "cancelled"
-            return available_data, None
-        else:
-            error = "No se puede determinar el status de entrega;" \
-                    "No existe cantidad prescrita"
-            return available_data, error
-    elif prescribed_amount > 30000:
-        error = "Existe una cantidad inusualmente alta; cantidad prescrita"
-        return available_data, error
-    elif prescribed_amount < 0:
-        error = "Existe una cantidad negativa; cantidad prescrita"
-        return available_data, error
 
-    delivered = "unknown"
+    def identify_errors(av_data, amount, text):
+        err = None
+        if amount is None:
+            if is_cancelled:
+                av_data["prescribed_amount"] = available_data.get(
+                    "prescribed_amount", 0)
+                av_data["delivered_amount"] = available_data.get(
+                    "delivered_amount", 0)
+                av_data["delivered_id"] = "cancelled"
+            else:
+                err = f"No se puede determinar el status de entrega; " \
+                      f"No encontramos la cantidad {text}"
+        elif amount > 30000:
+            err = f"Existe una cantidad inusualmente alta; cantidad {text}"
+        elif amount < 0:
+            err = f"Existe una cantidad negativa; cantidad {text}"
+        return av_data, err
+
+    available_data, error = identify_errors(
+        available_data, prescribed_amount, "prescrita")
+    if error or available_data.get("delivered_id"):
+        return available_data, error
 
     delivered_amount = available_data.get("delivered_amount")
-    not_delivered_amount = available_data.pop("not_delivered_amount", None)
-    if not_delivered_amount is not None and delivered_amount is None:
-        delivered_amount = prescribed_amount - not_delivered_amount
-        available_data["delivered_amount"] = delivered_amount
 
-    if delivered_amount is not None:
+    if delivered_amount is None:
+        not_delivered_amount = available_data.pop("not_delivered_amount", None)
+        if not_delivered_amount is not None:
+            delivered_amount = prescribed_amount - not_delivered_amount
+            available_data["delivered_amount"] = delivered_amount
+
+    available_data, error = identify_errors(
+        available_data, delivered_amount, "entregada")
+    if error or available_data.get("delivered_id"):
+        return available_data, error
+    if delivered_amount is None:
+        error = "No se puede determinar el status de entrega; " \
+                "No existe cantidad entregada"
+        return available_data, error
+    else:
         if prescribed_amount == delivered_amount:
             if is_cancelled:
                 delivered = "cancelled"
@@ -95,15 +112,13 @@ def calculate_delivered(available_data):
             delivered = "over_delivered"
         elif is_cancelled:
             delivered = "cancelled"
-    else:
-        error = "No se puede determinar el status de entrega;" \
-                "No existe cantidad entregada"
-        return available_data, error
+        else:
+            return available_data, "No se puede determinar el status de entrega"
     available_data["delivered_id"] = delivered
     return available_data, None
 
 
-def calculate_delivered_final(all_delivered, all_write):
+def calculate_delivered_final_prev(all_delivered, all_write):
     write_text = None
     error = None
     if all_write:
@@ -122,11 +137,18 @@ def calculate_delivered_final(all_delivered, all_write):
         if is_denied and write_text == 'CANCELADA':
             delivered = 'cancelled'
     else:
-        some_cases = ["unknown", "partial", "complete"]
+        some_cases = ["unknown", "partial"]
         for case in some_cases:
             if case in all_delivered:
                 delivered = case
                 break
+        if not delivered:
+            if "over_delivered" in all_delivered:
+                if "complete" in all_delivered:
+                    delivered = "over_delivered"
+        if not delivered and "complete" in all_delivered:
+            if "denied" not in all_delivered and "cancelled" not in all_delivered:
+                delivered = "complete"
         if not delivered:
             if write_text == "CANCELADA":
                 delivered = "cancelled"
@@ -136,6 +158,36 @@ def calculate_delivered_final(all_delivered, all_write):
                 if some_denied and some_zero:
                     delivered = "denied"
     return delivered, error
+
+
+def calculate_delivered_final(all_delivered, all_write):
+    error = None
+    if all_write:
+        if len(all_write) > 1:
+            error = f"Hay más de una clasificación de surtimiento;" \
+                    f" {list(all_write)}"
+
+    if len(all_delivered) == 1:
+        return all_delivered.pop(), error
+    if "partial" in all_delivered:
+        return "partial", error
+    has_complete = "complete" in all_delivered
+    has_over = "over_delivered" in all_delivered
+    has_denied = "denied" in all_delivered
+    has_cancelled = "cancelled" in all_delivered
+    if (has_complete or has_over) and (has_denied or has_cancelled):
+        return "partial", error
+    initial_list = all_delivered.copy()
+    if "zero" in all_delivered:
+        all_delivered.remove("zero")
+    if has_over and has_complete:
+        all_delivered.remove("complete")
+    if has_denied and has_cancelled:
+        all_delivered.remove("denied")
+    if len(all_delivered) == 1:
+        return all_delivered.pop(), error
+    return "unknown", f"No se puede determinar el status de entrega; " \
+                      f"{list(initial_list)}"
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
@@ -250,6 +302,7 @@ class MatchAws:
                                            "all_values": all_values}
         # print("med_cat_flat_fields: \n", self.med_cat_flat_fields)
 
+        self.months = set()
         self.buffers = {}
         self.csvs = {}
         for model in self.editable_models:
@@ -277,7 +330,9 @@ class MatchAws:
                 regex_string = field["t_value"]
                 regex_string = f"{self.sep}({regex_string}){self.sep}"
             elif field["data_type"] == "Datetime":
-                if self.string_date != "EXCEL":
+                if self.string_date == "MANY":
+                    regex_string = self.string_time_to_regex(field["t_value"])
+                elif self.string_date != "EXCEL":
                     regex_string = self.string_time_to_regex(self.string_date)
             if regex_string:
                 field["regex"] = regex_string
@@ -383,6 +438,7 @@ class MatchAws:
             available_data["iso_week"] = iso_date[1]
             available_data["iso_day"] = iso_date[2]
             available_data["month"] = some_date.month
+            self.months.add((some_date.year, some_date.month))
             # if not first_iso:
             #     first_iso = iso_date
 
@@ -784,8 +840,14 @@ class MatchAws:
                 continue
             if field.get("duplicated_in"):
                 duplicated_in = field["duplicated_in"]
+                some_almost_empty = False
+                if field.get("clean_function") == "almost_empty":
+                    some_almost_empty = True
+                if not some_almost_empty:
+                    if duplicated_in.get("clean_function") == "almost_empty":
+                        some_almost_empty = True
                 duplicated_value = row[duplicated_in["position"]]
-                if duplicated_value != value:
+                if duplicated_value != value and not some_almost_empty:
                     error = f"El valor de las columnas que apuntan a " \
                             f"{field['name']} no coinciden"
             try:
@@ -799,6 +861,10 @@ class MatchAws:
                         seconds = round(seconds)
                         value = datetime(1899, 12, 30) + timedelta(
                             days=days, seconds=seconds)
+                        self.last_date_formatted = value
+                    elif self.string_date == "MANY":
+                        self.last_date = value
+                        value = datetime.strptime(value, field.get("t_value"))
                         self.last_date_formatted = value
                     else:
                         self.last_date = value

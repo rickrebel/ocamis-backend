@@ -280,11 +280,11 @@ class Match:
                 "parent": column.parent_column.id if column.parent_column else None,
                 "child": column.child_column.id if column.child_column else None,
             }
-            # if is_special_column:
+
             special_functions = [
                 "fragmented", "concatenated", "only_params_parent",
                 "only_params_child", "text_nulls", "same_separator",
-                "simple_regex"]
+                "simple_regex", "almost_empty", "format_date"]
             transformation = column.column_transformations \
                 .filter(clean_function__name__in=special_functions)
             if transformation.count() > 1:
@@ -427,13 +427,13 @@ class Match:
         from data_param.models import Transformation
         transformation = Transformation.objects.filter(
             clean_function__name="format_date",
-            file_control=self.file_control).first()
-        if not transformation:
-            transformation = Transformation.objects.filter(
-                clean_function__name="format_date",
-                name_column__file_control=self.file_control).first()
-        return transformation.addl_params.get("value") \
-            if transformation else None  # '%Y-%m-%d %H:%M:%S.%fYYY'
+            name_column__file_control=self.file_control)
+        transformation_count = transformation.count()
+        if not transformation_count:
+            return None
+        elif transformation_count > 1:
+            return "MANY"
+        return transformation.first().addl_params.get("value")
 
     def save_catalog_csv(self, path, model_name):
         from task.serverless import async_in_lambda
