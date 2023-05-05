@@ -133,6 +133,7 @@ class Match:
         missing_criteria = self.calculate_minimals_criteria()
         if not string_date:
             missing_criteria.append("Sin formato de fecha")
+        # elif string_date == "MANY":
         if self.lap > 0:
             missing_criteria.append("Ya se ha insertado este archivo")
         invalid_fields = self.name_columns.filter(
@@ -228,7 +229,7 @@ class Match:
             if is_prepare:
                 dump_sample = json.dumps(sheet_file.sample_data)
                 final_path = f"catalogs/{self.agency.acronym}" \
-                             f"/sample_file_{self.data_file.id}.json"
+                             f"/sample_file_{sheet_file.id}.json"
                 file_sample, errors = create_file(
                     dump_sample, self.s3_client, final_path=final_path)
                 if errors:
@@ -281,21 +282,27 @@ class Match:
                 "child": column.child_column.id if column.child_column else None,
             }
 
-            special_functions = [
-                "fragmented", "concatenated", "only_params_parent",
-                "only_params_child", "text_nulls", "same_separator",
-                "simple_regex", "almost_empty", "format_date"]
-            transformation = column.column_transformations \
-                .filter(clean_function__name__in=special_functions)
-            if transformation.count() > 1:
+            valid_transformation = column.column_transformations.all() \
+                .exclude(clean_function__ready_code="not_ready")
+            # .filter(clean_function__name__in=functions_alone)
+            ready_codes = valid_transformation.values_list(
+                "clean_function__ready_code", flat=True)
+            unique_codes = set(ready_codes)
+            if len(unique_codes) != len(ready_codes):
                 name_in_data2 = get_name_in_data(column)
+                clean_functions = valid_transformation.values_list(
+                    "clean_function__name", flat=True)
                 err = f"La columna {name_in_data2} tiene más de una " \
-                      f"transformación especial que no se pueden aplicar a la vez"
+                      f"transformación especial que no se pueden aplicar a " \
+                      f"la vez: {clean_functions}"
                 all_errors.append(err)
-            elif transformation.exists():
-                first_t = transformation.first()
-                new_column["clean_function"] = first_t.clean_function.name
-                new_column["t_value"] = first_t.addl_params.get("value")
+            elif valid_transformation.exists():
+                # first_t = valid_transformation.first()
+                # new_column["clean_function"] = first_t.clean_function.name
+                # new_column["t_value"] = first_t.addl_params.get("value")
+                for transformation in valid_transformation:
+                    new_column[transformation.clean_function.name] = \
+                        transformation.addl_params.get("value", True)
             return new_column
 
         included_columns = []
@@ -395,31 +402,25 @@ class Match:
             error_text = f"La columna de tipo {column.column_type.public_name}" \
                 f" no tiene la transformación que le corresponde"
             missing_criteria.append(error_text)
-        valid_control_trans = [
-            "include_tabs_by_name", "exclude_tabs_by_name",
-            "include_tabs_by_index", "exclude_tabs_by_index",
-            "only_cols_with_headers", "no_valid_row_data"]
-        control_transformations = self.file_control.file_transformations\
-            .exclude(clean_function__name__in=valid_control_trans)
-        valid_column_trans = [
-            "fragmented", "concatenated", "format_date", "clean_key_container",
-            "get_ceil", "only_params_parent", "only_params_child",
-            "global_variable", "text_nulls", "almost_empty", "same_separator",
-            "simple_regex"]
-        related_transformations = Transformation.objects\
-            .filter(name_column__file_control=self.file_control)\
-            .exclude(clean_function__name__in=valid_column_trans)
-        # column_transformations = self.name_columns.column_transformations\
+        # control_transformations = self.file_control.file_transformations\
+        #     .exclude(clean_function__name__in=valid_control_trans)
+        control_invalid_transformations = self.file_control.file_transformations\
+            .filter(clean_function__ready_code="not_ready")
+        # invalid_transformations = Transformation.objects\
+        #     .filter(name_column__file_control=self.file_control)\
         #     .exclude(clean_function__name__in=valid_column_trans)
+        invalid_transformations = Transformation.objects.filter(
+            name_column__file_control=self.file_control,
+            clean_function__ready_code="not_ready")
 
         def add_transformation_error(transform):
             public_name = transform.clean_function.public_name
             error_txt = f"La transformación {public_name} aún no está soportada"
             missing_criteria.append(error_txt)
 
-        for transformation in control_transformations:
+        for transformation in control_invalid_transformations:
             add_transformation_error(transformation)
-        for transformation in related_transformations:
+        for transformation in invalid_transformations:
             add_transformation_error(transformation)
         return missing_criteria
 

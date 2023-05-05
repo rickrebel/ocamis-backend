@@ -316,8 +316,10 @@ class MatchAws:
         self.special_fields = [field for field in self.existing_fields
                                if field["is_special"]]
 
+        # self.sep_fields = [field for field in self.existing_fields
+        #                    if field.get("clean_function") == "same_separator"]
         self.sep_fields = [field for field in self.existing_fields
-                           if field.get("clean_function") == "same_separator"]
+                           if field.get("same_separator")]
         self.some_same_separator = len(self.sep_fields) > 0
         self.regex_fields = []
         for field in self.existing_fields:
@@ -326,12 +328,19 @@ class MatchAws:
             if field["regex_format"] and len(field["regex_format"]) > 10:
                 regex_string = field["regex_format"][1:-1]
                 regex_string = f"{self.sep}?({regex_string}){self.sep}?"
-            if field.get("clean_function") == "simple_regex":
-                regex_string = field["t_value"]
-                regex_string = f"{self.sep}({regex_string}){self.sep}"
+            # if field.get("clean_function") == "simple_regex":
+            #     regex_string = field["t_value"]
+            #     regex_string = f"{self.sep}({regex_string}){self.sep}"
+            simple_regex = field.get("simple_regex")
+            if simple_regex:
+                regex_string = f"{self.sep}({simple_regex}){self.sep}"
             elif field["data_type"] == "Datetime":
                 if self.string_date == "MANY":
-                    regex_string = self.string_time_to_regex(field["t_value"])
+                    date_regex = field.get("format_date")
+                    if date_regex:
+                        regex_string = self.string_time_to_regex(date_regex)
+                    else:
+                        regex_string = False
                 elif self.string_date != "EXCEL":
                     regex_string = self.string_time_to_regex(self.string_date)
             if regex_string:
@@ -626,7 +635,9 @@ class MatchAws:
                 continue
             position_separator = None
             for idx_block, block_field in enumerate(block_fields):
-                if block_field.get("clean_function") == "same_separator":
+                same_separator = block_field.get("same_separator")
+                # if block_field.get("clean_function") == "same_separator":
+                if same_separator:
                     if position_separator is None:
                         position_separator = idx_block
                     else:
@@ -747,7 +758,8 @@ class MatchAws:
         for built_col in base_built_cols:
             origin_cols = [col for col in self.existing_fields
                            if col["child"] == built_col["name_column"]]
-            origin_cols = sorted(origin_cols, key=lambda x: x.get("t_value"))
+            # origin_cols = sorted(origin_cols, key=lambda x: x.get("t_value"))
+            origin_cols = sorted(origin_cols, key=lambda x: x.get("fragmented"))
             built_col["origin_cols"] = origin_cols
             built_cols.append(built_col)
         return built_cols
@@ -766,7 +778,9 @@ class MatchAws:
                 continue
             destiny_cols = [col for col in base_divided_cols
                             if col["name_column"] == parent]
-            destiny_cols = sorted(destiny_cols, key=lambda x: x.get("t_value"))
+            # destiny_cols = sorted(destiny_cols, key=lambda x: x.get("t_value"))
+            destiny_cols = sorted(
+                destiny_cols, key=lambda x: x.get("concatenated"))
             parent_col["destiny_cols"] = destiny_cols
             divided_cols.append(parent_col)
         return divided_cols
@@ -776,7 +790,8 @@ class MatchAws:
         ceil_excel_cols = [col for col in self.existing_fields
                            if col["column_type"] == 'ceil_excel']
         for col in ceil_excel_cols:
-            ceil = col.get("t_value")
+            # ceil = col.get("t_value")
+            ceil = col.get("get_ceil")
             if not ceil:
                 continue
             row_position = int(ceil[1:])
@@ -791,12 +806,14 @@ class MatchAws:
             origin_values = []
             for origin_col in built_col["origin_cols"]:
                 origin_values.append(row[origin_col["position"]])
-            concat_char = built_col.get("t_value", "")
+            # concat_char = built_col.get("t_value", "")
+            concat_char = built_col.get("only_params_child")
             built_value = concat_char.join(origin_values)
             available_data[built_col["name"]] = built_value
 
         for divided_col in special_cols["divided"]:
-            divided_char = divided_col.get("t_value")
+            # divided_char = divided_col.get("t_value")
+            divided_char = divided_col.get("concatenated")
             if not divided_char:
                 continue
             origin_value = row[divided_col["position"]]
@@ -807,7 +824,9 @@ class MatchAws:
                 available_data[destiny_col["name"]] = divided_value
 
         for global_col in special_cols["global"]:
-            available_data[global_col["name"]] = global_col["t_value"]
+            global_value = global_col.get("global_variable")
+            # available_data[global_col["name"]] = global_col["t_value"]
+            available_data[global_col["name"]] = global_value
 
         for tab_col in special_cols["tab"]:
             available_data[tab_col["name"]] = self.sheet_name
@@ -841,10 +860,13 @@ class MatchAws:
             if field.get("duplicated_in"):
                 duplicated_in = field["duplicated_in"]
                 some_almost_empty = False
-                if field.get("clean_function") == "almost_empty":
+                # if field.get("clean_function") == "almost_empty":
+                if "almost_empty" in field:
                     some_almost_empty = True
                 if not some_almost_empty:
-                    if duplicated_in.get("clean_function") == "almost_empty":
+                    dupl_almost_empty = duplicated_in.get("almost_empty")
+                    # if duplicated_in.get("clean_function") == "almost_empty":
+                    if dupl_almost_empty:
                         some_almost_empty = True
                 duplicated_value = row[duplicated_in["position"]]
                 if duplicated_value != value and not some_almost_empty:
@@ -864,7 +886,8 @@ class MatchAws:
                         self.last_date_formatted = value
                     elif self.string_date == "MANY":
                         self.last_date = value
-                        value = datetime.strptime(value, field.get("t_value"))
+                        format_date = field.get("format_date")
+                        value = datetime.strptime(value, format_date)
                         self.last_date_formatted = value
                     else:
                         self.last_date = value
@@ -888,13 +911,19 @@ class MatchAws:
                 elif field.get("max_length"):
                     if len(value) > field["max_length"]:
                         error = "El valor tiene más de los caracteres permitidos"
-                clean_function = field.get("clean_function")
-                if clean_function:
-                    if clean_function == "almost_empty":
+                # clean_function = field.get("clean_function")
+                # if clean_function:
+                #     if clean_function == "almost_empty":
+                #         value = None
+                #     elif clean_function == "text_nulls":
+                #         if value == field.get("t_value"):
+                #             value = None
+                if "almost_empty" in field:
+                    value = None
+                elif "text_nulls" in field:
+                    text_nulls = field["text_nulls"]
+                    if value == text_nulls:
                         value = None
-                    elif clean_function == "text_nulls":
-                        if value == field.get("t_value"):
-                            value = None
             if error:
                 self.append_missing_field(
                     row, field["name_column"], value, error=error, drug_uuid=uuid)

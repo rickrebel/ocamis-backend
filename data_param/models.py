@@ -293,16 +293,25 @@ class DictionaryFile(models.Model):
 
 
 class CleanFunction(models.Model):
+    READY_CHOICES = (
+        ("ready_alone", "✳️Listo, solo"),
+        ("ready", "Listo PREVIO"),
+        ("ready 1", "1️⃣Listo 1"),
+        ("ready 2", "2️⃣Listo 2"),
+        ("ready CAT", "✅Listo CAT"),
+        ("ready EXT", "✅Listo Ext"),
+        ("not_ready", "❌Not ready"))
+
     name = models.CharField(max_length=80)
     public_name = models.CharField(max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     priority = models.SmallIntegerField(
         default=5, 
-        verbose_name="Prioridad",
+        verbose_name="orden",
         help_text="Nivel de prioridad (ordenación)")
     for_all_data = models.BooleanField(
-        default=False, verbose_name="Es general",
-        help_text="Es una transformación para toda la info")
+        default=False, verbose_name="All",
+        help_text="Es una transformación para todo el archivo")
     restricted_field = models.ForeignKey(
         FinalField, blank=True, null=True,
         verbose_name="Campo exclusivo",
@@ -311,6 +320,9 @@ class CleanFunction(models.Model):
     addl_params = JSONField(
         blank=True, null=True,
         verbose_name="Otras configuraciones")
+    ready_code = models.CharField(
+        max_length=12, choices=READY_CHOICES, default="not_ready",
+        verbose_name="Ready")
     column_type = models.ForeignKey(
         ColumnType, related_name="clean_functions",
         on_delete=models.CASCADE,

@@ -120,8 +120,8 @@ class DataTypeAdmin(admin.ModelAdmin):
 class CleanFunctionAdmin(admin.ModelAdmin):
     list_display = [
         "name", "public_name", "for_all_data", 
-        "description", "priority", "column_type"]
-    list_editable = ["public_name", "priority"]
+        "priority", "ready_code", "description", "column_type"]
+    list_editable = ["public_name", "priority", "ready_code"]
     ordering = ["for_all_data", "priority", "public_name"]
 
 
