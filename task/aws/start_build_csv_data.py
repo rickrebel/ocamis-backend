@@ -8,7 +8,9 @@ import unidecode
 import re
 # from .common import obtain_decode
 
-available_delivered = ["ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL"]
+available_delivered = [
+    "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
+    "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO"]
 request_headers = {"Content-Type": "application/json"}
 
 
@@ -40,7 +42,9 @@ def text_normalizer(text):
 
 
 def calculate_delivered(available_data):
-    class_presc = available_data.get("clasif_assortment_presc")
+    class_presc = available_data.get("clasif_assortment")
+    if not class_presc:
+        class_presc = available_data.get("clasif_assortment_presc")
     is_cancelled = class_presc == "CANCELADA"
     if class_presc:
         if class_presc not in available_delivered:
@@ -253,7 +257,7 @@ class MatchAws:
 
         self.delimit = self.delimiter or "|"
         self.sep = "\|" if self.delimit == "|" else self.delimit
-        self.string_date = init_data["string_date"]
+        self.string_date = init_data["string_date"].strip()
         self.columns_count = init_data["columns_count"]
         print("string_date", self.string_date)
 
@@ -872,10 +876,29 @@ class MatchAws:
                 if duplicated_value != value and not some_almost_empty:
                     error = f"El valor de las columnas que apuntan a " \
                             f"{field['name']} no coinciden"
+            if "almost_empty" in field:
+                value = None
+            elif "text_nulls" in field:
+                text_nulls = field["text_nulls"]
+                text_nulls = text_nulls.split(",")
+                text_nulls = [text_null.strip() for text_null in text_nulls]
+                if value in text_nulls:
+                    value = None
             try:
-                if field["data_type"] == "Datetime":  # and not is_same_date:
+                if not value:
+                    pass
+                elif field["data_type"] == "Datetime":  # and not is_same_date:
                     if value == self.last_date and value:
                         value = self.last_date_formatted
+                    elif self.string_date == "EXCELESPECIAL1":
+                        try:
+                            value = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+                        except ValueError:
+                            days = int(value)
+                            seconds = (value - days) * 86400
+                            seconds = round(seconds)
+                            value = datetime(1899, 12, 30) + timedelta(
+                                days=days, seconds=seconds)
                     elif self.string_date == "EXCEL":
                         self.last_date = value
                         days = int(value)
@@ -886,7 +909,7 @@ class MatchAws:
                         self.last_date_formatted = value
                     elif self.string_date == "MANY":
                         self.last_date = value
-                        format_date = field.get("format_date")
+                        format_date = field.get("format_date").strip()
                         value = datetime.strptime(value, format_date)
                         self.last_date_formatted = value
                     else:
@@ -901,6 +924,8 @@ class MatchAws:
                         error = "El valor no puede ser negativo"
                 elif field["data_type"] == "Float":
                     value = float(value)
+                else:
+                    value = str(value)
             except ValueError:
                 error = "No se pudo convertir a %s" % field["data_type"]
             if value and not error:
@@ -918,12 +943,6 @@ class MatchAws:
                 #     elif clean_function == "text_nulls":
                 #         if value == field.get("t_value"):
                 #             value = None
-                if "almost_empty" in field:
-                    value = None
-                elif "text_nulls" in field:
-                    text_nulls = field["text_nulls"]
-                    if value == text_nulls:
-                        value = None
             if error:
                 self.append_missing_field(
                     row, field["name_column"], value, error=error, drug_uuid=uuid)

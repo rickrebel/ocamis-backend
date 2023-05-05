@@ -256,6 +256,7 @@ class Match:
             ["document_type"],
             ["prescribed_amount"],
             ["delivered_amount"],
+            ["clasif_assortment"],
             ["clasif_assortment_presc"],
             ["price:Drug"],
         ]
@@ -346,7 +347,7 @@ class Match:
             error = "No se encontraron campos para crear las recetas"
             all_errors.append(error)
         self.existing_fields = sorted(
-            self.existing_fields, key=lambda x: x.get("position", 90))
+            self.existing_fields, key=lambda x: x.get("position", 90) or 99)
         return self.existing_fields, all_errors
 
     def calculate_minimals_criteria(self):
