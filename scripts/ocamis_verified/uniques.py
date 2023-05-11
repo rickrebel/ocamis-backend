@@ -113,7 +113,7 @@ def get_pairs(input_list):
 
 def build_pairs_sheets(filters):
     folios, sheets, month_counts = get_duplicate_folios(filters)
-
+    # SPACE
     def build_small_pairs(input_dict, input_name):
         len_input = len(input_dict)
         if len_input:
@@ -160,13 +160,13 @@ def save_sheets_months(filters, month_counts):
 def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
     from django.utils import timezone
     from inai.models import CrossingSheet, SheetFile
-
+    # SPACE
     shared_pairs = month_pairs["shared"]
     month = filters["month"]
     year = filters["year"]
     year_month = f"{year}-{str(month).zfill(2)}"
     edited_crosses = []
-
+    # SPACE
     for sheet_id, value in sheets.items():
         current_sheet = SheetFile.objects.get(id=sheet_id)
         if current_sheet.year_month != year_month:
@@ -175,14 +175,14 @@ def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
         current_sheet.duplicates_count = value["dupli"]
         current_sheet.shared_count = value["shared"]
         current_sheet.save()
-
+    # SPACE
     def same_year_month(cr):
         year_months = [cr.sheet_file_1.year_month, cr.sheet_file_2.year_month]
         some_is_same = year_month in year_months
         if some_is_same:
             edited_crosses.append(cr.id)
         return some_is_same
-
+    # SPACE
     already_shared = set()
     for pair, value in month_pairs["dupli"].items():
         # shared_count = shared_pairs.pop(pair, 0)
@@ -196,7 +196,7 @@ def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
         shared_count = shared_pairs.get(pair, 0)
         if shared_count:
             already_shared.add(pair)
-
+        # SPACE
         cross.duplicates_count = value
         cross.shared_count = shared_count
         cross.last_crossing = timezone.now()
@@ -205,7 +205,7 @@ def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
             print("last_crossing", cross.last_crossing)
             print("!!!!!!!!!!!!!!!!!!!!!\n")
         cross.save()
-
+    # SPACE
     for pair, value in shared_pairs.items():
         if pair in already_shared:
             continue
@@ -220,7 +220,7 @@ def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
         cross.shared_count = value
         cross.last_crossing = timezone.now()
         cross.save()
-
+    # SPACE
     year_month_crosses_1 = CrossingSheet.objects.filter(
         entity_id=entity_id, sheet_file_1__year_month=year_month)
     year_month_crosses_2 = CrossingSheet.objects.filter(
@@ -244,7 +244,7 @@ def get_uuids_duplicates(filters):
     year = filters["year"]
     month_str = str(month).zfill(2)
     # year_month = f"{year}-{month_str}"
-
+    # SPACE
     create_temp_table = f"""
         CREATE TEMP TABLE merge_sheetfiles AS
         SELECT
@@ -257,7 +257,7 @@ def get_uuids_duplicates(filters):
             datafile.entity_id = {entity_id}
     """
     cursor.execute(create_temp_table)
-
+    # SPACE
     sql_query = f"""
         SELECT
             drug.sheet_file_id AS sheet_id,
@@ -324,7 +324,7 @@ def update_folios(for_edit_folios):
             new_uuid UUID
         )
     """
-
+    # SPACE
     folios = ", ".join([f"('{original}', '{new}')"
                         for original, new in for_edit_folios])
     cursor.execute(create_temp_table)
@@ -333,7 +333,7 @@ def update_folios(for_edit_folios):
         VALUES {folios}
     """
     cursor.execute(sql_insert)
-
+    # SPACE
     sql_join = """
         UPDATE formula_drug
         SET prescription_id = temp.new_uuid
@@ -368,11 +368,11 @@ def update_delivered(for_edit_delivered):
             new_delivered VARCHAR(32)
         )
     """
-
+    # SPACE
     # delivered = ", ".join([f"('{original}', '{new}')" for original, new in for_edit_delivered])
     delivered = [f"('{original}', '{new}')" for original, new in for_edit_delivered]
     delivered = ", ".join(delivered)
-
+    # SPACE
     cursor.execute(create_temp_table)
     sql_insert = f"""
         INSERT INTO temp_new_delivered (original_uuid, new_delivered)
@@ -380,14 +380,14 @@ def update_delivered(for_edit_delivered):
             {delivered}
     """
     cursor.execute(sql_insert)
-
+    # SPACE
     # sql_get_temp = """
     #     SELECT * FROM temp_new_delivered
     # """
     # cursor.execute(sql_get_temp)
     # temp = cursor.fetchall()
     # print("temp", temp)
-
+    # SPACE
     sql_join = """
         UPDATE formula_prescription
         SET 
@@ -458,11 +458,11 @@ def get_duplicates_folios(filters, is_explore=True):
     final_pairs = {"dupli": {}, "shared": {}}
     all_sheets = {}
     unique_counts = {"dupli": 0, "shared": 0, "total": 0}
-
+    # SPACE
     def process_week_explore(final_filters):
         pairs, sheets_totals, month_totals = build_pairs_sheets(final_filters)
         print("start process_week_explore", datetime.now())
-
+        # SPACE
         def add_to_dict(group_name):
             for pair, value in pairs[group_name].items():
                 if pair not in final_pairs[group_name]:
@@ -473,7 +473,7 @@ def get_duplicates_folios(filters, is_explore=True):
             add_to_dict(group)
             unique_counts[group] += month_totals[group]
         unique_counts["total"] += month_totals["total"]
-
+        # SPACE
         for sheet_id, sheet_value in sheets_totals.items():
             if sheet_id not in all_sheets:
                 all_sheets[sheet_id] = sheet_value
@@ -481,7 +481,7 @@ def get_duplicates_folios(filters, is_explore=True):
                 all_sheets[sheet_id]["total"] += sheet_value["total"]
                 all_sheets[sheet_id]["dupli"] += sheet_value["dupli"]
                 all_sheets[sheet_id]["shared"] += sheet_value["shared"]
-
+    # SPACE
     for year in all_years:
         filters["year"] = year
         if one_year:
@@ -558,4 +558,4 @@ def get_period_report(
 # get_period_report(53, True, "202004", "202006")
 # get_period_report(53, False, "201711", "201801")
 # get_period_report(53, False, "202004", "202006")
-get_period_report(53, True, "202004", "202006")
+get_period_report(53, True, "201906", "201909")

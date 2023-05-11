@@ -98,10 +98,10 @@ print("HOLI")
 # sincronize_entities('data_param', 'FinalField')
 
 # generate_file('category', 'FileType')
-# sincronize_entities('category', 'FileType', field_id='name')
+# sincronize_entities('inai', 'FileType', field_id='name')
 #
 # generate_file('classify_task', 'Stage')
-# sincronize_entities('classify_task', 'Stage', field_id='name')
+# sincronize_entities('inai', 'Behavior', field_id='name')
 
 # generate_file('task', 'TaskFunction', field_id='name')
 # sincronize_entities('task', 'TaskFunction', field_id='name')

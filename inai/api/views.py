@@ -418,10 +418,25 @@ class MonthEntityViewSet(CreateRetrievView):
         crossing_sheets_2 = CrossingSheet.objects.filter(
             sheet_file_2__in=sheet_files)
         all_crossing_sheets = crossing_sheets_1 | crossing_sheets_2
+        sheets_file_1_ids = crossing_sheets_1.values_list(
+            "sheet_file_1", flat=True)
+        sheets_file_2_ids = crossing_sheets_2.values_list(
+            "sheet_file_2", flat=True)
+        sheets_file_ids = list(sheets_file_1_ids) + list(sheets_file_2_ids)
+        sheets_file_ids = list(set(sheets_file_ids))
+        original_sheet_files_ids = sheet_files.values_list(
+            "id", flat=True)
+        complement_sheet_files = SheetFile.objects\
+            .filter(id__in=sheets_file_ids)\
+            .exclude(id__in=original_sheet_files_ids)
+
         serializer_crossing_sheets = serializers.CrossingSheetSimpleSerializer(
             all_crossing_sheets, many=True)
+        serializer_complement_files = SheetFileSimpleSerializer(
+            complement_sheet_files, many=True)
         return Response({
             "sheet_files": serializer_sheet_files.data,
+            "complement_sheets": serializer_complement_files.data,
             "crossing_sheets": serializer_crossing_sheets.data
         })
 
