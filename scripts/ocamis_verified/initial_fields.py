@@ -7,7 +7,7 @@ def generate_months():
             year = sum_year + 2017
             for month in range(12):
                 month += 1
-                ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
+                ye_mo = f"{year}-{month:02d}"
                 MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
                 #print("%s-%s" % (agency.id, ye_mo))
 
@@ -18,8 +18,11 @@ def generate_months_one_year(year):
     for agency in Agency.objects.all():
         for month in range(12):
             month += 1
-            ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
-            MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
+            ye_mo = f"{year}-{month:02d}"
+            MonthAgency.objects.get_or_create(
+                agency=agency,
+                year_month=ye_mo,
+                entity=agency.entity)
             #print("%s-%s" % (agency.id, ye_mo))
 
 
@@ -31,7 +34,7 @@ def generate_months_agency(acronym):
             year = sum_year + 2017
             for month in range(12):
                 month += 1
-                ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
+                ye_mo = f"{year}-{month:02d}"
                 MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
                 #print("%s-%s" % (agency.id, ye_mo))
 

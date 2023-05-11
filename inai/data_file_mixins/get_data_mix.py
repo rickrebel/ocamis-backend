@@ -262,28 +262,6 @@ class ExtractorsMix:
                 file_control.save()
         return [], [], self
 
-    def explore_data_xls_after(self, parent_task=None, **kwargs):
-        # params_after = {}
-        # if parent_task:
-        #     params_after = parent_task.params_after
-        new_sheets = kwargs.get("new_sheets", {})
-        all_sheet_names = kwargs.get("all_sheet_names", [])
-        # delimiter = kwargs.get("delimiter")
-        decode = kwargs.get("decode")
-        if decode:
-            file_control = self.petition_file_control.file_control
-            if not file_control.decode and file_control.data_group.name != 'orphan':
-                file_control.decode = decode
-                file_control.save()
-        self.sheet_names = all_sheet_names
-        # current_sheets = params_after.get("current_sheets", [])
-        # print(current_sheets)
-        sample_data = self.sample_data or {}
-        sample_data.update(new_sheets)
-        self.sample_data = sample_data
-        self.save()
-        return [], [], self
-
     def build_sample_data_after(self, parent_task=None, **kwargs):
         from inai.models import SheetFile
         new_sheets = kwargs.get("new_sheets", {})

@@ -5,8 +5,8 @@ from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
 
 from inai.models import (
-    Petition, MonthAgency, PetitionMonth, PetitionBreak,
-    ReplyFile, PetitionFileControl, DataFile)
+    Petition, SheetFile, PetitionMonth, PetitionBreak,
+    ReplyFile, PetitionFileControl, DataFile, MonthAgency)
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -168,7 +168,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             if limiters.get("selected_year"):
                 if limiters.get("selected_month"):
                     all_filters["petition_months__month_agency__year_month"] =\
-                        f"{limiters.get('selected_year')}{limiters.get('selected_month')}"
+                        f"{limiters.get('selected_year')}-{limiters.get('selected_month')}"
                 else:
                     all_filters["petition_months__month_agency__year_month__icontains"] =\
                         limiters.get("selected_year")
@@ -347,9 +347,12 @@ class AscertainableViewSet(CreateRetrievView):
         return DataFile.objects.all()
 
     def create(self, request, petition_file_control_id=False, **kwargs):
-
+        from geo.models import Agency
         data_file = request.data
         new_data_file = DataFile()
+        agency_id = request.data.get("agency_id")
+        agency = Agency.objects.get(id=agency_id)
+        data_file["entity"] = agency.entity_id
 
         serializer_data_file = self.get_serializer_class()(
             new_data_file, data=data_file)
@@ -390,3 +393,63 @@ class AscertainableViewSet(CreateRetrievView):
         data_file = self.get_object()
         self.perform_destroy(data_file)
         return Response(status=status.HTTP_200_OK)
+
+
+class MonthEntityViewSet(CreateRetrievView):
+    queryset = MonthAgency.objects.all()
+    serializer_class = serializers.MonthEntitySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "retrieve": serializers.MonthEntitySerializer,
+    }
+
+    def retrieve(self, request, **kwargs):
+        from inai.api.serializers import (
+            SheetFileSimpleSerializer, CrossingSheetSimpleSerializer)
+        from inai.models import CrossingSheet
+        month_entity = self.get_object()
+        sheet_files = SheetFile.objects.filter(
+            year_month=month_entity.year_month,
+            data_file__entity=month_entity.entity)
+        serializer_sheet_files = SheetFileSimpleSerializer(
+            sheet_files, many=True)
+        crossing_sheets_1 = CrossingSheet.objects.filter(
+            sheet_file_1__in=sheet_files)
+        crossing_sheets_2 = CrossingSheet.objects.filter(
+            sheet_file_2__in=sheet_files)
+        all_crossing_sheets = crossing_sheets_1 | crossing_sheets_2
+        serializer_crossing_sheets = serializers.CrossingSheetSimpleSerializer(
+            all_crossing_sheets, many=True)
+        return Response({
+            "sheet_files": serializer_sheet_files.data,
+            "crossing_sheets": serializer_crossing_sheets.data
+        })
+
+
+class SheetFileViewSet(ListRetrieveUpdateMix):
+    queryset = SheetFile.objects.all()
+    serializer_class = serializers.SheetFileEditSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "update": serializers.SheetFileEditSerializer,
+    }
+
+    def get_queryset(self):
+        return SheetFile.objects.all()
+
+    def update(self, request, **kwargs):
+
+        sheet_file = self.get_object()
+        data = request.data
+        # new_data_file = DataFile()
+
+        serializer_sheet_file = self.get_serializer_class()(
+            sheet_file, data=data)
+        if serializer_sheet_file.is_valid():
+            # control = serializer_data_file.save()
+            serializer_sheet_file.save()
+        else:
+            return Response({ "errors": serializer_sheet_file.errors },
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer_sheet_file.data, status=status.HTTP_206_PARTIAL_CONTENT)

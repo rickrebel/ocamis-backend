@@ -26,7 +26,7 @@ class AsyncTaskSerializer(serializers.ModelSerializer):
     file_control_id = serializers.IntegerField(
         source="data_file.petition_file_control.file_control_id", read_only=True)
     data_file_id = serializers.IntegerField(
-        source="data_file.origin_file_id", read_only=True)
+        source="sheet_file.data_file_id", read_only=True)
     petition_file_control_id = serializers.IntegerField(
         source="data_file.petition_file_control_id", read_only=True)
 

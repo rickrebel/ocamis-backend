@@ -66,7 +66,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
         for month in range(12):
             try:
                 month += 1
-                ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
+                ye_mo = f"{year}-{month:02d}"
                 MonthAgency.objects.create(agency=agency, year_month=ye_mo)
             except Exception as e:
                 return Response(

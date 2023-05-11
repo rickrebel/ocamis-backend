@@ -1,6 +1,6 @@
 import requests
 import json
-request_headers = {"Content-Type": "application/json"}
+from task.aws.common import request_headers
 
 
 # def save_csv_in_db(event, context):

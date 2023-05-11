@@ -165,17 +165,17 @@ def insert_between_months(row, petition):
     #print(petition.send_petition)
     month = petition.send_petition.month
     year = petition.send_petition.year
-    curr_month = "%s%s%s" % (year, '0' if month < 10 else '', month)
+    curr_month = f"{year}-{month:02d}"
     pet_months = PetitionMonth.objects.filter(petition__agency=petition.agency)
     print("-------------")
     print("curr_month: ", curr_month)
     if pet_months:
         last_pet_mon = pet_months.latest('month_agency__year_month')
-        last_month = last_pet_mon.month_agency.year_month if last_pet_mon else '201500'
+        last_month = last_pet_mon.month_agency.year_month if last_pet_mon else '2015-00'
         print("last_month: ", last_month)
     else:
         print("NO ENCUENTRO NADA EN pet_months")
-        last_month = '201500'
+        last_month = '2015-00'
     month_agencies = MonthAgency.objects.filter(agency=petition.agency)
     between_months = month_agencies.filter(
         year_month__gt=last_month, year_month__lt=curr_month)

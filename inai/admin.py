@@ -2,8 +2,8 @@ from django.contrib import admin
 from django.contrib.admin import AdminSite
 
 from .models import (
-    Petition, PetitionFileControl, DataFile,
-    PetitionMonth, ReplyFile, SheetFile, LapSheet, TableFile)
+    Petition, PetitionFileControl, DataFile, CrossingSheet,
+    PetitionMonth, ReplyFile, SheetFile, LapSheet, TableFile, Behavior)
 
 
 class OcamisAdminSite(AdminSite):
@@ -29,8 +29,7 @@ class ReplyFileAdmin(admin.ModelAdmin):
 class DataFileInline(admin.TabularInline):
     model = DataFile
     raw_id_fields = [
-        "petition_file_control", "petition_month", "origin_file",
-        "reply_file"]
+        "petition_file_control", "petition_month", "reply_file"]
     extra = 0
     show_change_link = True
 
@@ -83,11 +82,10 @@ class DataFileAdmin(admin.ModelAdmin):
         "status",
     ]
     raw_id_fields = [
-        "petition_file_control", "petition_month", "origin_file",
+        "entity", "petition_file_control", "petition_month",
         "reply_file"]
     list_filter = [
         "file_type", "stage", "status",
-        # ("origin_file", admin.EmptyFieldListFilter),
         "petition_file_control__petition__agency"]
     search_fields = [
         "file", "petition_file_control__petition__agency__acronym",
@@ -96,7 +94,7 @@ class DataFileAdmin(admin.ModelAdmin):
 
     def get_list_filter(self, request):
         list_filter = super().get_list_filter(request)
-        return list_filter  # + ['origin_file__isnull']
+        return list_filter
 
 
 class TableFileInline(admin.TabularInline):
@@ -120,6 +118,7 @@ class SheetFileAdmin(admin.ModelAdmin):
         "file",
         "matched",
         "sheet_name",
+        "behavior",
         "total_rows",
     ]
     list_filter = [
@@ -156,6 +155,29 @@ class TableFileAdmin(admin.ModelAdmin):
     raw_id_fields = ["lap_sheet"]
 
 
+class CrossingSheetAdmin(admin.ModelAdmin):
+    list_display = [
+        "entity",
+        "duplicates_count",
+        "shared_count",
+        "sheet_file_1",
+        "sheet_file_2",
+    ]
+    list_filter = ["entity"]
+    raw_id_fields = ["entity", "sheet_file_1", "sheet_file_2"]
+
+
+class BehaviorAdmin(admin.ModelAdmin):
+    list_display = [
+        "name",
+        "public_name",
+        "description",
+        "icon",
+        "is_valid",
+        "is_merge"
+    ]
+
+
 ocamis_admin_site.register(ReplyFile, ReplyFileAdmin)
 ocamis_admin_site.register(Petition, PetitionAdmin)
 ocamis_admin_site.register(PetitionFileControl, PetitionFileControlAdmin)
@@ -163,3 +185,5 @@ ocamis_admin_site.register(DataFile, DataFileAdmin)
 ocamis_admin_site.register(SheetFile, SheetFileAdmin)
 ocamis_admin_site.register(LapSheet, LapSheetAdmin)
 ocamis_admin_site.register(TableFile, TableFileAdmin)
+ocamis_admin_site.register(CrossingSheet, CrossingSheetAdmin)
+ocamis_admin_site.register(Behavior, BehaviorAdmin)

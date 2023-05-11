@@ -124,8 +124,9 @@ def massive_upload_csv_to_db(
                 print(reporte_recetas_path)
                 print("start converter_file_in_related_files: ",
                       timezone.now())
-                year_month = "%s%s%s" % (
-                    year, '0' if mon_idx < 10 else '', mon_idx)
+                year_month = f"{year}-{month:02d}"
+                # year_month = "%s%s%s" % (
+                #     year, '0' if mon_idx < 10 else '', mon_idx)
                 successful, errors = converter_file_in_related_files(
                     reporte_recetas_path, year_month=year_month,
                     institution=institution, recipe_path=recipe_path,

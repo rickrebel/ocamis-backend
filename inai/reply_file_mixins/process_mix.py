@@ -58,6 +58,7 @@ class ReplyFileMix:
         for data_file in all_files:
             new_file = DataFile.objects.create(
                 file=data_file["file"],
+                entity=self.petition.agency.entity,
                 reply_file=self,
                 directory=data_file["directory"],
                 petition_file_control=pet_file_ctrl,

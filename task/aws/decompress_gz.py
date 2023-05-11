@@ -1,7 +1,7 @@
 import requests
 import json
 import boto3
-request_headers = {"Content-Type": "application/json"}
+from task.aws.common import obtain_decode, request_headers
 
 
 def get_object_file(s3, file):
@@ -161,27 +161,6 @@ def divide_rows(data_rows, delimiter):
         row_data = [x.strip() for x in row_data]
         structured_data.append(row_data)
     return structured_data
-
-
-def obtain_decode(sample):
-    for row in sample:
-        is_byte = isinstance(row, bytes)
-        posible_latin = False
-        if is_byte:
-            try:
-                row.decode("utf-8")
-            except Exception:
-                posible_latin = True
-            if posible_latin:
-                try:
-                    row.decode("latin-1")
-                    return "latin-1"
-                except Exception as e:
-                    print(e)
-                    return "unknown"
-        else:
-            return "str"
-    return "utf-8"
 
 
 def decode_content(data_rows, decode):

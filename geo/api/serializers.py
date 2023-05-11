@@ -132,9 +132,6 @@ class AgencyFileControlsSerializer(serializers.ModelSerializer):
                 "data_group",
                 "columns",
                 "columns__column_transformations",
-                #"petition_file_control",
-                #"petition_file_control__data_files",
-                #"petition_file_control__data_files__origin_file",
             )
         return FileControlSemiFullSerializer(queryset, many=True).data
 
@@ -143,14 +140,35 @@ class AgencyFileControlsSerializer(serializers.ModelSerializer):
         fields = ["file_controls"]
 
 
+# from inai.api.serializers import SheetFileSimpleSerializer
+# return SheetFileSimpleSerializer(queryset, many=True).data
+# queryset = SheetFile.objects\
+#     .filter(data_file__entity=obj.entity)\
+#     .order_by("year_month")
 # class AgencyFullSerializer(AgencySerializer):
 class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
     from inai.api.serializers import (
-        PetitionSemiFullSerializer, MonthEntitySimpleSerializer)
+        PetitionSemiFullSerializer, MonthEntitySerializer)
 
     petitions = PetitionSemiFullSerializer(many=True)
-    months = MonthEntitySimpleSerializer(many=True)
     #agency_type = read_only_fields(many=True)
+    # months = MonthEntitySimpleSerializer(many=True)
+    months = MonthEntitySerializer(many=True)
+    # sheet_files = serializers.SerializerMethodField(read_only=True)
+    #
+    # def get_sheet_files(self, obj):
+    #     from inai.models import SheetFile
+    #     from django.db.models import Sum
+    #     result = SheetFile.objects\
+    #         .filter(data_file__entity=obj.entity)\
+    #         .values("year_month")\
+    #         .annotate(
+    #             prescriptions_count=Sum("prescriptions_count"),
+    #             duplicates_count=Sum("duplicates_count"),
+    #             shared_count=Sum("shared_count"),
+    #         )\
+    #         .order_by("year_month")
+    #     return result
 
     class Meta:
         model = Agency
@@ -170,7 +188,6 @@ class AgencyVizSerializer(AgencySerializer):
     #def get_months(self, obj):
     #    return MonthAgency.objects.filter(agency=obj)\
     #        .values_list("year_month", flat=True).distinct()
-
 
     class Meta:
         model = Agency

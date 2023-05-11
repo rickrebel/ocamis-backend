@@ -55,9 +55,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         "columns__column_transformations",
         "file_transformations",
         "petition_file_control",
-        # "petition_file_control__data_files",
-        # "petition_file_control__data_files__sheet_files",
-        # "petition_file_control__data_files__origin_file",
     )
 
     def get_serializer_context(self):
@@ -85,9 +82,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             "columns__column_transformations",
             "file_transformations",
             "petition_file_control",
-            # "petition_file_control__data_files",
-            # "petition_file_control__data_files__sheet_files",
-            # "petition_file_control__data_files__origin_file",
         )
         if status_register:
             controls = controls.filter(status_register_id=status_register)

@@ -168,7 +168,7 @@ FROM (
     iso_week AS week,
     clues_id
   FROM desabasto_recipereport2
-  WHERE year_month = 202112) AS rec
+  WHERE year_month = "2021-12") AS rec
   INNER JOIN (
     SELECT
       clave_medicamento AS med_key,

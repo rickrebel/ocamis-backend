@@ -4,10 +4,9 @@ from data_param.api.serializers import FileControlSerializer, NameColumnSerializ
 from inai.models import (
     Petition, PetitionFileControl, DataFile, MonthAgency, PetitionMonth,
     ReplyFile, PetitionBreak, PetitionNegativeReason, SheetFile, LapSheet,
-    TableFile)
+    TableFile, CrossingSheet, Behavior)
 from data_param.models import Transformation, NameColumn, FileControl
 
-from category.models import FileType
 from category.api.serializers import (
     NegativeReasonSimpleSerializer)
 
@@ -77,7 +76,8 @@ class MonthEntitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MonthAgency
-        fields = "__all__"
+        fields = ["id", "year_month", "human_name", "prescriptions_count",
+                  "duplicates_count", "shared_count"]
 
 
 class MonthEntitySimpleSerializer(serializers.ModelSerializer):
@@ -118,6 +118,32 @@ class SheetFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SheetFile
+        fields = "__all__"
+
+
+class SheetFileSimpleSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+
+    class Meta:
+        model = SheetFile
+        # fields = "__all__"
+        exclude = ["sample_data", "error_process", "warnings"]
+
+
+class SheetFileEditSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SheetFile
+        fields = "__all__"
+        read_only_fields = ["file"]
+
+
+class CrossingSheetSimpleSerializer(serializers.ModelSerializer):
+    # name = serializers.ReadOnlyField(source="file.name")
+
+    class Meta:
+        model = CrossingSheet
         fields = "__all__"
 
 
@@ -333,4 +359,11 @@ class PetitionEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         read_only_fields = ["id", "break_dates"]
+        fields = "__all__"
+
+
+class BehaviorSimpleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Behavior
         fields = "__all__"

@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from geo.models import Agency
+from geo.models import Agency, Entity
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
@@ -221,7 +221,15 @@ class MonthAgency(models.Model):
         Agency,
         related_name="months",
         on_delete=models.CASCADE)
+    entity = models.ForeignKey(
+        Entity,
+        related_name="month_entities",
+        on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10)
+    prescriptions_count = models.IntegerField(default=0)
+    duplicates_count = models.IntegerField(default=0)
+    shared_count = models.IntegerField(default=0)
+    last_crossing = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return "%s -- %s" % (self.agency, self.year_month)
@@ -231,12 +239,13 @@ class MonthAgency(models.Model):
         months = [
             "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
             "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-        month_numb = int(self.year_month[-2:])
-        month_name = months[month_numb-1]
-        return "%s/%s" % (month_name, self.year_month[:-2])
+        year, month = self.year_month.split("-")
+        month_name = months[int(month)-1]
+        return "%s/%s" % (month_name, year)
 
     class Meta:
         get_latest_by = "year_month"
+        ordering = ["year_month"]
         verbose_name = "Mes de entidad"
         verbose_name_plural = "Meses de entidad"
 
@@ -315,6 +324,9 @@ class ReplyFile(models.Model, ReplyFileMix):
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
+    entity = models.ForeignKey(
+        Entity, related_name="data_files", on_delete=models.CASCADE,
+        blank=True, null=True)
     zip_path = models.TextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     petition_month = models.ForeignKey(
@@ -322,9 +334,9 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
     # is_final = models.BooleanField(default= True)
-    origin_file = models.ForeignKey(
-        "DataFile", blank=True, null=True, related_name="child_files",
-        verbose_name="archivo origen", on_delete=models.CASCADE)
+    # origin_file = models.ForeignKey(
+    #     "DataFile", blank=True, null=True, related_name="child_files",
+    #     verbose_name="archivo origen", on_delete=models.CASCADE)
     reply_file = models.ForeignKey(
         ReplyFile, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="archivo base", related_name="data_file_childs")
@@ -358,7 +370,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     warnings = JSONField(
         blank=True, null=True, verbose_name="Advertencias")
     total_rows = models.IntegerField(default=0)
-
     # Creo que deben eliminarse:
     sample_data = JSONField(
         blank=True, null=True, verbose_name="Primeros datos, de exploración")
@@ -367,8 +378,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     # {"all": [], "filtered": [], "matched": []}
     all_results = JSONField(
         blank=True, null=True, verbose_name="Todos los resultados")
-    completed_rows = models.IntegerField(default=0)
-    inserted_rows = models.IntegerField(default=0)
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(
@@ -447,6 +456,24 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         verbose_name_plural = "3. Archivos con datos"
 
 
+class Behavior(models.Model):
+
+    name = models.CharField(max_length=80, primary_key=True)
+    public_name = models.CharField(max_length=80)
+    description = models.TextField(blank=True, null=True)
+    icon = models.CharField(max_length=80, blank=True, null=True)
+    color = models.CharField(max_length=80, blank=True, null=True)
+    is_merge = models.BooleanField(default=False)
+    is_valid = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Comportamiento"
+        verbose_name_plural = "4. Comportamientos Merge"
+
+
 class SheetFile(models.Model):
 
     data_file = models.ForeignKey(
@@ -460,13 +487,25 @@ class SheetFile(models.Model):
     total_rows = models.IntegerField(default=0)
     error_process = JSONField(blank=True, null=True)
     warnings = JSONField(blank=True, null=True)
-    # month = models.SmallIntegerField(blank=True, null=True)
-    # year = models.SmallIntegerField(blank=True, null=True)
+    year_month = models.CharField(
+        max_length=8, blank=True, null=True, verbose_name="Año y mes")
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         default='explore', verbose_name="Etapa actual")
     status = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, default='finished')
+    prescriptions_count = models.IntegerField(
+        verbose_name="Prescripciones procesadas",
+        default=0)
+    duplicates_count = models.IntegerField(
+        verbose_name="Duplicados",
+        default=0)
+    shared_count = models.IntegerField(
+        verbose_name="Compartidos",
+        default=0)
+    behavior = models.ForeignKey(
+        Behavior, on_delete=models.CASCADE, default='pending',
+        verbose_name="merge behavior")
     # completed_rows = models.IntegerField(default=0)
     # inserted_rows = models.IntegerField(default=0)
     # all_results = JSONField(blank=True, null=True)
@@ -476,13 +515,6 @@ class SheetFile(models.Model):
         if some_inserted:
             raise Exception("No se puede eliminar un archivo con datos insertados")
         super().delete(using, keep_parents)
-
-    # def save(self, *args, **kwargs):
-    #     if self.pk:
-    #         some_inserted = self.laps.filter(inserted=True).exists()
-    #         if some_inserted:
-    #             raise Exception("No se puede modificar un archivo con datos insertados")
-    #     super().save(*args, **kwargs)
 
     @property
     def next_lap(self):
@@ -571,6 +603,15 @@ class SheetFile(models.Model):
         # data_file.save()
         final_paths = kwargs.get("final_paths", []) or []
         new_task, errors, data = lap_sheet.save_result_csv(final_paths)
+        all_months = kwargs.get("all_months", []) or []
+        if len(all_months) > 1:
+            errors.append(f"Se encontraron demasiados meses: {all_months}")
+        elif len(all_months) == 0:
+            errors.append("No se encontraron meses")
+        else:
+            ym = all_months[0]
+            month = str(ym[1]).zfill(2)
+            self.year_month = f"{ym[0]}-{month}"
         self.save_stage(stage_id, errors)
         return new_task, errors, data
 
@@ -578,10 +619,30 @@ class SheetFile(models.Model):
         return f">{self.file_type}< {self.sheet_name}- {self.data_file}"
 
     class Meta:
-        verbose_name = "Archivo csv"
-        verbose_name_plural = "4. Archivos csv"
+        verbose_name = "Archivo de pestaña (csv)"
+        verbose_name_plural = "4. Archivos de pestaña (csv)"
         ordering = ["id"]
         unique_together = ("data_file", "sheet_name", "file_type")
+
+
+class CrossingSheet(models.Model):
+    entity = models.ForeignKey(
+        Entity, related_name="crossing_sheets", on_delete=models.CASCADE)
+    sheet_file_1 = models.ForeignKey(
+        SheetFile, related_name="crossing_1", on_delete=models.CASCADE)
+    sheet_file_2 = models.ForeignKey(
+        SheetFile, related_name="crossing_2", on_delete=models.CASCADE)
+    duplicates_count = models.IntegerField(default=0)
+    shared_count = models.IntegerField(default=0)
+    last_crossing = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.sheet_file_1} - {self.sheet_file_2}"
+
+    class Meta:
+        get_latest_by = "month_agency__year_month"
+        verbose_name = "Mes de cruce"
+        verbose_name_plural = "Meses de cruce"
 
 
 class LapSheet(models.Model):

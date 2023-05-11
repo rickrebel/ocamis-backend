@@ -7,32 +7,12 @@ import requests
 import unidecode
 import re
 # from .common import obtain_decode
+from task.aws.common import (
+    obtain_decode, calculate_delivered_final, request_headers)
 
 available_delivered = [
     "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
     "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO"]
-request_headers = {"Content-Type": "application/json"}
-
-
-def obtain_decode(sample):
-    for row in sample:
-        is_byte = isinstance(row, bytes)
-        posible_latin = False
-        if is_byte:
-            try:
-                row.decode("utf-8")
-            except Exception:
-                posible_latin = True
-            if posible_latin:
-                try:
-                    row.decode("latin-1")
-                    return "latin-1"
-                except Exception as e:
-                    print(e)
-                    return "unknown"
-        else:
-            return "str"
-    return "utf-8"
 
 
 def text_normalizer(text):
@@ -87,111 +67,28 @@ def calculate_delivered(available_data):
         available_data, delivered_amount, "entregada")
     if error or available_data.get("delivered_id"):
         return available_data, error
-    if delivered_amount is None:
-        error = "No se puede determinar el status de entrega; " \
-                "No existe cantidad entregada"
-        return available_data, error
-    else:
-        if prescribed_amount == delivered_amount:
-            if is_cancelled:
-                delivered = "cancelled"
-            elif prescribed_amount == 0:
-                delivered = "zero"
-            else:
-                delivered = "complete"
-        elif not delivered_amount:
-            if is_cancelled:
-                delivered = "cancelled"
-            else:
-                delivered = "denied"
-        elif delivered_amount > 30000:
-            error = "Existe una cantidad inusualmente alta; cantidad entregada"
-            return available_data, error
-        elif delivered_amount < 0:
-            error = "Existe una cantidad negativa; cantidad entregada"
-            return available_data, error
-        elif delivered_amount < prescribed_amount:
-            delivered = "partial"
-        elif delivered_amount > prescribed_amount:
-            delivered = "over_delivered"
-        elif is_cancelled:
+    if prescribed_amount == delivered_amount:
+        if is_cancelled:
+            delivered = "cancelled"
+        elif prescribed_amount == 0:
+            delivered = "zero"
+        else:
+            delivered = "complete"
+    elif not delivered_amount:
+        if is_cancelled:
             delivered = "cancelled"
         else:
-            return available_data, "No se puede determinar el status de entrega"
+            delivered = "denied"
+    elif delivered_amount < prescribed_amount:
+        delivered = "partial"
+    elif delivered_amount > prescribed_amount:
+        delivered = "over_delivered"
+    elif is_cancelled:
+        delivered = "cancelled"
+    else:
+        return available_data, "No se puede determinar el status de entrega"
     available_data["delivered_id"] = delivered
     return available_data, None
-
-
-def calculate_delivered_final_prev(all_delivered, all_write):
-    write_text = None
-    error = None
-    if all_write:
-        if len(all_write) > 1:
-            error = f"Hay más de una clasificación de surtimiento;" \
-                    f" {list(all_write)}"
-        write_text = all_write.pop()
-        if write_text not in available_delivered:
-            error = f"La clasificación de surtimiento no es válida;" \
-                    f" {write_text}"
-
-    delivered = "unknown"
-    if len(all_delivered) == 1:
-        delivered = all_delivered.pop()
-        is_denied = delivered == "denied" or write_text == "cancelled"
-        if is_denied and write_text == 'CANCELADA':
-            delivered = 'cancelled'
-    else:
-        some_cases = ["unknown", "partial"]
-        for case in some_cases:
-            if case in all_delivered:
-                delivered = case
-                break
-        if not delivered:
-            if "over_delivered" in all_delivered:
-                if "complete" in all_delivered:
-                    delivered = "over_delivered"
-        if not delivered and "complete" in all_delivered:
-            if "denied" not in all_delivered and "cancelled" not in all_delivered:
-                delivered = "complete"
-        if not delivered:
-            if write_text == "CANCELADA":
-                delivered = "cancelled"
-            elif len(all_delivered) == 2:
-                some_denied = "denied" in all_delivered
-                some_zero = "zero" in all_delivered
-                if some_denied and some_zero:
-                    delivered = "denied"
-    return delivered, error
-
-
-def calculate_delivered_final(all_delivered, all_write):
-    error = None
-    if all_write:
-        if len(all_write) > 1:
-            error = f"Hay más de una clasificación de surtimiento;" \
-                    f" {list(all_write)}"
-
-    if len(all_delivered) == 1:
-        return all_delivered.pop(), error
-    if "partial" in all_delivered:
-        return "partial", error
-    has_complete = "complete" in all_delivered
-    has_over = "over_delivered" in all_delivered
-    has_denied = "denied" in all_delivered
-    has_cancelled = "cancelled" in all_delivered
-    if (has_complete or has_over) and (has_denied or has_cancelled):
-        return "partial", error
-    initial_list = all_delivered.copy()
-    if "zero" in all_delivered:
-        all_delivered.remove("zero")
-    if has_over and has_complete:
-        all_delivered.remove("complete")
-    if has_denied and has_cancelled:
-        all_delivered.remove("denied")
-    if len(all_delivered) == 1:
-        return all_delivered.pop(), error
-    return "unknown", f"No se puede determinar el status de entrega; " \
-                      f"{list(initial_list)}"
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
@@ -535,12 +432,14 @@ class MatchAws:
             cat_name = med_cat["name"]
             report_errors[f"{cat_name}_count"] = len(self.cat_keys[cat_name]) \
                 if self.cat_keys.get(cat_name) else 0
+        all_months = [[year, month] for (year, month) in self.months]
         result_data = {
             "result": {
                 "report_errors": report_errors,
                 "is_prepare": self.is_prepare,
                 "sheet_file_id": self.sheet_file_id,
                 "lap_sheet_id": self.lap_sheet_id,
+                "all_months": all_months,
             },
             "request_id": final_request_id
         }

@@ -17,12 +17,12 @@ def fetch_agencies(include_groups):
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
 
     filter_petition_month = PetitionMonth.objects\
-        .filter(month_agency__year_month__lte="202212")
+        .filter(month_agency__year_month__lte="2023-02")
     prefetch_petition_month = Prefetch(
         "petitions__petition_months",
         queryset=filter_petition_month)
     filter_month = MonthAgency.objects\
-        .filter(year_month__lte="202212")
+        .filter(year_month__lte="2023-02")
     prefetch_month = Prefetch("months", queryset=filter_month)
     filter_file_control = FileControl.objects\
         .filter(data_group__name__in=include_groups)

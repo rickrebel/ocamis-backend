@@ -415,7 +415,7 @@ class Agency(models.Model):
                 year = sum_year + 2017
                 for month in range(12):
                     month += 1
-                    ye_mo = "%s%s%s" % (year, '0' if month < 10 else '', month)
+                    ye_mo = f"{year}-{month:02d}"
                     MonthAgency.objects.get_or_create(agency=self, year_month=ye_mo)
 
     def delete(self, *args, **kwargs):

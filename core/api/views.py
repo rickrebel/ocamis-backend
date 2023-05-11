@@ -10,7 +10,9 @@ from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
     CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer, )
-from inai.api.serializers import FileControlFullSerializer
+from inai.api.serializers import (
+    FileControlFullSerializer, BehaviorSimpleSerializer)
+from inai.models import Behavior
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
@@ -38,20 +40,9 @@ class CatalogView(views.APIView):
         #data = {}
         agencies_query = Agency.objects.filter().prefetch_related(
             "institution", "state", "clues")
-        file_control_query = FileControl.objects.all().prefetch_related(
-            "data_group",
-            "columns",
-            "columns__column_transformations",
-            "petition_file_control",
-            "petition_file_control__data_files",
-            "petition_file_control__data_files__origin_file",
-            "petition_file_control__data_files__sheet_files",
-        )
         final_fields_query = FinalField.objects.filter(dashboard_hide=False)
 
         data = {
-            #"file_controls": FileControlFullSerializer(
-            #    file_control_query, many=True).data,
             "agencies": AgencySerializer(agencies_query, many=True).data,
             ## CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
@@ -75,6 +66,8 @@ class CatalogView(views.APIView):
                 DataType.objects.all(), many=True).data,
             "clean_functions": CleanFunctionSimpleSerializer(
                 CleanFunction.objects.all(), many=True).data,
+            "behaviors": BehaviorSimpleSerializer(
+                Behavior.objects.all(), many=True).data,
             "file_types": FileTypeSimpleSerializer(
                 FileType.objects.all(), many=True).data,
             "status": StatusControlSimpleSerializer(

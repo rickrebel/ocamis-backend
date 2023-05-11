@@ -252,6 +252,63 @@ def categorize_clean_functions():
     CleanFunction.objects.filter(
         name__in=functions_alone).update(ready_code="ready_alone")
 
+
+def assign_entity_to_data_files():
+    from geo.models import Entity
+    from inai.models import DataFile
+    all_entities = Entity.objects.all()
+    for entity in all_entities:
+        data_files = DataFile.objects.filter(
+            petition_file_control__petition__agency__entity=entity)
+        data_files.update(entity=entity)
+
+
+def assign_entity_to_month_agency():
+    from geo.models import Entity, Agency
+    from inai.models import MonthAgency
+    all_agencies = Agency.objects.all()
+    for agency in all_agencies:
+        entity = agency.entity
+        if entity:
+            month_agencies = MonthAgency.objects.filter(agency=agency)
+            month_agencies.update(entity=entity)
+
+
+def assign_year_month_to_sheet_files(entity_id):
+    from inai.models import DataFile
+    import re
+    all_data_files = DataFile.objects.filter(
+        entity_id=entity_id)
+    regex_year_month = re.compile(r"_(20\d{4})")
+    for data_file in all_data_files:
+        file_name = data_file.file.url.split("/")[-1]
+        year_month = regex_year_month.search(file_name)
+        if year_month:
+            year_month_str = year_month.group(1)
+            year_month_str = year_month_str[:4] + "-" + year_month_str[4:]
+            data_file.sheet_files.update(year_month=year_month_str)
+        else:
+            continue
+
+
+def add_line_to_year_months():
+    from inai.models import MonthAgency, SheetFile
+    all_year_months = MonthAgency.objects.values_list(
+        "year_month", flat=True).distinct()
+    for year_month in all_year_months:
+        new_ym = year_month[:4] + "-" + year_month[4:]
+        month_agencies = MonthAgency.objects.filter(year_month=year_month)
+        month_agencies.update(year_month=new_ym)
+        sheet_files = SheetFile.objects.filter(year_month=year_month)
+        sheet_files.update(year_month=new_ym)
+
+
+# assign_year_month_to_sheet_files(53)
+
+
+
+
+
 # move_delegation_clues()
 # delete_insabi_delegations()
 
