@@ -418,25 +418,33 @@ class MonthEntityViewSet(CreateRetrievView):
         crossing_sheets_2 = CrossingSheet.objects.filter(
             sheet_file_2__in=sheet_files)
         all_crossing_sheets = crossing_sheets_1 | crossing_sheets_2
-        sheets_file_1_ids = crossing_sheets_1.values_list(
-            "sheet_file_1", flat=True)
-        sheets_file_2_ids = crossing_sheets_2.values_list(
-            "sheet_file_2", flat=True)
-        sheets_file_ids = list(sheets_file_1_ids) + list(sheets_file_2_ids)
-        sheets_file_ids = list(set(sheets_file_ids))
-        original_sheet_files_ids = sheet_files.values_list(
-            "id", flat=True)
-        complement_sheet_files = SheetFile.objects\
-            .filter(id__in=sheets_file_ids)\
-            .exclude(id__in=original_sheet_files_ids)
+
+        all_related_sheets = []
+        for crossing_sheet in all_crossing_sheets:
+            all_related_sheets.append(crossing_sheet.sheet_file_1_id)
+            all_related_sheets.append(crossing_sheet.sheet_file_2_id)
+        all_related_sheets = list(set(all_related_sheets))
+        original_sheet_files_ids = sheet_files.values_list("id", flat=True)
+        related_sheet_files = SheetFile.objects.filter(
+            id__in=all_related_sheets)
+
+        # sheets_file_1_ids = crossing_sheets_1.values_list(
+        #     "sheet_file_1", flat=True)
+        # sheets_file_2_ids = crossing_sheets_2.values_list(
+        #     "sheet_file_2", flat=True)
+        # sheets_file_ids = list(sheets_file_1_ids) + list(sheets_file_2_ids)
+        # sheets_file_ids = list(set(sheets_file_ids))
+        # complement_sheet_files = SheetFile.objects\
+        #     .filter(id__in=sheets_file_ids)\
+        #     .exclude(id__in=original_sheet_files_ids)
+        serializer_related_files = SheetFileSimpleSerializer(
+            related_sheet_files, many=True)
 
         serializer_crossing_sheets = serializers.CrossingSheetSimpleSerializer(
             all_crossing_sheets, many=True)
-        serializer_complement_files = SheetFileSimpleSerializer(
-            complement_sheet_files, many=True)
         return Response({
             "sheet_files": serializer_sheet_files.data,
-            "complement_sheets": serializer_complement_files.data,
+            "related_sheets": serializer_related_files.data,
             "crossing_sheets": serializer_crossing_sheets.data
         })
 
