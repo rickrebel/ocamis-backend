@@ -17,7 +17,6 @@ def build_constraints_and_indexes(use_complement=False):
     except Exception as e:
         print(e)
         if not use_complement:
-            print("HOLA MUNDO")
             return build_constraints_and_indexes(use_complement=True)
         return [], []
     print("PASOOOOO")
@@ -29,14 +28,14 @@ def build_constraints_and_indexes(use_complement=False):
     last_function = None
     last_field = None
     current_command = None
-
+    # SPACE
     def add_block(commands):
         block = "\n".join(commands)
         create_commands.append(block)
-
+    # SPACE
     def add_delete_block(block):
         delete_commands.append(block)
-
+    # SPACE
     for row in rr_data_rows:
         constraint_name = None
         if not row or "alter table" in row or "owner to" in row:
@@ -59,19 +58,23 @@ def build_constraints_and_indexes(use_complement=False):
             continue
         like_comma = "," in row
         if "create table " in row:
-            last_table = row.split("public.")[1]
+            # last_table = row.split("public.")[1]
+            last_table = row.split(" table if not exists ")[1]
+            # if "formula" not in last_table:
             if "formula" not in last_table and "med_cat" not in last_table:
                 last_table = None
                 # last_model = None
                 continue
             # last_model = Collection.objects.get(name_in_db=last_table)
-            last_commands = [f"alter table public.{last_table}"]
+            # last_commands = [f"alter table public.{last_table}"]
+            last_commands = [f"alter table {last_table}"]
             continue
         elif not last_table:
             if "create index" in row:
                 last_function = "index"
                 index_name = row.split("index if not exists ")[1]
                 # print("index_name:", index_name)
+                # if "formula_" not in index_name:
                 if "formula_" not in index_name and "med_cat_" not in index_name:
                     last_function = None
                     continue
@@ -79,9 +82,10 @@ def build_constraints_and_indexes(use_complement=False):
                 delete_command = f"drop index if exists {index_name}"
                 add_delete_block(delete_command)
                 continue
-            elif "on public." in row and last_function == "index":
-                print("on public.:", row)
-                current_command = f"   on {row.split('on ', 1)[1]}"
+            # elif "on public." in row and last_function == "index":
+            elif "    on " in row and last_function == "index":
+                print("    on :", row)
+                current_command = f"    on {row.split('    on ', 1)[1]}"
                 last_commands.append(current_command)
                 add_block(last_commands)
                 last_function = None
@@ -122,27 +126,39 @@ def build_constraints_and_indexes(use_complement=False):
             last_function = None
             current_command = None
         if constraint_name:
-            delete_command = f"alter table public.{last_table} " \
+            delete_command = f"alter table {last_table} " \
                              f"drop constraint if exists {constraint_name};"
             add_delete_block(delete_command)
     return create_commands, delete_commands
 
 
 def get_constraints(rebuild=False):
-    platform = Platform.objects.all().first()
-    first_time = False
-    if not platform:
-        platform = Platform.objects.create(version="2.3")
-        first_time = True
-    if rebuild or first_time:
+    platforms = Platform.objects.all()
+    platform = None
+    version = None
+    if not platforms:
+        version = "2.3"
+    else:
+        last_platform = platforms.last()
+        if rebuild:
+            version = float(last_platform.version) + 0.1
+            version = round(version, 3)
+            version = str(version)
+        else:
+            platform = last_platform
+    if version:
         create_constrains, delete_constrains = build_constraints_and_indexes()
-        platform.create_constraints = create_constrains
-        platform.delete_constraints = delete_constrains
-        platform.save()
+        platform = Platform.objects.create(
+            version=version,
+            create_constraints=create_constrains,
+            delete_constraints=delete_constrains)
     return platform.create_constraints, platform.delete_constraints
 
 
-def create_constraints_and_indexes(model_name, app_label):
+#######################
+
+
+def create_constraints_and_indexes_prev(model_name, app_label):
     # _model_indexes_sql
 
     model = apps.get_model(app_label, model_name)
@@ -185,7 +201,7 @@ def create_constraints_and_indexes(model_name, app_label):
     return alter_statements
 
 
-def delete_constraints_and_indexes(model_name, app_label):
+def delete_constraints_and_indexes_prev(model_name, app_label):
     model = apps.get_model(app_label, model_name)
     print("------------------")
     print("MODEL:", model, model_name, app_label)
@@ -254,12 +270,12 @@ def modify_constraints_prev(create=True):
         all_models, key=lambda k: -k["order"] if create else k["order"])
     for model in all_models:
         if create:
-            create_constraints_and_indexes(model["model"], model["app"])
+            create_constraints_and_indexes_prev(model["model"], model["app"])
         else:
-            delete_constraints_and_indexes(model["model"], model["app"])
+            delete_constraints_and_indexes_prev(model["model"], model["app"])
     if not create:
         for model in all_models:
-            delete_constraints_and_indexes(model["model"], model["app"])
+            delete_constraints_and_indexes_prev(model["model"], model["app"])
     Platform.objects.all().update(has_constrains=create)
 
 

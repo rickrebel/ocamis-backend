@@ -141,6 +141,11 @@ class LapSheetAdmin(admin.ModelAdmin):
         "sheet_file",
     ]
     inlines = [TableFileInline]
+    search_fields = [
+        "sheet_file__file", "sheet_file__data_file__file",
+        "sheet_file__data_file_id"]
+    list_filter = [
+        "sheet_file__data_file__entity__acronym", "lap", "inserted"]
     raw_id_fields = ["sheet_file"]
 
 

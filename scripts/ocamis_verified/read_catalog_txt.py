@@ -306,15 +306,7 @@ def add_line_to_year_months():
 # assign_year_month_to_sheet_files(53)
 
 
-
-
-
 # move_delegation_clues()
 # delete_insabi_delegations()
 
 
-# unknown	Desconocido	True
-# partial	Parcialmente	No se entregaron todos los archivos	True
-# denied	Negada	No se dieron los medicamentos recetados	True
-# complete	Completa	Efectivamente entregada	True
-# unavailable	No disponible	No existió información para calcularlo	True

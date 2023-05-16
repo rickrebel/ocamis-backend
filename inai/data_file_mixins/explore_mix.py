@@ -422,7 +422,7 @@ class ExploreMix:
                     task_params=task_params)
                 main_error = "descomprimir el archivo gz"
             suffixes.remove('.gz')
-        elif '.zip' in suffixes:
+        elif '.zip' in suffixes or '.rar' in suffixes:
             errors = ["Mover a 'archivos no finales' para descomprimir desde allí"]
         elif len(suffixes) == 1 and not self.sheet_files.filter(file_type_id='split').exists():
             file_size = self.file.size

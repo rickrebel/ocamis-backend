@@ -145,6 +145,7 @@ def async_task_post_delete(sender, instance, **kwargs):
 class Platform(models.Model):
     version = models.CharField(max_length=10)
     has_constrains = models.BooleanField(default=True)
+    # has_mini_constrains = models.BooleanField(default=False)
     create_constraints = JSONField(blank=True, null=True)
     delete_constraints = JSONField(blank=True, null=True)
 

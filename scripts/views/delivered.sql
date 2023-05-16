@@ -75,6 +75,10 @@ FROM
     JOIN geo_institution inst ON ent.institution_id = inst.id
     JOIN formula_prescription presc ON ent.id = presc.entity_id
     JOIN med_cat_delivered df ON presc.delivered_final_id = df.hex_hash
+    JOIN formula_drug drug ON presc.uuid_folio = drug.prescription_id
+    JOIN inai_sheetfile sheet ON drug.sheet_file_id = sheet.id
+WHERE
+    sheet.behavior_id != 'invalid'
 GROUP BY
     ent.name,
     inst.code,
@@ -87,5 +91,25 @@ ORDER BY
     presc.iso_year,
     presc.month,
     df.name;
+
+
+
+
+
+SELECT
+    presc.iso_year,
+    presc.month,
+    presc.delivered_final_id,
+    COUNT(presc.uuid_folio) AS prescription_count
+FROM
+    formula_prescription presc
+GROUP BY
+    presc.iso_year,
+    presc.month,
+    presc.delivered_final_id
+ORDER BY
+    presc.iso_year,
+    presc.month,
+    presc.delivered_final_id;
 
 

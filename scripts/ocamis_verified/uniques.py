@@ -1,6 +1,7 @@
 from django.db import connection
 from task.aws.common import calculate_delivered_final
 from datetime import datetime
+from inai.models import SheetFile
 
 group_names = ["dupli", "shared"]
 
@@ -10,39 +11,33 @@ def get_all_folios(filters):
     entity_id = filters["entity_id"]
     year = filters["year"]
     week = filters["week"]
+    excluded_sheets = filters.get("excluded_sheets", set())
     sql_query = f"""
         SELECT
-            drug.sheet_file_id AS sheet_id,
-            drug.prescription_id AS uuid_folio,
-            pres.folio_ocamis as folio_ocamis,
-            pres.month as month
+            sheet_id,
+            uuid_folio,
+            folio_ocamis,
+            month
         FROM
-            formula_prescription pres
-            INNER JOIN formula_drug drug ON pres.uuid_folio = drug.prescription_id
-            RIGHT JOIN (
-                SELECT
-                    sheetfile.id
-                FROM
-                    inai_sheetfile sheetfile
-                    INNER JOIN inai_datafile datafile ON sheetfile.data_file_id = datafile.id
-                WHERE
-                    sheetfile.behavior_id != 'invalid' AND
-                    datafile.entity_id = {entity_id}
-            ) AS sf ON drug.sheet_file_id = sf.id            
+            drugs_and_prescriptions
         WHERE
-            pres.entity_id = {entity_id} AND
-            pres.iso_week = {week} AND
-            pres.iso_year = {year}
+            entity_id = {entity_id} AND
+            iso_week = {week} AND
+            iso_year = {year}
     """
     cursor.execute(sql_query)
     every_folios = {}
     all_drugs = cursor.fetchall()
     len_drugs = len(all_drugs)
+    print("end of query get", datetime.now())
     if len_drugs:
-        print("all_drugs", len_drugs)
-    for idx in range(len_drugs):
-        drug = all_drugs.pop()
+        print("all_drugs (explore):", len_drugs)
+    # for idx in range(len_drugs):
+    for drug in all_drugs:
+        # drug = all_drugs.pop()
         sheet_id, uuid_folio, folio_ocamis, month = drug
+        if sheet_id in excluded_sheets:
+            continue
         uuid_and_sheet = (uuid_folio, sheet_id, month)
         # folio_ocamis = drug[1]
         # if folio_ocamis not in every_folios:
@@ -143,10 +138,8 @@ def build_pairs_sheets(filters):
     return pairs, sheets, month_counts
 
 
-def save_sheets_months(filters, month_counts):
+def save_sheets_months(year_month, entity_id, month_counts):
     from inai.models import MonthAgency
-    entity_id = filters["entity_id"]
-    year_month = f"{filters['year']}-{str(filters['month']).zfill(2)}"
     current_month_entities = MonthAgency.objects.filter(
         entity_id=entity_id, year_month=year_month)
     current_month_entities.update(
@@ -157,14 +150,12 @@ def save_sheets_months(filters, month_counts):
 
 
 # def save_crossing_sheets(entity_id, dupli_pairs, shared_pairs, sheets):
-def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
+def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
     from django.utils import timezone
-    from inai.models import CrossingSheet, SheetFile
+    from inai.models import CrossingSheet
+    print("start save_crossing_sheets", timezone.now())
     # SPACE
     shared_pairs = month_pairs["shared"]
-    month = filters["month"]
-    year = filters["year"]
-    year_month = f"{year}-{str(month).zfill(2)}"
     edited_crosses = []
     # SPACE
     for sheet_id, value in sheets.items():
@@ -200,10 +191,10 @@ def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
         cross.duplicates_count = value
         cross.shared_count = shared_count
         cross.last_crossing = timezone.now()
-        if not created:
-            print("cross", cross)
-            print("last_crossing", cross.last_crossing)
-            print("!!!!!!!!!!!!!!!!!!!!!\n")
+        # if not created:
+        #     print("cross", cross)
+        #     print("last_crossing", cross.last_crossing)
+        #     print("!!!!!!!!!!!!!!!!!!!!!\n")
         cross.save()
     # SPACE
     for pair, value in shared_pairs.items():
@@ -235,6 +226,81 @@ def save_crossing_sheets(filters, entity_id, month_pairs, sheets):
 # -----------------------------
 
 
+def get_delivered_results(filters):
+    print("start get_delivered_results", datetime.now())
+    cursor = connection.cursor()
+    entity_id = filters["entity_id"]
+    month = filters["month"]
+    week = filters["week"]
+    year = filters["year"]
+    excluded_sheets = filters.get("excluded_sheets", set())
+    month_str = str(month).zfill(2)
+    year_month = f"{year}-{month_str}"
+    # SPACE
+    sql_query = f"""
+        SELECT
+            sheet_id,
+            folio_ocamis,
+            uuid_folio,
+            delivered,
+            month
+        FROM
+            drugs_and_prescriptions
+        WHERE 
+            entity_id = {entity_id} AND
+            iso_week = {week} AND
+            iso_year = {year}
+    """
+    cursor.execute(sql_query)
+    every_folios = {}
+    all_drugs = cursor.fetchall()
+    len_all_drugs = len(all_drugs)
+    if len_all_drugs:
+        print("all_drugs (result)", len(all_drugs))
+    valid_delivered = ["partial", "denied", "zero", "complete"]
+    for drug in all_drugs:
+        sheet_id, folio_ocamis, current_uuid, current_delivered, curr_month = drug
+        if "None" in current_delivered:
+            for delivered_text in valid_delivered:
+                if delivered_text in current_delivered:
+                    current_delivered = delivered_text
+                    break
+        if sheet_id in excluded_sheets:
+            continue
+        if curr_month != month:
+            continue
+        if folio_ocamis not in every_folios:
+            every_folios[folio_ocamis] = {
+                "sheet_ids": {sheet_id},
+                "first_uuid": current_uuid,
+                "first_delivered": current_delivered,
+                "delivered": {current_delivered}
+            }
+            continue
+        current_folio = every_folios[folio_ocamis]
+        if sheet_id in current_folio["sheet_ids"]:
+            continue
+        if current_uuid == current_folio["first_uuid"]:
+            continue
+        current_folio["delivered"].add(current_delivered)
+        current_folio["sheet_ids"].add(sheet_id)
+        if len(current_folio["delivered"]) > 1:
+            delivered, err = calculate_delivered_final(
+                current_folio["delivered"])
+            if delivered != current_folio["first_delivered"]:
+                current_folio["first_delivered"] = delivered
+        every_folios[folio_ocamis] = current_folio
+    cursor.close()
+    results = {}
+    for folio_ocamis, values in every_folios.items():
+        delivered = values["first_delivered"]
+        if delivered not in results:
+            results[delivered] = 1
+        else:
+            results[delivered] += 1
+    return results
+
+
 def get_uuids_duplicates(filters):
     print("start get_uuids_duplicates", datetime.now())
     cursor = connection.cursor()
@@ -242,48 +308,35 @@ def get_uuids_duplicates(filters):
     week = filters["week"]
     month = filters["month"]
     year = filters["year"]
+    excluded_sheets = filters.get("excluded_sheets", set())
     month_str = str(month).zfill(2)
     # year_month = f"{year}-{month_str}"
     # SPACE
-    create_temp_table = f"""
-        CREATE TEMP TABLE merge_sheetfiles AS
-        SELECT
-            sheetfile.id
-        FROM
-            inai_sheetfile sheetfile
-            JOIN inai_datafile datafile ON sheetfile.data_file_id = datafile.id
-        WHERE
-            (sheetfile.behavior_id = 'need_merge' OR sheetfile.behavior_id = 'merged') AND
-            datafile.entity_id = {entity_id}
-    """
-    cursor.execute(create_temp_table)
-    # SPACE
     sql_query = f"""
         SELECT
-            drug.sheet_file_id AS sheet_id,
-            pres.folio_ocamis as folio_ocamis,
-            pres.uuid_folio as uuid_folio,
-            pres.delivered_final_id as delivered
+            sheet_id,
+            folio_ocamis,
+            uuid_folio,
+            delivered
         FROM
-            formula_prescription pres
-            INNER JOIN formula_drug drug ON pres.uuid_folio = drug.prescription_id
-            INNER JOIN merge_sheetfiles sheetfile ON drug.sheet_file_id = sheetfile.id        
+            drugs_and_prescriptions        
         WHERE 
-            pres.entity_id = {entity_id} AND
-            pres.iso_week = {week} AND
-            pres.iso_year = {year}
+            entity_id = {entity_id} AND
+            iso_week = {week} AND
+            iso_year = {year}
     """
     cursor.execute(sql_query)
     every_folios = {}
     for_edit_folios = set()
     for_edit_delivered = set()
     all_drugs = cursor.fetchall()
-    print("all_drugs", len(all_drugs))
+    len_all_drugs = len(all_drugs)
+    if len_all_drugs:
+        print("all_drugs (trans)", len(all_drugs))
     for drug in all_drugs:
-        sheet_id = drug[0]
-        folio_ocamis = drug[1]
-        current_uuid = drug[2]
-        current_delivered = drug[3]
+        sheet_id, folio_ocamis, current_uuid, current_delivered = drug
+        if sheet_id in excluded_sheets:
+            continue
         if folio_ocamis not in every_folios:
             every_folios[folio_ocamis] = {
                 "sheet_ids": {sheet_id},
@@ -327,6 +380,7 @@ def update_folios(for_edit_folios):
     # SPACE
     folios = ", ".join([f"('{original}', '{new}')"
                         for original, new in for_edit_folios])
+    print("folios", len(for_edit_folios))
     cursor.execute(create_temp_table)
     sql_insert = f"""
         INSERT INTO temp_new_folios (original_uuid, new_uuid)
@@ -337,7 +391,7 @@ def update_folios(for_edit_folios):
     sql_join = """
         UPDATE formula_drug
         SET prescription_id = temp.new_uuid
-        FROM temp_new_folios temp        
+        FROM temp_new_folios temp
         WHERE formula_drug.prescription_id = temp.original_uuid
     """
     cursor.execute(sql_join)
@@ -353,7 +407,8 @@ def delete_folios(for_edit_folios):
         DELETE FROM formula_prescription pres
         WHERE pres.uuid_folio IN ({folios_to_delete})
     """
-    cursor.execute(sql_delete)
+    result = cursor.execute(sql_delete)
+    print("result", result)
     cursor.close()
 
 
@@ -369,8 +424,9 @@ def update_delivered(for_edit_delivered):
         )
     """
     # SPACE
-    # delivered = ", ".join([f"('{original}', '{new}')" for original, new in for_edit_delivered])
-    delivered = [f"('{original}', '{new}')" for original, new in for_edit_delivered]
+    all_delivered = {original: new for original, new in for_edit_delivered}
+    delivered = [f"('{original}', '{new}')"
+                 for original, new in all_delivered.items()]
     delivered = ", ".join(delivered)
     # SPACE
     cursor.execute(create_temp_table)
@@ -430,13 +486,24 @@ def update_and_delete_folios(filters):
     print("folios_to_delete", len(for_edit_folios))
     if len(for_edit_delivered) > 0:
         update_delivered(for_edit_delivered)
-    if len(for_edit_folios) > 0:
-        update_folios(for_edit_folios)
-        delete_folios(for_edit_folios)
+    batch_size = 100000
+    while True:
+        if len(for_edit_folios) == 0:
+            break
+        current_batch = batch_size \
+            if len(for_edit_folios) > batch_size else len(for_edit_folios)
+        current_folios = []
+        for i in range(current_batch):
+            current_folios.append(for_edit_folios.pop())
+        update_folios(current_folios)
+        delete_folios(current_folios)
+    # if len(for_edit_folios) > 0:
+    #     update_folios(for_edit_folios)
+    #     delete_folios(for_edit_folios)
     update_sheets_to_merged(filters)
 
 
-def get_duplicates_folios(filters, is_explore=True):
+def get_duplicates_folios(filters, is_explore):
     from datetime import timedelta
     year = filters["year"]
     month = filters["month"]
@@ -454,9 +521,9 @@ def get_duplicates_folios(filters, is_explore=True):
     print("all_years", all_years)
     one_year = len(all_years) == 1
     print(">>>>>>>>>>>>>>>>>>>>>")
-    all_pairs = {}
     final_pairs = {"dupli": {}, "shared": {}}
     all_sheets = {}
+    result_delivered = {}
     unique_counts = {"dupli": 0, "shared": 0, "total": 0}
     # SPACE
     def process_week_explore(final_filters):
@@ -501,26 +568,97 @@ def get_duplicates_folios(filters, is_explore=True):
             filters["week"] = week
             # final_result, sheets = get_duplicates_week(filters)
             print("start_process", datetime.now())
-            if is_explore:
+            if is_explore == 'result':
+                week_result = get_delivered_results(filters)
+                for delivered, value in week_result.items():
+                    if delivered not in result_delivered:
+                        result_delivered[delivered] = value
+                    else:
+                        result_delivered[delivered] += value
+            elif is_explore:
                 process_week_explore(filters)
             else:
                 update_and_delete_folios(filters)
             print("end_process", datetime.now())
+    if is_explore == 'result':
+        return None, None, result_delivered
     return final_pairs, all_sheets, unique_counts
     # return final_result, sheets
 
 
+def refresh_materialized_views():
+    cursor = connection.cursor()
+    sql_queries = [
+        # "alter table public.formula_prescription"
+        # "    add constraint formula_prescription_pkey"
+        # "    primary key(uuid_folio);",
+        # "alter table formula_drug"
+        # "    add constraint formula_drug_prescription_id_cdf044b3_fk_formula_p"
+        # "    foreign key(prescription_id) references formula_prescription"
+        # "    deferrable initially deferred;",
+        # "create index if not exists formula_drug_prescription_id_cdf044b3"
+        # "    on formula_drug(prescription_id);",
+        "CREATE INDEX if not exists d_and_p_entity_id_iso_week_iso_year"
+        "    ON drugs_and_prescriptions(entity_id, iso_week, iso_year);",
+        # "CREATE INDEX if not exists d_and_p_entity_id_month_iso_year"
+        # "    ON drugs_and_prescriptions(entity_id, month, iso_year);",
+        "REFRESH MATERIALIZED VIEW drugs_and_prescriptions WITH DATA;",
+        # "DROP INDEX if exists d_and_p_entity_id_iso_week_iso_year;",
+    ]
+    for sql in sql_queries:
+        print("PRE: ", datetime.now())
+        print(">> ", sql)
+        try:
+            cursor.execute(sql)
+        except Exception as e:
+            print("ERROR!!!:\n", e)
+    print("PRE: ", datetime.now())
+    cursor.close()
+
+
+def delete_indexes_and_constraints():
+    cursor = connection.cursor()
+    sql_queries = [
+        "drop index if exists formula_drug_prescription_id_cdf044b3",
+        "alter table formula_drug"
+        "    drop constraint formula_drug_prescription_id_cdf044b3_fk_formula_p",
+        "alter table public.formula_prescription"
+        "    drop constraint formula_prescription_pkey",
+    ]
+    for sql in sql_queries:
+        try:
+            cursor.execute(sql)
+        except Exception as e:
+            print("e", e)
+    cursor.close()
+
+
 def get_period_report(
-        entity_id, is_explore=True, start_month_year=None, end_month_year=None):
+        entity_id, is_explore='True', start_month_year=None,
+        end_month_year=None, refresh=False):
     if not start_month_year:
-        start_month_year = "201701"
+        start_month_year = "2017-01"
     if not end_month_year:
         today = datetime.today()
-        end_month_year = f"{today.month}{today.year}"
-    start_year = int(start_month_year[:4])
-    start_month = int(start_month_year[-2:])
-    end_year = int(end_month_year[:4])
-    end_month = int(end_month_year[-2:])
+        end_month_year = f"{today.month}-{today.year}"
+    if refresh:
+        refresh_materialized_views()
+        # delete_indexes_and_constraints()
+    if is_explore:
+        behaviors = ["invalid"]
+    else:
+        behaviors = ["invalid", "pending", "not_merge"]
+    excluded_sheets = SheetFile.objects.filter(
+        data_file__entity_id=entity_id,behavior_id__in=behaviors)\
+        .values_list("id", flat=True)
+    excluded_sheets = set(list(excluded_sheets))
+    print("excluded_sheets", excluded_sheets)
+    start_year, start_month = start_month_year.split("-")
+    start_year = int(start_year)
+    start_month = int(start_month)
+    end_year, end_month = end_month_year.split("-")
+    end_year = int(end_year)
+    end_month = int(end_month)
     print("START_PROCESS", datetime.now())
     for year in range(start_year, end_year + 1):
         print("---------------------")
@@ -538,13 +676,23 @@ def get_period_report(
                 "month": month,
                 "year": year,
                 "entity_id": entity_id,
+                "excluded_sheets": excluded_sheets,
             }
+            # if is_explore == 'result':
+            #     print("Sí estoy en result")
+            #     get_delivered_results(filters)
+            # else:
             result = get_duplicates_folios(filters, is_explore)
             month_pairs, month_sheets, unique_counts = result
-            if is_explore:
-                save_sheets_months(filters, unique_counts)
+            year_month = f"{year}-{month:02}"
+            if is_explore == 'result':
+                for delivered, value in unique_counts.items():
+                    print("|", year_month, "|", delivered, "|", value, "|")
+                print("Sí estoy en result")
+            elif is_explore:
+                save_sheets_months(year_month, entity_id, unique_counts)
                 save_crossing_sheets(
-                    filters, entity_id, month_pairs, month_sheets)
+                    year_month, entity_id, month_pairs, month_sheets)
     print("END_PROCESS", datetime.now())
 
 
@@ -558,4 +706,34 @@ def get_period_report(
 # get_period_report(53, True, "202004", "202006")
 # get_period_report(53, False, "201711", "201801")
 # get_period_report(53, False, "202004", "202006")
-get_period_report(53, True, "201906", "201909")
+# get_period_report(53, True, "201809", "201901")
+# get_period_report(53, True, "201811", "202302", refresh=False)
+# explore = ""
+# get_period_report(53, explore, "2017-01", "2020-10", refresh=False)
+
+def improvisado():
+    explore_result = 'result'
+    # get_period_report(53, explore_result, "2017-01", "2020-11", refresh=False)
+    # get_period_report(53, explore_result, "2019-07", "2023-04", refresh=False)
+    get_period_report(53, explore_result, "2017-12", "2017-12", refresh=False)
+    get_period_report(53, explore_result, "2018-11", "2018-11", refresh=False)
+    get_period_report(53, explore_result, "2019-01", "2019-01", refresh=False)
+    get_period_report(53, explore_result, "2019-07", "2019-09", refresh=False)
+    get_period_report(53, explore_result, "2020-05", "2020-05", refresh=False)
+
+
+# get_period_report(53, "result", "2017-01", "2017-01", refresh=False)
+
+# get_period_report(53, False, "201701", "201701", refresh=False)
+
+# create index if not exists formula_prescription_pkey_temp
+#      on formula_prescription(uuid_folio);
+
+# create index if not exists formula_drug_prescription_id_cdf044b3
+#          on formula_drug(prescription_id);
+
+# create index if not exists d_and_p_sheet_id
+#          on drugs_and_prescriptions(sheet_id);
+
+# create index if not exists formula_drug_sheet_file_id_568cdddf
+#     on formula_drug (sheet_file_id);

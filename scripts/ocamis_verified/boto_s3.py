@@ -2,7 +2,8 @@ import boto3
 from django.conf import settings
 
 
-def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
+def obtain_names_from_s3(
+        path, folio_petition, is_reply_file=False, file_control_id=None):
     from inai.models import (
         DataFile, PetitionFileControl, Petition, ReplyFile, FileType)
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
@@ -16,18 +17,7 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
         # Delimiter = '/', MaxKeys = 1000, StartAfter = f"{path}{folio_petition}"):
         print(object_summary.key)
         final_name = object_summary.key.replace(f"{settings.AWS_LOCATION}/", '')
-        if not is_reply_file:
-            try:
-                pet_file_ctrl = PetitionFileControl.objects.get(
-                    petition__folio_petition=folio_petition)
-                DataFile.objects.create(
-                    petition_file_control=pet_file_ctrl,
-                    file=final_name)
-                print(f"Exitosamente creado {pet_file_ctrl}")
-            except Exception as e:
-                print("No fue posible obtener el pet_file_ctrl")
-                print(e)
-        else:
+        if is_reply_file:
             try:
                 default_type = FileType.objects.get(name="no_final_info")
                 petition = Petition.objects.get(folio_petition=folio_petition)
@@ -41,6 +31,21 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
             except Exception as e:
                 print("No fue posible obtener la Solicitud")
                 print(e)
+        else:
+            try:
+                pet_file_ctrls = PetitionFileControl.objects.filter(
+                    petition__folio_petition=folio_petition)
+                if file_control_id:
+                    pet_file_ctrls = pet_file_ctrls.filter(
+                        file_control_id=file_control_id)
+                pet_file_ctrl = pet_file_ctrls.first()
+                DataFile.objects.create(
+                    petition_file_control=pet_file_ctrl,
+                    file=final_name)
+                print(f"Exitosamente creado {pet_file_ctrl}")
+            except Exception as e:
+                print("No fue posible obtener el pet_file_ctrl")
+                print(e)
         print("------------------------------")
 
 
@@ -48,7 +53,12 @@ def obtain_names_from_s3(path, folio_petition, is_reply_file=False):
 # obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)
 # obtain_names_from_s3("data_files/nacional/imss/202107/", "0064102300821", True)
 # obtain_names_from_s3("data_files/nacional/issste/202201/reporte_recetas_", "330017122000929", True)
-# obtain_names_from_s3("data_files/nacional/issste/202107/drive-download-20230429T102945Z-001", "0063700513521", True)
+# obtain_names_from_s3(
+#     "data_files/nacional/issste/0063700513521/recetas_2018", "0063700513521",
+#     False, 1165)
+obtain_names_from_s3(
+    "data_files/nacional/issste/330017122006872/drive-download-202209", "330017122006872",
+    True)
 
 
 def delete_paths_from_aws(path):

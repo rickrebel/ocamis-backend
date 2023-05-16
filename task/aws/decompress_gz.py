@@ -35,8 +35,6 @@ def write_split_files(complete_file, simple_name, event):
     decode = event.get("decode")
     delimiter = event.get("delimiter")
     directory = event["directory"]
-    file = event["file"]
-    is_gz = file.endswith(".gz")
 
     s3_client = boto3.client(
         's3', aws_access_key_id=aws_access_key_id,
@@ -116,6 +114,7 @@ def lambda_handler(event, context):
 
     file = event["file"]
     s3 = event["s3"]
+    print("HOLA DECOMPRESS")
 
     is_gz = file.endswith(".gz")
 

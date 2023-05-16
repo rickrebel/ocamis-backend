@@ -383,15 +383,15 @@ class MatchAws:
                     curr_prescription["all_delivered_write"] = all_delivered_write
                 else:
                     all_delivered_write = set()
-                delivered_final_id = calculate_delivered_final(
+                delivered_final_id, error = calculate_delivered_final(
                     all_delivered, all_delivered_write)
-                if "clasificación" in delivered_final_id:
-                    value = delivered_final_id.split("; ")[1]
-                    self.append_missing_field(
-                        row, clasif_id, value, error=delivered_final_id,
-                        drug_uuid=uuid)
+                if error:
+                    if "clasificación" in error:
+                        value = delivered_final_id.split("; ")[1]
+                        self.append_missing_field(
+                            row, clasif_id, value, error=delivered_final_id,
+                            drug_uuid=uuid)
 
-                    delivered_final_id = "error"
                 curr_prescription["delivered_final_id"] = delivered_final_id
             else:
                 uuid_folio = str(uuid_lib.uuid4())
@@ -758,11 +758,28 @@ class MatchAws:
                 value = row[field["position"]]
             else:
                 value = available_data.get(field["name"])
+            null_to_value = None
+            if "null_to_value" in field:
+                null_to_value = field["null_to_value"]
+                if value is None or value == "":
+                    value = null_to_value
             if not value:
                 continue
+            if "almost_empty" in field:
+                value = None
+            elif "text_nulls" in field:
+                text_nulls = field["text_nulls"]
+                text_nulls = text_nulls.split(",")
+                text_nulls = [text_null.strip() for text_null in text_nulls]
+                if value in text_nulls:
+                    if null_to_value:
+                        value = null_to_value
+                    else:
+                        value = None
             if field.get("duplicated_in"):
                 duplicated_in = field["duplicated_in"]
                 some_almost_empty = False
+                has_child = field.get("child")
                 # if field.get("clean_function") == "almost_empty":
                 if "almost_empty" in field:
                     some_almost_empty = True
@@ -771,18 +788,13 @@ class MatchAws:
                     # if duplicated_in.get("clean_function") == "almost_empty":
                     if dupl_almost_empty:
                         some_almost_empty = True
-                duplicated_value = row[duplicated_in["position"]]
-                if duplicated_value != value and not some_almost_empty:
-                    error = f"El valor de las columnas que apuntan a " \
-                            f"{field['name']} no coinciden"
-            if "almost_empty" in field:
-                value = None
-            elif "text_nulls" in field:
-                text_nulls = field["text_nulls"]
-                text_nulls = text_nulls.split(",")
-                text_nulls = [text_null.strip() for text_null in text_nulls]
-                if value in text_nulls:
-                    value = None
+                if some_almost_empty or has_child:
+                    pass
+                else:
+                    duplicated_value = row[duplicated_in["position"]]
+                    if duplicated_value != value:
+                        error = f"El valor de las columnas que apuntan a " \
+                                f"{field['name']} no coinciden"
             try:
                 if not value:
                     pass

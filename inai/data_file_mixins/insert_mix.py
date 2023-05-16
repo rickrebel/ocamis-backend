@@ -33,13 +33,12 @@ def modify_constraints(is_create=True):
     create_constrains, delete_constrains = get_constraints()
     with_change = False
     cursor = connection.cursor()
-    # platform = Platform.objects.first()
     print("START", datetime.now())
     if is_create:  # and not platform.has_constrains:
         print("create_constrains")
         with_change = True
         for constraint in create_constrains:
-            print("time:", datetime.now())
+            print(">>>>> time:", datetime.now())
             print("constraint", constraint)
             cursor.execute(constraint)
             print("--------------------------")
@@ -97,7 +96,7 @@ class Insert:
             columns_join = ", ".join(field_names)
             # "COPY temp_doctors (hash_id, full_name, medical_speciality, institution_id) FROM
             # '/path/to/input_doctors.csv' WITH (FORMAT CSV, HEADER)
-            platform = Platform.objects.all().first()
+            platform = Platform.objects.all().last()
             if not platform:
                 platform = Platform.objects.create(version="2.3")
             if platform.has_constrains:

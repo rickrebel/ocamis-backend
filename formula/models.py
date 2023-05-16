@@ -70,7 +70,8 @@ class Prescription(models.Model):
 
 class Drug(models.Model):
 
-    uuid = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
     prescription = models.ForeignKey(
         Prescription, on_delete=models.CASCADE,
         related_name='drugs')

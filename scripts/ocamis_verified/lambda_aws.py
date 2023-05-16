@@ -148,7 +148,7 @@ def build_lambda_layer(
 #
 # build_lambda_layer("pandas_complements",
 #                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pyxlsb"])
-# build_lambda_layer("other_complements_psycopg2_and_unidecode",
+# build_lambda_layer("other_complements_psycopg2_and_unidecode_10",
 #                   ["psycopg2", "unidecode"])
 # build_lambda_layer("csv_complements", ["csv", "uuid"])
 # build_lambda_layer("request_package", ["requests"])
