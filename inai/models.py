@@ -683,14 +683,15 @@ class LapSheet(models.Model):
         all_new_files = []
         new_tasks = []
         new_file_ids = []
+        optional_fields = ["year", "iso_week", "delegation_name"]
         for result_file in result_files:
             model_name = result_file["model"]
             print("model_name", model_name)
             collection = Collection.objects.get(model_name=model_name)
-            new_file, created = TableFile.objects.get_or_create(
-                lap_sheet=self,
-                collection=collection,
-            )
+            query_create = {"lap_sheet": self, "collection": collection}
+            for field in optional_fields:
+                query_create[field] = result_file.get(field, None)
+            new_file, created = TableFile.objects.get_or_create(**query_create)
             new_file_ids.append(new_file.id)
             new_file.file = result_file["path"]
             new_file.save()
@@ -731,6 +732,10 @@ class TableFile(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, blank=True, null=True)
     is_for_edition = models.BooleanField(default=False)
+    year = models.SmallIntegerField(blank=True, null=True)
+    iso_week = models.SmallIntegerField(blank=True, null=True)
+    delegation_name = models.CharField(
+        max_length=255, blank=True, null=True)
     # inserted = models.BooleanField(default=False)
 
     def __str__(self):
@@ -740,4 +745,6 @@ class TableFile(models.Model):
         verbose_name = "Archivo para insertar"
         verbose_name_plural = "6. Archivos para insertar"
         ordering = ["id"]
-        unique_together = ("lap_sheet", "collection", "is_for_edition")
+        unique_together = (
+            "lap_sheet", "collection", "is_for_edition", "year",
+            "iso_week", "delegation_name")

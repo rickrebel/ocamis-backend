@@ -102,13 +102,14 @@ class ExploreMix:
     def insert_data(self, task_params, **kwargs):
         from inai.data_file_mixins.insert_mix import Insert
         from inai.models import LapSheet
-        from formula.models import Drug, MissingRow
+
         if not self.stage == 'transform' and self.status == 'finished':
             errors = ["El archivo tiene concluido el proceso de transformación"]
             return [], errors, self
         my_insert = Insert(self, task_params)
-        lap_sheets = LapSheet.objects.filter(
-            sheet_file__data_file=self, lap=0).exclude(inserted=True)
+        lap_sheets = LapSheet.objects\
+            .filter(sheet_file__data_file=self, lap=0)\
+            .exclude(inserted=True, sheet_file__behavior_id="invalid")
         if not lap_sheets.exists():
             already_inserted = LapSheet.objects.filter(
                 sheet_file__data_file=self, lap=0, inserted=True)
@@ -117,29 +118,10 @@ class ExploreMix:
             else:
                 errors = ["No existen tablas por insertar"]
                 return [], errors, self
-        # sheet_file_ids = lap_sheets.values_list("sheet_file_id", flat=True)
-        # sheet_file_ids = list(set(sheet_file_ids))
-        # some_drugs = Drug.objects.filter(
-        #     sheet_file_id__in=sheet_file_ids).exists()
-        # error_already = "Algunas tablas relacionadas ya han sido insertadas"
-        # errors = []
-        # if some_drugs:
-        #     errors = [error_already]
-        # else:
-        #     some_missing = MissingRow.objects.filter(
-        #         sheet_file_id__in=sheet_file_ids).exists()
-        #     if some_missing:
-        #         errors = [error_already]
-        # if errors:
-        #     return [], errors, self
         new_tasks = []
         for lap_sheet in lap_sheets:
             new_task = my_insert.send_csv_to_db(lap_sheet)
             new_tasks.append(new_task)
-            # table_files = lap_sheet.table_files.filter(inserted=False)
-            # for table_file in table_files:
-            #     new_task = my_insert.send_csv_to_db(table_file)
-            #     new_tasks.append(new_task)
         return new_tasks, [], self
 
     def count_file_rows(self):

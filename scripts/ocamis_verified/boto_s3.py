@@ -39,8 +39,10 @@ def obtain_names_from_s3(
                     pet_file_ctrls = pet_file_ctrls.filter(
                         file_control_id=file_control_id)
                 pet_file_ctrl = pet_file_ctrls.first()
+                entity = pet_file_ctrl.petition.agency.entity
                 DataFile.objects.create(
                     petition_file_control=pet_file_ctrl,
+                    entity=entity,
                     file=final_name)
                 print(f"Exitosamente creado {pet_file_ctrl}")
             except Exception as e:
@@ -57,7 +59,7 @@ def obtain_names_from_s3(
 #     "data_files/nacional/issste/0063700513521/recetas_2018", "0063700513521",
 #     False, 1165)
 obtain_names_from_s3(
-    "data_files/nacional/issste/330017122006872/drive-download-202209", "330017122006872",
+    "data_files/nacional/issste/330017123002614/drive-download-", "330017123002614",
     True)
 
 

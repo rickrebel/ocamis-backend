@@ -136,7 +136,7 @@ class SheetFileEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = SheetFile
         fields = "__all__"
-        read_only_fields = ["file"]
+        read_only_fields = ["file", "sheet_name", "data_file", "file_type"]
 
 
 class CrossingSheetSimpleSerializer(serializers.ModelSerializer):

@@ -159,6 +159,9 @@ class MatchAws:
         print("string_date", self.string_date)
 
         self.editable_models = init_data["editable_models"]
+        self.basic_models = ["prescription", "drug"]
+        self.normal_models = [model for model in self.editable_models
+                              if model["name"] not in self.basic_models]
         self.real_models = init_data["real_models"]
         self.model_fields = init_data["model_fields"]
         self.hash_null = init_data["hash_null"]
@@ -206,7 +209,10 @@ class MatchAws:
         self.months = set()
         self.buffers = {}
         self.csvs = {}
-        for model in self.editable_models:
+        for model in self.basic_models:
+            self.csvs[model] = {}
+            self.buffers[model] = {}
+        for model in self.normal_models:
             self.csvs[model["name"]] = io.StringIO()
             self.buffers[model["name"]] = csv.writer(
                 self.csvs[model["name"]], delimiter="|")
@@ -287,7 +293,7 @@ class MatchAws:
         else:
             data_rows = complete_file.readlines()
         all_data = self.divide_rows(data_rows)
-        for cat in self.editable_models:
+        for cat in self.normal_models:
             self.build_headers(cat["name"])
         for cat_name in self.real_med_cat_models:
             self.generic_match(cat_name, {}, True)
@@ -344,8 +350,19 @@ class MatchAws:
             # if last_date != date[:10]:
             #     last_date = date[:10]
             iso_date = some_date.isocalendar()
-            available_data["iso_year"] = iso_date[0]
-            available_data["iso_week"] = iso_date[1]
+            iso_year = iso_date[0]
+            iso_week = iso_date[1]
+            week = (iso_year, iso_week)
+            if week not in self.buffers["prescription"]:
+                for model in self.basic_models:
+                    self.csvs[model][week] = io.StringIO()
+                    self.buffers[model][week] = csv.writer(
+                        self.csvs[model][week], delimiter="|")
+                    headers = self.build_headers(model, need_return=True)
+                    self.buffers[model][week].writerow(headers)
+
+            available_data["iso_year"] = iso_year
+            available_data["iso_week"] = iso_week
             available_data["iso_day"] = iso_date[2]
             available_data["month"] = some_date.month
             self.months.add((some_date.year, some_date.month))
@@ -370,7 +387,7 @@ class MatchAws:
                 error = "Folio Ocamis; El folio ocamis es muy largo"
                 self.append_missing_row(row, error)
                 continue
-            curr_prescription = all_prescriptions.get(folio_ocamis)
+            curr_prescription = all_prescriptions.get(week, {}).get(folio_ocamis)
             if curr_prescription:
                 available_data["prescription_id"] = curr_prescription["uuid_folio"]
                 all_delivered = curr_prescription.get("all_delivered", set())
@@ -391,8 +408,8 @@ class MatchAws:
                         self.append_missing_field(
                             row, clasif_id, value, error=delivered_final_id,
                             drug_uuid=uuid)
-
                 curr_prescription["delivered_final_id"] = delivered_final_id
+                all_prescriptions[week][folio_ocamis] = curr_prescription
             else:
                 uuid_folio = str(uuid_lib.uuid4())
                 available_data["uuid_folio"] = uuid_folio
@@ -408,7 +425,7 @@ class MatchAws:
                     available_data = self.generic_match(
                         cat_name, available_data)
 
-                all_prescriptions[folio_ocamis] = available_data
+                all_prescriptions[week][folio_ocamis] = available_data
 
             current_drug_data = []
             for drug_field in self.model_fields["drug"]:
@@ -417,13 +434,16 @@ class MatchAws:
                     value = locals().get(drug_field["name"])
                 # value = available_data.get(drug_field, locals().get(drug_field))
                 current_drug_data.append(value)
-            self.buffers["drug"].writerow(current_drug_data)
+            self.buffers["drug"][week].writerow(current_drug_data)
             success_drugs_count += 1
             # if len(all_prescriptions) > self.sample_size:
             #     break
         final_request_id = self.context.aws_request_id
         report_errors = self.build_report()
-        report_errors["prescription_count"] = len(all_prescriptions)
+        prescription_count = 0
+        for week in all_prescriptions.values():
+            prescription_count += len(week)
+        report_errors["prescription_count"] = prescription_count
         report_errors["drug_count"] = success_drugs_count
         report_errors["processed_count"] = processed_count
         report_errors["total_count"] = total_count
@@ -451,14 +471,14 @@ class MatchAws:
         # for cat_name in self.med_cat_models:
         #     cat_values = self.cats.get(cat_name, {}).values()
         #     csv_buffer[cat_name].writerows(cat_values)
-
-        for curr_prescription in all_prescriptions.values():
-            current_prescription_data = []
-            # curr_prescription = all_prescriptions.get(folio)
-            for field_p in self.model_fields["prescription"]:
-                value = curr_prescription.get(field_p["name"])
-                current_prescription_data.append(value)
-            self.buffers["prescription"].writerow(current_prescription_data)
+        for week, week_prescriptions in all_prescriptions.items():
+            for curr_prescription in week_prescriptions.values():
+                current_prescription_data = []
+                # curr_prescription = all_prescriptions.get(folio)
+                for field_p in self.model_fields["prescription"]:
+                    value = curr_prescription.get(field_p["name"])
+                    current_prescription_data.append(value)
+                self.buffers["prescription"][week].writerow(current_prescription_data)
 
         bucket_name = self.s3.get("bucket_name")
         aws_location = self.s3.get("aws_location")
@@ -467,25 +487,48 @@ class MatchAws:
 
         for elem_list in self.editable_models:
             cat_name = elem_list["name"]
+            is_basic = cat_name in self.basic_models
             if "missing" in cat_name:
                 cat_count = report_errors.get(f"{cat_name}s", 0)
             else:
                 cat_count = report_errors.get(f"{cat_name}_count", 0)
             if cat_count == 0:
                 continue
-            only_name = self.final_path.replace("NEW_ELEM_NAME", cat_name)
-            all_final_paths.append({
-                "name": cat_name,
-                "model": elem_list["model"],
-                "path": only_name,
-            })
-            s3_client.put_object(
-                Body=self.csvs[cat_name].getvalue(),
-                Bucket=bucket_name,
-                Key=f"{aws_location}/{only_name}",
-                ContentType="text/csv",
-                ACL="public-read",
-            )
+            if not is_basic:
+                # complement
+                only_name = self.final_path.replace("NEW_ELEM_NAME", cat_name)
+                all_final_paths.append({
+                    "name": cat_name,
+                    "model": elem_list["model"],
+                    "path": only_name,
+                })
+                s3_client.put_object(
+                    Body=self.csvs[cat_name].getvalue(),
+                    Bucket=bucket_name,
+                    Key=f"{aws_location}/{only_name}",
+                    ContentType="text/csv",
+                    ACL="public-read",
+                )
+                continue
+            for week in self.buffers[cat_name]:
+                year, iso_week = week
+                elem_name = f"{cat_name}_{year}_{iso_week}"
+                only_name = self.final_path.replace("_NEW_ELEM_NAME", elem_name)
+                only_name = only_name.replace("NEW_ELEM_NAME", cat_name)
+                all_final_paths.append({
+                    "name": cat_name,
+                    "model": elem_list["model"],
+                    "path": only_name,
+                    "year": year,
+                    "iso_week": iso_week,
+                })
+                s3_client.put_object(
+                    Body=self.csvs[cat_name][week].getvalue(),
+                    Bucket=bucket_name,
+                    Key=f"{aws_location}/{only_name}",
+                    ContentType="text/csv",
+                    ACL="public-read",
+                )
             # self.send_csv_to_db(final_path, elem_list)
 
         result_data["result"]["final_paths"] = all_final_paths
@@ -861,10 +904,13 @@ class MatchAws:
             available_data[field["name"]] = value
         return available_data, some_date
 
-    def build_headers(self, cat_name):
+    def build_headers(self, cat_name, need_return=False):
         fields = self.model_fields[cat_name]
         headers = [field["name"] for field in fields]
-        self.buffers[cat_name].writerow(headers)
+        if need_return:
+            return headers
+        else:
+            self.buffers[cat_name].writerow(headers)
 
     def generic_match(self, cat_name, available_data, is_first=False):
         import hashlib

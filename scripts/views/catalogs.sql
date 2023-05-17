@@ -70,7 +70,9 @@ FROM
     formula_prescription pres
     JOIN formula_drug drug ON pres.uuid_folio = drug.prescription_id
 WHERE
-    pres.entity_id = 53 AND pres.iso_year = 2017 AND pres.iso_week = 49
+    pres.entity_id = 53 AND
+    pres.iso_year = 2017 AND
+    pres.iso_week = 49
 ORDER BY
     folio_ocamis;
 
