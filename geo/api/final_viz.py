@@ -2,8 +2,7 @@
 def fetch_agencies(include_groups):
     from django.db.models import Prefetch
     from geo.models import Agency
-    from inai.models import (
-        Petition, PetitionMonth, MonthAgency)
+    from inai.models import (Petition)
     from data_param.models import NameColumn
     from data_param.models import FileControl
 
@@ -16,14 +15,14 @@ def fetch_agencies(include_groups):
         .exclude(status_petition__name__icontains="mistake", )
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
 
-    filter_petition_month = PetitionMonth.objects\
-        .filter(month_agency__year_month__lte="2023-02")
-    prefetch_petition_month = Prefetch(
-        "petitions__petition_months",
-        queryset=filter_petition_month)
-    filter_month = MonthAgency.objects\
-        .filter(year_month__lte="2023-02")
-    prefetch_month = Prefetch("months", queryset=filter_month)
+    # filter_petition_month = PetitionMonth.objects\
+    #     .filter(month_agency__year_month__lte="2023-02")
+    # prefetch_petition_month = Prefetch(
+    #     "petitions__petition_months",
+    #     queryset=filter_petition_month)
+    # filter_month = EntityMonth.objects\
+    #     .filter(year_month__lte="2023-02")
+    # prefetch_month = Prefetch("months", queryset=filter_month)
     filter_file_control = FileControl.objects\
         .filter(data_group__name__in=include_groups)
     prefetch_file_control = Prefetch(
@@ -35,16 +34,17 @@ def fetch_agencies(include_groups):
             "institution",
             "clues",
             "state",
-            #"months"
-            prefetch_month,
-            #"petitions",
+            # "months"
+            # prefetch_month,
+            # "petitions",
             prefetch_petitions,
             "petitions__status_data",
             "petitions__status_petition",
-            prefetch_petition_month,
-            #"petitions__petition_months",
+            # prefetch_petition_month,
+            # "petitions__petition_months",
+            "petitions__entity_months",
             "petitions__negative_reasons",
-            "petitions__petition_months__month_agency",
+            # "petitions__petition_months__month_agency",
             #prefetch_file_control,
             "petitions__file_controls__file_control",
             "petitions__file_controls__file_control__data_group",
@@ -82,10 +82,10 @@ def build_quality_simple(file_ctrl):
         clues = "almost_enough"
     else:
         clues = "not_enough"
-    emission = (has_field("Prescription:date_release") or
-                has_field("Prescription:date_visit"))
-    entrega = has_field("Prescription:date_delivery")
-    folio = has_field("Prescription:folio_document")
+    emission = (has_field("Rx:date_release") or
+                has_field("Rx:date_visit"))
+    entrega = has_field("Rx:date_delivery")
+    folio = has_field("Rx:folio_document")
     if folio and emission and entrega:
         formula = "enough"
     elif folio and (emission or entrega):

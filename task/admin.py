@@ -24,9 +24,10 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     ]
     raw_id_fields = [
         "petition", "file_control", "data_file", "reply_file", "sheet_file",
-        "parent_task", "user"]
+        "parent_task", "user", "entity_week", "entity", "entity_month"]
     list_filter = [
-        "status_task", "is_current", "is_massive", "task_function", "user"]
+        "status_task", "is_current", "is_massive", "task_function", "user",
+        "function_after"]
     search_fields = ["data_file_id", "request_id", "task_function__name"]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
 

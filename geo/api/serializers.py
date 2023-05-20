@@ -3,10 +3,10 @@ from rest_framework import serializers
 
 from report.models import Responsable
 from geo.models import (
-    State, Institution, CLUES, Alliances, Municipality, Disease, Agency
-)
-#from report.api.serializers import ResponsableListSerializer
-from inai.models import MonthAgency
+    State, Institution, CLUES, Alliances, Municipality, Disease, Agency,
+    Entity)
+# from report.api.serializers import ResponsableListSerializer
+# from inai.models import EntityMonth
 
 
 class ResponsableListSerializer(serializers.ModelSerializer):
@@ -61,6 +61,13 @@ class InstitutionListSerializer(serializers.ModelSerializer):
         model = Institution
         fields = "__all__"
         read_only_fields = ["responsables"]
+
+
+class EntitySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Entity
+        fields = "__all__"
 
 
 class CLUESSerializer(serializers.ModelSerializer):
@@ -148,12 +155,51 @@ class AgencyFileControlsSerializer(serializers.ModelSerializer):
 # class AgencyFullSerializer(AgencySerializer):
 class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
     from inai.api.serializers import (
-        PetitionSemiFullSerializer, MonthEntitySerializer)
+        PetitionSemiFullSerializer, EntityMonthSerializer)
 
     petitions = PetitionSemiFullSerializer(many=True)
     #agency_type = read_only_fields(many=True)
-    # months = MonthEntitySimpleSerializer(many=True)
-    months = MonthEntitySerializer(many=True)
+    # months = EntityMonthSimpleSerializer(many=True)
+    entity_months = EntityMonthSerializer(many=True, source="entity.entity_months")
+    sheet_files_summarize3 = serializers.SerializerMethodField(read_only=True)
+    sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
+    # sheet_files_summarize2 = serializers.SerializerMethodField(read_only=True)
+
+    def get_sheet_files_summarize3(self, obj):
+        from django.db.models import Count
+        from inai.models import SheetFile
+        all_sheets = SheetFile.objects.filter(data_file__entity=obj.entity)
+        return all_sheets.values("behavior", "year_month").annotate(
+            count=Count("behavior"))
+
+    def get_sheet_files_summarize(self, obj):
+        from django.db.models import Count
+        from inai.models import SheetFile, TableFile
+        all_sheets = SheetFile.objects\
+            .filter(
+                data_file__entity=obj.entity,
+                laps__table_files__year_month__isnull=False)\
+            .values("laps__table_files__year_month", "id", "behavior")\
+            .distinct()
+        count_by_year_month_and_behavior = []
+        unique_ymb = set()
+        for sheet in all_sheets:
+            year_month_behavior = (sheet["laps__table_files__year_month"], sheet["behavior"])
+            if year_month_behavior in unique_ymb:
+                continue
+            else:
+                unique_ymb.add(year_month_behavior)
+                count_by_year_month_and_behavior.append({
+                    "year_month": sheet["laps__table_files__year_month"],
+                    "behavior": sheet["behavior"],
+                    "count": all_sheets.filter(
+                        laps__table_files__year_month=sheet["laps__table_files__year_month"],
+                        behavior=sheet["behavior"]).count()
+                })
+
+        # return all_sheets
+        return count_by_year_month_and_behavior
+
     # sheet_files = serializers.SerializerMethodField(read_only=True)
     #
     # def get_sheet_files(self, obj):
@@ -163,7 +209,7 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
     #         .filter(data_file__entity=obj.entity)\
     #         .values("year_month")\
     #         .annotate(
-    #             prescriptions_count=Sum("prescriptions_count"),
+    #             rx_count=Sum("rx_count"),
     #             duplicates_count=Sum("duplicates_count"),
     #             shared_count=Sum("shared_count"),
     #         )\
@@ -176,17 +222,17 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
 
 
 class AgencyVizSerializer(AgencySerializer):
-    #from inai.api.serializers import MonthEntitySimpleSerializer
+    #from inai.api.serializers import EntityMonthSimpleSerializer
     from inai.api.serializers_viz import (
-        PetitionVizSerializer, MonthEntityVizSerializer)
+        PetitionVizSerializer, EntityMonthVizSerializer)
 
     agency_type = serializers.ReadOnlyField()
     petitions = PetitionVizSerializer(many=True)
-    months = MonthEntityVizSerializer(many=True, read_only=True)
-    #months = serializers.SerializerMethodField(read_only=True)
+    months = EntityMonthVizSerializer(many=True, read_only=True)
+    # months = serializers.SerializerMethodField(read_only=True)
 
-    #def get_months(self, obj):
-    #    return MonthAgency.objects.filter(agency=obj)\
+    # def get_months(self, obj):
+    #    return EntityMonth.objects.filter(agency=obj)\
     #        .values_list("year_month", flat=True).distinct()
 
     class Meta:

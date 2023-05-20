@@ -258,7 +258,7 @@ def modify_constraints_prev(create=True):
         {"model": "MissingField", "order": 0, "app": "formula"},
         {"model": "MissingRow", "order": 1, "app": "formula"},
         {"model": "Drug", "order": 2, "app": "formula"},
-        {"model": "Prescription", "order": 3, "app": "formula"},
+        {"model": "Rx", "order": 3, "app": "formula"},
         {"model": "Delivered", "order": 4, "app": "med_cat"},
         {"model": "Doctor", "order": 5, "app": "med_cat"},
         {"model": "MedicalUnit", "order": 6, "app": "med_cat"},

@@ -188,7 +188,7 @@ class ReportAdmin(admin.ModelAdmin):
             '\n', "{}{}</br>",
             (('->', supply) for supply in supplies)
         )
-    supplies_display.short_display = "Insumos"
+    supplies_display.short_display = "Supplys"
 
     def save_related(self, request, form, formsets, change):
         super(ReportAdmin, self).save_related(request, form, formsets, change)

@@ -361,6 +361,7 @@ class Alliances(models.Model):
 
 
 class Agency(models.Model):
+
     entity = models.ForeignKey(
         Entity, verbose_name="Entidad",
         on_delete=models.CASCADE, blank=True, null=True)
@@ -407,16 +408,17 @@ class Agency(models.Model):
         verbose_name="Derechohabientes", blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        from inai.models import MonthAgency
+        from inai.models import EntityMonth
         self_created = True if self.pk is None else False
         super(Agency, self).save(*args, **kwargs)
         if self_created:
-            for sum_year in range(7):
+            for sum_year in range(8):
                 year = sum_year + 2017
                 for month in range(12):
                     month += 1
                     ye_mo = f"{year}-{month:02d}"
-                    MonthAgency.objects.get_or_create(agency=self, year_month=ye_mo)
+                    EntityMonth.objects.get_or_create(
+                        entity=self.entity, year_month=ye_mo)
 
     def delete(self, *args, **kwargs):
         from inai.models import LapSheet

@@ -82,7 +82,7 @@ class Match:
         self.columns_count = original_columns.count()
 
         self.editable_models = [
-            {"name": "prescription", "model": "Prescription"},
+            {"name": "rx", "model": "Rx"},
             {"name": "drug", "model": "Drug"},
             {"name": "missing_field", "model": "MissingField"},
             {"name": "missing_row", "model": "MissingRow"},

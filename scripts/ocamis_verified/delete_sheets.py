@@ -8,13 +8,13 @@ def delete_sheet_file(uuid_folios):
     print("start delete_folios", datetime.now())
     cursor = connection.cursor()
     sql_delete_pres = f"""
-        DELETE FROM formula_prescription pres
-        WHERE pres.uuid_folio IN ({uuid_folios})
+        DELETE FROM formula_rx rx
+        WHERE rx.uuid_folio IN ({uuid_folios})
     """
     cursor.execute(sql_delete_pres)
     sql_delete_drug = f"""
         DELETE FROM formula_drug drug
-        WHERE drug.prescription_id IN ({uuid_folios})
+        WHERE drug.rx_id IN ({uuid_folios})
     """
     cursor.execute(sql_delete_drug)
     cursor.close()
@@ -25,7 +25,7 @@ def get_only_uuids(sheet_file_id):
         SELECT
             uuid_folio,
         FROM
-            drugs_and_prescriptions
+            drugs_and_rxs
         WHERE
             sheet_id = {sheet_file_id}
     """

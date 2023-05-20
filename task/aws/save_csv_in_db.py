@@ -6,7 +6,7 @@ from task.aws.common import request_headers
 # def save_csv_in_db(event, context):
 def lambda_handler(event, context):
     import psycopg2
-    print("model_name", event.get("model_name"))
+    # print("model_name", event.get("model_name"))
     lap_sheet_id = event.get("lap_sheet_id")
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries")

@@ -40,7 +40,7 @@ def set_upload_path_old(instance, filename):
     except AttributeError:
         acronym = 'others'
     try:
-        last_year_month = instance.month_agency.year_month
+        last_year_month = instance.entity_month.year_month
     except AttributeError:
         try:
             last_year_month = petition.last_year_month()
@@ -139,6 +139,8 @@ class Petition(models.Model, PetitionTransformsMix):
         verbose_name="Datos de queja",
         help_text="Información de la queja en INAI Search",
         blank=True, null=True)
+    entity_months = models.ManyToManyField(
+        "EntityMonth", blank=True, verbose_name="Meses de la solicitud")
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(
@@ -147,6 +149,42 @@ class Petition(models.Model, PetitionTransformsMix):
         if some_lap_inserted:
             raise Exception("No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
+
+    def first_year_month(self):
+        # return self.petition_months.earliest().entity_month.year_month
+        return self.entity_months.earliest().year_month
+
+    def last_year_month(self):
+        # return self.petition_months.latest().entity_month.year_month
+        return self.entity_months.latest().year_month
+
+    def months(self):
+        html_list = ''
+        # start = self.petition_months.earliest().entity_month.human_name
+        start = self.entity_months.earliest().year_month
+        # end = self.petition_months.latest().entity_month.human_name
+        end = self.entity_months.latest().year_month
+        return " ".join(list({start, end}))
+    months.short_description = "Meses"
+
+    def months_in_description(self):
+        from django.utils.html import format_html
+        months = [
+            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        curr_months = []
+        if self.description_petition:
+            description = self.description_petition.lower()
+            for month in months:
+                if month in description:
+                    curr_months.append(month)
+            html_list = ''
+            for month in list(curr_months):
+                html_list = html_list + ('<span>%s</span><br>' % month)
+            return format_html(html_list)
+        else:
+            return "Sin descripción"
+    months_in_description.short_description = "Meses escritos"
 
     def __str__(self):
         return "%s -- %s" % (self.agency, self.folio_petition or self.id)
@@ -216,23 +254,26 @@ class PetitionFileControl(models.Model):
         verbose_name_plural = "7. Relacional: Petición -- Grupos de Control"
 
 
-class MonthAgency(models.Model):
+class EntityMonth(models.Model):
     agency = models.ForeignKey(
         Agency,
         related_name="months",
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE, blank=True, null=True)
     entity = models.ForeignKey(
         Entity,
-        related_name="month_entities",
+        related_name="entity_months",
         on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10)
-    prescriptions_count = models.IntegerField(default=0)
+    drugs_count = models.IntegerField(default=0)
+    rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
     last_crossing = models.DateTimeField(blank=True, null=True)
+    last_transformation = models.DateTimeField(blank=True, null=True)
+    last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return "%s -- %s" % (self.agency, self.year_month)
+        return "%s -- %s" % (self.entity, self.year_month)
 
     @property
     def human_name(self):
@@ -252,15 +293,13 @@ class MonthAgency(models.Model):
 
 class PetitionMonth(models.Model):
     petition = models.ForeignKey(
-        Petition, 
+        Petition,
         related_name="petition_months",
         on_delete=models.CASCADE)
-    month_agency = models.ForeignKey(
-        MonthAgency, on_delete=models.CASCADE)
-    notes = models.TextField(blank=True, null=True)
+    entity_month = models.ForeignKey(EntityMonth, on_delete=models.CASCADE)
 
     def __str__(self):
-        return "%s-> %s, %s" % (self.id, self.petition, self.month_agency)
+        return "%s-> %s, %s" % (self.id, self.petition, self.entity_month)
 
     class Meta:
         get_latest_by = "month_agency__year_month"
@@ -329,9 +368,9 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True)
     zip_path = models.TextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
-    petition_month = models.ForeignKey(
-        PetitionMonth, blank=True, null=True,
-        on_delete=models.CASCADE)
+    # petition_month = models.ForeignKey(
+    #     PetitionMonth, blank=True, null=True,
+    #     on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
     # is_final = models.BooleanField(default= True)
     # origin_file = models.ForeignKey(
@@ -353,10 +392,10 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         StatusTask, blank=True, null=True, on_delete=models.CASCADE,
         default='finished', verbose_name="Status actual")
 
-    file_type = models.ForeignKey(
-        FileType, blank=True, null=True, on_delete=models.CASCADE,
-        default='original_data',
-        verbose_name="Tipo de archivo")
+    # file_type = models.ForeignKey(
+    #     FileType, blank=True, null=True, on_delete=models.CASCADE,
+    #     default='original_data',
+    #     verbose_name="Tipo de archivo")
 
     filtered_sheets = JSONField(
         blank=True, null=True, verbose_name="Nombres de las hojas filtradas")
@@ -494,7 +533,7 @@ class SheetFile(models.Model):
         default='explore', verbose_name="Etapa actual")
     status = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, default='finished')
-    prescriptions_count = models.IntegerField(
+    rx_count = models.IntegerField(
         verbose_name="Prescripciones procesadas",
         default=0)
     duplicates_count = models.IntegerField(
@@ -535,86 +574,6 @@ class SheetFile(models.Model):
         self.save()
         self.data_file.comprobate_sheets(status_id)
 
-    def check_success_insert(self, task_params=None, **kwargs):
-        from task.models import AsyncTask
-        # from inai.data_file_mixins.insert_mix import modify_constraints
-        # import threading
-        # import time
-
-        # def check_tasks_with_insert():
-        #     running_tasks = AsyncTask.objects.filter(
-        #         data_file__stage_id="insert",
-        #         data_file__status__is_completed=False)
-        #     if not running_tasks.exists():
-        #         modify_constraints(is_create=True)
-        #
-        # def delay_check():
-        #     time.sleep(20)
-        #     check_tasks_with_insert()
-        #
-        # t = threading.Thread(target=delay_check)
-        # t.start()
-        errors = kwargs.get("errors", [])
-        self.save_stage('insert', errors)
-        return [], errors, True
-
-    def build_csv_data_from_aws(self, task_params=None, **kwargs):
-        from django.utils import timezone
-        # print("FINISH BUILD CSV DATA")
-        data_file = self.data_file
-        is_prepare = kwargs.get("is_prepare", False)
-        # sheet_file_id = kwargs.get("sheet_file_id", None)
-        # sheet_file = SheetFile.objects.get(id=sheet_file_id)
-        # print("is_prepare", is_prepare)
-        next_lap = self.next_lap if not is_prepare else -1
-        # print("next_lap", next_lap)
-        # print("next_lap", sheet_file.next_lap)
-        # print("final_paths", final_paths)
-        report_errors = kwargs.get("report_errors", {})
-        lap_sheet, created = LapSheet.objects.get_or_create(
-            sheet_file=self, lap=next_lap)
-        fields_in_report = report_errors.keys()
-        for field in fields_in_report:
-            setattr(lap_sheet, field, report_errors[field])
-        lap_sheet.last_edit = timezone.now()
-        lap_sheet.save()
-
-        if not is_prepare and not \
-                data_file.petition_file_control.file_control.decode:
-            decode = kwargs.get("decode", None)
-            if decode:
-                data_file.petition_file_control.file_control.decode = decode
-                data_file.petition_file_control.file_control.save()
-
-        error_fields = ["missing_rows", "missing_fields"]
-        errors_count = sum([report_errors[field] for field in error_fields])
-        total_rows = report_errors["total_count"] - report_errors["discarded_count"]
-        errors = []
-        if not total_rows:
-            errors.append("No se encontraron filas")
-        elif errors_count / total_rows > 0.05:
-            errors.append("Se encontraron demasiados errores en filas/campos")
-        stage_id = "prepare" if is_prepare else "transform"
-
-        if is_prepare or errors:
-            self.save_stage(stage_id, errors)
-            return [], errors, True
-        # data_file.all_results = kwargs.get("report_errors", {})
-        # data_file.save()
-        final_paths = kwargs.get("final_paths", []) or []
-        new_task, errors, data = lap_sheet.save_result_csv(final_paths)
-        all_months = kwargs.get("all_months", []) or []
-        if len(all_months) > 1:
-            errors.append(f"Se encontraron demasiados meses: {all_months}")
-        elif len(all_months) == 0:
-            errors.append("No se encontraron meses")
-        else:
-            ym = all_months[0]
-            month = str(ym[1]).zfill(2)
-            self.year_month = f"{ym[0]}-{month}"
-        self.save_stage(stage_id, errors)
-        return new_task, errors, data
-
     def __str__(self):
         return f">{self.file_type}< {self.sheet_name}- {self.data_file}"
 
@@ -632,6 +591,9 @@ class CrossingSheet(models.Model):
         SheetFile, related_name="crossing_1", on_delete=models.CASCADE)
     sheet_file_2 = models.ForeignKey(
         SheetFile, related_name="crossing_2", on_delete=models.CASCADE)
+    iso_year = models.PositiveIntegerField(default=0)
+    iso_week = models.PositiveIntegerField(default=0)
+    delegation_name = models.CharField(max_length=255, blank=True, null=True)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
     last_crossing = models.DateTimeField(blank=True, null=True)
@@ -656,7 +618,7 @@ class LapSheet(models.Model):
     general_error = models.CharField(max_length=255, blank=True, null=True)
     total_count = models.IntegerField(default=0)
     processed_count = models.IntegerField(default=0)
-    prescription_count = models.IntegerField(default=0)
+    rx_count = models.IntegerField(default=0)
     drug_count = models.IntegerField(default=0)
     medical_unit_count = models.IntegerField(default=0)
     area_count = models.IntegerField(default=0)
@@ -679,37 +641,6 @@ class LapSheet(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-    def save_result_csv(self, result_files):
-        all_new_files = []
-        new_tasks = []
-        new_file_ids = []
-        optional_fields = ["year", "iso_week", "delegation_name"]
-        for result_file in result_files:
-            model_name = result_file["model"]
-            print("model_name", model_name)
-            collection = Collection.objects.get(model_name=model_name)
-            query_create = {"lap_sheet": self, "collection": collection}
-            for field in optional_fields:
-                query_create[field] = result_file.get(field, None)
-            new_file, created = TableFile.objects.get_or_create(**query_create)
-            new_file_ids.append(new_file.id)
-            new_file.file = result_file["path"]
-            new_file.save()
-            # new_file.change_status('initial|finished')
-            all_new_files.append(new_file)
-            # new_tasks = self.send_csv_to_db(result_file["path"], model_name)
-            # new_tasks.append(new_tasks)
-        TableFile.objects.filter(lap_sheet=self)\
-                         .exclude(id__in=new_file_ids)\
-                         .delete()
-        return new_tasks, [], all_new_files
-
-    # def confirm_all_inserted(self):
-    #     pending_tables = self.table_files.filter(inserted=False).exists()
-    #     self.inserted = None if pending_tables else True
-    #     self.save()
-    #     return not pending_tables
-
     def __str__(self):
         return "%s %s" % (str(self.sheet_file), self.lap)
 
@@ -720,23 +651,66 @@ class LapSheet(models.Model):
         unique_together = ("sheet_file", "lap")
 
 
+class EntityWeek(models.Model):
+    entity = models.ForeignKey(
+        Entity,
+        related_name="weeks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    entity_month = models.ForeignKey(
+        EntityMonth,
+        related_name="weeks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    iso_year = models.SmallIntegerField(blank=True, null=True)
+    iso_week = models.SmallIntegerField(blank=True, null=True)
+    year_month = models.CharField(max_length=10, blank=True, null=True)
+    year = models.SmallIntegerField(blank=True, null=True)
+    month = models.SmallIntegerField(blank=True, null=True)
+    delegation_name = models.CharField(max_length=255, blank=True, null=True)
+
+    drugs_count = models.IntegerField(default=0)
+    rx_count = models.IntegerField(default=0)
+    duplicates_count = models.IntegerField(default=0)
+    shared_count = models.IntegerField(default=0)
+    last_crossing = models.DateTimeField(blank=True, null=True)
+    last_transformation = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.entity} {self.year_month} - {self.iso_week}"
+
+    class Meta:
+        get_latest_by = ["year_month", "iso_week"]
+        verbose_name = "Semana de entidad"
+        verbose_name_plural = "7. Semanas de entidad"
+
+
 class TableFile(models.Model):
 
     # sheet_file = models.ForeignKey(
     #     SheetFile, related_name="process_files", on_delete=models.CASCADE)
     lap_sheet = models.ForeignKey(
-        LapSheet, related_name="table_files", on_delete=models.CASCADE)
+        LapSheet, related_name="table_files", on_delete=models.CASCADE,
+        blank=True, null=True)
     file = models.FileField(max_length=255, upload_to=set_upload_path)
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, blank=True, null=True)
-    is_for_edition = models.BooleanField(default=False)
-    year = models.SmallIntegerField(blank=True, null=True)
-    iso_week = models.SmallIntegerField(blank=True, null=True)
+    entity_week = models.ForeignKey(
+        EntityWeek, on_delete=models.CASCADE,
+        blank=True, null=True, related_name="table_files")
+    iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
+    iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
+    year = models.PositiveSmallIntegerField(blank=True, null=True)
+    month = models.PositiveSmallIntegerField(blank=True, null=True)
+    year_month = models.CharField(max_length=10, blank=True, null=True)
     delegation_name = models.CharField(
         max_length=255, blank=True, null=True)
-    # inserted = models.BooleanField(default=False)
+    is_for_edition = models.BooleanField(default=False)
+    inserted = models.BooleanField(default=False)
+    drugs_count = models.IntegerField(default=0)
+    rx_count = models.IntegerField(default=0)
+    duplicates_count = models.IntegerField(default=0)
+    shared_count = models.IntegerField(default=0)
 
     def __str__(self):
         return "%s %s" % (self.collection, self.lap_sheet)

@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 from django.db import models
-#from report.models import Supply
 
 
 class Group(models.Model):
@@ -32,7 +31,6 @@ class Component(models.Model):
 
     group = models.ForeignKey(
         Group, blank=True, null=True, on_delete=models.CASCADE)
-    #group = models.IntegerField(blank=True, null=True)
     presentations_raw = models.TextField(blank=True, null=True)
 
     origen_cvmei = models.BooleanField(default=False)
@@ -50,11 +48,6 @@ class Component(models.Model):
         if not self.short_name:
             self.short_name = self.name
         super(Component, self).save(*args, **kwargs)
-
-    """def update_frecuency(self):
-        self.frequency = Supply.objects\
-            .filter(component=self).distinct().count()
-        self.save()"""
 
     def __str__(self):
         return self.name
@@ -97,10 +90,8 @@ class PresentationType(models.Model):
 class Presentation(models.Model):
     component = models.ForeignKey(
         Component, related_name="presentations", on_delete=models.CASCADE)
-    #component = models.IntegerField()
     presentation_type = models.ForeignKey(
         PresentationType, blank=True, null=True, on_delete=models.CASCADE)
-    #presentation_type = models.IntegerField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     presentation_type_raw = models.CharField(
         max_length=255, blank=True, null=True)
@@ -127,7 +118,6 @@ class Container(models.Model):
     presentation = models.ForeignKey(
         Presentation, related_name="containers", blank=True, null=True,
         on_delete=models.CASCADE)
-    #presentation = models.IntegerField(blank=True, null=True)
     name = models.TextField()
     key = models.CharField(verbose_name="Clave", max_length=20)
     key2 = models.CharField(

@@ -19,7 +19,7 @@ def get_all_folios(filters):
             folio_ocamis,
             month
         FROM
-            drugs_and_prescriptions
+            drugs_and_rxs
         WHERE
             entity_id = {entity_id} AND
             iso_week = {week} AND
@@ -139,13 +139,13 @@ def build_pairs_sheets(filters):
 
 
 def save_sheets_months(year_month, entity_id, month_counts):
-    from inai.models import MonthAgency
-    current_month_entities = MonthAgency.objects.filter(
+    from inai.models import EntityMonth
+    current_entity_months = EntityMonth.objects.filter(
         entity_id=entity_id, year_month=year_month)
-    current_month_entities.update(
+    current_entity_months.update(
         duplicates_count=month_counts["dupli"],
         shared_count=month_counts["shared"],
-        prescriptions_count=month_counts["total"]
+        rx_count=month_counts["total"]
     )
 
 
@@ -162,7 +162,7 @@ def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
         current_sheet = SheetFile.objects.get(id=sheet_id)
         if current_sheet.year_month != year_month:
             continue
-        current_sheet.prescriptions_count = value["total"]
+        current_sheet.rx_count = value["total"]
         current_sheet.duplicates_count = value["dupli"]
         current_sheet.shared_count = value["shared"]
         current_sheet.save()
@@ -245,7 +245,7 @@ def get_delivered_results(filters):
             delivered,
             month
         FROM
-            drugs_and_prescriptions
+            drugs_and_rxs
         WHERE 
             entity_id = {entity_id} AND
             iso_week = {week} AND
@@ -319,7 +319,7 @@ def get_uuids_duplicates(filters):
             uuid_folio,
             delivered
         FROM
-            drugs_and_prescriptions        
+            drugs_and_rxs        
         WHERE 
             entity_id = {entity_id} AND
             iso_week = {week} AND
@@ -390,9 +390,9 @@ def update_folios(for_edit_folios):
     # SPACE
     sql_join = """
         UPDATE formula_drug
-        SET prescription_id = temp.new_uuid
+        SET rx_id = temp.new_uuid
         FROM temp_new_folios temp
-        WHERE formula_drug.prescription_id = temp.original_uuid
+        WHERE formula_drug.rx_id = temp.original_uuid
     """
     cursor.execute(sql_join)
     cursor.execute(sql_delete_temp)
@@ -404,8 +404,8 @@ def delete_folios(for_edit_folios):
     cursor = connection.cursor()
     folios_to_delete = ", ".join([f"'{original}'" for original, new in for_edit_folios])
     sql_delete = f"""
-        DELETE FROM formula_prescription pres
-        WHERE pres.uuid_folio IN ({folios_to_delete})
+        DELETE FROM formula_rx rx
+        WHERE rx.uuid_folio IN ({folios_to_delete})
     """
     result = cursor.execute(sql_delete)
     print("result", result)
@@ -445,11 +445,11 @@ def update_delivered(for_edit_delivered):
     # print("temp", temp)
     # SPACE
     sql_join = """
-        UPDATE formula_prescription
+        UPDATE formula_rx
         SET 
             delivered_final_id = temp_new_delivered.new_delivered
         FROM temp_new_delivered
-        WHERE formula_prescription.uuid_folio = temp_new_delivered.original_uuid
+        WHERE formula_rx.uuid_folio = temp_new_delivered.original_uuid
     """
     cursor.execute(sql_join)
     cursor.execute(sql_delete_temp)
@@ -589,20 +589,20 @@ def get_duplicates_folios(filters, is_explore):
 def refresh_materialized_views():
     cursor = connection.cursor()
     sql_queries = [
-        # "alter table public.formula_prescription"
-        # "    add constraint formula_prescription_pkey"
+        # "alter table public.formula_rx"
+        # "    add constraint formula_rx_pkey"
         # "    primary key(uuid_folio);",
         # "alter table formula_drug"
-        # "    add constraint formula_drug_prescription_id_cdf044b3_fk_formula_p"
-        # "    foreign key(prescription_id) references formula_prescription"
+        # "    add constraint formula_drug_rx_id_cdf044b3_fk_formula_p"
+        # "    foreign key(rx_id) references formula_rx"
         # "    deferrable initially deferred;",
-        # "create index if not exists formula_drug_prescription_id_cdf044b3"
-        # "    on formula_drug(prescription_id);",
+        # "create index if not exists formula_drug_rx_id_cdf044b3"
+        # "    on formula_drug(rx_id);",
         "CREATE INDEX if not exists d_and_p_entity_id_iso_week_iso_year"
-        "    ON drugs_and_prescriptions(entity_id, iso_week, iso_year);",
+        "    ON drugs_and_rxs(entity_id, iso_week, iso_year);",
         # "CREATE INDEX if not exists d_and_p_entity_id_month_iso_year"
-        # "    ON drugs_and_prescriptions(entity_id, month, iso_year);",
-        "REFRESH MATERIALIZED VIEW drugs_and_prescriptions WITH DATA;",
+        # "    ON drugs_and_rxs(entity_id, month, iso_year);",
+        "REFRESH MATERIALIZED VIEW drugs_and_rxs WITH DATA;",
         # "DROP INDEX if exists d_and_p_entity_id_iso_week_iso_year;",
     ]
     for sql in sql_queries:
@@ -619,11 +619,11 @@ def refresh_materialized_views():
 def delete_indexes_and_constraints():
     cursor = connection.cursor()
     sql_queries = [
-        "drop index if exists formula_drug_prescription_id_cdf044b3",
+        "drop index if exists formula_drug_rx_id_cdf044b3",
         "alter table formula_drug"
-        "    drop constraint formula_drug_prescription_id_cdf044b3_fk_formula_p",
-        "alter table public.formula_prescription"
-        "    drop constraint formula_prescription_pkey",
+        "    drop constraint formula_drug_rx_id_cdf044b3_fk_formula_p",
+        "alter table public.formula_rx"
+        "    drop constraint formula_rx_pkey",
     ]
     for sql in sql_queries:
         try:
@@ -726,14 +726,14 @@ def improvisado():
 
 # get_period_report(53, False, "201701", "201701", refresh=False)
 
-# create index if not exists formula_prescription_pkey_temp
-#      on formula_prescription(uuid_folio);
+# create index if not exists formula_rx_pkey_temp
+#      on formula_rx(uuid_folio);
 
-# create index if not exists formula_drug_prescription_id_cdf044b3
-#          on formula_drug(prescription_id);
+# create index if not exists formula_drug_rx_id_cdf044b3
+#          on formula_drug(rx_id);
 
 # create index if not exists d_and_p_sheet_id
-#          on drugs_and_prescriptions(sheet_id);
+#          on drugs_and_rxs(sheet_id);
 
 # create index if not exists formula_drug_sheet_file_id_568cdddf
 #     on formula_drug (sheet_file_id);

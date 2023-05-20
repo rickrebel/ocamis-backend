@@ -151,7 +151,7 @@ class Report(models.Model):
         verbose_name="Tipo de medicina")
     medication_name = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name="Nombre de medicamento / Insumo faltante")
+        verbose_name="Nombre de medicamento / Supply faltante")
 
     @property
     def get_medicine_type(self):
@@ -524,5 +524,5 @@ class Supply(models.Model):
 
     class Meta:
         verbose_name = "Medicamento o insumo"
-        verbose_name_plural = "2. Medicamentos/Insumos de reportes"
+        verbose_name_plural = "2. Medicamentos/Supplys de reportes"
         db_table = u'desabasto_supply'

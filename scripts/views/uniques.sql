@@ -1,29 +1,29 @@
--- drugs_and_prescriptions
+-- drugs_and_rxs
  SELECT
     drug.sheet_file_id AS sheet_id,
-    pres.entity_id,
-    pres.folio_ocamis,
-	pres.month,
-	pres.iso_week,
-	pres.iso_year,
-    pres.uuid_folio,
-    pres.delivered_final_id AS delivered
-   FROM formula_prescription pres
-     JOIN formula_drug drug ON pres.uuid_folio = drug.prescription_id;
+    rx.entity_id,
+    rx.folio_ocamis,
+	rx.month,
+	rx.iso_week,
+	rx.iso_year,
+    rx.uuid_folio,
+    rx.delivered_final_id AS delivered
+   FROM formula_rx rx
+     JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id;
 
 
--- drugs_and_prescriptions_valid
+-- drugs_and_rxs_valid
  SELECT vsf.sheet_id,
     vsf.entity_id,
-    pres.folio_ocamis,
-    pres.month,
-    pres.iso_week,
-    pres.iso_year,
-    pres.uuid_folio,
-    pres.delivered_final_id AS delivered
+    rx.folio_ocamis,
+    rx.month,
+    rx.iso_week,
+    rx.iso_year,
+    rx.uuid_folio,
+    rx.delivered_final_id AS delivered
 FROM formula_drug drug
     JOIN valid_sheet_files vsf ON drug.sheet_file_id = vsf.sheet_id
-    JOIN formula_prescription pres ON pres.uuid_folio = drug.prescription_id;
+    JOIN formula_rx rx ON rx.uuid_folio = drug.rx_id;
 
 
  SELECT
@@ -47,6 +47,6 @@ SELECT sf.id AS sheet_id,
 SELECT
     delivered_final_id,
     COUNT(delivered_final_id) AS total
-FROM formula_prescription
+FROM formula_rx
 GROUP BY delivered_final_id;
 

@@ -1,40 +1,5 @@
-class PetitionMix:
-    petition_months: None
 
-    def first_year_month(self):
-        return self.petition_months.earliest().month_agency.year_month
-
-    def last_year_month(self):
-        return self.petition_months.latest().month_agency.year_month
-
-    def months(self):
-        html_list = ''
-        start = self.petition_months.earliest().month_agency.human_name
-        end = self.petition_months.latest().month_agency.human_name
-        return " ".join(list(set([start, end])))
-    months.short_description = "Meses"
-
-    def months_in_description(self):
-        from django.utils.html import format_html
-        months = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-        curr_months = []
-        if self.description_petition:
-            description = self.description_petition.lower()
-            for month in months:
-                if month in description:
-                    curr_months.append(month)
-            html_list = ''
-            for month in list(curr_months):
-                html_list = html_list + ('<span>%s</span><br>' % month)
-            return format_html(html_list)
-        else:
-            return "Sin descripción"
-    months_in_description.short_description = "Meses escritos"
-
-
-class PetitionTransformsMix(PetitionMix):
+class PetitionTransformsMix:
     agency: None
 
     def find_matches_in_children(

@@ -4,7 +4,9 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
-from inai.models import Petition, DataFile, ReplyFile, SheetFile
+from inai.models import (
+    Petition, DataFile, ReplyFile, SheetFile, EntityWeek, EntityMonth,)
+from geo.models import Entity
 from data_param.models import FileControl
 from classify_task.models import StatusTask, TaskFunction
 
@@ -15,8 +17,17 @@ class AsyncTask(models.Model):
     parent_task = models.ForeignKey(
         "self", related_name="child_tasks",
         blank=True, null=True, on_delete=models.CASCADE)
+    entity = models.ForeignKey(
+        Entity, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
     file_control = models.ForeignKey(
         FileControl, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    entity_week = models.ForeignKey(
+        EntityWeek, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    entity_month = models.ForeignKey(
+        EntityMonth, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     petition = models.ForeignKey(
         Petition, blank=True, null=True,
@@ -40,13 +51,16 @@ class AsyncTask(models.Model):
     task_function = models.ForeignKey(
         TaskFunction, blank=True, null=True, on_delete=models.CASCADE,
         related_name="functions")
-    is_massive = models.BooleanField(default=False)
+    is_massive = models.BooleanField(default=False, verbose_name="many")
     subgroup = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Subtipo de la función")
     function_after = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Función a ejecutar después")
+    finished_function = models.CharField(
+        max_length=100, blank=True, null=True,
+        verbose_name="Función a ejecutar si es exitosa")
     original_request = JSONField(
         blank=True, null=True, verbose_name="Request original")
     params_after = JSONField(
@@ -74,6 +88,9 @@ class AsyncTask(models.Model):
         if is_completed and not self.date_end:
             self.date_end = datetime.now()
         self.save()
+        # if self.status_task_id == "finished":
+        #     self.is_current = False
+        #     self.save()
         return self
 
     @property

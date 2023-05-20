@@ -86,8 +86,6 @@ class NameColumnSerializer(serializers.ModelSerializer):
 
 class FileControlSimpleSerializer(serializers.ModelSerializer):
     data_group = DataGroupSimpleSerializer(read_only=True)
-    #file_type = FileTypeSimpleSerializer(read_only=True)
-    #status_register = StatusControlSimpleSerializer(read_only=True)
 
     class Meta:
         model = FileControl
@@ -103,12 +101,6 @@ class FileControlSerializer(FileControlSimpleSerializer):
     data_group_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="data_group",
         queryset=DataGroup.objects.all(), required=False)
-    # file_type_id = serializers.PrimaryKeyRelatedField(
-    #     write_only=True, source="file_type",
-    #     queryset=FileType.objects.all())
-    # status_register_id = serializers.PrimaryKeyRelatedField(
-    #     write_only=True, source="status_register",
-    #     queryset=StatusControl.objects.all())
     summary_status = serializers.SerializerMethodField(read_only=True)
     example_file_id = serializers.SerializerMethodField(read_only=True)
     failed_files = serializers.SerializerMethodField(read_only=True)

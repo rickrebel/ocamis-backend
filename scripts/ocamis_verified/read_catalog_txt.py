@@ -265,12 +265,12 @@ def assign_entity_to_data_files():
 
 def assign_entity_to_month_agency():
     from geo.models import Entity, Agency
-    from inai.models import MonthAgency
+    from inai.models import EntityMonth
     all_agencies = Agency.objects.all()
     for agency in all_agencies:
         entity = agency.entity
         if entity:
-            month_agencies = MonthAgency.objects.filter(agency=agency)
+            month_agencies = EntityMonth.objects.filter(agency=agency)
             month_agencies.update(entity=entity)
 
 
@@ -292,20 +292,45 @@ def assign_year_month_to_sheet_files(entity_id):
 
 
 def add_line_to_year_months():
-    from inai.models import MonthAgency, SheetFile
-    all_year_months = MonthAgency.objects.values_list(
+    from inai.models import EntityMonth, SheetFile
+    all_year_months = EntityMonth.objects.values_list(
         "year_month", flat=True).distinct()
     for year_month in all_year_months:
         new_ym = year_month[:4] + "-" + year_month[4:]
-        month_agencies = MonthAgency.objects.filter(year_month=year_month)
+        month_agencies = EntityMonth.objects.filter(year_month=year_month)
         month_agencies.update(year_month=new_ym)
         sheet_files = SheetFile.objects.filter(year_month=year_month)
         sheet_files.update(year_month=new_ym)
 
 
+def replace_petition_month_by_months_agency():
+    from inai.models import Petition
+    all_petitions = Petition.objects.all()
+    for petition in all_petitions:
+        month_agencies_ids = petition.petition_months.values_list(
+            "month_agency_id", flat=True)
+        petition.entity_months.set(month_agencies_ids)
+
+
+def delete_duplicates_months_agency():
+    from inai.models import EntityMonth
+    from geo.models import Entity
+    all_entities = Entity.objects.all()
+    for entity in all_entities:
+        all_months_agency = EntityMonth.objects.filter(entity=entity)
+        year_months = all_months_agency.order_by("year_month").distinct(
+            "year_month")
+        year_months = year_months.values_list(
+            "year_month", flat=True)
+        for year_month in list(year_months):
+            month_agencies = EntityMonth.objects.filter(
+                entity=entity, year_month=year_month)
+            month_agencies = month_agencies.order_by("-id")
+            if month_agencies.count() > 1:
+                month_agencies[1:].delete()
+
+
 # assign_year_month_to_sheet_files(53)
-
-
 # move_delegation_clues()
 # delete_insabi_delegations()
 

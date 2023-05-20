@@ -1,4 +1,4 @@
-from formula.models import Drug, Prescription, MissingRow, MissingField
+from formula.models import Drug, Rx, MissingRow, MissingField
 
 
 def delete_indexes_by_model(model):
@@ -50,7 +50,7 @@ def delete_constrains_by_model(model):
 
 
 def delete_all_indexes_and_constrains():
-    models = [Drug, Prescription, MissingRow, MissingField]
+    models = [Drug, Rx, MissingRow, MissingField]
     for model in models:
         delete_indexes_by_model(model)
         delete_constrains_by_model(model)

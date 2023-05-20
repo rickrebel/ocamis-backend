@@ -1,41 +1,43 @@
 
 def generate_months():
-    from inai.models import MonthAgency
-    from geo.models import Agency
-    for agency in Agency.objects.all():
+    from inai.models import EntityMonth
+    from geo.models import Entity
+    # for agency in Agency.objects.all():
+    for entity in Entity.objects.all():
         for sum_year in range(6):
             year = sum_year + 2017
             for month in range(12):
                 month += 1
                 ye_mo = f"{year}-{month:02d}"
-                MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
-                #print("%s-%s" % (agency.id, ye_mo))
+                EntityMonth.objects.get_or_create(
+                    entity=entity, year_month=ye_mo)
+                # print("%s-%s" % (agency.id, ye_mo))
 
 
 def generate_months_one_year(year):
-    from inai.models import MonthAgency
-    from geo.models import Agency
-    for agency in Agency.objects.all():
+    from inai.models import EntityMonth
+    from geo.models import Entity
+    for agency in Entity.objects.all():
         for month in range(12):
             month += 1
             ye_mo = f"{year}-{month:02d}"
-            MonthAgency.objects.get_or_create(
-                agency=agency,
+            EntityMonth.objects.get_or_create(
                 year_month=ye_mo,
                 entity=agency.entity)
             #print("%s-%s" % (agency.id, ye_mo))
 
 
 def generate_months_agency(acronym):
-    from inai.models import MonthAgency
-    from geo.models import Agency
-    for agency in Agency.objects.filter(acronym=acronym):
+    from inai.models import EntityMonth
+    from geo.models import Entity
+    for entity in Entity.objects.filter(acronym=acronym):
         for sum_year in range(6):
             year = sum_year + 2017
             for month in range(12):
                 month += 1
                 ye_mo = f"{year}-{month:02d}"
-                MonthAgency.objects.get_or_create(agency=agency, year_month=ye_mo)
+                EntityMonth.objects.get_or_create(
+                    entity=entity, year_month=ye_mo)
                 #print("%s-%s" % (agency.id, ye_mo))
 
 #generate_months_agency("SSEDOMEX")

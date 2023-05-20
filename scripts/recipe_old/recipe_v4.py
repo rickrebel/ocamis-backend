@@ -32,9 +32,6 @@ data_file_clues = []
 data_file_error_rr = []
 
 
-
-
-
 def massive_upload_csv_to_db(
         path="", years=['2019', '2020', '2021'], institution="issste",
         update_files=True):

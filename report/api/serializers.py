@@ -12,8 +12,6 @@ from geo.api.serializers import (
     CLUESFullSerializer, StateSimpleSerializer, DiseaseSerializer)
 
 
-
-
 class ReportPublicDinamicSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
@@ -25,7 +23,6 @@ class ReportPublicDinamicSerializer(serializers.ModelSerializer):
         existing = set(self.fields.keys())
         for field_name in existing - allowed:
             self.fields.pop(field_name)
-
 
 
 class SupplyListSerializer(serializers.ModelSerializer):
@@ -287,7 +284,7 @@ class ReportPublicMinimSerializer(serializers.ModelSerializer):
         ]
 
 
-class SupplyDisaggSerializer(serializers.ModelSerializer):
+class SupplyDisaggregateSerializer(serializers.ModelSerializer):
     component = ComponentSerializer()
     presentation = PresentationSimpleSerializer()
     disease = DiseaseSerializer()

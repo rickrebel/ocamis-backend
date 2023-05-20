@@ -31,7 +31,7 @@ class DocumentType(models.Model):
         return self.name
 
 
-class Prescription(models.Model):
+class Rx(models.Model):
     from geo.models import CLUES, Delegation, Entity
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
@@ -39,9 +39,10 @@ class Prescription(models.Model):
     folio_ocamis = models.CharField(max_length=60)
     folio_document = models.CharField(max_length=46)
     iso_year = models.PositiveSmallIntegerField()
-    month = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
+    year = models.PositiveSmallIntegerField(blank=True, null=True)
+    month = models.PositiveSmallIntegerField()
     medical_unit = models.ForeignKey(
         MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
     area = models.ForeignKey(
@@ -63,6 +64,7 @@ class Prescription(models.Model):
     class Meta:
         verbose_name = "Receta"
         verbose_name_plural = "Recetas"
+        db_table = 'formula_rx'
 
     def __str__(self):
         return self.folio_ocamis
@@ -72,8 +74,8 @@ class Drug(models.Model):
 
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
-    prescription = models.ForeignKey(
-        Prescription, on_delete=models.CASCADE,
+    rx = models.ForeignKey(
+        Rx, on_delete=models.CASCADE,
         related_name='drugs')
     sheet_file = models.ForeignKey(
         SheetFile, on_delete=models.CASCADE)

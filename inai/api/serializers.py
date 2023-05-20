@@ -2,9 +2,9 @@ from rest_framework import serializers
 
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
-    Petition, PetitionFileControl, DataFile, MonthAgency, PetitionMonth,
+    Petition, PetitionFileControl, DataFile, EntityMonth,
     ReplyFile, PetitionBreak, PetitionNegativeReason, SheetFile, LapSheet,
-    TableFile, CrossingSheet, Behavior)
+    TableFile, CrossingSheet, Behavior, EntityWeek)
 from data_param.models import Transformation, NameColumn, FileControl
 
 from category.api.serializers import (
@@ -72,19 +72,18 @@ class NameColumnEditSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class MonthEntitySerializer(serializers.ModelSerializer):
+class EntityMonthSerializer(serializers.ModelSerializer):
+    # all_laps_inserted = serializers.SerializerMethodField(read_only=True)
+
+    # def get_all_laps_inserted(self, obj):
+    #     return obj.laps.filter(lap=0).first().all_laps_inserted
 
     class Meta:
-        model = MonthAgency
-        fields = ["id", "year_month", "human_name", "prescriptions_count",
-                  "duplicates_count", "shared_count"]
-
-
-class MonthEntitySimpleSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = MonthAgency
-        fields = ["year_month", "human_name"]
+        model = EntityMonth
+        fields = [
+            "id", "year_month", "human_name", "rx_count",
+            "duplicates_count", "shared_count", "last_transformation",
+            "last_crossing", "last_insertion"]
 
 
 class TableFileSerializer(serializers.ModelSerializer):
@@ -94,6 +93,14 @@ class TableFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = TableFile
         fields = ["id", "url", "collection"]
+
+
+class TableFileAwsSerializer(serializers.ModelSerializer):
+    file = serializers.ReadOnlyField(source="file.name")
+
+    class Meta:
+        model = TableFile
+        fields = ["id", "file", "collection", "year", "month"]
 
 
 class LapSheetSerializer(serializers.ModelSerializer):
@@ -124,6 +131,29 @@ class SheetFileSerializer(serializers.ModelSerializer):
 class SheetFileSimpleSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
+
+    class Meta:
+        model = SheetFile
+        # fields = "__all__"
+        exclude = ["sample_data", "error_process", "warnings"]
+
+
+class SheetFileMonthSerializer(SheetFileSimpleSerializer):
+    name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+    table_sums = serializers.SerializerMethodField(read_only=True)
+
+    def get_table_sums(self, obj):
+        from django.db.models import Sum, F
+        sum_fields = ["drugs_count", "rx_count", "duplicates_count", "shared_count"]
+        query_sums = [Sum(field) for field in sum_fields]
+        # query_annotations = {field: Sum(field) for field in sum_fields}
+        last_lap = obj.laps.filter(lap=0).first()
+        result_sums = last_lap.table_files.filter(
+            collection__isnull=True).aggregate(*query_sums)
+        result_with_init_names = {
+            field: result_sums[f"{field}__sum"] for field in sum_fields}
+        return result_with_init_names
 
     class Meta:
         model = SheetFile
@@ -209,30 +239,46 @@ class DataFileFullSerializer(DataFileSerializer):
         read_only_fields = ["petition_file_control", "file"]
 
 
-class PetitionMonthSerializer(serializers.ModelSerializer):
-    month_agency = MonthEntitySimpleSerializer(read_only=True)
+class EntityMonthSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = PetitionMonth
-        fields = "__all__"
+        model = EntityMonth
+        fields = ["year_month", "human_name"]
 
 
-"""class PetitionMiniSerializer(serializers.ModelSerializer):
-    petition_months = PetitionMonthSerializer(many=True)
-    #agency = serializers.SerializerMethodField(read_only=True)
-    last_year_month = serializers.CharField(read_only=True)
-    first_year_month = serializers.CharField(read_only=True)    
-
-    def get_agency(self, obj):
-        show_inst = self.context.get("show_institution", False)
-        request = self.context.get("request", False)
-        if request and request.method == "GET" and show_inst:
-            return AgencySerializer(obj.agency).data
-        return obj.agency.id
+class EntityWeekSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Petition
-        fields = "__all__" """
+        model = EntityWeek
+        exclude = [
+            "rx_count", "duplicates_count", "shared_count",
+            "last_transformation", "last_crossing"]
+
+
+# class PetitionMonthSerializer(serializers.ModelSerializer):
+#     entity_month = EntityMonthSimpleSerializer(read_only=True)
+#
+#     class Meta:
+#         model = PetitionMonth
+#         fields = "__all__"
+
+
+# class PetitionMiniSerializer(serializers.ModelSerializer):
+#     petition_months = PetitionMonthSerializer(many=True)
+#     #agency = serializers.SerializerMethodField(read_only=True)
+#     last_year_month = serializers.CharField(read_only=True)
+#     first_year_month = serializers.CharField(read_only=True)
+#
+#     def get_agency(self, obj):
+#         show_inst = self.context.get("show_institution", False)
+#         request = self.context.get("request", False)
+#         if request and request.method == "GET" and show_inst:
+#             return AgencySerializer(obj.agency).data
+#         return obj.agency.id
+#
+#     class Meta:
+#         model = Petition
+#         fields = "__all__"
 
 
 class PetitionFileControlCreateSerializer(serializers.ModelSerializer):
@@ -314,7 +360,8 @@ class PetitionNegativeReasonSerializer(PetitionNegativeReasonSimpleSerializer):
 
 
 class PetitionSmallSerializer(serializers.ModelSerializer):
-    petition_months = PetitionMonthSerializer(many=True)
+    # petition_months = PetitionMonthSerializer(many=True)
+    entity_months = EntityMonthSimpleSerializer(many=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)
     months_in_description = serializers.CharField(read_only=True)

@@ -1,8 +1,16 @@
-from task.models import AsyncTask
-from classify_task.models import TaskFunction
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
+from datetime import datetime
+
+from classify_task.models import TaskFunction
+from task.models import AsyncTask
+
+from inai.misc_mixins.entity_week_mix import FromAws as EntityWeek
+from inai.misc_mixins.entity_month_mix import FromAws as EntityMonth
+from inai.misc_mixins.lap_sheet_mix import FromAws as LapSheet
+from inai.misc_mixins.petition_mix import FromAws as Petition
+from inai.misc_mixins.sheet_file_mix import FromAws as SheetFile
 
 
 def text_normalizer(text):
@@ -64,6 +72,70 @@ def calculate_special_function(special_function):
     return HttpResponse(response)
 
 
+def find_task_model(async_task):
+    task_models = [
+        "petition", "file_control", "reply_file", "sheet_file",
+        "data_file", "entity_week", "entity_month"]
+    for model in task_models:
+        current_obj = getattr(async_task, model)
+        if current_obj:
+            return model, current_obj
+
+
+def execute_function_aws(current_task, function_name, result, errors=None):
+
+    if not errors:
+        errors = []
+
+    final_errors = []
+    new_tasks = []
+
+    def get_method(model_obj):
+        task_parameters = {"parent_task": current_task}
+        final_method = None
+        err = ""
+        try:
+            final_method = getattr(model_obj, function_name)
+        except Exception as error2:
+            err = f"Error al obtener el método {function_name}: {error2}"
+        if not final_method:
+            try:
+                model_name = model_obj.__class__.__name__
+                from_aws_class = globals()[model_name]
+                aws_mix = from_aws_class(model_obj, task_parameters)
+                final_method = getattr(aws_mix, function_name)
+                # return method(**kwargs)
+                # final_method = getattr(model_obj, "from_aws")
+                # task_parameters["function_name"] = function_name
+            except Exception as error3:
+                err += f"; {error3}"
+                pass
+        return final_method, task_parameters, err
+
+    model, current_obj = find_task_model(current_task)
+    # print("CURRENT OBJ: ", current_obj)
+    # name_model = current_obj.__class__.__name__
+    # print("NAME MODEL: ", name_model)
+    # print("METHOD: ", method)
+    method, task_params, error = get_method(current_obj)
+    if method:
+        try:
+            new_tasks, final_errors, data = method(
+                **result, task_params=task_params)
+        except Exception:
+            import traceback
+            error_ = traceback.format_exc()
+            print("ERROR EN EL MÉTODO: ", error_)
+            final_errors.append(str(error_))
+    else:
+        print(error)
+        final_errors.append(error)
+    result["from_aws"] = True
+    errors.extend(final_errors or [])
+    current_task.date_end = datetime.now()
+    return comprobate_status(current_task, errors, new_tasks)
+
+
 class AWSMessage(generic.View):
 
     def get(self, request, *args, **kwargs):
@@ -79,8 +151,8 @@ class AWSMessage(generic.View):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         import json
-        from datetime import datetime
         from task.models import AsyncTask
+
         # print("HOLA POST")
         # print(request)
         try:
@@ -103,35 +175,10 @@ class AWSMessage(generic.View):
         # print("RESULT: ", result)
         current_task.result = result
         current_task.save()
-        models = [
-            "petition", "file_control", "reply_file", "sheet_file", "data_file"]
-        function_after = current_task.function_after
-        final_errors = []
-        new_tasks = []
         new_result = result.copy()
-        for model in models:
-            current_obj = getattr(current_task, model)
-            if not current_obj:
-                continue
-            # print("CURRENT OBJ: ", current_obj)
-            # name_model = current_obj.__class__.__name__
-            # print("NAME MODEL: ", name_model)
-            # print("METHOD: ", method)
-            method = getattr(current_obj, function_after)
-            task_params = {"parent_task": current_task}
-            new_result["from_aws"] = True
-            try:
-                new_tasks, final_errors, data = method(
-                    **new_result, task_params=task_params)
-            except Exception as e:
-                import traceback
-                error_ = traceback.format_exc()
-                print("ERROR EN EL MÉTODO: ", error_)
-                final_errors.append(str(error_))
-            break
-        errors += (final_errors or [])
-        current_task.date_end = datetime.now()
-        comprobate_status(current_task, errors, new_tasks)
+        function_after = current_task.function_after
+        execute_function_aws(current_task, function_after, new_result, errors)
+
         return HttpResponse()
 
 
@@ -161,7 +208,6 @@ class AWSErrors(generic.View):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         import json
-        from datetime import datetime
         # from task.models import AsyncTask
         print("HOLA ERRORES")
         # print(request)
@@ -172,6 +218,7 @@ class AWSErrors(generic.View):
         except Exception as e:
             print("ERROR AL LEER EL BODY: ", e)
             print("request original: \n", request)
+            return HttpResponse()
         try:
             message = body.get("MessageAttributes", {})
             request_id = message.get("RequestID", {}).get("Value")
@@ -205,7 +252,6 @@ class AWSSuccess(generic.View):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         import json
-        from datetime import datetime
         # from task.models import AsyncTask
         # print("HOLA SUCCESS")
         # print(request)
@@ -213,8 +259,8 @@ class AWSSuccess(generic.View):
         try:
             body = json.loads(request.body)
             # print("body: \n", body)
-            message = body.pop("Message")
-            payload = json.loads(message)
+            # message = body.pop("Message")
+            # payload = json.loads(message)
             # print("payload: \n\n", payload, "\n\n")
             # payload_body = payload.pop("body")
             # print("payload_body: \n", payload_body)
@@ -229,12 +275,14 @@ def camel_to_snake(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def build_task_params(
-        model, function_name, request, subgroup=None, parent_task=None):
+def build_task_params(model, function_name, request, **kwargs):
     from datetime import datetime
+    subgroup = kwargs.get("subgroup")
+    parent_task = kwargs.get("parent_task")
+    finished_function = kwargs.get("finished_function")
     # print("build_task_params 1: ", datetime.now())
     model_name = camel_to_snake(model.__class__.__name__)
-    kwargs = {model_name: model}
+    create_kwargs = {model_name: model}
     is_massive = bool(subgroup)
 
     def update_previous_tasks(tasks):
@@ -249,12 +297,14 @@ def build_task_params(
 
     if not is_massive:
         # print("build_task_params 2.0: ", datetime.now())
-        update_previous_tasks(AsyncTask.objects.filter(**kwargs))
+        update_previous_tasks(AsyncTask.objects.filter(**create_kwargs))
     # print("build_task_params 2.1: ", datetime.now())
     # print("function_name: ", function_name)
+    if finished_function:
+        create_kwargs["finished_function"] = finished_function
     if is_massive:
-        kwargs["is_massive"] = True
-        kwargs["subgroup"] = subgroup
+        create_kwargs["is_massive"] = True
+        create_kwargs["subgroup"] = subgroup
     # print("build_task_params 3: ", datetime.now())
     task_function, created = TaskFunction.objects.get_or_create(
         name=function_name)
@@ -270,10 +320,10 @@ def build_task_params(
             model.save()
     # print("build_task_params 5: ", datetime.now())
     if parent_task:
-        kwargs["parent_task"] = parent_task
+        create_kwargs["parent_task"] = parent_task
     key_task = AsyncTask.objects.create(
         user=request.user, task_function=task_function,
-        date_start=datetime.now(), status_task_id="created", **kwargs
+        date_start=datetime.now(), status_task_id="created", **create_kwargs
     )
     # print("build_task_params 6: ", datetime.now())
     return key_task, {"parent_task": key_task}
@@ -284,7 +334,7 @@ def comprobate_status(
     from rest_framework.response import Response
     from rest_framework import status
     if not current_task:
-        raise Exception("No se ha encontrado la tarea emviada")
+        raise Exception("No se ha encontrado la tarea enviada")
     if errors:
         current_task.errors = errors
         if isinstance(errors, str):
@@ -309,6 +359,32 @@ def comprobate_status(
     return current_task
 
 
+def execute_finished_function(parent_task):
+    finished_function = parent_task.finished_function
+    brothers_in_finish = AsyncTask.objects.filter(
+        parent_task=parent_task,
+        task_function_id=finished_function)
+    if brothers_in_finish.exists():
+        return "finished"
+    else:
+        params_after = parent_task.params_after or {}
+        params_finished = params_after.get("params_finished", {})
+
+        class RequestClass:
+            def __init__(self):
+                self.user = parent_task.user
+        req = RequestClass()
+        add_elems = {"parent_task": parent_task}
+        model, current_obj = find_task_model(parent_task)
+        new_task, task_params = build_task_params(
+            current_obj, finished_function, req, **add_elems)
+        new_task = execute_function_aws(
+            new_task, finished_function, params_finished)
+        is_final = new_task.status_task.is_completed
+        parent_status_task_id = "finished" if is_final else "children_tasks"
+    return parent_status_task_id
+
+
 def comprobate_brothers(current_task, status_task_id):
     try:
         current_task = current_task.save_status(status_task_id)
@@ -317,21 +393,25 @@ def comprobate_brothers(current_task, status_task_id):
         print("ERROR AL GUARDAR: ", e)
     is_final = current_task.status_task.is_completed
     if is_final and current_task.parent_task:
+        parent_task = current_task.parent_task
         brothers_incomplete = AsyncTask.objects.filter(
-            parent_task=current_task.parent_task,
+            parent_task=parent_task,
             status_task__is_completed=False)
         if brothers_incomplete.exists():
             parent_status_task_id = "children_tasks"
         else:
-            parent_status_task_id = "finished"
-        comprobate_brothers(current_task.parent_task, parent_status_task_id)
+            if parent_task.finished_function:
+                parent_status_task_id = execute_finished_function(parent_task)
+            else:
+                parent_status_task_id = "finished"
+        comprobate_brothers(parent_task, parent_status_task_id)
     return current_task
 
 
 def comprobate_queue(current_task):
     from task.serverless import execute_async
-    from django.conf import settings
-    from inai.data_file_mixins.insert_mix import modify_constraints
+    # from django.conf import settings
+    # from inai.data_file_mixins.insert_mix import modify_constraints
 
     is_queue = current_task.task_function_id in ["save_csv_in_db"]
     if not is_queue:
@@ -348,7 +428,7 @@ def comprobate_queue(current_task):
 
 def debug_queue():
     from task.serverless import execute_async
-    from inai.data_file_mixins.insert_mix import modify_constraints
+    # from inai.data_file_mixins.insert_mix import modify_constraints
     from datetime import timedelta
     from django.utils import timezone
     arrived_tasks = AsyncTask.objects.filter(

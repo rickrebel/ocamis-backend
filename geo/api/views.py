@@ -6,7 +6,7 @@ from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 from desabasto.api.views import StandardResultsSetPagination
 
-from geo.models import Institution, State, CLUES, Agency
+from geo.models import Institution, State, CLUES, Agency, Entity
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
@@ -21,13 +21,88 @@ class StateViewSet(ListRetrieveUpdateMix):
     }
 
 
+class EntityViewSet(ListRetrieveUpdateMix):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.EntitySerializer
+    queryset = Entity.objects.all()
+
+    action_serializers = {
+        "list": serializers.EntitySerializer,
+        "send_analysis": serializers.EntitySerializer,
+    }
+
+    def get(self, request):
+        print("ESTOY EN GET")
+        agency = self.get_object()
+        serializer = serializers.AgencyFullSerializer(
+            agency, context={ 'request': request })
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=["post"], detail=True, url_path='send_analysis')
+    def send_analysis(self, request, **kwargs):
+        import json
+        from scripts.common import build_s3
+        from task.serverless import async_in_lambda
+        from inai.api.serializers import (
+            EntityWeekSimpleSerializer, TableFileAwsSerializer)
+        from task.views import comprobate_status, build_task_params
+        from inai.models import EntityMonth, TableFile
+        entity_months_ids = request.data.get("entity_months", None)
+        entity = self.get_object()
+        if entity_months_ids:
+            entity_months = EntityMonth.objects.filter(
+                id__in=entity_months_ids)
+        else:
+            entity_months = EntityMonth.objects.filter(entity=entity)
+        print("entity_months", entity_months)
+        all_tasks = []
+        key_task, task_params = build_task_params(
+            entity, "send_analysis", request)
+
+        for entity_month in entity_months:
+            function_name = "analysis_month"
+            related_weeks = entity_month.weeks.all()
+            if related_weeks.exists():
+                kwargs = {
+                    "parent_task": key_task,
+                    "finished_function": "save_month_analysis",
+                }
+                month_task, task_params = build_task_params(
+                    entity_month, function_name, request, **kwargs)
+                all_tasks.append(month_task)
+            for week in related_weeks:
+                init_data = EntityWeekSimpleSerializer(week).data
+                table_files = TableFile.objects.filter(
+                    iso_year=week.iso_year, iso_week=week.iso_week,
+                    delegation_name=week.delegation_name)
+                init_data["table_files"] = TableFileAwsSerializer(
+                    table_files, many=True).data
+                params = {
+                    "init_data": init_data,
+                    "s3": build_s3(),
+                }
+                task_params["models"] = [week]
+                task_params["function_after"] = "analyze_uniques_after"
+                params_after = task_params.get("params_after", {})
+                # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
+                task_params["params_after"] = params_after
+                async_task = async_in_lambda(
+                    "analyze_uniques", params, task_params)
+                all_tasks.append(async_task)
+        return comprobate_status(
+            key_task, [], all_tasks, want_http_response=True)
+
+        # return Response(body, status=status.HTTP_202_ACCEPTED)
+
+
 class AgencyViewSet(ListRetrieveUpdateMix):
     # permission_classes = (permissions.IsAdminUser,)
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.AgencySerializer
     queryset = Agency.objects.all().prefetch_related(
             "petitions",
-            "petitions__petition_months",
+            # "petitions__petition_months",
+            "petitions__entity_months",
             "petitions__file_controls",
             "petitions__break_dates",
             "petitions__negative_reasons",
@@ -57,22 +132,22 @@ class AgencyViewSet(ListRetrieveUpdateMix):
             agency, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=["post"], detail=True, url_path='create_months')
-    def create_months(self, request, **kwargs):
-        import json
-        from inai.models import MonthAgency
-        year = request.data.get("year")
-        agency = self.get_object()
-        for month in range(12):
-            try:
-                month += 1
-                ye_mo = f"{year}-{month:02d}"
-                MonthAgency.objects.create(agency=agency, year_month=ye_mo)
-            except Exception as e:
-                return Response(
-                    {"errors": ["No se pudo crear", "%s" % e]},
-                    status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_202_ACCEPTED)
+    # @action(methods=["post"], detail=True, url_path='create_months')
+    # def create_months(self, request, **kwargs):
+    #     import json
+    #     from inai.models import EntityMonth
+    #     year = request.data.get("year")
+    #     agency = self.get_object()
+    #     for month in range(12):
+    #         try:
+    #             month += 1
+    #             ye_mo = f"{year}-{month:02d}"
+    #             EntityMonth.objects.create(agency=agency, year_month=ye_mo)
+    #         except Exception as e:
+    #             return Response(
+    #                 {"errors": ["No se pudo crear", "%s" % e]},
+    #                 status=status.HTTP_400_BAD_REQUEST)
+    #     return Response(status=status.HTTP_202_ACCEPTED)
     
     @action(methods=["get"], detail=False, url_path='data_viz')
     def data_viz(self, request, **kwargs):

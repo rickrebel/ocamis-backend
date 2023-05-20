@@ -3,7 +3,8 @@ from django.contrib.admin import AdminSite
 
 from .models import (
     Petition, PetitionFileControl, DataFile, CrossingSheet,
-    PetitionMonth, ReplyFile, SheetFile, LapSheet, TableFile, Behavior)
+    ReplyFile, SheetFile, LapSheet, TableFile, Behavior, EntityMonth,
+    EntityWeek)
 
 
 class OcamisAdminSite(AdminSite):
@@ -28,16 +29,56 @@ class ReplyFileAdmin(admin.ModelAdmin):
 
 class DataFileInline(admin.TabularInline):
     model = DataFile
-    raw_id_fields = [
-        "petition_file_control", "petition_month", "reply_file"]
+    raw_id_fields = ["petition_file_control", "reply_file"]
     extra = 0
     show_change_link = True
 
 
-class PetitionMonthInline(admin.TabularInline):
-    model = PetitionMonth
-    raw_id_fields = ["month_agency"]
+# class PetitionMonthInline(admin.TabularInline):
+#     model = PetitionMonth
+#     raw_id_fields = ["entity_month"]
+#     extra = 0
+
+class TableFileInline(admin.TabularInline):
+    model = TableFile
     extra = 0
+    raw_id_fields = ["lap_sheet"]
+    show_change_link = True
+
+
+class EntityWeekInline(admin.TabularInline):
+    model = EntityWeek
+    raw_id_fields = ["entity", "entity_month"]
+    extra = 0
+
+
+class EntityWeekAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "entity",
+        "entity_month",
+        "iso_year",
+        "iso_week",
+        "year_month",
+    ]
+    raw_id_fields = ["entity", "entity_month"]
+    inlines = [TableFileInline]
+
+
+class EntityMonthAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "entity",
+        "year_month",
+    ]
+    raw_id_fields = ["entity"]
+    inlines = [EntityWeekInline]
+
+
+# class EntityMonthInline(admin.TabularInline):
+#     model = EntityMonth
+#     raw_id_fields = ["entity"]
+#     extra = 0
 
 
 class PetitionAdmin(admin.ModelAdmin):
@@ -53,7 +94,8 @@ class PetitionAdmin(admin.ModelAdmin):
     search_fields = [
         "folio_petition", "agency__acronym", "agency__name",
         "agency__state__short_name"]
-    inlines = [PetitionMonthInline]
+    raw_id_fields = ["entity_months"]
+    # inlines = [EntityMonthInline]
     list_filter = ["agency"]
 
 
@@ -74,19 +116,16 @@ class SheetFileInline(admin.StackedInline):
 
 class DataFileAdmin(admin.ModelAdmin):
     list_display = [
-        "file_type",
-        # "petition_file_control",
+        "id",
         "file",
         "suffix",
         "stage",
         "status",
     ]
     raw_id_fields = [
-        "entity", "petition_file_control", "petition_month",
-        "reply_file"]
+        "entity", "petition_file_control", "reply_file"]
     list_filter = [
-        "file_type", "stage", "status",
-        "petition_file_control__petition__agency"]
+        "stage", "status", "petition_file_control__petition__agency"]
     search_fields = [
         "file", "petition_file_control__petition__agency__acronym",
         "petition_file_control__petition__folio_petition"]
@@ -95,13 +134,6 @@ class DataFileAdmin(admin.ModelAdmin):
     def get_list_filter(self, request):
         list_filter = super().get_list_filter(request)
         return list_filter
-
-
-class TableFileInline(admin.TabularInline):
-    model = TableFile
-    extra = 0
-    raw_id_fields = ["lap_sheet"]
-    show_change_link = True
 
 
 class LapSheetInline(admin.StackedInline):
@@ -121,8 +153,7 @@ class SheetFileAdmin(admin.ModelAdmin):
         "behavior",
         "total_rows",
     ]
-    list_filter = [
-        "file_type", "matched"]
+    list_filter = ["file_type", "matched"]
     search_fields = [
         "file", "data_file__petition__agency__acronym",
         "data_file__petition_file_control__petition__folio_petition"]
@@ -135,7 +166,7 @@ class LapSheetAdmin(admin.ModelAdmin):
         "last_edit",
         "lap",
         "inserted",
-        "prescription_count",
+        "rx_count",
         "drug_count",
         "total_count",
         "sheet_file",
@@ -192,3 +223,6 @@ ocamis_admin_site.register(LapSheet, LapSheetAdmin)
 ocamis_admin_site.register(TableFile, TableFileAdmin)
 ocamis_admin_site.register(CrossingSheet, CrossingSheetAdmin)
 ocamis_admin_site.register(Behavior, BehaviorAdmin)
+ocamis_admin_site.register(EntityMonth, EntityMonthAdmin)
+ocamis_admin_site.register(EntityWeek, EntityWeekAdmin)
+

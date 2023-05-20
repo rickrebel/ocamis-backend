@@ -55,7 +55,7 @@ class FinalFieldInLine(admin.StackedInline):
                 "collection", "parameter_group",
                 "name", "verbose_name", "data_type",
                 "regex_format", "is_unique", "in_data_base", "verified",
-                "included", "match_use")
+                "included_code", "match_use")
         }),
         ("Más configuraciones:", {
             "classes": ("collapse",),

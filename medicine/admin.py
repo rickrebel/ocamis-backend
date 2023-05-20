@@ -22,6 +22,19 @@ class PresentationTypeAdmin(admin.ModelAdmin):
 class PresentationInline(admin.StackedInline):
     model = Presentation
     extra = 0
+    show_change_link = True
+
+
+class ComponentInline(admin.StackedInline):
+    model = Component
+    extra = 0
+    show_change_link = True
+
+
+class GroupAdmin(admin.ModelAdmin):
+    # list_display = ["name", "alias", "is_vaccine"]
+    inlines = [ComponentInline]
+    search_fields = ["name", "alias"]
 
 
 class ComponentAdmin(admin.ModelAdmin):
@@ -77,7 +90,7 @@ class ContainerAdmin(admin.ModelAdmin):
 
 
 ocamis_admin_site.register(PresentationType, PresentationTypeAdmin)
-ocamis_admin_site.register(Group)
+ocamis_admin_site.register(Group, GroupAdmin)
 ocamis_admin_site.register(Component, ComponentAdmin)
 ocamis_admin_site.register(Presentation, PresentationAdmin)
 ocamis_admin_site.register(Container, ContainerAdmin)

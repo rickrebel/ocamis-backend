@@ -541,7 +541,7 @@ class ReportList(views.APIView):
         elif validados in ["no"]:
             report_query_filter["validated"] = False
         elif validados in ["null"]:
-            report_query_filter["validated"] = None
+            report_query_filter["validated__isnull"] = True
         elif validados in ["all"]:
             pass
         else:
@@ -651,7 +651,7 @@ class SupplyList2(views.APIView):
 
         count = supply_query.count()
 
-        serializer = serializers.SupplyDisaggSerializer(
+        serializer = serializers.SupplyDisaggregateSerializer(
             supply_query
             .prefetch_related(
                 "report", "report__complement", "component",

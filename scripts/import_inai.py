@@ -104,7 +104,7 @@ def join_lines(row, main):
 
 
 def insert_between_months(row, petition):
-    from inai.models import MonthAgency, PetitionMonth
+    from inai.models import EntityMonth
     #print(petition.send_petition)
     if petition.send_petition:
         month = petition.send_petition.month
@@ -112,32 +112,34 @@ def insert_between_months(row, petition):
     else:
         month = 1
         year = 2018
-    curr_month = "%s%s%s" % (year, '0' if month < 10 else '', month)
-    pet_months = PetitionMonth.objects.filter(petition__agency=petition.agency)
+    curr_month = "%s-%s%s" % (year, '0' if month < 10 else '', month)
+    # pet_months = PetitionMonth.objects.filter(petition__agency=petition.agency)
+    months_agency = petition.entity_months.all()
     print("-------------")
     print("curr_month: ", curr_month)
-    if pet_months:
-        last_pet_mon = pet_months.latest('month_agency__year_month')
-        last_month = last_pet_mon.month_agency.year_month if last_pet_mon else '2015-00'
+    if months_agency:
+        # last_pet_mon = pet_months.latest('month_agency__year_month')
+        last_entity_month = months_agency.latest('year_month')
+        last_month = last_entity_month.year_month if last_entity_month else '2015-00'
         print("last_month: ", last_month)
     else:
         print("NO ENCUENTRO NADA EN pet_months")
         last_month = '2015-00'
-    month_agencies = MonthAgency.objects.filter(agency=petition.agency)
-    between_months = month_agencies.filter(
+    entity_months = EntityMonth.objects.filter(entity=petition.agency.entity)
+    between_months = entity_months.filter(
         year_month__gt=last_month, year_month__lt=curr_month)
     if not between_months:
         print("NO HAY NADA ENMEDIO", petition)
-        prev_month = month_agencies.filter(year_month__lt=curr_month).latest()
-        PetitionMonth.objects.get_or_create(
-            petition=petition, month_agency=prev_month)
+        prev_month = entity_months.filter(year_month__lt=curr_month).latest()
+        petition.entity_months.add(prev_month)
+        # PetitionMonth.objects.get_or_create(
+        #     petition=petition, entity_month=prev_month)
     else:
         for mon_ent in between_months:
-            PetitionMonth.objects.get_or_create(
-                petition=petition, month_agency=mon_ent)
-    pet_months2 = PetitionMonth.objects.filter(petition__agency=petition.agency)
-    print("Final:")
-    print(pet_months2.count())
+            petition.entity_months.add(mon_ent)
+            # PetitionMonth.objects.get_or_create(
+            #     petition=petition, entity_month=mon_ent)
+    print("Final:", petition.entity_months.all().count())
 
 
 def insert_from_json(

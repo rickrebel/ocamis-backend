@@ -1,4 +1,4 @@
--- prescription
+-- rx
 
 alter table public.formula_prescription
     add constraint formula_prescription_iso_year_check

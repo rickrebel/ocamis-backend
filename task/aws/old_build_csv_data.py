@@ -310,7 +310,7 @@ class MatchAws:
 
             curr_prescription = all_prescriptions.get(folio_ocamis)
             if curr_prescription:
-                available_data["prescription_id"] = curr_prescription["uuid_folio"]
+                available_data["rx_id"] = curr_prescription["uuid_folio"]
                 all_delivered = curr_prescription["all_delivered"]
                 all_delivered += [delivered]
                 curr_prescription["all_delivered"] = all_delivered
@@ -319,7 +319,7 @@ class MatchAws:
             else:
                 uuid_folio = str(uuid_lib.uuid4())
                 available_data["uuid_folio"] = uuid_folio
-                available_data["prescription_id"] = uuid_folio
+                available_data["rx_id"] = uuid_folio
                 available_data["delivered_final_id"] = delivered
                 available_data["folio_ocamis"] = folio_ocamis
                 available_data["folio_document"] = folio_document
@@ -364,7 +364,7 @@ class MatchAws:
         print("PASO 5")
         final_request_id = self.context.aws_request_id
         report_errors = self.build_report()
-        report_errors["prescription_count"] = len(all_prescriptions)
+        report_errors["rx_count"] = len(all_prescriptions)
         report_errors["drug_count"] = success_drugs_count
         report_errors["total_count"] = total_count
         report_errors["discarded_count"] = discarded_count
@@ -387,10 +387,10 @@ class MatchAws:
         for curr_prescription in all_prescriptions.values():
             current_prescription_data = []
             # curr_prescription = all_prescriptions.get(folio)
-            for field_p in self.model_fields["prescription"]:
+            for field_p in self.model_fields["rx"]:
                 value = curr_prescription.get(field_p["name"])
                 current_prescription_data.append(value)
-            csv_buffer["prescription"].writerow(current_prescription_data)
+            csv_buffer["rx"].writerow(current_prescription_data)
 
         bucket_name = self.s3.get("bucket_name")
         aws_location = self.s3.get("aws_location")

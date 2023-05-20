@@ -1,8 +1,8 @@
 SELECT
     inst.code AS code,
     ent.name AS entity_name,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     deliv.name AS delivered_short_name,
     COUNT(drug.uuid) AS drug_count,
     SUM(drug.prescribed_amount) AS total_prescribed_amount,
@@ -10,53 +10,53 @@ SELECT
 FROM
     geo_entity ent
     JOIN geo_institution inst ON ent.institution_id = inst.id
-    JOIN formula_prescription presc ON ent.id = presc.entity_id
-    JOIN formula_drug drug ON presc.uuid_folio = drug.prescription_id
+    JOIN formula_rx rx ON ent.id = rx.entity_id
+    JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id
     JOIN med_cat_delivered deliv ON drug.delivered_id = deliv.hex_hash
 GROUP BY
     ent.name,
     inst.code,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     deliv.name
 ORDER BY
     ent.name,
     inst.code,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     deliv.name;
 
 
 SELECT
     inst.code AS code,
     ent.name AS entity_name,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     df2.name AS deliv_drug,
     df.name AS deliv_pres,
-    COUNT(DISTINCT presc.uuid_folio) AS prescription_count,
+    COUNT(DISTINCT rx.uuid_folio) AS rx_count,
     COUNT(*) AS total_drug
     -- SUM(drug.prescribed_amount) AS total_prescribed_amount,
     -- SUM(drug.delivered_amount) AS total_delivered_amount
 FROM
     geo_entity ent
     JOIN geo_institution inst ON ent.institution_id = inst.id
-    JOIN formula_prescription presc ON ent.id = presc.entity_id
-    JOIN formula_drug drug ON presc.uuid_folio = drug.prescription_id
-    JOIN med_cat_delivered df ON presc.delivered_final_id = df.hex_hash
+    JOIN formula_rx rx ON ent.id = rx.entity_id
+    JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id
+    JOIN med_cat_delivered df ON rx.delivered_final_id = df.hex_hash
     JOIN med_cat_delivered df2 ON drug.delivered_id = df2.hex_hash
 GROUP BY
     ent.name,
     inst.code,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     df.name,
     df2.name
 ORDER BY
     ent.name,
     inst.code,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     df.name,
     df2.name;
 
@@ -66,30 +66,30 @@ ORDER BY
 SELECT
     inst.code AS code,
     ent.name AS entity_name,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     df.name AS delivered_short_name,
-    COUNT(presc.uuid_folio) AS prescription_count
+    COUNT(rx.uuid_folio) AS rx_count
 FROM
     geo_entity ent
     JOIN geo_institution inst ON ent.institution_id = inst.id
-    JOIN formula_prescription presc ON ent.id = presc.entity_id
-    JOIN med_cat_delivered df ON presc.delivered_final_id = df.hex_hash
-    JOIN formula_drug drug ON presc.uuid_folio = drug.prescription_id
+    JOIN formula_rx rx ON ent.id = rx.entity_id
+    JOIN med_cat_delivered df ON rx.delivered_final_id = df.hex_hash
+    JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id
     JOIN inai_sheetfile sheet ON drug.sheet_file_id = sheet.id
 WHERE
     sheet.behavior_id != 'invalid'
 GROUP BY
     ent.name,
     inst.code,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     df.name
 ORDER BY
     ent.name,
     inst.code,
-    presc.iso_year,
-    presc.month,
+    rx.iso_year,
+    rx.month,
     df.name;
 
 
@@ -97,19 +97,19 @@ ORDER BY
 
 
 SELECT
-    presc.iso_year,
-    presc.month,
-    presc.delivered_final_id,
-    COUNT(presc.uuid_folio) AS prescription_count
+    rx.iso_year,
+    rx.month,
+    rx.delivered_final_id,
+    COUNT(rx.uuid_folio) AS rx_count
 FROM
-    formula_prescription presc
+    formula_rx rx
 GROUP BY
-    presc.iso_year,
-    presc.month,
-    presc.delivered_final_id
+    rx.iso_year,
+    rx.month,
+    rx.delivered_final_id
 ORDER BY
-    presc.iso_year,
-    presc.month,
-    presc.delivered_final_id;
+    rx.iso_year,
+    rx.month,
+    rx.delivered_final_id;
 
 

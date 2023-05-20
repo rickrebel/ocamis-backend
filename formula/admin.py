@@ -4,7 +4,7 @@ from django.contrib import admin
 
 from .models import (
     Drug,
-    Prescription,
+    Rx,
     DocumentType,
     # MedicalSpeciality,
 )
@@ -25,7 +25,7 @@ class DrugInline(admin.TabularInline):
     # raw_id_fields = ["container"]
 
 
-class PrescriptionAdmin(admin.ModelAdmin):
+class RxAdmin(admin.ModelAdmin):
 
     list_display = [
         "entity",
@@ -46,19 +46,19 @@ class PrescriptionAdmin(admin.ModelAdmin):
     search_fields = ["folio_document", ]
 
 
-ocamis_admin_site.register(Prescription, PrescriptionAdmin)
+ocamis_admin_site.register(Rx, RxAdmin)
 
 
 class DrugAdmin(admin.ModelAdmin):
     list_display = [
         "uuid",
-        "prescription",
+        "rx",
         "sheet_file",
         "prescribed_amount",
         "delivered_amount",
         "price",
     ]
-    readonly_fields = ["prescription", "sheet_file", "medicament"]
+    readonly_fields = ["rx", "sheet_file", "medicament"]
 
 
 ocamis_admin_site.register(Drug, DrugAdmin)

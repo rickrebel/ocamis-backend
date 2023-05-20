@@ -280,7 +280,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         related_petitions = Petition.objects.filter(
             file_controls__file_control__in=controls)\
             .prefetch_related(
-                "petition_months",
+                # "petition_months",
+            "entity_months",
                 "file_controls",
                 "break_dates",
                 "negative_reasons",

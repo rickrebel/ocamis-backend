@@ -4,7 +4,7 @@ from django.urls import path, include
 #from inai.api.views import FileControlViewSet, PetitionViewSet
 from inai.api.views import (
     PetitionViewSet, ReplyFileViewSet,
-    AscertainableViewSet, PetitionFileControlViewSet, MonthEntityViewSet,
+    AscertainableViewSet, PetitionFileControlViewSet, EntityMonthViewSet,
     SheetFileViewSet)
 
 from inai.api.views_aws import (
@@ -19,7 +19,7 @@ router.register(
 router.register(r'petition_file_control', PetitionFileControlViewSet)
 router.register(r'data_file', DataFileViewSet)
 router.register(r'sheet_file', SheetFileViewSet)
-router.register(r'month_entity', MonthEntityViewSet)
+router.register(r'entity_month', EntityMonthViewSet)
 
 router.register(r'open_data_inai', OpenDataInaiViewSet)
 router.register(r'auto_explore', AutoExplorePetitionViewSet)

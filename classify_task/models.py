@@ -29,9 +29,11 @@ class TaskFunction(models.Model):
         ("petition", "Solicitud (Petición)"),
         ("file_control", "Grupo de Control"),
         ("data_file", "DataFile (archivo de datos)"),
-        # RICK 18, ahora hay que borrar process_file
         ("reply_file", "ReplyFile (.zip)"),
         ("sheet_file", "Pestaña"),
+        ("entity_week", "Semana Proveedor"),
+        ("entity_month", "Mes Proveedor"),
+        ("entity", "Proveedor"),
     )
 
     name = models.CharField(max_length=100, primary_key=True)
@@ -48,7 +50,7 @@ class TaskFunction(models.Model):
 
     class Meta:
         verbose_name = "Función (tarea)"
-        ordering = ['-is_active', 'model_name', 'is_from_aws', 'name']
+        ordering = ['-is_active', 'model_name', '-is_from_aws', 'name']
         verbose_name_plural = "2. Funciones (tareas)"
 
 

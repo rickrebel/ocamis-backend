@@ -76,7 +76,7 @@ class Match:
     def __init__(self, data_file: DataFile, task_params=None):
         from inai.models import set_upload_path
         from data_param.models import NameColumn
-        from category.models import FileFormat
+
         self.data_file = data_file
         self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
