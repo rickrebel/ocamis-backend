@@ -45,7 +45,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
             return ""
         tz = get_current_timezone()
         date = make_aware(datetime.fromtimestamp(obj.date_start.timestamp()), tz)
-        date_string = date.strftime("%d-%b <br> <b>%H:%M</b>")
+        date_string = date.strftime("%d-%b <br> <b>%H:%M:%S</b>")
         return format_html(date_string)
 
     def display_function(self, obj):
@@ -142,10 +142,11 @@ class TaskFunctionAdmin(admin.ModelAdmin):
         "name",
         "is_active",
         "is_from_aws",
+        "is_queueable",
         "public_name",
         "model_name",
     ]
-    list_editable = ["public_name", "is_active", "is_from_aws"]
+    list_editable = ["public_name", "is_active", "is_from_aws", "is_queueable"]
 
 
 class StageAdmin(admin.ModelAdmin):

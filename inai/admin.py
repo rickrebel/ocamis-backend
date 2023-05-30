@@ -39,7 +39,7 @@ class DataFileInline(admin.TabularInline):
 #     raw_id_fields = ["entity_month"]
 #     extra = 0
 
-class TableFileInline(admin.TabularInline):
+class TableFileInline(admin.StackedInline):
     model = TableFile
     extra = 0
     raw_id_fields = ["lap_sheet"]
@@ -57,9 +57,9 @@ class EntityWeekAdmin(admin.ModelAdmin):
         "id",
         "entity",
         "entity_month",
-        "iso_year",
-        "iso_week",
+        "year_week",
         "year_month",
+        "iso_delegation",
     ]
     raw_id_fields = ["entity", "entity_month"]
     inlines = [TableFileInline]

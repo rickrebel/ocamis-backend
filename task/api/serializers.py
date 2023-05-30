@@ -29,6 +29,10 @@ class AsyncTaskSerializer(serializers.ModelSerializer):
         source="sheet_file.data_file_id", read_only=True)
     petition_file_control_id = serializers.IntegerField(
         source="data_file.petition_file_control_id", read_only=True)
+    entity_month_id = serializers.IntegerField(
+        source="entity_week.entity_month_id", read_only=True)
+    entity_id = serializers.IntegerField(
+        source="entity_month.entity_id", read_only=True)
 
     def get_petition_id(self, obj):
         if obj.data_file:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from . import serializers
 from rest_framework import permissions, views, status
 
@@ -28,7 +27,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
     action_serializers = {
         "list": serializers.EntitySerializer,
-        "send_analysis": serializers.EntitySerializer,
+        "send_months": serializers.EntitySerializer,
     }
 
     def get(self, request):
@@ -38,16 +37,13 @@ class EntityViewSet(ListRetrieveUpdateMix):
             agency, context={ 'request': request })
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=["post"], detail=True, url_path='send_analysis')
-    def send_analysis(self, request, **kwargs):
-        import json
-        from scripts.common import build_s3
-        from task.serverless import async_in_lambda
-        from inai.api.serializers import (
-            EntityWeekSimpleSerializer, TableFileAwsSerializer)
+    @action(methods=["post"], detail=True, url_path='send_months')
+    def send_months(self, request, **kwargs):
+        from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
         from inai.models import EntityMonth, TableFile
         entity_months_ids = request.data.get("entity_months", None)
+        main_function_name = request.data.get("function_name", None)
         entity = self.get_object()
         if entity_months_ids:
             entity_months = EntityMonth.objects.filter(
@@ -56,43 +52,39 @@ class EntityViewSet(ListRetrieveUpdateMix):
             entity_months = EntityMonth.objects.filter(entity=entity)
         print("entity_months", entity_months)
         all_tasks = []
+        all_errors = []
         key_task, task_params = build_task_params(
-            entity, "send_analysis", request)
+            entity, main_function_name, request)
 
         for entity_month in entity_months:
-            function_name = "analysis_month"
-            related_weeks = entity_month.weeks.all()
-            if related_weeks.exists():
-                kwargs = {
-                    "parent_task": key_task,
-                    "finished_function": "save_month_analysis",
-                }
-                month_task, task_params = build_task_params(
-                    entity_month, function_name, request, **kwargs)
-                all_tasks.append(month_task)
-            for week in related_weeks:
-                init_data = EntityWeekSimpleSerializer(week).data
-                table_files = TableFile.objects.filter(
-                    iso_year=week.iso_year, iso_week=week.iso_week,
-                    delegation_name=week.delegation_name)
-                init_data["table_files"] = TableFileAwsSerializer(
-                    table_files, many=True).data
-                params = {
-                    "init_data": init_data,
-                    "s3": build_s3(),
-                }
-                task_params["models"] = [week]
-                task_params["function_after"] = "analyze_uniques_after"
-                params_after = task_params.get("params_after", {})
-                # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
-                task_params["params_after"] = params_after
-                async_task = async_in_lambda(
-                    "analyze_uniques", params, task_params)
-                all_tasks.append(async_task)
-        return comprobate_status(
-            key_task, [], all_tasks, want_http_response=True)
 
-        # return Response(body, status=status.HTTP_202_ACCEPTED)
+            function_name = "analysis_month" \
+                if main_function_name == "send_analysis" else "insert_month"
+            related_weeks = entity_month.weeks.all()
+            if not related_weeks.exists():
+                print("No hay semanas relacionadas")
+                continue
+            kwargs = {
+                "parent_task": key_task,
+            }
+            if main_function_name == "send_analysis":
+                kwargs["finished_function"] = "save_month_analysis"
+            month_task, task_params = build_task_params(
+                entity_month, function_name, request, **kwargs)
+            all_tasks.append(month_task)
+            base_class = EntityMonthMix(entity_month, task_params)
+            if function_name == "analysis_month":
+                new_tasks, errors, s = base_class.send_analysis(related_weeks)
+            else:
+                new_tasks, errors, s = base_class.insert_month()
+            all_tasks.extend(new_tasks)
+            all_errors.extend(errors)
+
+        if all_tasks or all_errors:
+            return comprobate_status(
+                key_task, [], all_tasks, want_http_response=True)
+
+        return Response({}, status=status.HTTP_202_ACCEPTED)
 
 
 class AgencyViewSet(ListRetrieveUpdateMix):

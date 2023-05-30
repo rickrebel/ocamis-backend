@@ -56,8 +56,7 @@ def set_upload_path_old(instance, filename):
 
 
 def set_upload_path(instance, filename):
-    # from django.conf import settings
-    # files_path = getattr(settings, "FILES_PATH")
+    from django.conf import settings
     is_sheet_file = getattr(instance, "data_file", False)
     if is_sheet_file:
         instance = instance.data_file
@@ -75,10 +74,10 @@ def set_upload_path(instance, filename):
     except AttributeError:
         acronym = 'others'
     folio_petition = petition.folio_petition
+    elems = [agency_type, acronym, folio_petition, filename]
+    if settings.IS_LOCAL:
+        elems.insert(3, "localhost")
 
-    # final_path = "/".join([agency_type, acronym, last_year_month, filename])
-    # print(os.path.join('/media/%s/' % instance.id, filename))
-    # print(os.path.join(files_path, final_path))
     return "/".join([agency_type, acronym, folio_petition, filename])
 
 
@@ -591,9 +590,10 @@ class CrossingSheet(models.Model):
         SheetFile, related_name="crossing_1", on_delete=models.CASCADE)
     sheet_file_2 = models.ForeignKey(
         SheetFile, related_name="crossing_2", on_delete=models.CASCADE)
+    year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.PositiveIntegerField(default=0)
     iso_week = models.PositiveIntegerField(default=0)
-    delegation_name = models.CharField(max_length=255, blank=True, null=True)
+    iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
     last_crossing = models.DateTimeField(blank=True, null=True)
@@ -614,6 +614,9 @@ class LapSheet(models.Model):
     lap = models.IntegerField(default=0)
     last_edit = models.DateTimeField(blank=True, null=True)
     inserted = models.BooleanField(default=False, blank=True, null=True)
+    cat_inserted = models.BooleanField(default=False, blank=True, null=True)
+    basic_inserted = models.BooleanField(default=False, blank=True, null=True)
+    missing_inserted = models.BooleanField(default=False, blank=True, null=True)
 
     general_error = models.CharField(max_length=255, blank=True, null=True)
     total_count = models.IntegerField(default=0)
@@ -660,12 +663,13 @@ class EntityWeek(models.Model):
         EntityMonth,
         related_name="weeks",
         on_delete=models.CASCADE, blank=True, null=True)
+    year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.SmallIntegerField(blank=True, null=True)
     iso_week = models.SmallIntegerField(blank=True, null=True)
+    iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
     year_month = models.CharField(max_length=10, blank=True, null=True)
     year = models.SmallIntegerField(blank=True, null=True)
     month = models.SmallIntegerField(blank=True, null=True)
-    delegation_name = models.CharField(max_length=255, blank=True, null=True)
 
     drugs_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
@@ -675,10 +679,10 @@ class EntityWeek(models.Model):
     last_transformation = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.entity} {self.year_month} - {self.iso_week}"
+        return f"{self.entity} {self.year_month} - {self.iso_week} - {self.iso_delegation}"
 
     class Meta:
-        get_latest_by = ["year_month", "iso_week"]
+        get_latest_by = ["year_month", "year_week"]
         verbose_name = "Semana de entidad"
         verbose_name_plural = "7. Semanas de entidad"
 
@@ -687,10 +691,12 @@ class TableFile(models.Model):
 
     # sheet_file = models.ForeignKey(
     #     SheetFile, related_name="process_files", on_delete=models.CASCADE)
+    file = models.FileField(max_length=255, upload_to=set_upload_path)
     lap_sheet = models.ForeignKey(
         LapSheet, related_name="table_files", on_delete=models.CASCADE,
         blank=True, null=True)
-    file = models.FileField(max_length=255, upload_to=set_upload_path)
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE, blank=True, null=True)
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     collection = models.ForeignKey(
@@ -698,13 +704,13 @@ class TableFile(models.Model):
     entity_week = models.ForeignKey(
         EntityWeek, on_delete=models.CASCADE,
         blank=True, null=True, related_name="table_files")
+    year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
     iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
+    iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
+    year_month = models.CharField(max_length=8, blank=True, null=True)
     year = models.PositiveSmallIntegerField(blank=True, null=True)
     month = models.PositiveSmallIntegerField(blank=True, null=True)
-    year_month = models.CharField(max_length=10, blank=True, null=True)
-    delegation_name = models.CharField(
-        max_length=255, blank=True, null=True)
     is_for_edition = models.BooleanField(default=False)
     inserted = models.BooleanField(default=False)
     drugs_count = models.IntegerField(default=0)
@@ -718,7 +724,7 @@ class TableFile(models.Model):
     class Meta:
         verbose_name = "Archivo para insertar"
         verbose_name_plural = "6. Archivos para insertar"
-        ordering = ["id"]
+        ordering = ["-id"]
         unique_together = (
             "lap_sheet", "collection", "is_for_edition", "year",
-            "iso_week", "delegation_name")
+            "iso_week", "iso_delegation")

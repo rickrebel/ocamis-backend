@@ -413,22 +413,12 @@ class EntityMonthViewSet(CreateRetrievView):
     }
 
     def retrieve(self, request, **kwargs):
-        from inai.api.serializers import (
-            SheetFileSimpleSerializer, SheetFileMonthSerializer)
+        from inai.api.serializers import (SheetFileMonthSerializer)
         from inai.models import CrossingSheet
         entity_month = self.get_object()
-        # sheet_files = SheetFile.objects.filter(
-        #     year_month=entity_month.year_month,
-        #     data_file__entity=entity_month.entity)
-        # table_files = TableFile.objects.filter(
-        #     entity_week__year_month=entity_month.year_month,
-        #     entity_week__entity=entity_month.entity)
         sheet_files = SheetFile.objects.filter(
             laps__table_files__entity_week__entity_month=entity_month)\
             .distinct()
-        # sheet_files = SheetFile.objects.filter(
-        #     year_month=entity_month.year_month,
-        #     data_file__entity=entity_month.entity)
         serializer_sheet_files = SheetFileMonthSerializer(
             sheet_files, many=True)
         crossing_sheets_1 = CrossingSheet.objects.filter(
@@ -437,25 +427,12 @@ class EntityMonthViewSet(CreateRetrievView):
             sheet_file_2__in=sheet_files)
         all_crossing_sheets = crossing_sheets_1 | crossing_sheets_2
 
-        all_related_sheets = []
+        all_related_sheets = set()
         for crossing_sheet in all_crossing_sheets:
-            all_related_sheets.append(crossing_sheet.sheet_file_1_id)
-            all_related_sheets.append(crossing_sheet.sheet_file_2_id)
-        all_related_sheets = list(set(all_related_sheets))
-        original_sheet_files_ids = sheet_files.values_list("id", flat=True)
+            all_related_sheets.add(crossing_sheet.sheet_file_1_id)
+            all_related_sheets.add(crossing_sheet.sheet_file_2_id)
         related_sheet_files = SheetFile.objects.filter(
-            id__in=all_related_sheets)
-
-        # sheets_file_1_ids = crossing_sheets_1.values_list(
-        #     "sheet_file_1", flat=True)
-        # sheets_file_2_ids = crossing_sheets_2.values_list(
-        #     "sheet_file_2", flat=True)
-        # sheets_file_ids = list(sheets_file_1_ids) + list(sheets_file_2_ids)
-        # sheets_file_ids = list(set(sheets_file_ids))
-        # complement_sheet_files = SheetFile.objects\
-        #     .filter(id__in=sheets_file_ids)\
-        #     .exclude(id__in=original_sheet_files_ids)
-        # serializer_related_files = SheetFileSimpleSerializer(
+            id__in=list(all_related_sheets))
         serializer_related_files = SheetFileMonthSerializer(
             related_sheet_files, many=True)
 

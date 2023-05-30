@@ -17,14 +17,15 @@ class FromAws:
         new_file_ids = []
         entity = self.lap_sheet.sheet_file.data_file.entity
         optional_fields = [
-            "iso_year", "iso_week", "year", "month", "delegation_name"]
+            "iso_year", "iso_week", "year_week", "iso_delegation",
+            "year", "month", "year_month"]
         count_fields = ["drugs_count", "rx_count"]
         all_year_months = set()
         all_complex_dates = set()
         for result_file in result_files:
             model_name = result_file.get("model")
             # print("model_name", model_name)
-            query_create = {}
+            query_create = {"entity": entity}
             query_update = {"file": result_file["path"]}
             if not model_name:
                 complex_date = tuple()

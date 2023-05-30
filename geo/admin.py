@@ -96,6 +96,7 @@ class CLUESAdmin(admin.ModelAdmin):
         "state__short_name",
         "clues",
         "typology_cve",
+        "typology",
         "jurisdiction"
     ]
 

@@ -40,8 +40,9 @@ class TaskFunction(models.Model):
     model_name = models.CharField(
         max_length=100, choices=MODEL_CHOICES, blank=True, null=True)
     public_name = models.CharField(max_length=120, blank=True, null=True)
-    is_active = models.BooleanField(default=False)
-    is_from_aws = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False, verbose_name="active")
+    is_from_aws = models.BooleanField(default=False, verbose_name="AWS")
+    is_queueable = models.BooleanField(default=False, verbose_name="queue")
 
     def __str__(self):
         active_mark = "✅" if self.is_active else "❌"

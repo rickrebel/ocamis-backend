@@ -413,8 +413,9 @@ def comprobate_queue(current_task):
     # from django.conf import settings
     # from inai.data_file_mixins.insert_mix import modify_constraints
 
-    is_queue = current_task.task_function_id in ["save_csv_in_db"]
-    if not is_queue:
+    # is_queue = current_task.task_function_id in ["save_csv_in_db"]
+    # if not is_queue:
+    if not current_task.task_function.is_queueable:
         return
     if current_task.status_task.is_completed:
         next_task = AsyncTask.objects.filter(
@@ -433,6 +434,8 @@ def debug_queue():
     from django.utils import timezone
     arrived_tasks = AsyncTask.objects.filter(
         status_task_id="success", task_function_id="save_csv_in_db")
+    # arrived_tasks = AsyncTask.objects.filter(
+    #     status_task_id="success", task_function__is_queueable=True)
     for task in arrived_tasks:
         if task.date_arrive + timedelta(seconds=5) < timezone.now():
             comprobate_status(task)
@@ -440,7 +443,7 @@ def debug_queue():
             task.sheet_file.save_stage('transform', errors)
     every_completed = AsyncTask.objects.filter(
         status_task__is_completed=True,
-        task_function_id="save_csv_in_db")
+        task_function__is_queueable=True)
     if every_completed.exists():
         next_task = AsyncTask.objects.filter(
             status_task_id="queue").order_by("id").first()

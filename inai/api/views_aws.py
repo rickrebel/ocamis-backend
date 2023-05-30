@@ -89,7 +89,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     async_task = reply_file.decompress(
                         orphan_pfc, task_params=task_params)
                     all_tasks.append(async_task)
-            else:
+            if not reply_files.exists():
                 orphan_files = orphan_pfc.data_files.all()
                 if not orphan_files.exists():
                     all_errors.append(
@@ -104,6 +104,11 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             key_task, errors=all_errors, new_tasks=all_tasks)
 
         return send_response(petition, task=key_task, errors=all_errors)
+
+    @action(detail=True, methods=["get"], url_path="finished")
+    def finished(self, request, pk=None):
+        petition = self.get_object()
+        return send_response(petition)
 
 
 def move_and_duplicate(data_files, petition, request):

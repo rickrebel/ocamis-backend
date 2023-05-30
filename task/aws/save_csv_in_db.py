@@ -1,6 +1,6 @@
 import requests
 import json
-from task.aws.common import request_headers
+from task.aws.common import request_headers, create_connection
 
 
 # def save_csv_in_db(event, context):
@@ -10,12 +10,7 @@ def lambda_handler(event, context):
     lap_sheet_id = event.get("lap_sheet_id")
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries")
-    connection = psycopg2.connect(
-        database=db_config.get("NAME"),
-        user=db_config.get("USER"),
-        password=db_config.get("PASSWORD"),
-        host=db_config.get("HOST"),
-        port=db_config.get("PORT"))
+    connection = create_connection(db_config)
     final_result = {
         "lap_sheet_id": lap_sheet_id,
     }

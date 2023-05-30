@@ -36,13 +36,14 @@ class Rx(models.Model):
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
-    folio_ocamis = models.CharField(max_length=60)
+    folio_ocamis = models.CharField(max_length=64)
     folio_document = models.CharField(max_length=46)
+    year = models.PositiveSmallIntegerField(blank=True, null=True)
+    month = models.PositiveSmallIntegerField()
     iso_year = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     iso_day = models.PositiveSmallIntegerField(blank=True, null=True)
-    year = models.PositiveSmallIntegerField(blank=True, null=True)
-    month = models.PositiveSmallIntegerField()
+    iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
     medical_unit = models.ForeignKey(
         MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
     area = models.ForeignKey(
@@ -92,6 +93,8 @@ class Drug(models.Model):
         blank=True, null=True)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
+    date_created = models.DateTimeField(blank=True, null=True)
+    date_closed = models.DateTimeField(blank=True, null=True)
     price = models.FloatField(blank=True, null=True)
 
     class Meta:

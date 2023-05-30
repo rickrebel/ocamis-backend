@@ -46,7 +46,12 @@ class Collection(models.Model):
         help_text="Nombre del Modelo público (Meta.verbose_name_plural)")
     model_name = models.CharField(
         max_length=225,
-        verbose_name="Nombre en el código")
+        verbose_name="Nombre en Django",
+        help_text="Nombre del modelo en Django (Meta.model_name)")
+    snake_name = models.CharField(
+        max_length=225,
+        default="unknown",
+        verbose_name="Nombre para distinguirlo en el código")
     app_label = models.CharField(
         max_length=40, verbose_name="App label", default="null")
     description = models.TextField(
@@ -55,6 +60,12 @@ class Collection(models.Model):
         default=False, verbose_name="Permitir inserción")
     cat_params = JSONField(
         default=dict, verbose_name="Parámetros para catálogo")
+
+    def save(self, *args, **kwargs):
+        import re
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', self.model_name)
+        self.snake_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.app_label}-{self.model_name}"

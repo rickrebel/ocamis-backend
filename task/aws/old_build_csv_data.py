@@ -363,18 +363,13 @@ class MatchAws:
             #     break
         print("PASO 5")
         final_request_id = self.context.aws_request_id
-        report_errors = self.build_report()
-        report_errors["rx_count"] = len(all_prescriptions)
-        report_errors["drug_count"] = success_drugs_count
-        report_errors["total_count"] = total_count
-        report_errors["discarded_count"] = discarded_count
+        # report_errors = self.build_report()
         print("PASO 6  -- LLEGO AL FINAL DE TODO")
         if self.is_prepare:
             print("PASO 7, en prepare")
             result_data = {
                 "result": {
                     "final_paths": None,
-                    "report_errors": report_errors,
                     "is_prepare": True
                 },
                 "request_id": final_request_id
@@ -747,87 +742,6 @@ class MatchAws:
         self.new_cat_rows[cat_name].append(new_row)
         self.cats[cat_name][uuid] = row_data
         return uuid
-
-    def build_report(self):
-        report_data = {"general_error": ""}
-        if self.all_missing_rows:
-            report_data["missing_rows"] = len(self.all_missing_rows)
-            row_errors = {}
-            error_types_count = 0
-            for missing_row in self.all_missing_rows:
-                error = missing_row[-1]
-                if not error:
-                    continue
-                try:
-                    [error_type, error_detail] = error.split(";", 1)
-                except Exception as e:
-                    print("error", e)
-                    [error_type, error_detail] = [error, error]
-                if error_type in row_errors:
-                    row_errors[error_type]["count"] += 1
-                    if error_detail in row_errors[error_type]:
-                        row_errors[error_type][error_detail]["count"] += 1
-                        example_count = len(
-                            row_errors[error_type][error_detail]["examples"])
-                        if example_count < 4:
-                            row_errors[error_type][error_detail]["examples"].append(
-                                missing_row)
-                    elif len(row_errors[error_type]) < 20:
-                        row_errors[error_type][error_detail] = {
-                            "count": 1, "examples": [missing_row]}
-                elif error_types_count < 40:
-                    row_errors[error_type] = {
-                        "count": 1,
-                        error_detail: {
-                            "count": 1, "examples": [missing_row]}
-                    }
-                    error_types_count += 1
-            row_errors = sorted(row_errors.items(), key=lambda x: x[1], reverse=True)
-            row_errors = row_errors[:50]
-            report_data["row_errors"] = row_errors
-            if len(row_errors) > 50:
-                report_data["general_error"] += \
-                    "Se encontraron más de 50 tipos de errores en las filas"
-
-        if self.all_missing_fields:
-            report_data["missing_fields"] = len(self.all_missing_fields)
-            field_errors = {}
-            error_types_count = 0
-            for missing_field in self.all_missing_fields:
-                error = missing_field[-1]
-                name_column = missing_field[2]
-                original_value = missing_field[3]
-                if error in field_errors:
-                    field_errors[error]["count"] += 1
-                    if name_column in field_errors[error]:
-                        field_errors[error][name_column]["count"] += 1
-                        examples = field_errors[error][name_column]["examples"]
-                        if len(examples) < 6 and original_value not in examples:
-                            field_errors[error][name_column]["examples"].append(
-                                original_value)
-                    else:
-                        field_errors[error][name_column] = {
-                            "count": 1,
-                            "examples": [original_value]
-                        }
-                elif error_types_count < 40:
-                    error_types_count += 1
-                    field_errors[error] = {
-                        "count": 1,
-                        name_column: {
-                            "count": 1,
-                            "examples": [original_value]
-                        }
-                    }
-            # field_errors = sorted(
-            #     # field_errors.items(), key=lambda x: sum(x[1].values()),
-            #     field_errors.items(), key=lambda x: sum(x["count"].values()),
-            #     reverse=True)
-            report_data["field_errors"] = field_errors
-
-        if not report_data.get("missing_rows") and not report_data.get("missing_fields"):
-            report_data["general_error"] = "No se encontraron errores"
-        return report_data
 
     # def clues_match(self, clave_clues):
     #     if self.global_clues_id:

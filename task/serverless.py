@@ -7,6 +7,7 @@ from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
 from task.aws.xls_to_csv import lambda_handler as xls_to_csv
 from task.aws.decompress_gz import lambda_handler as decompress_gz
 from task.aws.analyze_uniques import lambda_handler as analyze_uniques
+from task.aws.build_week_csvs import lambda_handler as build_week_csvs
 
 
 def camel_to_snake(name):
@@ -94,13 +95,15 @@ def execute_async(current_task, params):
 
 
 def async_in_lambda(function_name, params, task_params):
-    from task.models import AsyncTask
+    from task.models import AsyncTask, TaskFunction
 
     api_url = getattr(settings, "API_URL", False)
     params["webhook_url"] = f"{api_url}task/webhook_aws/"
+    task_function = TaskFunction.objects.get(name=function_name)
     function_after = task_params.get("function_after", f"{function_name}_after")
     query_kwargs = {
-        "task_function_id": function_name,
+        # "task_function_id": function_name,
+        "task_function": task_function,
         "function_after": function_after,
         "original_request": params,
         "status_task_id": "pending",
@@ -116,9 +119,9 @@ def async_in_lambda(function_name, params, task_params):
 
     # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
     is_pending = False
-    if function_name == "save_csv_in_db":
+    if task_function.is_queueable:
         pending_tasks = AsyncTask.objects.filter(
-            task_function_id=function_name,
+            task_function__is_queueable=True,
             status_task__is_completed=False)
         if pending_tasks.count() > 0:
             query_kwargs["status_task_id"] = "queue"

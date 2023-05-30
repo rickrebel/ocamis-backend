@@ -1,5 +1,4 @@
 import io
-import boto3
 import csv
 import uuid as uuid_lib
 import json
@@ -8,7 +7,7 @@ import unidecode
 import re
 # from .common import obtain_decode
 from task.aws.common import (
-    obtain_decode, calculate_delivered_final, request_headers)
+    obtain_decode, calculate_delivered_final, request_headers, BotoUtils)
 
 available_delivered = [
     "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
@@ -100,27 +99,9 @@ def lambda_handler(event, context):
     init_data["webhook_url"] = event.get("webhook_url")
     match_aws = MatchAws(init_data, context)
 
-    aws_access_key_id = event["s3"]["aws_access_key_id"]
-    aws_secret_access_key = event["s3"]["aws_secret_access_key"]
-    bucket_name = event["s3"]["bucket_name"]
-    aws_location = event["s3"]["aws_location"]
     file = event["file"]
 
-    dev_resource = boto3.resource(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-
-    content_object = dev_resource.Object(
-        bucket_name=bucket_name,
-        key=f"{aws_location}/{file}"
-    )
-    streaming_body_1 = content_object.get()['Body']
-    object_final = io.BytesIO(streaming_body_1.read())
-    s3_client = boto3.client(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-
-    final_result = match_aws.build_csv_to_data(object_final, s3_client)
+    final_result = match_aws.build_csv_to_data(file)
     if "webhook_url" in event:
         webhook_url = event["webhook_url"]
         requests.post(webhook_url, data=final_result, headers=request_headers)
@@ -144,6 +125,7 @@ class MatchAws:
         self.final_path = init_data["final_path"]
 
         self.entity_id = init_data["entity_id"]
+        self.split_by_delegation = init_data["split_by_delegation"]
         self.global_delegation = init_data["global_delegation"]
         self.global_clues = init_data["global_clues"]
 
@@ -204,6 +186,7 @@ class MatchAws:
             self.initial_data[cat_name] = {"data_values": data_values,
                                            "all_values": all_values}
         # print("med_cat_flat_fields: \n", self.med_cat_flat_fields)
+        self.delegation_cat = init_data.get("delegation_cat", {})
 
         self.months = set()
         self.buffers = {}
@@ -268,15 +251,17 @@ class MatchAws:
         self.all_missing_rows = []
         self.all_missing_fields = []
 
-        self.s3 = init_data.get("s3")
+        self.s3_utils = BotoUtils(init_data.get("s3"))
+
         self.context = context
         self.last_date = None
         self.last_date_formatted = None
         self.is_prepare = init_data.get("is_prepare", False)
 
-    def build_csv_to_data(self, complete_file, s3_client=None):
-        # csv_buffer = {}
-        # csv_files = {}
+    def build_csv_to_data(self, file):
+
+        file_type = "json" if self.is_prepare else "csv"
+        complete_file = self.s3_utils.get_object_file(file, file_type)
         if self.is_prepare:
             complete_file = json.loads(complete_file.read())
             data_rows = complete_file.get("all_data", [])
@@ -346,9 +331,15 @@ class MatchAws:
             iso_date = some_date.isocalendar()
             iso_year = iso_date[0]
             iso_week = iso_date[1]
+            iso_day = iso_date[2]
             year = some_date.year
             month = some_date.month
-            complex_date = (iso_year, iso_week, year, month)
+            iso_delegation, delegation_error = self.delegation_match(
+                available_data)
+            if delegation_error:
+                self.append_missing_row(row, delegation_error)
+                continue
+            complex_date = (iso_year, iso_week, iso_delegation, year, month)
             if complex_date not in buffers_by_date:
                 all_rx[complex_date] = {}
                 totals_by_date[complex_date] = {
@@ -363,12 +354,14 @@ class MatchAws:
 
             available_data["iso_year"] = iso_year
             available_data["iso_week"] = iso_week
-            available_data["iso_day"] = iso_date[2]
+            available_data["iso_day"] = iso_day
+            available_data["iso_delegation"] = iso_delegation
             available_data["year"] = year
             available_data["month"] = month
+            available_data["date_created"] = available_data.get(
+                "date_release") or available_data.get("date_visit")
+            available_data["date_closed"] = available_data.get("date_delivery")
             self.months.add((year, month))
-            # if not first_iso:
-            #     first_iso = iso_date
 
             available_data, error = calculate_delivered(available_data)
             if error:
@@ -382,9 +375,9 @@ class MatchAws:
             available_data = self.generic_match("medicament", available_data)
 
             folio_document = available_data.get("folio_document")
-            folio_ocamis = "%s|%s|%s|%s" % (
-                self.entity_id, iso_year, iso_week, folio_document)
-            if len(folio_ocamis) > 60:
+            folio_ocamis = "|".join([
+                self.entity_id, iso_year, iso_week, iso_delegation or '0', folio_document])
+            if len(folio_ocamis) > 64:
                 error = "Folio Ocamis; El folio ocamis es muy largo"
                 self.append_missing_row(row, error)
                 continue
@@ -481,20 +474,7 @@ class MatchAws:
 
         self.buffers["missing_field"].writerows(self.all_missing_fields)
         self.buffers["missing_row"].writerows(self.all_missing_rows)
-
-        bucket_name = self.s3.get("bucket_name")
-        aws_location = self.s3.get("aws_location")
-
         all_final_paths = []
-
-        def save_file_in_aws(body, final_name):
-            s3_client.put_object(
-                Body=body,
-                Bucket=bucket_name,
-                Key=f"{aws_location}/{final_name}",
-                ContentType="text/csv",
-                ACL="public-read",
-            )
 
         for elem_list in self.normal_models:
             cat_name = elem_list["name"]
@@ -509,43 +489,33 @@ class MatchAws:
                 "model": elem_list["model"],
                 "path": only_name,
             })
-            save_file_in_aws(self.csvs[cat_name].getvalue(), only_name)
+            self.s3_utils.save_file_in_aws(self.csvs[cat_name].getvalue(), only_name)
         for complex_date in csvs_by_date.keys():
-            iso_year, iso_week, year, month = complex_date
-            elem_name = f"by_week_{iso_year}_{iso_week}_{year}_{month}"
+            iso_year, iso_week, iso_delegation, year, month = complex_date
+            # elem_list = [iso_year, iso_week, iso_delegation, year, month]
+            elem_list = list(map(str, list(complex_date)))
+            complement = '_'.join(elem_list)
+            elem_name = f"by_week_{complement}"
+            # elem_name = f"by_week_{iso_year}_{iso_week}_{year}_{month}"
             only_name = self.final_path.replace("_NEW_ELEM_NAME", elem_name)
             only_name = only_name.replace("NEW_ELEM_NAME", "by_week")
-            year_month = f"{year}-{month:02d}"
             all_final_paths.append({
                 "path": only_name,
                 "iso_year": iso_year,
                 "iso_week": iso_week,
+                "year_week": f"{iso_year}-{iso_week:02d}",
+                "iso_delegation": iso_delegation,
                 "year": year,
                 "month": month,
-                "year_month": year_month,
+                "year_month": f"{year}-{month:02d}",
                 "drugs_count": totals_by_date[complex_date]["drugs_count"],
                 "rx_count": totals_by_date[complex_date]["rx_count"],
             })
-            save_file_in_aws(csvs_by_date[complex_date].getvalue(), only_name)
+            self.s3_utils.save_file_in_aws(csvs_by_date[complex_date].getvalue(), only_name)
 
         result_data["result"]["final_paths"] = all_final_paths
         result_data["result"]["decode"] = self.decode
         return json.dumps(result_data)
-
-    def get_json_file(self, file_name):
-        aws_access_key_id = self.s3["aws_access_key_id"]
-        aws_secret_access_key = self.s3["aws_secret_access_key"]
-        bucket_name = self.s3["bucket_name"]
-        aws_location = self.s3["aws_location"]
-
-        s3_client = boto3.client(
-            's3', aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key)
-
-        obj = s3_client.get_object(
-            Bucket=bucket_name,
-            Key=f"{aws_location}/{file_name}")
-        return json.loads(obj['Body'].read().decode('utf-8'))
 
     def special_division(self, row_data):
         fragments = []
@@ -952,6 +922,21 @@ class MatchAws:
             add_hash_to_cat(hash_id, all_values)
         available_data[f"{cat_name}_id"] = hash_id
         return available_data
+
+    def delegation_match(self, available_data):
+        if not self.split_by_delegation:
+            return None
+        delegation_name = available_data.get("medical_unit_delegation_name", None)
+        delegation_id = None
+        delegation_error = None
+        if delegation_name:
+            delegation_name = text_normalizer(delegation_name)
+            try:
+                delegation_id = self.delegation_cat[delegation_name]
+            except Exception:
+                delegation_error = f"No se encontró la delegación;" \
+                                   f" {delegation_name}"
+        return delegation_id, delegation_error
 
     def append_missing_row(self, row_data, error=None, drug_id=None):
         if self.last_missing_row:

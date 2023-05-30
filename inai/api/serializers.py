@@ -97,10 +97,21 @@ class TableFileSerializer(serializers.ModelSerializer):
 
 class TableFileAwsSerializer(serializers.ModelSerializer):
     file = serializers.ReadOnlyField(source="file.name")
+    # sheet_behavior = serializers.CharField(
+    #     source="lap_sheet.sheet_file.behavior_id")
+    sheet_behavior = serializers.SerializerMethodField(read_only=True)
+
+    def get_sheet_behavior(self, obj):
+        if obj.lap_sheet:
+            return obj.lap_sheet.sheet_file.behavior_id
+        return None
 
     class Meta:
         model = TableFile
-        fields = ["id", "file", "collection", "year", "month"]
+        fields = [
+            "id", "file", "collection", "year", "month", "year_month",
+            "sheet_behavior"]
+        # "iso_year", "iso_week", "delegation_name"]
 
 
 class LapSheetSerializer(serializers.ModelSerializer):
@@ -405,7 +416,7 @@ class PetitionEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Petition
-        read_only_fields = ["id", "break_dates"]
+        read_only_fields = ["id", "break_dates", "entity_months"]
         fields = "__all__"
 
 

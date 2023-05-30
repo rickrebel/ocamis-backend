@@ -2,6 +2,16 @@ from django.db import models
 from django.db.models import JSONField
 
 
+def set_upload_path_entity(instance, filename):
+
+    agency_type = instance.agency_type[:8].lower()
+    try:
+        acronym = instance.acronym.lower()
+    except AttributeError:
+        acronym = 'others'
+    return "/".join([agency_type, acronym,  filename])
+
+
 def default_alternative_names():
     return []
 
@@ -116,6 +126,17 @@ class Entity(models.Model):
         default=False, verbose_name="Es solo un CLUES")
     population = models.IntegerField(
         default=0, verbose_name="Población")
+    split_by_delegation = models.BooleanField(
+        default=False, verbose_name="Dividir por delegación")
+
+    @property
+    def agency_type(self):
+        if self.is_clues:
+            return 'Hospital Federal'
+        elif self.state:
+            return 'Estatal'
+        else:
+            return 'Nacional'
 
     def delete(self, *args, **kwargs):
         from inai.models import LapSheet
@@ -364,7 +385,8 @@ class Agency(models.Model):
 
     entity = models.ForeignKey(
         Entity, verbose_name="Entidad",
-        on_delete=models.CASCADE, blank=True, null=True)
+        on_delete=models.CASCADE, blank=True, null=True,
+        related_name="agencies")
     name = models.CharField(
         max_length=120, blank=True, null=True,
         verbose_name="Nombre",

@@ -1,10 +1,6 @@
 import requests
 import json
-import boto3
-import csv
-import io
-from task.aws.common import request_headers
-from datetime import datetime
+from task.aws.common import request_headers, BotoUtils
 
 group_names = ["dupli", "shared"]
 
@@ -21,14 +17,14 @@ def lambda_handler(event, context):
     init_data["s3"] = event["s3"]
     init_data["webhook_url"] = event.get("webhook_url")
     uniques_aws = UniquesAws(init_data, context)
-
     final_result = uniques_aws.build_analysis()
+    json_result = json.dumps(final_result)
     if "webhook_url" in event:
         webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=final_result, headers=request_headers)
+        requests.post(webhook_url, data=json_result, headers=request_headers)
     return {
         'statusCode': 200,
-        'body': final_result
+        'body': json_result
     }
 
 
@@ -37,21 +33,13 @@ class UniquesAws:
     def __init__(self, init_data: dict, context):
 
         self.entity_id = init_data.get("entity_id")
-        self.filters = init_data
-        year = self.filters.get("year")
-        month = self.filters.get("month")
-        print("month", month)
-        print("type(month)", type(month))
+        year = init_data.get("year")
+        month = init_data.get("month")
         self.current_month = month
         self.year_month = f"{year}-{month:02d}"
         self.table_files = init_data.get("table_files", [])
 
-        self.s3 = init_data.get("s3")
-        aws_access_key_id = self.s3["aws_access_key_id"]
-        aws_secret_access_key = self.s3["aws_secret_access_key"]
-        self.dev_resource = boto3.resource(
-            's3', aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key)
+        self.s3_utils = BotoUtils(init_data.get("s3"))
 
         self.context = context
 
@@ -82,26 +70,8 @@ class UniquesAws:
             },
             "request_id": final_request_id
         }
-        json_result = json.dumps(result_data)
-        return json_result
-
-    def get_object_file(self, file):
-
-        bucket_name = self.s3["bucket_name"]
-        aws_location = self.s3["aws_location"]
-
-        content_object = self.dev_resource.Object(
-            bucket_name=bucket_name,
-            key=f"{aws_location}/{file}"
-        )
-
-        # return content_object
-        streaming_body_1 = content_object.get()['Body']
-        object_final = streaming_body_1.read().decode("utf-8")
-        csv_content = csv.reader(io.StringIO(object_final), delimiter='|')
-        # data_rows = object_final.readlines()
-        # data = object_final.read().decode("utf-8")
-        return csv_content
+        # return json_result
+        return result_data
 
     def get_all_drugs(self):
 
@@ -110,7 +80,7 @@ class UniquesAws:
         all_drugs = []
         for table_file in self.table_files:
             file = table_file["file"]
-            csv_content = self.get_object_file(file)
+            csv_content = self.s3_utils.get_object_file(file)
             # csv_data = csv.reader(io.StringIO(data), delimiter='|')
             for idx, cols in enumerate(csv_content):
                 # print("idx", idx)

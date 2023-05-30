@@ -25,6 +25,29 @@ class FromAws:
 
         return all_tasks, all_errors, True
 
+    def save_merged_from_aws(self, **kwargs):
+        from inai.models import TableFile, SheetFile
+        from data_param.models import Collection
+        base_models = ["drug", "rx"]
+        for model in base_models:
+            file_path = kwargs.get(f"{model}_path")
+            collection = Collection.objects.get(snake_name=model)
+            table_file, c = TableFile.objects.get_or_create(
+                # entity_week=self.entity_week,
+                entity=self.entity_week.entity,
+                iso_week=self.entity_week.iso_week,
+                iso_year=self.entity_week.iso_year,
+                year_week=self.entity_week.year_week,
+                iso_delegation=self.entity_week.iso_delegation,
+                month=self.entity_week.month,
+                year=self.entity_week.year,
+                year_month=self.entity_week.year_month,
+                entity_week=self.entity_week,
+                collection=collection)
+            table_file.file = file_path
+            table_file.save()
+        return [], [], True
+
     def save_entity_week(self, month_week_counts):
         from django.utils import timezone
         self.entity_week.drugs_count = month_week_counts["drugs_count"]
@@ -57,7 +80,7 @@ class FromAws:
                 lap_sheet__lap=0, lap_sheet__sheet_file_id=sheet_id)
             if table_file.count() != 1:
                 if table_file.count() == 0:
-                    error = f"No existen table_files"
+                    error = f"No existe ningún table_file "
                 else:
                     error = f"Existen {table_file.count()} table_files"
                 error += f" para sheet_id {sheet_id}, " \
@@ -99,7 +122,8 @@ class FromAws:
                 sheet_file_2_id=sheet_2,
                 iso_week=self.entity_week.iso_week,
                 iso_year=self.entity_week.iso_year,
-                delegation_name=self.entity_week.delegation_name
+                year_week=self.entity_week.year_week,
+                iso_delegation=self.entity_week.iso_delegation
             )
             # if not same_year_month(cross):
             #     continue

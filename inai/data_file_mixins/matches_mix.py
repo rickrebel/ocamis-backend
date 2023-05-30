@@ -35,6 +35,7 @@ def get_models_of_app(app_label):
             'app': app_label,
             'model': model_name,
             'name': camel_to_snake(model_name),
+            "model_in_db": f"{app_label}_{model_name.lower()}",
         })
     return all_models
 
@@ -69,6 +70,14 @@ def field_of_models(model_data):
             "max_length": field.max_length if is_char else None,
         })
     return fields
+
+
+def text_normalizer(text):
+    import re
+    import unidecode
+    text = text.upper().strip()
+    text = unidecode.unidecode(text)
+    return re.sub(r'[^a-zA-Z\s]', '', text)
 
 
 class Match:
@@ -177,6 +186,7 @@ class Match:
             "delimiter": self.delimiter,
             "row_start_data": self.file_control.row_start_data,
             "entity_id": self.agency.entity_id,
+            "split_by_delegation": self.agency.entity.split_by_delegation,
             "columns_count": self.columns_count,
             "editable_models": self.editable_models,
             "real_models": self.real_models,
@@ -188,6 +198,8 @@ class Match:
         }
         self.task_params["function_after"] = "build_csv_data_from_aws"
         all_tasks = []
+        if init_data["split_by_delegation"]:
+            init_data["delegation_cat"] = self.build_catalog_delegation_by_id()
 
         filter_sheets = self.data_file.filtered_sheets
         procesable_sheets = self.data_file.sheet_files.filter(
@@ -436,6 +448,27 @@ class Match:
         elif transformation_count > 1:
             return "MANY"
         return transformation.first().addl_params.get("value")
+
+    def build_catalog_delegation_by_id(self, key_field='name'):
+        from geo.models import Delegation
+        delegation_value_list = [
+            'name', 'other_names', 'id']
+        curr_delegations = Delegation.objects.filter(institution=self.institution)
+        delegations_query = list(curr_delegations.values(*delegation_value_list))
+        catalog_delegation = {}
+        for delegation in delegations_query:
+            delegation_name = text_normalizer(delegation[key_field])
+            if delegation_name not in catalog_delegation:
+                catalog_delegation[delegation_name] = delegation["id"]
+            alt_names = delegation["other_names"] or []
+            for alt_name in alt_names:
+                alt_name = text_normalizer(alt_name)
+                if alt_name not in catalog_delegation:
+                    catalog_delegation[alt_name] = delegation["id"]
+        # final_path = f"{self.agency.entity.acronym}/catalogs/delegation_by_{key_field}.json"
+        # file_name, errors = create_file(
+        #     catalog_delegation, self.s3_client, final_path=final_path)
+        return catalog_delegation
 
     def save_catalog_csv(self, path, model_name):
         from task.serverless import async_in_lambda
