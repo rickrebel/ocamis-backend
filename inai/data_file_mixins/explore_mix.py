@@ -443,6 +443,8 @@ class ExploreMix:
 
     def corroborate_save_data(self, task_params=None, **kwargs):
         from_aws = kwargs.get("from_aws", False)
+        print("from_aws", from_aws)
+
         if from_aws:
             x, y, data_file = self.build_sample_data_after(**kwargs)
             parent_task = task_params.get("parent_task", None)

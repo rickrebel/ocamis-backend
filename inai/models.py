@@ -151,11 +151,15 @@ class Petition(models.Model, PetitionTransformsMix):
 
     def first_year_month(self):
         # return self.petition_months.earliest().entity_month.year_month
-        return self.entity_months.earliest().year_month
+        if self.entity_months.exists():
+            return self.entity_months.earliest().year_month
+        return None
 
     def last_year_month(self):
         # return self.petition_months.latest().entity_month.year_month
-        return self.entity_months.latest().year_month
+        if self.entity_months.exists():
+            return self.entity_months.latest().year_month
+        return None
 
     def months(self):
         html_list = ''
@@ -256,11 +260,13 @@ class PetitionFileControl(models.Model):
 class EntityMonth(models.Model):
     agency = models.ForeignKey(
         Agency,
+        verbose_name="Sujeto Obligado",
         related_name="months",
         on_delete=models.CASCADE, blank=True, null=True)
     entity = models.ForeignKey(
         Entity,
         related_name="entity_months",
+        verbose_name="Proveedor de servicios de salud",
         on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10)
     drugs_count = models.IntegerField(default=0)

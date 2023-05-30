@@ -112,11 +112,11 @@ def insert_between_months(row, petition):
     else:
         month = 1
         year = 2018
-    curr_month = "%s-%s%s" % (year, '0' if month < 10 else '', month)
+    curr_year_month = f"{year}-{month:02d}"
     # pet_months = PetitionMonth.objects.filter(petition__agency=petition.agency)
     months_agency = petition.entity_months.all()
     print("-------------")
-    print("curr_month: ", curr_month)
+    print("curr_year_month: ", curr_year_month)
     if months_agency:
         # last_pet_mon = pet_months.latest('month_agency__year_month')
         last_entity_month = months_agency.latest('year_month')
@@ -127,10 +127,11 @@ def insert_between_months(row, petition):
         last_month = '2015-00'
     entity_months = EntityMonth.objects.filter(entity=petition.agency.entity)
     between_months = entity_months.filter(
-        year_month__gt=last_month, year_month__lt=curr_month)
+        year_month__gt=last_month, year_month__lt=curr_year_month)
     if not between_months:
         print("NO HAY NADA ENMEDIO", petition)
-        prev_month = entity_months.filter(year_month__lt=curr_month).latest()
+        prev_month = entity_months.filter(
+            year_month__lt=curr_year_month).latest()
         petition.entity_months.add(prev_month)
         # PetitionMonth.objects.get_or_create(
         #     petition=petition, entity_month=prev_month)
@@ -147,7 +148,7 @@ def insert_from_json(
         special_functions=[]):
     from django.apps import apps
     for row in all_array:
-        #from inai.models import Petition, ReplyFile
+        # from inai.models import Petition, ReplyFile
         from geo.models import Agency
         MainModel = apps.get_model(main_app, main_model)
         related_elem = None
@@ -181,14 +182,14 @@ def insert_from_json(
             related_elem.nombreSujetoObligado = row["nombreSujetoObligado"]
             related_elem.save()
         main_columns = [d for d in columns
-            if d.get('model_name', False) == main_model]
-        #unique_columns = [d for d in main_columns if d.get('unique', False)]
+                        if d.get('model_name', False) == main_model]
+        # unique_columns = [d for d in main_columns if d.get('unique', False)]
         unique_query = {
-            #Item["final_field"]:row.get(Item[main_key], related_elem)
+            # Item["final_field"]:row.get(Item[main_key], related_elem)
             #    for Item in unique_columns }
             Item["final_field"]: row.get(Item[main_key], related_elem)
-                for Item in main_columns if Item.get('unique', False)}
-        #list(filter(lambda d: d['unique'] in keyValList, exampleSet))
+            for Item in main_columns if Item.get('unique', False)}
+        # list(filter(lambda d: d['unique'] in keyValList, exampleSet))
         try:
             main, created = MainModel.objects.get_or_create(**unique_query)
         except Exception as e:
@@ -209,6 +210,5 @@ def insert_from_json(
         main_obj.update(**final_query)
         main = main_obj.first()
         for function in special_functions:
-            if (created or function[1]):
+            if created or function[1]:
                 globals()[function[0]](row, main)
-

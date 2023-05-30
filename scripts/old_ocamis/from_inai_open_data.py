@@ -246,7 +246,7 @@ def insert_from_json(
 
 
 def execute():
-    #spec_functions = ["join_url", "join_lines", "insert_between_months"]
+    #  = ["join_url", "join_lines", "insert_between_months"]
     spec_functions = [
         ("join_url", True),
         ("join_lines", True),

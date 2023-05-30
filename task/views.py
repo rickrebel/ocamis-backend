@@ -117,6 +117,7 @@ def execute_function_aws(current_task, function_name, result, errors=None):
     # name_model = current_obj.__class__.__name__
     # print("NAME MODEL: ", name_model)
     # print("METHOD: ", method)
+    result["from_aws"] = True
     method, task_params, error = get_method(current_obj)
     if method:
         try:
@@ -130,7 +131,6 @@ def execute_function_aws(current_task, function_name, result, errors=None):
     else:
         print(error)
         final_errors.append(error)
-    result["from_aws"] = True
     errors.extend(final_errors or [])
     current_task.date_end = datetime.now()
     return comprobate_status(current_task, errors, new_tasks)

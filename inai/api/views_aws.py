@@ -288,7 +288,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
             excel_file = pd.read_excel(
                 file_bytes, sheet_name="Reporte", dtype='string',
                 na_filter=False, keep_default_na=False)
-            #print(excel_file)
+            # print(excel_file)
             records = excel_file.to_dict(orient='records')
             petitions += records
 
@@ -302,20 +302,17 @@ class OpenDataInaiViewSet(ListRetrieveView):
 
         petitions = sorted(petitions, key=lambda i: i['fecha_orden'])
 
-
-        """
-        all_status = {}
-        for petition in petitions:
-            if petition["Estatus"] not in all_status:
-                all_status[petition["Estatus"]] = [petition["Institución"]]
-            else:
-                all_status[petition["Estatus"]].append(petition["Institución"])
-            #all_status[petition["Estatus"]] = True
-        print("petitions", petitions)
-        
-        return Response(
-            {"petitions": petitions}, status=status.HTTP_201_CREATED)
-        """
+        # all_status = {}
+        # for petition in petitions:
+        #     if petition["Estatus"] not in all_status:
+        #         all_status[petition["Estatus"]] = [petition["Institución"]]
+        #     else:
+        #         all_status[petition["Estatus"]].append(petition["Institución"])
+        #     #all_status[petition["Estatus"]] = True
+        # print("petitions", petitions)
+        #
+        # return Response(
+        #     {"petitions": petitions}, status=status.HTTP_201_CREATED)
 
         inai_fields = [
             {
@@ -379,7 +376,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
             petitions, inai_fields, 'inai', 'Petition', 'inai_open_search',
             special_functions=spec_functions)
 
-        #if data.get("errors", False):
+        # if data.get("errors", False):
         #    return Response(
         #        data, status=status.HTTP_400_BAD_REQUEST)
 

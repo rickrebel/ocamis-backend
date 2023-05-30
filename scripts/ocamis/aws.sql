@@ -107,7 +107,7 @@ TRUNCATE
     med_cat_medicament,
     med_cat_diagnosis,
 	formula_drug,
-	formula_prescription
+	formula_rx
      RESTART IDENTITY;
 
 
