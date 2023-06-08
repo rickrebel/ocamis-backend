@@ -64,19 +64,23 @@ class EntityViewSet(ListRetrieveUpdateMix):
             if not related_weeks.exists():
                 print("No hay semanas relacionadas")
                 continue
-            kwargs = {
-                "parent_task": key_task,
-            }
+            kwargs = {"parent_task": key_task}
             if main_function_name == "send_analysis":
                 kwargs["finished_function"] = "save_month_analysis"
+            elif main_function_name == "send_months_to_db":
+                kwargs["finished_function"] = "save_formula_tables"
             month_task, task_params = build_task_params(
                 entity_month, function_name, request, **kwargs)
             all_tasks.append(month_task)
             base_class = EntityMonthMix(entity_month, task_params)
-            if function_name == "analysis_month":
+            # if function_name == "analysis_month":
+            if main_function_name == "send_analysis":
                 new_tasks, errors, s = base_class.send_analysis(related_weeks)
-            else:
+            elif main_function_name == "send_months_to_db":
                 new_tasks, errors, s = base_class.insert_month()
+            else:
+                new_tasks = []
+                errors = [f"No se encontró la función {main_function_name}"]
             all_tasks.extend(new_tasks)
             all_errors.extend(errors)
 

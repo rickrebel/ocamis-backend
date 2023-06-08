@@ -187,10 +187,14 @@ class TableFileAdmin(admin.ModelAdmin):
 
     list_display = [
         "collection",
+        "year_month",
+        "year_week",
+        "rx_count",
         "file",
         "lap_sheet",
     ]
-    list_filter = ["collection"]
+    list_filter = ["collection", "year_month"]
+    search_fields = ["year_month", "year_week"]
     raw_id_fields = ["lap_sheet"]
 
 

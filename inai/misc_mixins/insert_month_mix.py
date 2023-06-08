@@ -107,15 +107,10 @@ class InsertMonth:
             "s3": build_s3(),
         }
         self.task_params["models"] = [entity_week]
-        self.task_params["function_after"] = "check_success_insert"
+        # self.task_params["function_after"] = "check_success_insert"
         return async_in_lambda("build_week_csvs", params, self.task_params)
 
-    def send_lap_tables_to_db(self, lap_sheet: LapSheet, table_files: list):
-        first_query = f"""
-            SELECT cat_inserted
-            FROM public.inai_lapsheet
-            WHERE id = {lap_sheet.id}
-        """
+    def build_query_tables(self, table_files):
         all_queries = []
         for table_file in table_files:
             model_name = table_file.collection.model_name
@@ -123,7 +118,8 @@ class InsertMonth:
                 model_data = self.models_data[model_name]
             except KeyError:
                 print(f"MODELO: {model_name}")
-                raise Exception("No se encontró el modelo en la lista de modelos")
+                raise Exception(
+                    "No se encontró el modelo en la lista de modelos")
             columns_join = model_data["columns_join"]
             model_in_db = model_data["model_in_db"]
             if model_data["app"] == "formula":
@@ -134,9 +130,43 @@ class InsertMonth:
                 sql_queries = self.build_catalog_queries(
                     table_file, columns_join, model_in_db, model_name)
                 all_queries += sql_queries
+        return all_queries
+
+    def send_base_tables_to_db(
+            self, entity_month: EntityMonth, table_files: list):
+        first_query = f"""
+            SELECT last_insertion IS NOT NULL AS last_insertion
+            FROM public.inai_entitymonth
+            WHERE id = {entity_month.id}
+        """
+        all_queries = self.build_query_tables(table_files)
+        last_query = f"""
+            UPDATE public.inai_entitymonth
+            SET last_insertion = now()
+            WHERE id = {entity_month.id}
+        """
+        all_queries.append(last_query)
+        params = {
+            "first_query": first_query,
+            "sql_queries": all_queries,
+            "db_config": ocamis_db,
+            "entity_month_id": entity_month.id,
+        }
+        self.task_params["models"] = [entity_month]
+        # self.task_params["function_after"] = "check_success_insert"
+        return async_in_lambda("save_csv_in_db", params, self.task_params)
+
+    def send_lap_tables_to_db(
+            self, lap_sheet: LapSheet, table_files: list, inserted_field):
+        first_query = f"""
+            SELECT {inserted_field}
+            FROM public.inai_lapsheet
+            WHERE id = {lap_sheet.id}
+        """
+        all_queries = self.build_query_tables(table_files)
         last_query = f"""
             UPDATE public.inai_lapsheet
-            SET cat_inserted = true
+            SET {inserted_field} = true
             WHERE id = {lap_sheet.id}
         """
         all_queries.append(last_query)
@@ -148,7 +178,8 @@ class InsertMonth:
         }
         self.task_params["models"] = [
             lap_sheet.sheet_file, lap_sheet.sheet_file.data_file]
-        self.task_params["function_after"] = "check_success_insert"
+        if inserted_field == "inserted":
+            self.task_params["function_after"] = "check_success_insert"
         return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def build_catalog_queries(

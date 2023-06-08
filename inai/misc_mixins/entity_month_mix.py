@@ -11,7 +11,8 @@ class FromAws:
     def save_month_analysis(self, **kwargs):
         from django.db.models import Sum
         from django.utils import timezone
-        sum_fields = ["drugs_count", "rx_count", "duplicates_count", "shared_count"]
+        sum_fields = [
+            "drugs_count", "rx_count", "duplicates_count", "shared_count"]
 
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
@@ -55,7 +56,7 @@ class FromAws:
     def insert_month(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, SheetFile
-        print("HOLA INSERT_MONTH")
+        # print("HOLA INSERT_MONTH")
 
         # month_table_files = self.entity_month.weeks.table_files.all()
         month_table_files = TableFile.objects.filter(
@@ -104,7 +105,7 @@ class FromAws:
             current_table_files = collection_table_files.filter(
                 lap_sheet=lap_sheet, collection__app_label="med_cat")
             new_task = my_insert.send_lap_tables_to_db(
-                lap_sheet, current_table_files)
+                lap_sheet, current_table_files, "cat_inserted")
             new_tasks.append(new_task)
         print("entity_weeks", entity_weeks)
         for entity_week in entity_weeks:
@@ -114,16 +115,15 @@ class FromAws:
             #     lap_sheet__lap=0)
             week_base_table_files = entity_week.table_files.filter(
                 lap_sheet__lap=0)
-            # table_task = my_insert.send_week_tables(entity_week, week_table_files)
             table_task = my_insert.merge_week_base_tables(
                 entity_week, week_base_table_files)
             new_tasks.append(table_task)
         if not new_tasks:
-            return self.save_missing_tables(self.task_params)
+            return self.save_formula_tables(self.task_params)
 
         return new_tasks, [], True
 
-    def save_missing_tables(self, task_params, **kwargs):
+    def save_formula_tables(self, task_params, **kwargs):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile
         errors = []
@@ -136,13 +136,21 @@ class FromAws:
             lap_sheet__in=lap_sheets,
             collection__app_label="formula",
             inserted=False)
-        if not missing_table_files.exists():
+        base_table_files = TableFile.objects.filter(
+            lap_sheet__isnull=True,
+            year_month=self.entity_month.year_month,
+            collection__app_label="formula",
+            inserted=False)
+        if not missing_table_files.exists() and not base_table_files.exists():
             return new_tasks, errors, True
         my_insert = InsertMonth(self.entity_month, task_params)
+        base_task = my_insert.send_base_tables_to_db(
+            self.entity_month, base_table_files)
+        new_tasks.append(base_task)
         for lap_sheet in lap_sheets:
             lap_missing_tables = missing_table_files.filter(lap_sheet=lap_sheet)
             new_task = my_insert.send_lap_tables_to_db(
-                lap_sheet, lap_missing_tables)
+                lap_sheet, lap_missing_tables, "inserted")
             new_tasks.append(new_task)
 
-        return new_tasks, [], True
+        return new_tasks, errors, True

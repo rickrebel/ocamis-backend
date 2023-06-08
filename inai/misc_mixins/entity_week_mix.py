@@ -27,8 +27,10 @@ class FromAws:
 
     def save_merged_from_aws(self, **kwargs):
         from inai.models import TableFile, SheetFile
+        from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from data_param.models import Collection
         base_models = ["drug", "rx"]
+        new_table_files = []
         for model in base_models:
             file_path = kwargs.get(f"{model}_path")
             collection = Collection.objects.get(snake_name=model)
@@ -46,6 +48,7 @@ class FromAws:
                 collection=collection)
             table_file.file = file_path
             table_file.save()
+            new_table_files.append(table_file)
         return [], [], True
 
     def save_entity_week(self, month_week_counts):

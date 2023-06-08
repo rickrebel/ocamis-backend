@@ -621,7 +621,6 @@ class LapSheet(models.Model):
     last_edit = models.DateTimeField(blank=True, null=True)
     inserted = models.BooleanField(default=False, blank=True, null=True)
     cat_inserted = models.BooleanField(default=False, blank=True, null=True)
-    basic_inserted = models.BooleanField(default=False, blank=True, null=True)
     missing_inserted = models.BooleanField(default=False, blank=True, null=True)
 
     general_error = models.CharField(max_length=255, blank=True, null=True)
