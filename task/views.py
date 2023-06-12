@@ -392,17 +392,22 @@ def comprobate_brothers(current_task, status_task_id):
         print("current_task: ", current_task)
         print("ERROR AL GUARDAR: ", e)
     is_final = current_task.status_task.is_completed
+    print(current_task.id, " is_final: ", is_final)
     if is_final and current_task.parent_task:
         parent_task = current_task.parent_task
         brothers_incomplete = AsyncTask.objects.filter(
             parent_task=parent_task,
             status_task__is_completed=False)
+        print("paso por acá comprobando brothers")
+        print("brothers_incomplete: ", brothers_incomplete)
         if brothers_incomplete.exists():
             parent_status_task_id = "children_tasks"
         else:
+            print("finished_function: ", parent_task.finished_function)
             if parent_task.finished_function:
                 parent_status_task_id = execute_finished_function(parent_task)
             else:
+                print("llego a finished del padre")
                 parent_status_task_id = "finished"
         comprobate_brothers(parent_task, parent_status_task_id)
     return current_task

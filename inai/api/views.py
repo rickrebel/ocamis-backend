@@ -444,6 +444,22 @@ class EntityMonthViewSet(CreateRetrievView):
             "crossing_sheets": serializer_crossing_sheets.data
         })
 
+    @action(detail=True, methods=["post"], url_path="change_behavior")
+    def change_behavior(self, request, **kwargs):
+        entity_month = self.get_object()
+
+        behavior = request.data.get("behavior")
+        sheet_files = SheetFile.objects\
+            .filter(
+                laps__table_files__entity_week__entity_month=entity_month,
+                duplicates_count=0,
+                shared_count=0,
+                rx_count__gt=0,
+                laps__lap=0)\
+            .distinct()
+        sheet_files.update(behavior_id=behavior)
+        return Response(status=status.HTTP_200_OK)
+
 
 class SheetFileViewSet(ListRetrieveUpdateMix):
     queryset = SheetFile.objects.all()

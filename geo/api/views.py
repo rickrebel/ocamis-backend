@@ -61,9 +61,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
             function_name = "analysis_month" \
                 if main_function_name == "send_analysis" else "insert_month"
             related_weeks = entity_month.weeks.all()
-            if not related_weeks.exists():
-                print("No hay semanas relacionadas")
-                continue
             kwargs = {"parent_task": key_task}
             if main_function_name == "send_analysis":
                 kwargs["finished_function"] = "save_month_analysis"
@@ -71,9 +68,13 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 kwargs["finished_function"] = "save_formula_tables"
             month_task, task_params = build_task_params(
                 entity_month, function_name, request, **kwargs)
-            all_tasks.append(month_task)
             base_class = EntityMonthMix(entity_month, task_params)
             # if function_name == "analysis_month":
+            if not related_weeks.exists():
+                comprobate_status(month_task, [], [])
+                print("No hay semanas relacionadas")
+                continue
+            all_tasks.append(month_task)
             if main_function_name == "send_analysis":
                 new_tasks, errors, s = base_class.send_analysis(related_weeks)
             elif main_function_name == "send_months_to_db":
