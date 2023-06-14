@@ -116,7 +116,7 @@ class Entity(models.Model):
         max_length=20, verbose_name="Clave de la entidad")
     state = models.ForeignKey(
         State, verbose_name="Entidad",
-        null=True, on_delete=models.CASCADE,
+        blank=True, null=True, on_delete=models.CASCADE,
         related_name="entities")
     institution = models.ForeignKey(
         Institution, verbose_name="Institución",

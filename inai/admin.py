@@ -195,7 +195,7 @@ class TableFileAdmin(admin.ModelAdmin):
     ]
     list_filter = ["collection", "year_month"]
     search_fields = ["year_month", "year_week"]
-    raw_id_fields = ["lap_sheet"]
+    raw_id_fields = ["lap_sheet", "entity_week"]
 
 
 class CrossingSheetAdmin(admin.ModelAdmin):

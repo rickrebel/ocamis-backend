@@ -34,8 +34,7 @@ class FromAws:
         for week in related_weeks:
             init_data = EntityWeekSimpleSerializer(week).data
             table_files = TableFile.objects.filter(
-                iso_year=week.iso_year, iso_week=week.iso_week,
-                iso_delegation=week.iso_delegation,
+                entity_week=week,
                 collection__isnull=True)
             init_data["table_files"] = TableFileAwsSerializer(
                 table_files, many=True).data

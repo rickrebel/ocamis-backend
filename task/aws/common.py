@@ -19,7 +19,11 @@ def calculate_delimiter(data):
 
 
 def obtain_decode(sample):
+    sample_count = 0
     for row in sample:
+        sample_count += 1
+        if sample_count > 51:
+            return 'str'
         is_byte = isinstance(row, bytes)
         posible_latin = False
         if is_byte:
@@ -121,11 +125,29 @@ class BotoUtils:
         # if file_type == "json":
         # if file.endswith(".csv") or file_type == "csv"
         if file_type == "csv":
+
+            # object_final = io.BytesIO(streaming_body_1.read())
             object_final = object_final.decode("utf-8")
             csv_content = csv.reader(io.StringIO(object_final), delimiter='|')
             return csv_content
         else:
             return io.BytesIO(object_final)
+
+    def get_csv_lines(self, file, file_type="csv"):
+        import io
+
+        bucket_name = self.s3["bucket_name"]
+        aws_location = self.s3["aws_location"]
+
+        content_object = self.dev_resource.Object(
+            bucket_name=bucket_name,
+            key=f"{aws_location}/{file}"
+        )
+        streaming_body_1 = content_object.get()['Body']
+        object_final = io.BytesIO(streaming_body_1.read())
+        return object_final
+        # if file_type == "json":
+        # if file.endswith(".csv") or file_type == "csv"
 
     def get_json_file(self, file_name):
         import json

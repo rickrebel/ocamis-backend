@@ -110,7 +110,7 @@ class TableFileAwsSerializer(serializers.ModelSerializer):
         model = TableFile
         fields = [
             "id", "file", "collection", "year", "month", "year_month",
-            "sheet_behavior"]
+            "sheet_behavior", "iso_week", "iso_year", "year_week"]
         # "iso_year", "iso_week", "delegation_name"]
 
 

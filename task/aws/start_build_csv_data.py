@@ -118,8 +118,8 @@ class MatchAws:
         for key, value in init_data.items():
             setattr(self, key, value)
 
-        self.sheet_file_id = init_data["sheet_file_id"]
-        self.lap_sheet_id = init_data["lap_sheet_id"]
+        self.sheet_file_id = init_data.get("sheet_file_id")
+        self.lap_sheet_id = init_data.get("lap_sheet_id")
         self.file_name_simple = init_data["file_name_simple"]
         self.sheet_name = init_data["sheet_name"]
         self.final_path = init_data["final_path"]
@@ -261,7 +261,7 @@ class MatchAws:
     def build_csv_to_data(self, file):
 
         file_type = "json" if self.is_prepare else "csv"
-        complete_file = self.s3_utils.get_object_file(file, file_type)
+        complete_file = self.s3_utils.get_csv_lines(file, file_type)
         if self.is_prepare:
             complete_file = json.loads(complete_file.read())
             data_rows = complete_file.get("all_data", [])
@@ -269,6 +269,7 @@ class MatchAws:
             data_rows.extend(tail_data)
         else:
             data_rows = complete_file.readlines()
+            # data_rows = complete_file
         all_data = self.divide_rows(data_rows)
         for cat in self.normal_models:
             self.build_headers(cat["name"])
@@ -376,7 +377,11 @@ class MatchAws:
 
             folio_document = available_data.get("folio_document")
             folio_ocamis = "|".join([
-                self.entity_id, iso_year, iso_week, iso_delegation or '0', folio_document])
+                str(self.entity_id),
+                str(iso_year),
+                str(iso_week),
+                iso_delegation or '0',
+                folio_document])
             if len(folio_ocamis) > 64:
                 error = "Folio Ocamis; El folio ocamis es muy largo"
                 self.append_missing_row(row, error)
@@ -925,7 +930,7 @@ class MatchAws:
 
     def delegation_match(self, available_data):
         if not self.split_by_delegation:
-            return None
+            return None, None
         delegation_name = available_data.get("medical_unit_delegation_name", None)
         delegation_id = None
         delegation_error = None
