@@ -156,7 +156,8 @@ class SheetFileAdmin(admin.ModelAdmin):
         "behavior",
         "total_rows",
     ]
-    list_filter = ["file_type", "matched"]
+    list_filter = [
+        "file_type", "matched", "inserted", "cat_inserted", "missing_inserted"]
     search_fields = [
         "file", "data_file__petition__agency__acronym",
         "data_file__petition_file_control__petition__folio_petition"]
