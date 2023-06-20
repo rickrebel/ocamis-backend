@@ -30,7 +30,7 @@ class FromAws:
         self.sheet_file.save_stage('insert', errors)
         return [], errors, True
 
-    def save_csv_in_db_after(self):
+    def save_csv_in_db_after(self, **kwargs):
         return [], [], True
 
     def build_csv_data_from_aws(self, **kwargs):
