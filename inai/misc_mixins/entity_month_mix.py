@@ -132,9 +132,10 @@ class FromAws:
         new_tasks = []
         month_table_files = []
         for week in self.entity_month.weeks.all():
-            month_table_files.extend(week.table_files.all())
+            month_table_files.extend(week.table_files.all().values_list(
+                "id", flat=True))
         lap_sheets = LapSheet.objects\
-            .filter(sheet_file__data_file__in=month_table_files)\
+            .filter(sheet_file__data_file_id__in=month_table_files)\
             .exclude(sheet_file__behavior_id="invalid")
         missing_table_files = TableFile.objects.filter(
             lap_sheet__in=lap_sheets,
