@@ -533,6 +533,9 @@ class SheetFile(models.Model):
     warnings = JSONField(blank=True, null=True)
     year_month = models.CharField(
         max_length=8, blank=True, null=True, verbose_name="Año y mes")
+    entity_months = models.ManyToManyField(
+        EntityMonth, blank=True, verbose_name="Años y meses",
+        related_name="sheet_files")
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         default='explore', verbose_name="Etapa actual")
@@ -706,6 +709,8 @@ class TableFile(models.Model):
     #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, blank=True, null=True)
+    inserted = models.BooleanField(default=False)
+
     entity_week = models.ForeignKey(
         EntityWeek, on_delete=models.CASCADE,
         blank=True, null=True, related_name="table_files")
@@ -717,7 +722,6 @@ class TableFile(models.Model):
     year = models.PositiveSmallIntegerField(blank=True, null=True)
     month = models.PositiveSmallIntegerField(blank=True, null=True)
     is_for_edition = models.BooleanField(default=False)
-    inserted = models.BooleanField(default=False)
     drugs_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)

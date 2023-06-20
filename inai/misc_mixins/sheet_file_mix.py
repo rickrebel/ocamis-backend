@@ -35,7 +35,7 @@ class FromAws:
 
     def build_csv_data_from_aws(self, **kwargs):
         from django.utils import timezone
-        from inai.models import LapSheet
+        from inai.models import LapSheet, EntityMonth
         from inai.misc_mixins.lap_sheet_mix import FromAws as LapSheetAws
         # print("FINISH BUILD CSV DATA")
         data_file = self.sheet_file.data_file
@@ -82,12 +82,20 @@ class FromAws:
         lap_sheet_aws = LapSheetAws(lap_sheet)
         new_task, errors, data = lap_sheet_aws.save_result_csv(final_paths)
         all_months = kwargs.get("all_months", []) or []
-        if len(all_months) > 1:
-            print("Se encontraron demasiados meses: ", all_months)
-            # errors.append(f"Se encontraron demasiados meses: {all_months}")
-        elif len(all_months) == 0:
+        if len(all_months) == 0:
             errors.append("No se encontraron meses")
         else:
+            # print("Se encontraron demasiados meses: ", all_months)
+            year_months = []
+            for ym in all_months:
+                month = str(ym[1]).zfill(2)
+                year_months.append(f"{ym[0]}-{month}")
+                entity_month = EntityMonth.objects.get_or_create(
+                    entity=self.sheet_file.data_file.entity,
+                    year_month=f"{ym[0]}-{month}")[0]
+                self.sheet_file.entity_months.add(entity_month)
+            # errors.append(f"Se encontraron demasiados meses: {all_months}")
+        if len(all_months) == 1:
             ym = all_months[0]
             month = str(ym[1]).zfill(2)
             self.sheet_file.year_month = f"{ym[0]}-{month}"

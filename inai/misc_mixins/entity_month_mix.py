@@ -69,8 +69,11 @@ class FromAws:
         all_year_months = all_month_table_files.values_list(
             "year_month", flat=True).distinct()
 
+        # related_lap_sheets = LapSheet.objects.filter(
+        #     table_files__year_month__in=all_year_months)
+        related_sheet_files = self.entity_month.sheet_files.all()
         related_lap_sheets = LapSheet.objects.filter(
-            table_files__year_month__in=all_year_months)
+            sheet_file__in=related_sheet_files)
         # .filter(sheet_file__data_file__in=month_table_files)\
         lap_sheets = LapSheet.objects\
             .filter(table_files__in=month_table_files)\
