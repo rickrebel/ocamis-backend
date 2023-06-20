@@ -222,13 +222,14 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
 
 
 class AgencyVizSerializer(AgencySerializer):
-    #from inai.api.serializers import EntityMonthSimpleSerializer
+    # from inai.api.serializers import EntityMonthSimpleSerializer
     from inai.api.serializers_viz import (
         PetitionVizSerializer, EntityMonthVizSerializer)
 
     agency_type = serializers.ReadOnlyField()
     petitions = PetitionVizSerializer(many=True)
-    months = EntityMonthVizSerializer(many=True, read_only=True)
+    months = EntityMonthVizSerializer(
+        many=True, read_only=True, source="entity.entity_months")
     # months = serializers.SerializerMethodField(read_only=True)
 
     # def get_months(self, obj):

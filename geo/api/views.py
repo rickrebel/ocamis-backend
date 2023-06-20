@@ -191,9 +191,9 @@ class AgencyViewSet(ListRetrieveUpdateMix):
                 "petition_file_control__petition__agency"
             )\
             .distinct()
-        #detailed_controls_query
-        #detailed_controls = {}
-        #detailed_controls = FileControlSimpleSerializer(
+        # detailed_controls_query
+        # detailed_controls = {}
+        # detailed_controls = FileControlSimpleSerializer(
         detailed_controls = FileControlViz2Serializer(
             detailed_controls_query, many=True).data
         for file_ctrl in detailed_controls:
@@ -218,11 +218,11 @@ class AgencyViewSet(ListRetrieveUpdateMix):
             #clues, formula, drug = build_quality_simple(file_ctrl)
             file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
             file_ctrl["agency"] = file_ctrl["agencies"][0]
-            #file_ctrl["quality_names"] = {}
-            #file_ctrl["quality_names"]["clues"] = clues
-            #file_ctrl["quality_names"]["formula"] = formula
-            #file_ctrl["quality_names"]["drug"] = drug
-            #all_comps = [clues, formula, drug]
+            # file_ctrl["quality_names"] = {}
+            # file_ctrl["quality_names"]["clues"] = clues
+            # file_ctrl["quality_names"]["formula"] = formula
+            # file_ctrl["quality_names"]["drug"] = drug
+            # all_comps = [clues, formula, drug]
             final_qual = "not_enough"
             quality_levels = ["enough", "almost_enough", "not_enough"]
             for qual_level in quality_levels:
@@ -230,18 +230,16 @@ class AgencyViewSet(ListRetrieveUpdateMix):
                 if qual_level in file_ctrl["quality_names"].values():
                     final_qual = qual_level
             file_ctrl["quality_names"]["final"] = final_qual
-        #detailed_controls
-
-        #.filter(petition_file_control="detailed")\
+        # detailed_controls
+        # .filter(petition_file_control="detailed")\
 
         status_negative = [ "negative_response"]
         status_delivered = ["with_data", "partial_data"]
         status_other = ["waiting", "pick_up",]
-        #enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
-        final_data = {"file_controls": detailed_controls}
-        final_data["agencies"] = []
+        # enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
+        final_data = {"file_controls": detailed_controls, "agencies": []}
         for agency in serializer.data:
-            #agency["file_ctrls"] = [ctrl for ctrl in detailed_controls 
+            # agency["file_ctrls"] = [ctrl for ctrl in detailed_controls
             #    if ctrl["agency"] and agency["id"]]
             for petition in agency["petitions"]:
                 status_data = petition["status_data"]

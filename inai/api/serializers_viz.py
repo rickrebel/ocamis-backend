@@ -77,7 +77,7 @@ class FileControlViz2Serializer(serializers.ModelSerializer):
     petition_file_control = AgencyCLUESVizSerializer(many=True, read_only=True)
     agencies = AgencyViz2Serializer(
         many=True, read_only=True, source="petition_file_control")
-    #format_file = serializers.ReadOnlyField(source="file_format_id")
+    # format_file = serializers.ReadOnlyField(source="file_format_id")
 
     class Meta:
         model = FileControl

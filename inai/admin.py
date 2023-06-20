@@ -156,8 +156,7 @@ class SheetFileAdmin(admin.ModelAdmin):
         "behavior",
         "total_rows",
     ]
-    list_filter = [
-        "file_type", "matched", "inserted", "cat_inserted", "missing_inserted"]
+    list_filter = ["file_type", "matched"]
     search_fields = [
         "file", "data_file__petition__agency__acronym",
         "data_file__petition_file_control__petition__folio_petition"]
@@ -180,7 +179,8 @@ class LapSheetAdmin(admin.ModelAdmin):
         "sheet_file__file", "sheet_file__data_file__file",
         "sheet_file__data_file_id"]
     list_filter = [
-        "sheet_file__data_file__entity__acronym", "lap", "inserted"]
+        "sheet_file__data_file__entity__acronym", "lap",
+        "inserted", "cat_inserted", "missing_inserted"]
     raw_id_fields = ["sheet_file"]
 
 
