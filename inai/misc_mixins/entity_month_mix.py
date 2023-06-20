@@ -130,7 +130,9 @@ class FromAws:
         from inai.models import LapSheet, TableFile
         errors = []
         new_tasks = []
-        month_table_files = self.entity_month.weeks.table_files.all()
+        month_table_files = []
+        for week in self.entity_month.weeks.all():
+            month_table_files.extend(week.table_files.all())
         lap_sheets = LapSheet.objects\
             .filter(sheet_file__data_file__in=month_table_files)\
             .exclude(sheet_file__behavior_id="invalid")
