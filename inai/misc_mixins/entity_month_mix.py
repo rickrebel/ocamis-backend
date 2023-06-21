@@ -52,6 +52,9 @@ class FromAws:
             all_tasks.append(async_task)
         return all_tasks, [], True
 
+    def save_csv_in_db_after(self, **kwargs):
+        return [], [], True
+
     def insert_month(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, SheetFile
