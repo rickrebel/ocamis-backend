@@ -85,7 +85,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 errors = [f"No se encontró la función {main_function_name}"]
             all_tasks.extend(new_tasks)
             all_errors.extend(errors)
-            time.sleep(0.6)
+            time.sleep(1.5)
 
         if all_tasks or all_errors:
             return comprobate_status(
