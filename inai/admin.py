@@ -42,7 +42,7 @@ class DataFileInline(admin.TabularInline):
 class TableFileInline(admin.StackedInline):
     model = TableFile
     extra = 0
-    raw_id_fields = ["lap_sheet"]
+    raw_id_fields = ["lap_sheet", "entity_week"]
     show_change_link = True
 
 
@@ -161,7 +161,7 @@ class SheetFileAdmin(admin.ModelAdmin):
         "file", "data_file__petition__agency__acronym",
         "data_file__petition_file_control__petition__folio_petition"]
     inlines = [LapSheetInline]
-    raw_id_fields = ["data_file"]
+    raw_id_fields = ["data_file", "entity_months"]
 
 
 class LapSheetAdmin(admin.ModelAdmin):

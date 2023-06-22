@@ -252,16 +252,9 @@ def reverse_transform(only_count=False, entity=None, every_files=False):
         stage_id="transform", status_id="finished")
     if entity:
         finished_transform = finished_transform.filter(
-            petition_file_control__petition__entity_id=entity)
+            petition_file_control__petition__agency__entity_id=entity)
     print("Finished transform: ", finished_transform.count())
     need_reverse = 0
-    lap_sheets = LapSheet.objects.filter(
-        sheet_file__data_file__entitiy_id=entity)
-    lap_sheets.update(
-        missing_inserted=False, cat_inserted=False, inserted=False)
-    table_files = TableFile.objects.filter(entity_id=entity)
-    table_files.update(inserted=False)
-
     for data_file in finished_transform:
         if every_files:
             with_missed = LapSheet.objects.filter(
@@ -285,16 +278,23 @@ def reverse_transform(only_count=False, entity=None, every_files=False):
 
 
 # reverse_transform(True, agency=7)
+# reverse_transform(False, 53, True)
 
 
 def reverse_insert(hard=False):
-    from inai.models import DataFile, TableFile, LapSheet
+    from inai.models import DataFile, TableFile, LapSheet, EntityMonth
     from task.models import AsyncTask
     # TableFile.objects.filter(inserted=True).update(inserted=False)
     LapSheet.objects.filter(inserted=True).update(inserted=False)
     LapSheet.objects.filter(inserted=None).update(inserted=False)
+    lap_sheets = LapSheet.objects.filter(cat_inserted=True)
+    lap_sheets.update(
+        missing_inserted=False, cat_inserted=False, inserted=False)
+    table_files = TableFile.objects.update(inserted=False)
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
+    EntityMonth.objects.filter(last_insertion__isnull=False)\
+        .update(last_insertion=None)
     if hard:
         AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
         AsyncTask.objects.filter(task_function_id="insert_data").delete()

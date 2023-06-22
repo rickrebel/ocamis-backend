@@ -380,7 +380,7 @@ class MatchAws:
                 str(self.entity_id),
                 str(iso_year),
                 str(iso_week),
-                iso_delegation or '0',
+                str(iso_delegation) or '0',
                 folio_document])
             if len(folio_ocamis) > 64:
                 error = "Folio Ocamis; El folio ocamis es muy largo"
@@ -403,7 +403,7 @@ class MatchAws:
                     all_delivered, all_delivered_write)
                 if error:
                     if "clasificación" in error:
-                        value = delivered_final_id.split("; ")[1]
+                        value = error.split("; ")[1]
                         self.append_missing_field(
                             row, classify_id, value, error=delivered_final_id,
                             drug_uuid=uuid)

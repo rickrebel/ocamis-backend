@@ -39,6 +39,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):
+        import time
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
         from inai.models import EntityMonth, TableFile
@@ -84,6 +85,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 errors = [f"No se encontró la función {main_function_name}"]
             all_tasks.extend(new_tasks)
             all_errors.extend(errors)
+            time.sleep(0.6)
 
         if all_tasks or all_errors:
             return comprobate_status(
