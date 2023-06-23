@@ -201,7 +201,7 @@ class TableFileAdmin(admin.ModelAdmin):
 
 class CrossingSheetAdmin(admin.ModelAdmin):
     list_display = [
-        "entity",
+        "entity_week",
         "duplicates_count",
         "shared_count",
         "sheet_file_1",

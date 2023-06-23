@@ -593,16 +593,19 @@ class SheetFile(models.Model):
 
 
 class CrossingSheet(models.Model):
-    entity = models.ForeignKey(
-        Entity, related_name="crossing_sheets", on_delete=models.CASCADE)
+    # entity = models.ForeignKey(
+    #     Entity, related_name="crossing_sheets", on_delete=models.CASCADE)
     sheet_file_1 = models.ForeignKey(
         SheetFile, related_name="crossing_1", on_delete=models.CASCADE)
     sheet_file_2 = models.ForeignKey(
         SheetFile, related_name="crossing_2", on_delete=models.CASCADE)
-    year_week = models.CharField(max_length=8, blank=True, null=True)
-    iso_year = models.PositiveIntegerField(default=0)
-    iso_week = models.PositiveIntegerField(default=0)
-    iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
+    entity_week = models.ForeignKey(
+        "EntityWeek", related_name="crossing_sheets",
+        on_delete=models.CASCADE, blank=True, null=True)
+    # year_week = models.CharField(max_length=8, blank=True, null=True)
+    # iso_year = models.PositiveIntegerField(default=0)
+    # iso_week = models.PositiveIntegerField(default=0)
+    # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
     last_crossing = models.DateTimeField(blank=True, null=True)

@@ -8,7 +8,7 @@ class FromAws:
         self.task_params = task_params
 
     def analyze_uniques_after(self, **kwargs):
-        print("analyze_uniques_after---------------------------------")
+        # print("analyze_uniques_after---------------------------------")
         # print("kwargs", kwargs)
         all_errors = []
         # parent_task = task_params.get("parent_task")
@@ -114,51 +114,56 @@ class FromAws:
             return some_is_same
 
         already_shared = set()
+        CrossingSheet.objects.filter(entity_week=self.entity_week).delete()
+        current_crosses = []
         for pair, value in month_pairs["dupli"].items():
             # shared_count = shared_pairs.pop(pair, 0)
-            print("pair", pair)
-            print("value", value)
+            # print("pair", pair)
+            # print("value", value)
             sheet_1, sheet_2 = pair.split("|")
-            cross, created = CrossingSheet.objects.get_or_create(
-                entity=self.entity_week.entity,
-                sheet_file_1_id=sheet_1,
-                sheet_file_2_id=sheet_2,
-                iso_week=self.entity_week.iso_week,
-                iso_year=self.entity_week.iso_year,
-                year_week=self.entity_week.year_week,
-                iso_delegation=self.entity_week.iso_delegation
-            )
-            # if not same_year_month(cross):
-            #     continue
+            # cross, created = CrossingSheet.objects.get_or_create(
             shared_count = shared_pairs.get(pair, 0)
             if shared_count:
                 already_shared.add(pair)
-
-            cross.duplicates_count = value
-            cross.shared_count = shared_count
-            cross.last_crossing = timezone.now()
+            cross = CrossingSheet(
+                # entity=self.entity_week.entity,
+                entity_week=self.entity_week,
+                sheet_file_1_id=sheet_1,
+                sheet_file_2_id=sheet_2,
+                duplicates_count=value,
+                shared_count=shared_count,
+                last_crossing=timezone.now(),
+                # iso_week=self.entity_week.iso_week,
+                # iso_year=self.entity_week.iso_year,
+                # year_week=self.entity_week.year_week,
+                # iso_delegation=self.entity_week.iso_delegation
+            )
+            current_crosses.append(cross)
+            # if not same_year_month(cross):
+            #     continue
             # if not created:
             #     print("cross", cross)
             #     print("last_crossing", cross.last_crossing)
             #     print("!!!!!!!!!!!!!!!!!!!!!\n")
-            cross.save()
 
         for pair, value in shared_pairs.items():
             if pair in already_shared:
                 continue
             sheet_1, sheet_2 = pair.split("|")
-            cross, created = CrossingSheet.objects.get_or_create(
-                entity=self.entity_week.entity,
+            # cross, created = CrossingSheet.objects.get_or_create(
+            cross = CrossingSheet(
+                entity_week=self.entity_week,
                 sheet_file_1_id=sheet_1,
                 sheet_file_2_id=sheet_2,
+                duplicates_count=0,
+                shared_count=value,
+                last_crossing=timezone.now(),
             )
+            current_crosses.append(cross)
             # if not same_year_month(cross):
             #     continue
-            cross.duplicates_count = 0
-            cross.shared_count = value
-            cross.last_crossing = timezone.now()
-            cross.save()
 
+        CrossingSheet.objects.bulk_create(current_crosses)
         return all_errors
 
         # year_month_crosses_1 = CrossingSheet.objects.filter(
