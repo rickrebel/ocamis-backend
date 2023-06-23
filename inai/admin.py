@@ -207,8 +207,8 @@ class CrossingSheetAdmin(admin.ModelAdmin):
         "sheet_file_1",
         "sheet_file_2",
     ]
-    list_filter = ["entity"]
-    raw_id_fields = ["entity", "sheet_file_1", "sheet_file_2"]
+    list_filter = ["entity_week__entity__acronym"]
+    raw_id_fields = ["entity_week", "sheet_file_1", "sheet_file_2"]
 
 
 class BehaviorAdmin(admin.ModelAdmin):
