@@ -401,6 +401,26 @@ def delete_duplicates_months_agency():
                 month_agencies.exclude(id=first_month_agency.id).delete()
 
 
+def delete_duplicates_entity_weeks():
+    from inai.models import EntityWeek
+    from geo.models import Entity
+    all_entities = Entity.objects.all()
+    for entity in all_entities:
+        all_entity_weeks = EntityWeek.objects.filter(entity=entity)
+        year_weeks = all_entity_weeks\
+            .order_by("year_week", "year_month", "iso_delegation")\
+            .distinct("year_week", "year_month", "iso_delegation")\
+            .values_list("year_week", "year_month", "iso_delegation")
+        for year_week, year_month, iso_delegation in list(year_weeks):
+            entity_weeks = EntityWeek.objects.filter(
+                entity=entity, year_week=year_week,
+                year_month=year_month, iso_delegation=iso_delegation)
+            entity_weeks = entity_weeks.order_by("-id")
+            first_entity_week = entity_weeks.first()
+            if entity_weeks.count() > 1:
+                entity_weeks.exclude(id=first_entity_week.id).delete()
+
+
 def collection_to_snake_name():
     from inai.models import Collection
     all_collections = Collection.objects.all()
@@ -431,6 +451,19 @@ def assign_year_week_to_entity_weeks():
         year_week = f"{iso_year}-{iso_week:02d}"
         crossing_sheet.year_week = year_week
         crossing_sheet.save()
+
+
+def save_entity_months():
+    from inai.models import SheetFile, EntityMonth
+    all_sheet_files = SheetFile.objects.filter(
+        entity_months__isnull=True, year_month__isnull=False)
+    for sheet_file in all_sheet_files:
+        try:
+            entity_month = EntityMonth.objects.get(
+                entity=sheet_file.data_file.entity, year_month=sheet_file.year_month)
+            sheet_file.entity_months.add(entity_month)
+        except EntityMonth.DoesNotExist:
+            print("year_month does not exist", sheet_file.year_month)
 
 
 # assign_year_month_to_sheet_files(53)

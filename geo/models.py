@@ -284,7 +284,7 @@ class CLUES(models.Model):
 class Delegation(models.Model):
     # RICK 21 Convertir esto en obligatorio
     entity = models.ForeignKey(
-        Entity, verbose_name="Entidad",
+        Entity, verbose_name="Entidad", related_name="delegations",
         on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=255, verbose_name="Nombre")
     jurisdiction_key = models.CharField(

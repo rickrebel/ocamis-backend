@@ -278,7 +278,7 @@ class EntityMonth(models.Model):
     last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return "%s -- %s" % (self.entity, self.year_month)
+        return "%s -- %s" % (self.entity.acronym, self.year_month)
 
     @property
     def human_name(self):
@@ -694,6 +694,8 @@ class EntityWeek(models.Model):
 
     class Meta:
         get_latest_by = ["year_month", "year_week"]
+        unique_together = (
+            "entity", "year_week", "iso_delegation", "year_month")
         verbose_name = "Semana de entidad"
         verbose_name_plural = "7. Semanas de entidad"
 

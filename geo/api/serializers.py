@@ -161,20 +161,20 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
     #agency_type = read_only_fields(many=True)
     # months = EntityMonthSimpleSerializer(many=True)
     entity_months = EntityMonthSerializer(many=True, source="entity.entity_months")
-    sheet_files_summarize3 = serializers.SerializerMethodField(read_only=True)
+    # sheet_files_summarize3 = serializers.SerializerMethodField(read_only=True)
     sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
     # sheet_files_summarize2 = serializers.SerializerMethodField(read_only=True)
 
-    def get_sheet_files_summarize3(self, obj):
-        from django.db.models import Count
-        from inai.models import SheetFile
-        all_sheets = SheetFile.objects.filter(data_file__entity=obj.entity)
-        return all_sheets.values("behavior", "year_month").annotate(
-            count=Count("behavior"))
+    # def get_sheet_files_summarize3(self, obj):
+    #     from django.db.models import Count
+    #     from inai.models import SheetFile
+    #     all_sheets = SheetFile.objects.filter(data_file__entity=obj.entity)
+    #     return all_sheets.values("behavior", "year_month").annotate(
+    #         count=Count("behavior"))
 
     def get_sheet_files_summarize(self, obj):
         from django.db.models import Count
-        from inai.models import SheetFile, TableFile
+        from inai.models import SheetFile, TableFile, EntityMonth
         all_sheets = SheetFile.objects\
             .filter(
                 data_file__entity=obj.entity,
@@ -182,21 +182,20 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
             .values("laps__table_files__year_month", "id", "behavior")\
             .distinct()
         count_by_year_month_and_behavior = []
-        unique_ymb = set()
-        for sheet in all_sheets:
-            year_month_behavior = (sheet["laps__table_files__year_month"], sheet["behavior"])
-            if year_month_behavior in unique_ymb:
-                continue
-            else:
-                unique_ymb.add(year_month_behavior)
+        all_entity_months = EntityMonth.objects\
+            .filter(entity=obj.entity)\
+            .order_by("year_month")
+        for entity_month in all_entity_months:
+            behavior_counts = entity_month.sheet_files\
+                .filter(behavior__isnull=False)\
+                .values("behavior")\
+                .annotate(count=Count("behavior"))
+            for behavior_count in behavior_counts:
                 count_by_year_month_and_behavior.append({
-                    "year_month": sheet["laps__table_files__year_month"],
-                    "behavior": sheet["behavior"],
-                    "count": all_sheets.filter(
-                        laps__table_files__year_month=sheet["laps__table_files__year_month"],
-                        behavior=sheet["behavior"]).count()
+                    "year_month": entity_month.year_month,
+                    "behavior": behavior_count["behavior"],
+                    "count": behavior_count["count"]
                 })
-
         # return all_sheets
         return count_by_year_month_and_behavior
 

@@ -55,12 +55,15 @@ class EntityWeekInline(admin.TabularInline):
 class EntityWeekAdmin(admin.ModelAdmin):
     list_display = [
         "id",
-        "entity",
         "entity_month",
         "year_week",
         "year_month",
         "iso_delegation",
+        "drugs_count",
+        "rx_count",
+        "duplicates_count",
     ]
+    list_filter = ["entity", "year"]
     raw_id_fields = ["entity", "entity_month"]
     inlines = [TableFileInline]
 
@@ -191,10 +194,11 @@ class TableFileAdmin(admin.ModelAdmin):
         "year_month",
         "year_week",
         "rx_count",
-        "file",
+        "drugs_count",
         "lap_sheet",
+        "file",
     ]
-    list_filter = ["collection", "year_month"]
+    list_filter = ["entity__acronym", "collection", "year", "year_month"]
     search_fields = ["year_month", "year_week"]
     raw_id_fields = ["lap_sheet", "entity_week"]
 

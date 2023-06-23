@@ -507,8 +507,9 @@ def get_duplicates_folios(filters, is_explore):
     from datetime import timedelta
     year = filters["year"]
     month = filters["month"]
-    next_month = 1 if month == 12 else month + 1
-    next_year = year + 1 if month == 12 else year
+    is_december = month == 12
+    next_month = 1 if is_december else month + 1
+    next_year = year + (1 if is_december else 0)
     start_date = datetime.strptime(f"{year}-{month}-01", "%Y-%m-%d")
     end_date = datetime.strptime(f"{next_year}-{next_month}-01", "%Y-%m-%d")
     end_date -= timedelta(days=1)
@@ -555,11 +556,11 @@ def get_duplicates_folios(filters, is_explore):
             every_week = list(range(start_week, end_week + 1))
         else:
             if year == start_year:
-                every_week = list(range(start_week, 53))
+                every_week = list(range(start_week, 53 + 1))
             elif year == end_year:
                 every_week = list(range(1, end_week + 1))
             else:
-                every_week = list(range(1, 53))
+                every_week = list(range(1, 53 + 1))
         print("year", year)
         print("every_week", every_week)
         for week in every_week:
