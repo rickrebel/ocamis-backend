@@ -20,6 +20,12 @@ def generate_weeks():
     from datetime import timedelta, date
     # for agency in Agency.objects.all():
     for entity in Entity.objects.all():
+        if entity.split_by_delegation:
+            all_delegation_ids = entity.delegations.values_list(
+                'id', flat=True)
+        else:
+            all_delegation_ids = [None]
+            # continue
         new_weeks = []
         already_weeks = EntityWeek.objects.filter(entity=entity)\
             .values('year_week', 'entity', 'year_month', 'iso_delegation')
@@ -65,11 +71,6 @@ def generate_weeks():
                 end_year = end_date.isocalendar()[0]
                 # space
                 same_year = start_year == end_year
-                if entity.split_by_delegation:
-                    all_delegation_ids = entity.delegations.values_list(
-                        'id', flat=True)
-                else:
-                    all_delegation_ids = [None]
                 for delegation_id in all_delegation_ids:
                     if same_year:
                         add_new_weeks(
@@ -80,7 +81,7 @@ def generate_weeks():
                         add_new_weeks(
                             start_week, last_day.isocalendar()[1], start_year,
                             entity_month, delegation_id)
-                        first_day = date(end_year, 1, 1)
+                        first_day = date(end_year, 1, 4)
                         add_new_weeks(
                             first_day.isocalendar()[1], end_week, end_year,
                             entity_month, delegation_id)

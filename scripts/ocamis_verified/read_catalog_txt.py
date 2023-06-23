@@ -466,6 +466,21 @@ def save_entity_months():
             print("year_month does not exist", sheet_file.year_month)
 
 
+def assign_entity_to_delegations():
+    from inai.models import Entity
+    from geo.models import Delegation
+    all_delegations = Delegation.objects.filter(
+        entity__isnull=True, is_clues=False)
+    for delegation in all_delegations:
+        institution = delegation.institution
+        try:
+            entity = Entity.objects.get(institution=institution)
+            delegation.entity = entity
+            delegation.save()
+        except Exception as e:
+            print(e)
+
+
 # assign_year_month_to_sheet_files(53)
 # move_delegation_clues()
 # delete_insabi_delegations()

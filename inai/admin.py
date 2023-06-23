@@ -63,7 +63,7 @@ class EntityWeekAdmin(admin.ModelAdmin):
         "rx_count",
         "duplicates_count",
     ]
-    list_filter = ["entity", "year"]
+    list_filter = ["entity__acronym", "year"]
     raw_id_fields = ["entity", "entity_month"]
     inlines = [TableFileInline]
 

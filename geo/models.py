@@ -115,7 +115,7 @@ class Entity(models.Model):
     acronym = models.CharField(
         max_length=20, verbose_name="Clave de la entidad")
     state = models.ForeignKey(
-        State, verbose_name="Entidad",
+        State, verbose_name="Estado",
         blank=True, null=True, on_delete=models.CASCADE,
         related_name="entities")
     institution = models.ForeignKey(
