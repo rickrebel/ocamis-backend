@@ -39,7 +39,8 @@ def obtain_names_from_s3(
                     pet_file_ctrls = pet_file_ctrls.filter(
                         file_control_id=file_control_id)
                 pet_file_ctrl = pet_file_ctrls.first()
-                entity = pet_file_ctrl.petition.agency.entity
+                petition = pet_file_ctrl.petition
+                entity = petition.real_entity or petition.agency.entity
                 DataFile.objects.create(
                     petition_file_control=pet_file_ctrl,
                     entity=entity,

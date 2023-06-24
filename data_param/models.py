@@ -1,5 +1,5 @@
 #Para qué era esta importación?
-from unicodedata import name
+# from unicodedata import name
 from django.db import models
 from django.db.models import JSONField
 
@@ -166,8 +166,28 @@ class FileControl(models.Model):
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
     all_results = JSONField(blank=True, null=True)
+    real_entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE,
+        verbose_name="Proveedor real", blank=True, null=True)
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
+
+    def save(self, *args, **kwargs):
+        from inai.models import DataFile, TableFile
+        final_real_entity = kwargs.get('real_entity', None)
+        if final_real_entity != self.real_entity:
+            data_files = DataFile.objects.filter(
+                petition_file_control__file_control=self)
+            table_files = TableFile.objects.filter(
+                lap_sheet__sheet_file__data_file__petition_file_control__file_control=self)
+            if final_real_entity is not None:
+                data_files.update(entity=final_real_entity)
+                table_files.update(entity=final_real_entity)
+            else:
+                data_files.update(entity=self.agency.entity)
+                table_files.update(entity=self.agency.entity)
+
+        super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         from inai.models import LapSheet

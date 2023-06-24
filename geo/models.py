@@ -151,8 +151,8 @@ class Entity(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Entidad"
-        verbose_name_plural = "Entidades"
+        verbose_name = "Proveedor"
+        verbose_name_plural = "Proveedores"
 
 
 class CLUES(models.Model):

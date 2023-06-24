@@ -90,6 +90,9 @@ class Petition(models.Model, PetitionTransformsMix):
         Agency,
         related_name="petitions",
         on_delete=models.CASCADE)
+    real_entity = models.ForeignKey(
+        Entity, related_name="real_petitions",
+        on_delete=models.CASCADE, null=True, blank=True)
     ask_extension = models.BooleanField(
         blank=True, null=True,
         verbose_name="Se solicitó extensión")

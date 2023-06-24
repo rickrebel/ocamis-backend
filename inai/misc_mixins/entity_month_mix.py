@@ -25,6 +25,7 @@ class FromAws:
         return [], [], True
 
     def send_analysis(self, related_weeks: list):
+        import time
         from scripts.common import build_s3
         from inai.models import TableFile
         from inai.api.serializers import (
@@ -50,6 +51,8 @@ class FromAws:
             async_task = async_in_lambda(
                 "analyze_uniques", params, self.task_params)
             all_tasks.append(async_task)
+            if self.entity_month.entity.split_by_delegation:
+                time.sleep(0.7)
         return all_tasks, [], True
 
     def save_csv_in_db_after(self, **kwargs):
