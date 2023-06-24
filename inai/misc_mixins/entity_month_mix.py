@@ -52,7 +52,7 @@ class FromAws:
                 "analyze_uniques", params, self.task_params)
             all_tasks.append(async_task)
             if self.entity_month.entity.split_by_delegation:
-                time.sleep(0.7)
+                time.sleep(0.3)
         return all_tasks, [], True
 
     def save_csv_in_db_after(self, **kwargs):
