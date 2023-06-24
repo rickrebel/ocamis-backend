@@ -40,6 +40,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):
         import time
+        from django.core.cache import cache
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
         from inai.models import EntityMonth, TableFile
@@ -58,7 +59,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
             entity, main_function_name, request)
 
         for entity_month in entity_months:
-
+            if entity.split_by_delegation:
+                cache.clear()
             function_name = "analysis_month" \
                 if main_function_name == "send_analysis" else "insert_month"
             related_weeks = entity_month.weeks.all()

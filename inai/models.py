@@ -537,8 +537,7 @@ class SheetFile(models.Model):
     year_month = models.CharField(
         max_length=8, blank=True, null=True, verbose_name="Año y mes")
     entity_months = models.ManyToManyField(
-        EntityMonth, blank=True, verbose_name="Años y meses",
-        related_name="sheet_files")
+        EntityMonth, blank=True, related_name="sheet_files")
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         default='explore', verbose_name="Etapa actual")
@@ -590,7 +589,7 @@ class SheetFile(models.Model):
 
     class Meta:
         verbose_name = "Archivo de pestaña (csv)"
-        verbose_name_plural = "4. Archivos de pestaña (csv)"
+        verbose_name_plural = "4. Archivos de pestaña (Sheets .csv)"
         ordering = ["id"]
         unique_together = ("data_file", "sheet_name", "file_type")
 
