@@ -287,11 +287,11 @@ def build_task_params(model, function_name, request, **kwargs):
 
     def update_previous_tasks(tasks):
         # print("TASKS Previous: ", tasks)
-        # tasks.update(is_current=False)
+        tasks.update(is_current=False)
         for task in tasks:
-            if task.is_current:
-                task.is_current = False
-                task.save()
+            # if task.is_current:
+            #     task.is_current = False
+            #     task.save()
             if task.child_tasks.exists():
                 update_previous_tasks(task.child_tasks.all())
 

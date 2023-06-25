@@ -206,6 +206,8 @@ class MatchAws:
         #                    if field.get("clean_function") == "same_separator"]
         self.sep_fields = [field for field in self.existing_fields
                            if field.get("same_separator")]
+        self.copy_from_up = [field for field in self.existing_fields
+                             if field.get("same_group_data")]
         self.some_same_separator = len(self.sep_fields) > 0
         self.regex_fields = []
         for field in self.existing_fields:
@@ -285,6 +287,7 @@ class MatchAws:
         special_cols = self.build_special_cols(all_data)
         required_cols = [col for col in self.existing_fields
                          if col["required_row"]]
+
         # last_date = None
         # iso_date = None
         # first_iso = None
@@ -297,6 +300,7 @@ class MatchAws:
         classify_id = classify_cols[0]["name_column"] if classify_cols else None
 
         discarded_count = self.row_start_data - 1
+        last_valid_row = None
 
         for row in all_data[self.row_start_data - 1:]:
             required_cols_in_null = [col for col in required_cols
@@ -427,6 +431,7 @@ class MatchAws:
                 curr_rx = available_data
 
             current_drug_data = []
+            last_valid_row = available_data.copy()
             for drug_field in self.model_fields["drug"]:
                 value = available_data.pop(drug_field["name"], None)
                 if value is None:
@@ -645,7 +650,8 @@ class MatchAws:
             "global": get_columns_by_type("global"),
             "tab": get_columns_by_type("tab"),
             "file_name": get_columns_by_type("file_name"),
-            "ceil": self.get_ceil_cols(all_data)
+            "ceil": self.get_ceil_cols(all_data),
+            "copy_from_up": self.copy_from_up,
         }
 
     def string_time_to_regex(self, string_time):
