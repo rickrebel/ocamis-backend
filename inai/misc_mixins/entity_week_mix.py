@@ -5,6 +5,7 @@ class FromAws:
 
     def __init__(self, entity_week: EntityWeek, task_params=None):
         self.entity_week = entity_week
+        self.split_by_delegation = entity_week.entity.split_by_delegation
         self.task_params = task_params
 
     def analyze_uniques_after(self, **kwargs):
@@ -81,7 +82,9 @@ class FromAws:
         for sheet_id, value in sheets.items():
             table_file = self.entity_week.table_files.filter(
                 lap_sheet__lap=0, lap_sheet__sheet_file_id=sheet_id)
-            if table_file.count() != 1:
+            if self.split_by_delegation:
+                pass
+            elif table_file.count() != 1:
                 if table_file.count() == 0:
                     error = f"No existe ningún table_file "
                 else:
