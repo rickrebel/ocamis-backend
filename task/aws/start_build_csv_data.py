@@ -784,6 +784,10 @@ class MatchAws:
                 null_to_value = field["null_to_value"]
                 if value is None or value == "":
                     value = null_to_value
+            if "same_group_data" in field:
+                same_group_data = field["same_group_data"]
+                if same_group_data in available_data:
+                    value = available_data[same_group_data]
             if not value:
                 continue
             if "almost_empty" in field:

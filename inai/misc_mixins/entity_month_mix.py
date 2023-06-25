@@ -167,6 +167,7 @@ class FromAws:
 
 
 def analyze_every_months(entity_id):
+    from inai.models import EntityMonth
     all_months = EntityMonth.objects.filter(entity_id=entity_id)
     for month in all_months:
         from_aws = FromAws(month)
