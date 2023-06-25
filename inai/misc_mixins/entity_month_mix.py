@@ -13,7 +13,7 @@ class FromAws:
         from django.utils import timezone
         sum_fields = [
             "drugs_count", "rx_count", "duplicates_count", "shared_count"]
-
+        # space
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
         print("result_sums", result_sums)
@@ -21,7 +21,6 @@ class FromAws:
             setattr(self.entity_month, field, result_sums[field + "__sum"])
         self.entity_month.last_crossing = timezone.now()
         self.entity_month.save()
-
         return [], [], True
 
     def send_analysis(self, related_weeks: list):
@@ -51,8 +50,8 @@ class FromAws:
             async_task = async_in_lambda(
                 "analyze_uniques", params, self.task_params)
             all_tasks.append(async_task)
-            if self.entity_month.entity.split_by_delegation:
-                time.sleep(0.2)
+            # if self.entity_month.entity.split_by_delegation:
+            #     time.sleep(0.2)
         return all_tasks, [], True
 
     def save_csv_in_db_after(self, **kwargs):
@@ -62,7 +61,6 @@ class FromAws:
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, SheetFile
         # print("HOLA INSERT_MONTH")
-
         # month_table_files = self.entity_month.weeks.table_files.all()
         month_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month)
@@ -74,7 +72,7 @@ class FromAws:
             year_week__in=related_weeks)
         all_year_months = all_month_table_files.values_list(
             "year_month", flat=True).distinct()
-
+        # space
         # related_lap_sheets = LapSheet.objects.filter(
         #     table_files__year_month__in=all_year_months)
         related_sheet_files = self.entity_month.sheet_files.all()
@@ -107,7 +105,7 @@ class FromAws:
         weeks = month_table_files.values_list(
             "entity_week_id", flat=True).distinct()
         entity_weeks = self.entity_month.weeks.filter(id__in=weeks)
-
+        # space
         # ENVÍO DE TABLAS DE COLECCIÓN
         for lap_sheet in related_lap_sheets:
             current_table_files = collection_table_files.filter(
@@ -164,5 +162,12 @@ class FromAws:
             new_task = my_insert.send_lap_tables_to_db(
                 lap_sheet, lap_missing_tables, "inserted")
             new_tasks.append(new_task)
-
+        # space
         return new_tasks, errors, True
+
+
+def analyze_every_months(entity_id):
+    all_months = EntityMonth.objects.filter(entity_id=entity_id)
+    for month in all_months:
+        from_aws = FromAws(month)
+        from_aws.save_month_analysis()
