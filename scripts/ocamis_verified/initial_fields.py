@@ -52,8 +52,7 @@ def generate_weeks():
                         year=int(year_by_ym),
                         month=int(month_by_ym),
                         iso_delegation=iso_delegation))
-        for sum_year in range(6):
-            year = sum_year + 2017
+        for year in range(2017, 2024):
             for month in range(1, 13):
                 year_month = f"{year}-{month:02d}"
                 entity_month, created = EntityMonth.objects.get_or_create(

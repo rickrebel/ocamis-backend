@@ -62,6 +62,75 @@ class FromAws:
         from inai.models import LapSheet, TableFile, SheetFile
         # print("HOLA INSERT_MONTH")
         # month_table_files = self.entity_month.weeks.table_files.all()
+        month_table_files = TableFile.objects\
+            .filter(
+                entity_week__entity_month=self.entity_month,
+                collection__isnull=True
+            )\
+            .exclude(inserted=True)
+        related_sheet_files = self.entity_month.sheet_files.all()
+
+        related_lap_sheets = LapSheet.objects\
+            .filter(sheet_file__in=related_sheet_files)\
+            .exclude(sheet_file__behavior_id="invalid")
+
+        # .filter(sheet_file__data_file__in=month_table_files)\
+        # lap_sheets = LapSheet.objects\
+        #     .filter(table_files__in=month_table_files)\
+        #     .exclude(sheet_file__behavior_id="invalid")
+        collection_table_files = TableFile.objects.filter(
+            lap_sheet__in=related_lap_sheets,
+            collection__app_label="med_cat", inserted=False)
+        if not collection_table_files.exists() and not month_table_files.exists():
+            errors = ["No existen tablas por insertar para el mes "
+                      f"{self.entity_month.year_month}"]
+            print("errors", errors)
+            return [], errors, False
+        # month_sheet_files = SheetFile.objects.filter(
+        #     id__in=related_lap_sheets.values_list("sheet_file_id", flat=True))\
+        #     .distinct()
+        # related_sheet_files
+        if related_sheet_files.filter(behavior_id="pending").exists():
+            errors = [f"Hay pestañas pendientes de clasificar para el mes "
+                      f"{self.entity_month.year_month}"]
+            print("errors", errors)
+            return [], errors, False
+        # lap_sheets = lap_sheets.filter(inserted=False)
+        my_insert = InsertMonth(self.entity_month, self.task_params)
+        new_tasks = []
+        # weeks = month_table_files.values_list(
+        #     "entity_week_id", flat=True).distinct()
+        # weeks = self.entity_month.weeks.values_list("id", flat=True)
+        entity_weeks = self.entity_month.weeks.all()
+        # space
+        # ENVÍO DE TABLAS DE COLECCIÓN
+        for lap_sheet in related_lap_sheets:
+            current_table_files = collection_table_files.filter(
+                lap_sheet=lap_sheet, collection__app_label="med_cat")
+            new_task = my_insert.send_lap_tables_to_db(
+                lap_sheet, current_table_files, "cat_inserted")
+            new_tasks.append(new_task)
+        # print("entity_weeks", entity_weeks)
+        for entity_week in entity_weeks:
+            # week_base_table_files = all_entity_table_files.filter(
+            #     iso_year=entity_week.iso_year,
+            #     iso_week=entity_week.iso_week,
+            #     lap_sheet__lap=0)
+            week_base_table_files = entity_week.table_files.filter(
+                lap_sheet__lap=0)
+            table_task = my_insert.merge_week_base_tables(
+                entity_week, week_base_table_files)
+            new_tasks.append(table_task)
+        if not new_tasks:
+            return self.save_formula_tables(self.task_params)
+
+        return new_tasks, [], True
+
+    def insert_month_prev(self):
+        from inai.misc_mixins.insert_month_mix import InsertMonth
+        from inai.models import LapSheet, TableFile, SheetFile
+        # print("HOLA INSERT_MONTH")
+        # month_table_files = self.entity_month.weeks.table_files.all()
         month_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month)
         all_entity_table_files = TableFile.objects.filter(
@@ -70,8 +139,6 @@ class FromAws:
             .values_list("year_week", flat=True)
         all_month_table_files = all_entity_table_files.filter(
             year_week__in=related_weeks)
-        all_year_months = all_month_table_files.values_list(
-            "year_month", flat=True).distinct()
         # space
         # related_lap_sheets = LapSheet.objects.filter(
         #     table_files__year_month__in=all_year_months)

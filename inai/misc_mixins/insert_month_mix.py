@@ -111,7 +111,8 @@ class InsertMonth:
         return async_in_lambda("build_week_csvs", params, self.task_params)
 
     def build_query_tables(self, table_files):
-        all_queries = []
+        # all_queries = []
+        queries_by_model = {}
         for table_file in table_files:
             model_name = table_file.collection.model_name
             try:
@@ -120,17 +121,27 @@ class InsertMonth:
                 print(f"MODELO: {model_name}")
                 raise Exception(
                     "No se encontró el modelo en la lista de modelos")
-            columns_join = model_data["columns_join"]
-            model_in_db = model_data["model_in_db"]
-            if model_data["app"] == "formula":
-                path = table_file.file.name
-                query = build_copy_sql_aws(path, model_in_db, columns_join)
-                all_queries.append(query)
-            else:
-                sql_queries = self.build_catalog_queries(
-                    table_file, columns_join, model_in_db, model_name)
-                all_queries += sql_queries
-        return all_queries
+            path = table_file.file.name
+            if model_name not in queries_by_model:
+                columns_join = model_data["columns_join"]
+                model_in_db = model_data["model_in_db"]
+                if model_data["app"] == "formula":
+                    query_base = build_copy_sql_aws(
+                        "PATH_URL", model_in_db, columns_join)
+                    # all_queries.append(query)
+                    queries_by_model[model_name] = {
+                        "base_queries": [query_base],
+                        "files": [],
+                    }
+                else:
+                    base_queries = self.build_catalog_queries(
+                        "PATH_URL", columns_join, model_in_db, model_name)
+                    queries_by_model[model_name] = {
+                        "base_queries": base_queries,
+                        "files": [],
+                    }
+            queries_by_model[model_name]["files"].append(path)
+        return queries_by_model
 
     def send_base_tables_to_db(
             self, entity_month: EntityMonth, table_files: list):
@@ -139,16 +150,19 @@ class InsertMonth:
             FROM public.inai_entitymonth
             WHERE id = {entity_month.id}
         """
-        all_queries = self.build_query_tables(table_files)
+        # all_queries = self.build_query_tables(table_files)
+        queries_by_model = self.build_query_tables(table_files)
         last_query = f"""
             UPDATE public.inai_entitymonth
             SET last_insertion = now()
             WHERE id = {entity_month.id}
         """
-        all_queries.append(last_query)
+        # all_queries.append(last_query)
         params = {
             "first_query": first_query,
-            "sql_queries": all_queries,
+            "last_query": last_query,
+            "queries_by_model": queries_by_model,
+            # "sql_queries": all_queries,
             "db_config": ocamis_db,
             "entity_month_id": entity_month.id,
         }
@@ -163,16 +177,19 @@ class InsertMonth:
             FROM public.inai_lapsheet
             WHERE id = {lap_sheet.id}
         """
-        all_queries = self.build_query_tables(table_files)
+        # all_queries = self.build_query_tables(table_files)
+        queries_by_model = self.build_query_tables(table_files)
         last_query = f"""
             UPDATE public.inai_lapsheet
             SET {inserted_field} = true
             WHERE id = {lap_sheet.id}
         """
-        all_queries.append(last_query)
+        # all_queries.append(last_query)
         params = {
             "first_query": first_query,
-            "sql_queries": all_queries,
+            "last_query": last_query,
+            "queries_by_model": queries_by_model,
+            # "sql_queries": all_queries,
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,
         }
@@ -183,7 +200,7 @@ class InsertMonth:
         return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def build_catalog_queries(
-            self, table_file, columns_join, model_in_db, model_name):
+            self, path, columns_join, model_in_db, model_name):
         entity_optional_models = ["Diagnosis", "Medicament"]
         sql_queries = []
         temp_table = f"temp_{model_in_db}"
@@ -191,7 +208,6 @@ class InsertMonth:
             CREATE TEMP TABLE {temp_table} AS SELECT * 
             FROM {model_in_db} WITH NO DATA;
         """)
-        path = table_file.file.name
         sql_queries.append(build_copy_sql_aws(
             path, temp_table, columns_join))
         optional_condition = ""
@@ -208,5 +224,8 @@ class InsertMonth:
                     WHERE {model_in_db}.hex_hash = {temp_table}.hex_hash
                         {optional_condition}
                 );
+        """)
+        sql_queries.append(f"""
+            DROP TABLE {temp_table};
         """)
         return sql_queries

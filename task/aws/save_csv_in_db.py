@@ -9,11 +9,13 @@ def lambda_handler(event, context):
     lap_sheet_id = event.get("lap_sheet_id")
     entity_month_id = event.get("entity_month_id")
     db_config = event.get("db_config")
-    sql_queries = event.get("sql_queries")
+    sql_queries = event.get("sql_queries", [])
+    queries_by_model = event.get("queries_by_model", {})
     connection = create_connection(db_config)
     errors = []
     cursor = connection.cursor()
     first_query = event.get("first_query")
+    last_query = event.get("last_query")
     if first_query:
         cursor.execute(first_query)
         result = cursor.fetchone()
@@ -23,11 +25,23 @@ def lambda_handler(event, context):
         try:
             for sql_query in sql_queries:
                 cursor.execute(sql_query)
+            for model_name, content in queries_by_model.items():
+                base_queries = content["base_queries"]
+                files = content["files"]
+                for query_base in base_queries:
+                    for path in files:
+                        query = query_base.replace("PATH_URL", path)
+                        cursor.execute(query)
             cursor.close()
             connection.commit()
         except Exception as e:
             connection.rollback()
             errors.append(f"Hubo un error al guardar; {str(e)}")
+    if last_query:
+        cursor.execute(last_query)
+        result = cursor.fetchone()
+        if not result[0]:
+            errors.append(f"Hubo un error al ejecutar la última consulta")
     final_result = {
         "lap_sheet_id": lap_sheet_id,
         "entity_month_id": entity_month_id,
