@@ -86,7 +86,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
         if all_tasks or all_errors:
             return comprobate_status(
-                key_task, [], all_tasks, want_http_response=True)
+                key_task, all_errors, all_tasks, want_http_response=True)
 
         return Response({}, status=status.HTTP_202_ACCEPTED)
 

@@ -42,7 +42,7 @@ class FromAws:
                 "init_data": init_data,
                 "s3": build_s3(),
             }
-            self.task_params["models"] = [week]
+            self.task_params["models"] = [week, self.entity_month]
             self.task_params["function_after"] = "analyze_uniques_after"
             params_after = self.task_params.get("params_after", { })
             # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
@@ -64,7 +64,7 @@ class FromAws:
 
     def insert_month(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
-        from inai.models import LapSheet, TableFile, SheetFile
+        from inai.models import LapSheet, TableFile, SheetFile, DataFile
         # print("HOLA INSERT_MONTH")
         # month_table_files = self.entity_month.weeks.table_files.all()
         month_table_files = TableFile.objects\
@@ -78,6 +78,10 @@ class FromAws:
         related_lap_sheets = LapSheet.objects\
             .filter(sheet_file__in=related_sheet_files)\
             .exclude(sheet_file__behavior_id="invalid")
+        data_files_ids = related_sheet_files.values_list(
+            "data_file_id", flat=True).distinct()
+        data_files = DataFile.objects.filter(id__in=data_files_ids)
+        data_files.update(stage_id='insert', status_id='pending')
 
         # .filter(sheet_file__data_file__in=month_table_files)\
         # lap_sheets = LapSheet.objects\
