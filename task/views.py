@@ -288,11 +288,11 @@ def build_task_params(model, function_name, request, **kwargs):
     def update_previous_tasks(tasks):
         # print("TASKS Previous: ", tasks)
         # tasks.update(is_current=False)
+        tasks = tasks.filter(is_current=True)
         for task in tasks:
-            if task.is_current:
-                task.is_current = False
-                task.save()
-            if task.child_tasks.exists():
+            task.is_current = False
+            task.save()
+            if task.child_tasks.filter(is_current=True).exists():
                 update_previous_tasks(task.child_tasks.all())
 
     if not is_massive:

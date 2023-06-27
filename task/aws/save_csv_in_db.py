@@ -5,22 +5,26 @@ from task.aws.common import request_headers, create_connection
 
 # def save_csv_in_db(event, context):
 def lambda_handler(event, context):
+    from datetime import datetime
     # print("model_name", event.get("model_name"))
     lap_sheet_id = event.get("lap_sheet_id")
     entity_month_id = event.get("entity_month_id")
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries", [])
     queries_by_model = event.get("queries_by_model", {})
+    print("start", datetime.now())
     connection = create_connection(db_config)
     errors = []
     cursor = connection.cursor()
     first_query = event.get("first_query")
     last_query = event.get("last_query")
+    print("before first_query", datetime.now())
     if first_query:
         cursor.execute(first_query)
         result = cursor.fetchone()
         if result[0]:
             errors.append(f"Ya se había insertado la pestaña y su lap")
+    print("after first_query", datetime.now())
     if not errors:
         try:
             for sql_query in sql_queries:
@@ -37,11 +41,13 @@ def lambda_handler(event, context):
         except Exception as e:
             connection.rollback()
             errors.append(f"Hubo un error al guardar; {str(e)}")
+    print("before last_query", datetime.now())
     if last_query:
         cursor.execute(last_query)
-        result = cursor.fetchone()
-        if not result[0]:
-            errors.append(f"Hubo un error al ejecutar la última consulta")
+    #     result = cursor.fetchone()
+    #     if not result[0]:
+    #         errors.append(f"Hubo un error al ejecutar la última consulta")
+    print("after last_query", datetime.now())
     final_result = {
         "lap_sheet_id": lap_sheet_id,
         "entity_month_id": entity_month_id,

@@ -204,7 +204,9 @@ class InsertMonth:
             "lap_sheet_id": lap_sheet.id,
         }
         self.task_params["models"] = [
-            lap_sheet.sheet_file, lap_sheet.sheet_file.data_file]
+            lap_sheet.sheet_file,
+            lap_sheet.sheet_file.data_file,
+            self.entity_month]
         if inserted_field == "missing_inserted":
             self.task_params["function_after"] = "check_success_insert"
         self.task_params["params_after"] = {
