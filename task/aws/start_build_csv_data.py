@@ -969,7 +969,6 @@ class MatchAws:
         uuid = str(uuid_lib.uuid4())
         sheet_file_id = self.sheet_file_id
         lap_sheet_id = self.lap_sheet_id
-        lap_sheet_id = self.lap_sheet_id
         for field in self.model_fields["missing_row"]:
             value = locals().get(field["name"])
             missing_data.append(value)

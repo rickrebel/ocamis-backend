@@ -276,8 +276,8 @@ class EntityMonth(models.Model):
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
-    last_crossing = models.DateTimeField(blank=True, null=True)
     last_transformation = models.DateTimeField(blank=True, null=True)
+    last_crossing = models.DateTimeField(blank=True, null=True)
     last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
@@ -688,8 +688,10 @@ class EntityWeek(models.Model):
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
+
     last_crossing = models.DateTimeField(blank=True, null=True)
     last_transformation = models.DateTimeField(blank=True, null=True)
+    last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.entity} {self.year_month} - {self.iso_week} - {self.iso_delegation}"

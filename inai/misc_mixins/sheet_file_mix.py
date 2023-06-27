@@ -12,7 +12,6 @@ class FromAws:
         # from inai.data_file_mixins.insert_mix import modify_constraints
         # import threading
         # import time
-
         # def check_tasks_with_insert():
         #     running_tasks = AsyncTask.objects.filter(
         #         data_file__stage_id="insert",
@@ -27,10 +26,17 @@ class FromAws:
         # t = threading.Thread(target=delay_check)
         # t.start()
         errors = kwargs.get("errors", [])
+        if not errors:
+            self.save_csv_in_db_after(**kwargs)
         self.sheet_file.save_stage('insert', errors)
         return [], errors, True
 
     def save_csv_in_db_after(self, **kwargs):
+        from inai.models import TableFile
+        table_files_ids = kwargs.get("table_files_ids", [])
+        TableFile.objects\
+            .filter(id__in=table_files_ids)\
+            .update(inserted=True)
         return [], [], True
 
     def build_csv_data_from_aws(self, **kwargs):

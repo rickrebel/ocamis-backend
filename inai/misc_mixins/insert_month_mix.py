@@ -143,19 +143,25 @@ class InsertMonth:
             queries_by_model[model_name]["files"].append(path)
         return queries_by_model
 
+    def all_base_tables_saved(self, **kwargs):
+        from django.utils import timezone
+        self.entity_month.last_insertion = timezone.now()
+        self.entity_month.save()
+        return [], [], True
+
     def send_base_tables_to_db(
-            self, entity_month: EntityMonth, table_files: list):
+            self, entity_week: EntityWeek, table_files: list):
         first_query = f"""
             SELECT last_insertion IS NOT NULL AS last_insertion
             FROM public.inai_entitymonth
-            WHERE id = {entity_month.id}
+            WHERE id = {self.entity_month.id}
         """
         # all_queries = self.build_query_tables(table_files)
         queries_by_model = self.build_query_tables(table_files)
         last_query = f"""
             UPDATE public.inai_entitymonth
             SET last_insertion = now()
-            WHERE id = {entity_month.id}
+            WHERE id = {self.entity_month.id}
         """
         # all_queries.append(last_query)
         params = {
@@ -164,10 +170,14 @@ class InsertMonth:
             "queries_by_model": queries_by_model,
             # "sql_queries": all_queries,
             "db_config": ocamis_db,
-            "entity_month_id": entity_month.id,
+            "entity_month_id": self.entity_month.id,
         }
-        self.task_params["models"] = [entity_month]
         # self.task_params["function_after"] = "check_success_insert"
+        self.task_params["models"] = [self.entity_month]
+        # self.task_params["function_after"] = "check_success_insert"
+        self.task_params["params_after"] = {
+            "table_files_ids": [table_file.id for table_file in table_files],
+        }
         return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def send_lap_tables_to_db(
@@ -195,8 +205,11 @@ class InsertMonth:
         }
         self.task_params["models"] = [
             lap_sheet.sheet_file, lap_sheet.sheet_file.data_file]
-        if inserted_field == "inserted":
+        if inserted_field == "missing_inserted":
             self.task_params["function_after"] = "check_success_insert"
+        self.task_params["params_after"] = {
+            "table_files_ids": [table_file.id for table_file in table_files],
+        }
         return async_in_lambda("save_csv_in_db", params, self.task_params)
 
     def build_catalog_queries(
