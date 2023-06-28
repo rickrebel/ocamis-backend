@@ -153,13 +153,13 @@ class InsertMonth:
             self, entity_week: EntityWeek, table_files: list):
         first_query = f"""
             SELECT last_insertion IS NOT NULL AS last_insertion
-            FROM public.inai_entity_week
+            FROM public.inai_entityweek
             WHERE id = {entity_week.id}
         """
         # all_queries = self.build_query_tables(table_files)
         queries_by_model = self.build_query_tables(table_files)
         last_query = f"""
-            UPDATE public.inai_entity_week
+            UPDATE public.inai_entityweek
             SET last_insertion = now()
             WHERE id = {entity_week.id}
         """
