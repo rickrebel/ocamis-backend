@@ -54,14 +54,6 @@ class FromAws:
             #     time.sleep(0.2)
         return all_tasks, [], True
 
-    def save_csv_in_db_after(self, **kwargs):
-        from inai.models import TableFile
-        table_files_ids = kwargs.get("table_files_ids", [])
-        TableFile.objects\
-            .filter(id__in=table_files_ids)\
-            .update(inserted=True)
-        return [], [], True
-
     def insert_month(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, SheetFile, DataFile

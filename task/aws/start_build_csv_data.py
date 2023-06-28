@@ -789,7 +789,7 @@ class MatchAws:
                 if value is None or value == "":
                     value = null_to_value
             same_group_data = field.get("same_group_data")
-            if not value and same_group_data:
+            if not value and same_group_data and self.last_valid_row:
                 value = self.last_valid_row.get(field["name"])
             if not value:
                 continue
@@ -960,6 +960,7 @@ class MatchAws:
         return delegation_id, delegation_error
 
     def append_missing_row(self, row_data, error=None, drug_id=None):
+        self.last_valid_row = None
         if self.last_missing_row:
             if error:
                 self.last_missing_row[-2] = False

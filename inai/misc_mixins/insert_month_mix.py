@@ -153,15 +153,15 @@ class InsertMonth:
             self, entity_week: EntityWeek, table_files: list):
         first_query = f"""
             SELECT last_insertion IS NOT NULL AS last_insertion
-            FROM public.inai_entitymonth
-            WHERE id = {self.entity_month.id}
+            FROM public.inai_entity_week
+            WHERE id = {entity_week.id}
         """
         # all_queries = self.build_query_tables(table_files)
         queries_by_model = self.build_query_tables(table_files)
         last_query = f"""
-            UPDATE public.inai_entitymonth
+            UPDATE public.inai_entity_week
             SET last_insertion = now()
-            WHERE id = {self.entity_month.id}
+            WHERE id = {entity_week.id}
         """
         # all_queries.append(last_query)
         params = {
@@ -171,10 +171,11 @@ class InsertMonth:
             # "sql_queries": all_queries,
             "db_config": ocamis_db,
             "entity_month_id": self.entity_month.id,
+            # "entity_week": EntityWeekSimpleSerializer(entity_week).data,
+            "entity_week_id": entity_week.id,
         }
         # self.task_params["function_after"] = "check_success_insert"
-        self.task_params["models"] = [self.entity_month]
-        # self.task_params["function_after"] = "check_success_insert"
+        self.task_params["models"] = [self.entity_month, entity_week]
         self.task_params["params_after"] = {
             "table_files_ids": [table_file.id for table_file in table_files],
         }

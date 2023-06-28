@@ -26,6 +26,14 @@ class FromAws:
 
         return all_tasks, all_errors, True
 
+    def save_csv_in_db_after(self, **kwargs):
+        from inai.models import TableFile
+        table_files_ids = kwargs.get("table_files_ids", [])
+        TableFile.objects\
+            .filter(id__in=table_files_ids)\
+            .update(inserted=True)
+        return [], [], True
+
     def save_merged_from_aws(self, **kwargs):
         from inai.models import TableFile, SheetFile
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
