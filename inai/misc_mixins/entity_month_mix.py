@@ -171,7 +171,7 @@ class FromAws:
         }
         task_base, task_params = build_task_params(
             self.entity_month, 'save_month_base_tables', req, **task_kwargs)
-        my_insert = InsertMonth(self.entity_month, task_base)
+        my_insert = InsertMonth(self.entity_month, task_params)
         for week in self.entity_month.weeks.all():
             week_base_table_files = week.table_files.filter(
                 lap_sheet__isnull=True,

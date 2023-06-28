@@ -198,7 +198,7 @@ class TableFileAdmin(admin.ModelAdmin):
         "lap_sheet",
         "file",
     ]
-    list_filter = ["entity__acronym", "collection", "year", "year_month"]
+    list_filter = ["inserted", "entity__acronym", "collection", "year"]
     search_fields = ["year_month", "year_week"]
     raw_id_fields = ["lap_sheet", "entity_week"]
 
