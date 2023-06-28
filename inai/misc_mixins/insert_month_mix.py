@@ -143,12 +143,6 @@ class InsertMonth:
             queries_by_model[model_name]["files"].append(path)
         return queries_by_model
 
-    def all_base_tables_saved(self, **kwargs):
-        from django.utils import timezone
-        self.entity_month.last_insertion = timezone.now()
-        self.entity_month.save()
-        return [], [], True
-
     def send_base_tables_to_db(
             self, entity_week: EntityWeek, table_files: list):
         first_query = f"""

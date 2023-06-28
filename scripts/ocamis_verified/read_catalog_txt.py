@@ -282,7 +282,8 @@ def reverse_transform(only_count=False, entity=None, every_files=False):
 
 
 def reverse_insert(hard=False):
-    from inai.models import DataFile, TableFile, LapSheet, EntityMonth
+    from inai.models import (
+        DataFile, TableFile, LapSheet, EntityMonth, EntityWeek)
     from task.models import AsyncTask
     # TableFile.objects.filter(inserted=True).update(inserted=False)
     LapSheet.objects.filter(inserted=True).update(inserted=False)
@@ -294,6 +295,8 @@ def reverse_insert(hard=False):
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
     EntityMonth.objects.filter(last_insertion__isnull=False)\
+        .update(last_insertion=None)
+    EntityWeek.objects.filter(last_insertion__isnull=False)\
         .update(last_insertion=None)
     if hard:
         AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()

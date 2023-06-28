@@ -187,6 +187,12 @@ class FromAws:
         # space
         return new_tasks, errors, True
 
+    def all_base_tables_saved(self, **kwargs):
+        from django.utils import timezone
+        self.entity_month.last_insertion = timezone.now()
+        self.entity_month.save()
+        return [], [], True
+
 
 def analyze_every_months(entity_id):
     from inai.models import EntityMonth

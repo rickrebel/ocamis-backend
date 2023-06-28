@@ -831,7 +831,7 @@ class MatchAws:
                         value = self.last_date_formatted
                     else:
                         if self.string_date == "MANY":
-                            format_date = field.get("format_date")
+                            format_date = field.get("format_date").split(";")
                             string_dates = [date.strip() for date in format_date]
                         else:
                             string_dates = self.string_dates
