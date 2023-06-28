@@ -36,18 +36,18 @@ def lambda_handler(event, context):
                     for path in files:
                         query = query_base.replace("PATH_URL", path)
                         cursor.execute(query)
+            if last_query:
+                print("before last_query", datetime.now())
+                cursor.execute(last_query)
             cursor.close()
             connection.commit()
         except Exception as e:
             connection.rollback()
             errors.append(f"Hubo un error al guardar; {str(e)}")
-    print("before last_query", datetime.now())
-    if last_query:
-        cursor.execute(last_query)
     #     result = cursor.fetchone()
     #     if not result[0]:
     #         errors.append(f"Hubo un error al ejecutar la última consulta")
-    print("after last_query", datetime.now())
+    print("after queries", datetime.now())
     final_result = {
         "lap_sheet_id": lap_sheet_id,
         "entity_month_id": entity_month_id,

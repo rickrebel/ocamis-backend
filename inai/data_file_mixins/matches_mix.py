@@ -138,10 +138,10 @@ class Match:
         from task.serverless import async_in_lambda
         import hashlib
 
-        string_date = self.get_date_format()
         missing_criteria = self.calculate_minimals_criteria()
+        string_date, date_error = self.get_date_format()
         if not string_date:
-            missing_criteria.append("Sin formato de fecha")
+            missing_criteria.append(date_error)
         # elif string_date == "MANY":
         if self.lap > 0:
             missing_criteria.append("Ya se ha insertado este archivo")
@@ -439,15 +439,23 @@ class Match:
 
     def get_date_format(self):
         from data_param.models import Transformation
-        transformation = Transformation.objects.filter(
+
+        transformations = Transformation.objects.filter(
             clean_function__name="format_date",
             name_column__file_control=self.file_control)
-        transformation_count = transformation.count()
-        if not transformation_count:
-            return None
+        transformation_count = transformations.count()
+        if transformation_count == 0:
+            return None, "Ninguna de las columnas con fechas tiene su " \
+                         "formato especificado"
         elif transformation_count > 1:
-            return "MANY"
-        return transformation.first().addl_params.get("value")
+            date_fields = [field for field in self.existing_fields
+                           if field["data_type"] == "Datetime"]
+            if len(date_fields) == transformation_count:
+                return "MANY", None
+            else:
+                return None, "No todas las fechas tienen especificado su formato"
+        first_value = transformations.first().addl_params.get("value")
+        return first_value, None
 
     def build_catalog_delegation_by_id(self, key_field='name'):
         from geo.models import Delegation

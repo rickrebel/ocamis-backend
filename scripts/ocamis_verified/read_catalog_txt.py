@@ -290,7 +290,7 @@ def reverse_insert(hard=False):
     lap_sheets = LapSheet.objects.filter(cat_inserted=True)
     lap_sheets.update(
         missing_inserted=False, cat_inserted=False, inserted=False)
-    table_files = TableFile.objects.update(inserted=False)
+    TableFile.objects.update(inserted=False)
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
     EntityMonth.objects.filter(last_insertion__isnull=False)\

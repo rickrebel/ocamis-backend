@@ -137,8 +137,10 @@ class MatchAws:
         self.delimit = self.delimiter or "|"
         self.sep = "\|" if self.delimit == "|" else self.delimit
         self.string_date = init_data["string_date"].strip()
+        self.string_dates = [
+            date.strip() for date in self.string_date.split(";")]
         self.columns_count = init_data["columns_count"]
-        print("string_date", self.string_date)
+        # print("string_date", self.string_date)
 
         editable_models = init_data["editable_models"]
         self.normal_models = [model for model in editable_models
@@ -225,11 +227,13 @@ class MatchAws:
             elif field["data_type"] == "Datetime":
                 if self.string_date == "MANY":
                     date_regex = field.get("format_date")
-                    if date_regex:
+                    if ";" in date_regex:
+                        pass
+                    elif date_regex:
                         regex_string = self.string_time_to_regex(date_regex)
                     else:
                         regex_string = False
-                elif self.string_date != "EXCEL":
+                elif self.string_date != "EXCEL" and ";" not in self.string_date:
                     regex_string = self.string_time_to_regex(self.string_date)
             if regex_string:
                 field["regex"] = regex_string
@@ -257,6 +261,7 @@ class MatchAws:
 
         self.context = context
         self.last_date = None
+        self.last_valid_row = None
         self.last_date_formatted = None
         self.is_prepare = init_data.get("is_prepare", False)
 
@@ -300,7 +305,6 @@ class MatchAws:
         classify_id = classify_cols[0]["name_column"] if classify_cols else None
 
         discarded_count = self.row_start_data - 1
-        last_valid_row = None
 
         for row in all_data[self.row_start_data - 1:]:
             required_cols_in_null = [col for col in required_cols
@@ -431,7 +435,7 @@ class MatchAws:
                 curr_rx = available_data
 
             current_drug_data = []
-            last_valid_row = available_data.copy()
+            self.last_valid_row = available_data.copy()
             for drug_field in self.model_fields["drug"]:
                 value = available_data.pop(drug_field["name"], None)
                 if value is None:
@@ -704,7 +708,7 @@ class MatchAws:
                             if col["name_column"] == parent]
             # destiny_cols = sorted(destiny_cols, key=lambda x: x.get("t_value"))
             destiny_cols = sorted(
-                destiny_cols, key=lambda x: x.get("concatenated"))
+                destiny_cols, key=lambda x: x.get("only_params_parent"))
             parent_col["destiny_cols"] = destiny_cols
             divided_cols.append(parent_col)
         return divided_cols
@@ -741,8 +745,9 @@ class MatchAws:
             if not divided_char:
                 continue
             origin_value = row[divided_col["position"]]
-            divided_values = origin_value.split(divided_char)
             destiny_cols = divided_col["destiny_cols"]
+            split_count = len(destiny_cols) - 1
+            divided_values = origin_value.split(divided_char, split_count)
             for i, divided_value in enumerate(divided_values, start=1):
                 destiny_col = destiny_cols[i - 1]
                 available_data[destiny_col["name"]] = divided_value
@@ -779,15 +784,13 @@ class MatchAws:
                 value = row[field["position"]]
             else:
                 value = available_data.get(field["name"])
-            null_to_value = None
-            if "null_to_value" in field:
-                null_to_value = field["null_to_value"]
+            null_to_value = field.get("null_to_value")
+            if null_to_value:
                 if value is None or value == "":
                     value = null_to_value
-            if "same_group_data" in field:
-                same_group_data = field["same_group_data"]
-                if same_group_data in available_data:
-                    value = available_data[same_group_data]
+            same_group_data = field.get("same_group_data")
+            if not value and same_group_data:
+                value = self.last_valid_row.get(field["name"])
             if not value:
                 continue
             if "almost_empty" in field:
@@ -826,32 +829,35 @@ class MatchAws:
                 elif field["data_type"] == "Datetime":  # and not is_same_date:
                     if value == self.last_date and value:
                         value = self.last_date_formatted
-                    elif self.string_date == "EXCELESPECIAL1":
-                        try:
-                            value = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-                        except ValueError:
-                            days = int(value)
-                            seconds = (value - days) * 86400
-                            seconds = round(seconds)
-                            value = datetime(1899, 12, 30) + timedelta(
-                                days=days, seconds=seconds)
-                    elif self.string_date == "EXCEL":
-                        self.last_date = value
-                        days = int(value)
-                        seconds = (value - days) * 86400
-                        seconds = round(seconds)
-                        value = datetime(1899, 12, 30) + timedelta(
-                            days=days, seconds=seconds)
-                        self.last_date_formatted = value
-                    elif self.string_date == "MANY":
-                        self.last_date = value
-                        format_date = field.get("format_date").strip()
-                        value = datetime.strptime(value, format_date)
-                        self.last_date_formatted = value
                     else:
-                        self.last_date = value
-                        value = datetime.strptime(value, self.string_date)
-                        self.last_date_formatted = value
+                        if self.string_date == "MANY":
+                            format_date = field.get("format_date")
+                            string_dates = [date.strip() for date in format_date]
+                        else:
+                            string_dates = self.string_dates
+                        for string_format in string_dates:
+                            try:
+                                if string_format == "EXCEL":
+                                    self.last_date = value
+                                    days = int(value)
+                                    seconds = (value - days) * 86400
+                                    seconds = round(seconds)
+                                    value = datetime(1899, 12, 30) + timedelta(
+                                        days=days, seconds=seconds)
+                                    self.last_date_formatted = value
+                                    break
+                                else:
+                                    value = datetime.strptime(value, string_format)
+                                    break
+                            except ValueError:
+                                value = None
+                                pass
+                        if not value:
+                            error = "No se pudo convertir la fecha"
+                    # else:
+                    #     self.last_date = value
+                    #     value = datetime.strptime(value, self.string_date)
+                    #     self.last_date_formatted = value
                     if not some_date or field["name"] == "date_delivery":
                         some_date = value
                 elif field["data_type"] == "Integer":

@@ -129,7 +129,7 @@ class DataFileAdmin(admin.ModelAdmin):
         "status",
     ]
     raw_id_fields = [
-        "entity", "petition_file_control", "reply_file"]
+        "entity", "petition_file_control", "reply_file", "entity_months"]
     list_filter = [
         "stage", "status", "petition_file_control__petition__agency"]
     search_fields = [

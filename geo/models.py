@@ -426,6 +426,7 @@ class Agency(models.Model):
         help_text="Es Competente porque tiene pacientes y debe tener la información")
     notes = models.TextField(blank=True, null=True)
     is_pilot = models.BooleanField(default=False)
+
     population = models.IntegerField(
         verbose_name="Derechohabientes", blank=True, null=True)
 
