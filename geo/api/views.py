@@ -40,6 +40,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):
         import threading
+        import time
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
         from inai.models import EntityMonth, TableFile
@@ -97,6 +98,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
             def run_in_thread():
                 new_tasks, errors, s = main_method()
+                time.sleep(0.4)
                 all_tasks.extend(new_tasks)
                 all_errors.extend(errors)
 
