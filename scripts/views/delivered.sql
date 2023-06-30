@@ -56,8 +56,9 @@ GROUP BY
 ORDER BY
     ent.name,
     inst.code,
-    ew.month,
-    ew.year;
+	ew.year,
+    ew.month;
+
 
 
 SELECT

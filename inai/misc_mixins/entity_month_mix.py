@@ -73,6 +73,9 @@ class FromAws:
 
         all_tasks = []
         for week in self.entity_month.weeks.all():
+            if week.last_crossing:
+                if week.last_transformation < week.last_crossing:
+                    continue
             init_data = EntityWeekSimpleSerializer(week).data
             table_files = TableFile.objects.filter(
                 entity_week=week,
