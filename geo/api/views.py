@@ -39,6 +39,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):
+        import threading
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
         from inai.models import EntityMonth, TableFile
@@ -54,7 +55,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
         all_tasks = []
         all_errors = []
         key_task, task_params = build_task_params(
-            entity, main_function_name, request)
+            entity, main_function_name, request, keep_tasks=True)
 
         functions = {
             "send_analysis": {
@@ -93,9 +94,14 @@ class EntityViewSet(ListRetrieveUpdateMix):
             base_class = EntityMonthMix(entity_month, task_params)
             main_function = function_data.get("main_function", None)
             main_method = getattr(base_class, main_function)
-            new_tasks, errors, s = main_method()
-            all_tasks.extend(new_tasks)
-            all_errors.extend(errors)
+
+            def run_in_thread():
+                new_tasks, errors, s = main_method()
+                all_tasks.extend(new_tasks)
+                all_errors.extend(errors)
+
+            t = threading.Thread(target=run_in_thread)
+            t.start()
 
         if all_tasks or all_errors:
             return comprobate_status(

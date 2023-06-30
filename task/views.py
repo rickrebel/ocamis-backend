@@ -280,6 +280,7 @@ def build_task_params(model, function_name, request, **kwargs):
     subgroup = kwargs.get("subgroup")
     parent_task = kwargs.get("parent_task")
     finished_function = kwargs.get("finished_function")
+    keep_tasks = kwargs.get("keep_tasks", False)
     # print("build_task_params 1: ", datetime.now())
     model_name = camel_to_snake(model.__class__.__name__)
     create_kwargs = {model_name: model}
@@ -295,7 +296,7 @@ def build_task_params(model, function_name, request, **kwargs):
             if task.child_tasks.filter(is_current=True).exists():
                 update_previous_tasks(task.child_tasks.all())
 
-    if not is_massive:
+    if not is_massive and not keep_tasks:
         # print("build_task_params 2.0: ", datetime.now())
         update_previous_tasks(AsyncTask.objects.filter(**create_kwargs))
     # print("build_task_params 2.1: ", datetime.now())
