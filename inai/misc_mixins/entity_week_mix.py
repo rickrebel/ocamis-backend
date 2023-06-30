@@ -35,6 +35,7 @@ class FromAws:
         return [], [], True
 
     def save_merged_from_aws(self, **kwargs):
+        from django.utils import timezone
         from inai.models import TableFile, SheetFile
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from data_param.models import Collection
@@ -61,6 +62,7 @@ class FromAws:
         sums_by_delivered = kwargs.get("sums_by_delivered", {})
         for delivered, count in sums_by_delivered.items():
             setattr(self.entity_week, delivered, count)
+        self.entity_week.last_merge = timezone.now()
         self.entity_week.save()
         return [], [], True
 
@@ -70,7 +72,7 @@ class FromAws:
         self.entity_week.rx_count = month_week_counts["rx_count"]
         self.entity_week.duplicates_count = month_week_counts["dupli"]
         self.entity_week.shared_count = month_week_counts["shared"]
-        self.entity_week.last_transformation = timezone.now()
+        self.entity_week.last_crossing = timezone.now()
         self.entity_week.save()
         # current_entity_months = EntityMonth.objects.filter(
         #     entity_id=self.entity_week.entity_id,

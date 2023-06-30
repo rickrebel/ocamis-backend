@@ -104,6 +104,8 @@ class FromAws:
             if ew.last_merge:
                 if ew.last_transformation < ew.last_crossing < ew.last_merge:
                     continue
+            if self.entity_month.entity_id == 55 and ew.complete:
+                continue
             week_base_table_files = ew.table_files.filter(
                 lap_sheet__lap=0).prefetch_related("lap_sheet__sheet_file")
             table_task = my_insert.merge_week_base_tables(
