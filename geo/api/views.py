@@ -98,15 +98,14 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
             def run_in_thread():
                 new_tasks, errors, s = main_method()
-                time.sleep(0.3)
                 all_tasks.extend(new_tasks)
                 all_errors.extend(errors)
                 comprobate_status(month_task, errors, new_tasks)
-
+                time.sleep(2)
 
             t = threading.Thread(target=run_in_thread)
             t.start()
-            time.sleep(4)
+            # time.sleep(4)
 
         if all_tasks or all_errors:
             return comprobate_status(
