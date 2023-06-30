@@ -47,10 +47,24 @@ def write_split_files(complete_file, simple_name, event):
     header_validated = []
     tail_validated = []
     size_hint = 300 * 1000000
+    has_cut = False
+    cut_lap = 0
     print("size_hint", size_hint)
 
     while True and not errors:
-        buf = complete_file.readlines(size_hint)
+        if has_cut:
+            size_hint = size_hint / 2
+            cut_lap += 1
+        if cut_lap > 7:
+            break
+
+        try:
+            buf = complete_file.readlines(size_hint)
+        except Exception as e:
+            print("Error reading file", e)
+            has_cut = True
+            continue
+
         if not buf:
             print("No hay más datos")
             break

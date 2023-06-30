@@ -605,6 +605,9 @@ class CrossingSheet(models.Model):
     entity_week = models.ForeignKey(
         "EntityWeek", related_name="crossing_sheets",
         on_delete=models.CASCADE, blank=True, null=True)
+    entity_month = models.ForeignKey(
+        EntityMonth, related_name="crossing_sheets",
+        on_delete=models.CASCADE, blank=True, null=True)
     # year_week = models.CharField(max_length=8, blank=True, null=True)
     # iso_year = models.PositiveIntegerField(default=0)
     # iso_week = models.PositiveIntegerField(default=0)

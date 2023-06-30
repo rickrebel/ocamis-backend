@@ -11,8 +11,40 @@ class FromAws:
     def save_month_analysis(self, **kwargs):
         from django.db.models import Sum
         from django.utils import timezone
+        from inai.models import CrossingSheet, SheetFile, LapSheet
+
+        crossing_sheets = CrossingSheet.objects.filter(
+            entity_week__entity_month=self.entity_month).distinct()
+        crossing_sums = crossing_sheets\
+            .aggregate(Sum("duplicates_count"), Sum("shared_count"))\
+            .values("sheet_file_1", "sheet_file_2", "duplicates_count__sum",
+                    "shared_count__sum")
+        # print("crossing_sums", crossing_sums)
+        all_sheet_ids = set()
+        for crossing_sum in crossing_sums:
+            crossing_sheet, _ = CrossingSheet.objects.get_or_create(
+                entity_month=self.entity_month,
+                sheet_file_1_id=crossing_sum["sheet_file_1"],
+                sheet_file_2_id=crossing_sum["sheet_file_2"])
+            all_sheet_ids.add(crossing_sum["sheet_file_1"])
+            all_sheet_ids.add(crossing_sum["sheet_file_2"])
+            crossing_sheet.duplicates_count = crossing_sum["duplicates_count__sum"]
+            crossing_sheet.shared_count = crossing_sum["shared_count__sum"]
+            crossing_sheet.last_crossing = timezone.now()
+            crossing_sheet.save()
+
         sum_fields = [
             "drugs_count", "rx_count", "duplicates_count", "shared_count"]
+        query_sheet_sums = [Sum(field) for field in sum_fields]
+        # query_annotations = {field: Sum(field) for field in sum_fields}
+        all_laps = LapSheet.objects.filter(
+            sheet_file__in=all_sheet_ids, lap=0)
+        for lap_sheet in all_laps:
+            table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
+            for field in sum_fields:
+                setattr(lap_sheet.sheet_file, field, table_sums[field + "__sum"])
+            lap_sheet.sheet_file.save()
+
         # space
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
@@ -44,7 +76,7 @@ class FromAws:
             }
             self.task_params["models"] = [week, self.entity_month]
             self.task_params["function_after"] = "analyze_uniques_after"
-            params_after = self.task_params.get("params_after", { })
+            params_after = self.task_params.get("params_after", {})
             # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
             self.task_params["params_after"] = params_after
             async_task = async_in_lambda(

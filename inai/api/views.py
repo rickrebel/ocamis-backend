@@ -426,6 +426,9 @@ class EntityMonthViewSet(CreateRetrievView):
         crossing_sheets_2 = CrossingSheet.objects.filter(
             sheet_file_2__in=sheet_files)
         all_crossing_sheets = crossing_sheets_1 | crossing_sheets_2
+        if all_crossing_sheets.filter(entity_month__isnull=True).exists():
+            all_crossing_sheets = all_crossing_sheets.filter(
+                entity_month__isnull=True)
 
         all_related_sheets = set()
         for crossing_sheet in all_crossing_sheets:

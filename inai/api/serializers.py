@@ -157,6 +157,9 @@ class SheetFileMonthSerializer(SheetFileSimpleSerializer):
     def get_table_sums(self, obj):
         from django.db.models import Sum, F
         sum_fields = ["drugs_count", "rx_count", "duplicates_count", "shared_count"]
+        if obj.rx_count:
+            final_sums = {field: getattr(obj, field) for field in sum_fields}
+            return final_sums
         query_sums = [Sum(field) for field in sum_fields]
         # query_annotations = {field: Sum(field) for field in sum_fields}
         last_lap = obj.laps.filter(lap=0).first()

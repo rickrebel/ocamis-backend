@@ -298,6 +298,10 @@ def reverse_insert(hard=False):
         .update(last_insertion=None)
     EntityWeek.objects.filter(last_insertion__isnull=False)\
         .update(last_insertion=None)
+    EntityMonth.objects.filter(last_merge__isnull=False)\
+        .update(last_insertion=None)
+    EntityWeek.objects.filter(last_merge__isnull=False)\
+        .update(last_insertion=None)
     if hard:
         AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
         AsyncTask.objects.filter(task_function_id="insert_data").delete()

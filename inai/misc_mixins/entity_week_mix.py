@@ -81,7 +81,7 @@ class FromAws:
     def save_crossing_sheets(self, month_pairs, sheets):
         from django.utils import timezone
         from inai.models import SheetFile, CrossingSheet
-        print("start save_crossing_sheets", timezone.now())
+        # print("start save_crossing_sheets", timezone.now())
         all_errors = []
 
         shared_pairs = month_pairs["shared"]
