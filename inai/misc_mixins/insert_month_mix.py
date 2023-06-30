@@ -68,11 +68,11 @@ class InsertMonth:
         agency_type = self.entity.agency_type[:8].lower()
         acronym = self.entity.acronym.lower()
         final_path = "/".join([agency_type, acronym, only_name])
-
+        s3 = build_s3()
         params = {
             "week_table_files": TableFileAwsSerializer(
                 week_table_files, many=True).data,
-            "s3": build_s3(),
+            "s3": s3,
             "final_path": final_path,
         }
         self.task_params["models"] = [entity_week]

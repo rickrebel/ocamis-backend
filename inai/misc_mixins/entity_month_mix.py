@@ -102,7 +102,7 @@ class FromAws:
 
         for entity_week in entity_weeks:
             week_base_table_files = entity_week.table_files.filter(
-                lap_sheet__lap=0)
+                lap_sheet__lap=0).prefetch_related("lap_sheet__sheet_file")
             table_task = my_insert.merge_week_base_tables(
                 entity_week, week_base_table_files)
             new_tasks.append(table_task)
