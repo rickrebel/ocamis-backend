@@ -698,6 +698,17 @@ class EntityWeek(models.Model):
     last_merge = models.DateTimeField(blank=True, null=True)
     last_insertion = models.DateTimeField(blank=True, null=True)
 
+    # PROVISIONAL HARDCODED
+    zero = models.IntegerField(blank=True, null=True)
+    unknown = models.IntegerField(blank=True, null=True)
+    unavailable = models.IntegerField(blank=True, null=True)
+    partial = models.IntegerField(blank=True, null=True)
+    over_delivered = models.IntegerField(blank=True, null=True)
+    error = models.IntegerField(blank=True, null=True)
+    denied = models.IntegerField(blank=True, null=True)
+    complete = models.IntegerField(blank=True, null=True)
+    cancelled = models.IntegerField(blank=True, null=True)
+
     def __str__(self):
         return f"{self.entity} {self.year_month} - {self.iso_week} - {self.iso_delegation}"
 

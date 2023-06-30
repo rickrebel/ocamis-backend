@@ -27,6 +27,7 @@ def get_object_file(s3, file):
 
 
 def write_split_files(complete_file, simple_name, event):
+    import math
     s3 = event["s3"]
     aws_access_key_id = s3["aws_access_key_id"]
     aws_secret_access_key = s3["aws_secret_access_key"]
@@ -53,7 +54,7 @@ def write_split_files(complete_file, simple_name, event):
 
     while True and not errors:
         if has_cut:
-            size_hint = size_hint / 2
+            size_hint = int(math.ceil(size_hint / 2))
             cut_lap += 1
         if cut_lap > 7:
             break

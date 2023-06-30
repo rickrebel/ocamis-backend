@@ -58,6 +58,10 @@ class FromAws:
             table_file.file = file_path
             table_file.save()
             new_table_files.append(table_file)
+        sums_by_delivered = kwargs.get("sums_by_delivered", {})
+        for delivered, count in sums_by_delivered.items():
+            setattr(self.entity_week, delivered, count)
+        self.entity_week.save()
         return [], [], True
 
     def save_entity_week(self, month_week_counts):

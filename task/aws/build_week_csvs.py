@@ -33,6 +33,7 @@ class BuildWeekAws:
         self.positions = {}
         self.pos_rx_id = 1
         self.pos_delivered = None
+        self.sums_by_delivered = {}
 
         self.headers = {"all": [], "drug": [], "rx": []}
         self.basic_fields = [
@@ -68,6 +69,7 @@ class BuildWeekAws:
         result_data = {
             "result": {
                 "entity_id": self.entity_id,
+                "sums_by_delivered": self.sums_by_delivered,
                 "drug_path": name_drug,
                 "rx_path": name_rx,
                 "errors": errors,
@@ -149,4 +151,7 @@ class BuildWeekAws:
                     current_folio["rx_data"][self.pos_delivered] = delivered
             every_folios[folio_ocamis] = current_folio
         for rx in every_folios.values():
+            delivered_final = rx["rx_data"][self.pos_delivered]
+            self.sums_by_delivered[delivered_final] = \
+                self.sums_by_delivered.get(delivered_final, 0) + 1
             self.buffers["rx"].writerow(rx["rx_data"])
