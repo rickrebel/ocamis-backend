@@ -58,8 +58,7 @@ class InsertMonth:
 
     def merge_week_base_tables(self, entity_week: EntityWeek, week_table_files: list):
         from scripts.common import build_s3
-        from inai.api.serializers import (
-            EntityWeekSimpleSerializer, TableFileAwsSerializer)
+        from inai.api.serializers import TableFileAwsSerializer
         fields_in_name = ["iso_year", "iso_week", "year", "month"]
         complement_name = "_".join([str(getattr(entity_week, field))
                                     for field in fields_in_name])
@@ -71,11 +70,8 @@ class InsertMonth:
         final_path = "/".join([agency_type, acronym, only_name])
 
         params = {
-            # "first_query": first_query,
             "week_table_files": TableFileAwsSerializer(
                 week_table_files, many=True).data,
-            "db_config": ocamis_db,
-            "entity_week": EntityWeekSimpleSerializer(entity_week).data,
             "s3": build_s3(),
             "final_path": final_path,
         }

@@ -1,13 +1,13 @@
 from . import serializers
 from rest_framework import permissions, views, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 from desabasto.api.views import StandardResultsSetPagination
 
 from geo.models import Institution, State, CLUES, Agency, Entity
-from rest_framework.response import Response
-from rest_framework.decorators import action
 
 
 class StateViewSet(ListRetrieveUpdateMix):
@@ -56,31 +56,44 @@ class EntityViewSet(ListRetrieveUpdateMix):
         key_task, task_params = build_task_params(
             entity, main_function_name, request)
 
+        functions = {
+            "send_analysis": {
+                "finished_function": "save_month_analysis",
+                "function_name": "analysis_month",
+                "main_function": "send_analysis",
+            },
+            "merge_files_by_week": {
+                "finished_function": "all_base_tables_merged",
+                "function_name": "rebuild_month",
+                "main_function": "rebuild_month",
+            },
+            "send_months_to_db": {
+                "finished_function": "save_formula_tables",
+                "function_name": "insert_month",
+                "main_function": "insert_month",
+            },
+        }
+        function_data = functions.get(main_function_name, None)
+        if not function_data:
+            return Response(
+                {"error": f"No se encontró la función {main_function_name}"},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        function_name = function_data.get("function_name", None)
+        kwargs = {
+            "parent_task": key_task,
+            "finished_function": function_data.get("finished_function", None),
+        }
+
         for entity_month in entity_months:
-            function_name = "analysis_month" \
-                if main_function_name == "send_analysis" else "insert_month"
-            related_weeks = entity_month.weeks.all()
-            kwargs = {"parent_task": key_task}
-            if main_function_name == "send_analysis":
-                kwargs["finished_function"] = "save_month_analysis"
-            elif main_function_name == "send_months_to_db":
-                kwargs["finished_function"] = "save_formula_tables"
+            # related_weeks = entity_month.weeks.all()
             month_task, task_params = build_task_params(
                 entity_month, function_name, request, **kwargs)
-            base_class = EntityMonthMix(entity_month, task_params)
-            # if function_name == "analysis_month":
-            if not related_weeks.exists():
-                comprobate_status(month_task, [], [])
-                print("No hay semanas relacionadas")
-                continue
             all_tasks.append(month_task)
-            if main_function_name == "send_analysis":
-                new_tasks, errors, s = base_class.send_analysis(related_weeks)
-            elif main_function_name == "send_months_to_db":
-                new_tasks, errors, s = base_class.insert_month()
-            else:
-                new_tasks = []
-                errors = [f"No se encontró la función {main_function_name}"]
+            base_class = EntityMonthMix(entity_month, task_params)
+            main_function = function_data.get("main_function", None)
+            main_method = getattr(base_class, main_function)
+            new_tasks, errors, s = main_method()
             all_tasks.extend(new_tasks)
             all_errors.extend(errors)
 

@@ -118,6 +118,7 @@ class SheetFileInline(admin.StackedInline):
     model = SheetFile
     extra = 0
     show_change_link = True
+    raw_id_fields = ["entity_months"]
 
 
 class DataFileAdmin(admin.ModelAdmin):

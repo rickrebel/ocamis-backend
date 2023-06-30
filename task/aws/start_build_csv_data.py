@@ -437,7 +437,7 @@ class MatchAws:
             current_drug_data = []
             self.last_valid_row = available_data.copy()
             for drug_field in self.model_fields["drug"]:
-                value = available_data.pop(drug_field["name"], None)
+                value = available_data.get(drug_field["name"], None)
                 if value is None:
                     value = locals().get(drug_field["name"])
                 # value = available_data.get(drug_field, locals().get(drug_field))
@@ -733,7 +733,12 @@ class MatchAws:
         for built_col in special_cols["built"]:
             origin_values = []
             for origin_col in built_col["origin_cols"]:
-                origin_values.append(row[origin_col["position"]])
+                if origin_col.get("position"):
+                    origin_values.append(row[origin_col["position"]])
+                elif origin_col.get("final_value"):
+                    origin_values.append(origin_col["final_value"])
+                else:
+                    raise Exception("No se puede construir la columna")
             # concat_char = built_col.get("t_value", "")
             concat_char = built_col.get("only_params_child")
             built_value = concat_char.join(origin_values)
@@ -912,7 +917,7 @@ class MatchAws:
         is_medicament = cat_name == "medicament"
         for flat_field in flat_fields:
             field_name = flat_field["name"]
-            value = available_data.pop(f"{cat_name}_{field_name}", None)
+            value = available_data.get(f"{cat_name}_{field_name}", None)
             if value and is_medicament:
                 if field_name == "key2":
                     value = value.replace(".", "")

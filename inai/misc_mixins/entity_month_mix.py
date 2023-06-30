@@ -23,15 +23,15 @@ class FromAws:
         self.entity_month.save()
         return [], [], True
 
-    def send_analysis(self, related_weeks: list):
-        import time
+    def send_analysis(self):
+        # import time
         from scripts.common import build_s3
         from inai.models import TableFile
         from inai.api.serializers import (
             EntityWeekSimpleSerializer, TableFileAwsSerializer)
 
         all_tasks = []
-        for week in related_weeks:
+        for week in self.entity_month.weeks.all():
             init_data = EntityWeekSimpleSerializer(week).data
             table_files = TableFile.objects.filter(
                 entity_week=week,
@@ -54,11 +54,32 @@ class FromAws:
             #     time.sleep(0.2)
         return all_tasks, [], True
 
+    def rebuild_month(self):
+        from inai.misc_mixins.insert_month_mix import InsertMonth
+        from inai.models import DataFile
+
+        related_sheet_files = self.entity_month.sheet_files.all()
+        data_files_ids = related_sheet_files.values_list(
+            "data_file_id", flat=True).distinct()
+        data_files = DataFile.objects.filter(id__in=data_files_ids)
+        data_files.update(stage_id='merge', status_id='pending')
+
+        my_insert = InsertMonth(self.entity_month, self.task_params)
+        new_tasks = []
+        entity_weeks = self.entity_month.weeks.all()
+
+        for entity_week in entity_weeks:
+            week_base_table_files = entity_week.table_files.filter(
+                lap_sheet__lap=0)
+            table_task = my_insert.merge_week_base_tables(
+                entity_week, week_base_table_files)
+            new_tasks.append(table_task)
+
+        return new_tasks, [], True
+
     def insert_month(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
-        from inai.models import LapSheet, TableFile, SheetFile, DataFile
-        # print("HOLA INSERT_MONTH")
-        # month_table_files = self.entity_month.weeks.table_files.all()
+        from inai.models import LapSheet, TableFile, DataFile
         month_table_files = TableFile.objects\
             .filter(
                 entity_week__entity_month=self.entity_month,
@@ -75,10 +96,6 @@ class FromAws:
         data_files = DataFile.objects.filter(id__in=data_files_ids)
         data_files.update(stage_id='insert', status_id='pending')
 
-        # .filter(sheet_file__data_file__in=month_table_files)\
-        # lap_sheets = LapSheet.objects\
-        #     .filter(table_files__in=month_table_files)\
-        #     .exclude(sheet_file__behavior_id="invalid")
         collection_table_files = TableFile.objects.filter(
             lap_sheet__in=related_lap_sheets,
             collection__app_label="med_cat", inserted=False)
@@ -87,43 +104,19 @@ class FromAws:
                       f"{self.entity_month.year_month}"]
             print("errors", errors)
             return [], errors, False
-        # month_sheet_files = SheetFile.objects.filter(
-        #     id__in=related_lap_sheets.values_list("sheet_file_id", flat=True))\
-        #     .distinct()
-        # related_sheet_files
         if related_sheet_files.filter(behavior_id="pending").exists():
             errors = [f"Hay pestañas pendientes de clasificar para el mes "
                       f"{self.entity_month.year_month}"]
             print("errors", errors)
             return [], errors, False
-        # lap_sheets = lap_sheets.filter(inserted=False)
         my_insert = InsertMonth(self.entity_month, self.task_params)
         new_tasks = []
-        # weeks = month_table_files.values_list(
-        #     "entity_week_id", flat=True).distinct()
-        # weeks = self.entity_month.weeks.values_list("id", flat=True)
-        entity_weeks = self.entity_month.weeks.all()
-        # space
-        # ENVÍO DE TABLAS DE COLECCIÓN
         for lap_sheet in related_lap_sheets:
             current_table_files = collection_table_files.filter(
                 lap_sheet=lap_sheet, collection__app_label="med_cat")
             new_task = my_insert.send_lap_tables_to_db(
                 lap_sheet, current_table_files, "cat_inserted")
             new_tasks.append(new_task)
-        # print("entity_weeks", entity_weeks)
-        for entity_week in entity_weeks:
-            # week_base_table_files = all_entity_table_files.filter(
-            #     iso_year=entity_week.iso_year,
-            #     iso_week=entity_week.iso_week,
-            #     lap_sheet__lap=0)
-            week_base_table_files = entity_week.table_files.filter(
-                lap_sheet__lap=0)
-            table_task = my_insert.merge_week_base_tables(
-                entity_week, week_base_table_files)
-            new_tasks.append(table_task)
-        if not new_tasks:
-            return self.save_formula_tables(self.task_params)
 
         return new_tasks, [], True
 
@@ -133,10 +126,10 @@ class FromAws:
         from task.views import build_task_params
         errors = []
         new_tasks = []
-        month_table_files = []
-        for week in self.entity_month.weeks.all():
-            month_table_files.extend(week.table_files.all().values_list(
-                "id", flat=True))
+        # month_table_files = []
+        # for week in self.entity_month.weeks.all():
+        #     month_table_files.extend(week.table_files.all().values_list(
+        #         "id", flat=True))
         sheet_files = self.entity_month.sheet_files.all()
         lap_sheets = LapSheet.objects\
             .filter(sheet_file__in=sheet_files)\
@@ -186,6 +179,12 @@ class FromAws:
                 new_tasks.append(new_task)
         # space
         return new_tasks, errors, True
+
+    def all_base_tables_merged(self, **kwargs):
+        from django.utils import timezone
+        self.entity_month.last_merge = timezone.now()
+        self.entity_month.save()
+        return [], [], True
 
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone

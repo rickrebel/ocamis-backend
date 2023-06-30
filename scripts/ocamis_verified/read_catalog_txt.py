@@ -301,6 +301,7 @@ def reverse_insert(hard=False):
     if hard:
         AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
         AsyncTask.objects.filter(task_function_id="insert_data").delete()
+        AsyncTask.objects.filter(task_function_id="send_months_to_db").delete()
 
 
 def categorize_clean_functions():
@@ -482,6 +483,16 @@ def assign_entity_to_delegations():
             delegation.save()
         except Exception as e:
             print(e)
+
+
+def move_sheets_to_status(file_control_id):
+    from inai.models import SheetFile, Behavior
+    behavior_merge = Behavior.objects.get(name="need_merge")
+    sheet_files = SheetFile.objects.filter(
+        data_file__petition_file_control_id=file_control_id)
+    sheet_files.update(behavior=behavior_merge)
+
+
 
 
 # assign_year_month_to_sheet_files(53)
