@@ -128,6 +128,7 @@ class Entity(models.Model):
         default=0, verbose_name="Población")
     split_by_delegation = models.BooleanField(
         default=False, verbose_name="Dividir por delegación")
+    is_pilot = models.BooleanField(default=False, verbose_name="Es piloto")
 
     @property
     def agency_type(self):

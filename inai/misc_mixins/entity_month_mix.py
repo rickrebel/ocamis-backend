@@ -17,8 +17,9 @@ class FromAws:
             entity_week__entity_month=self.entity_month).distinct()
         crossing_sums = crossing_sheets\
             .aggregate(Sum("duplicates_count"), Sum("shared_count"))\
-            .values("sheet_file_1", "sheet_file_2", "duplicates_count__sum",
-                    "shared_count__sum")
+            .values_list(
+                "sheet_file_1", "sheet_file_2", "duplicates_count__sum",
+                "shared_count__sum")
         # print("crossing_sums", crossing_sums)
         all_sheet_ids = set()
         for crossing_sum in crossing_sums:
