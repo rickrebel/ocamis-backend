@@ -17,9 +17,9 @@ class FromAws:
             entity_week__entity_month=self.entity_month).distinct()
         crossing_sums = crossing_sheets\
             .aggregate(Sum("duplicates_count"), Sum("shared_count"))\
-            .values_list(
-                "sheet_file_1", "sheet_file_2", "duplicates_count__sum",
-                "shared_count__sum")
+            # .values_list(
+            #     "sheet_file_1", "sheet_file_2", "duplicates_count__sum",
+            #     "shared_count__sum")
         # print("crossing_sums", crossing_sums)
         all_sheet_ids = set()
         for crossing_sum in crossing_sums:
@@ -49,7 +49,7 @@ class FromAws:
         # space
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
-        print("result_sums", result_sums)
+        # print("result_sums", result_sums)
         for field in sum_fields:
             setattr(self.entity_month, field, result_sums[field + "__sum"])
         self.entity_month.last_crossing = timezone.now()
