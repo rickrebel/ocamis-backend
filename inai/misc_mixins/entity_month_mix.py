@@ -15,22 +15,30 @@ class FromAws:
 
         crossing_sheets = CrossingSheet.objects.filter(
             entity_week__entity_month=self.entity_month).distinct()
-        crossing_sums = crossing_sheets\
-            .aggregate(Sum("duplicates_count"), Sum("shared_count"))\
-            # .values_list(
-            #     "sheet_file_1", "sheet_file_2", "duplicates_count__sum",
-            #     "shared_count__sum")
+        crossings_simple = crossing_sheets.values_list(
+            "sheet_file_1", "sheet_file_2").distinct()
+        # crossing_sums = crossing_sheets\
+        #     .aggregate(Sum("duplicates_count"), Sum("shared_count"))\
+        #     .values_list(
+        #         "sheet_file_1", "sheet_file_2", "duplicates_count__sum",
+        #         "shared_count__sum")
         # print("crossing_sums", crossing_sums)
         all_sheet_ids = set()
-        for crossing_sum in crossing_sums:
+        for crossing in crossings_simple:
+            current_crossings = crossing_sheets.filter(
+                entity_month__isnull=True,
+                sheet_file_1_id=crossing[0],
+                sheet_file_2_id=crossing[1])
+            crossing_sums = current_crossings.aggregate(
+                Sum("duplicates_count"), Sum("shared_count"))
             crossing_sheet, _ = CrossingSheet.objects.get_or_create(
                 entity_month=self.entity_month,
-                sheet_file_1_id=crossing_sum["sheet_file_1"],
-                sheet_file_2_id=crossing_sum["sheet_file_2"])
-            all_sheet_ids.add(crossing_sum["sheet_file_1"])
-            all_sheet_ids.add(crossing_sum["sheet_file_2"])
-            crossing_sheet.duplicates_count = crossing_sum["duplicates_count__sum"]
-            crossing_sheet.shared_count = crossing_sum["shared_count__sum"]
+                sheet_file_1_id=crossing[0],
+                sheet_file_2_id=crossing[1])
+            all_sheet_ids.add(crossing[0])
+            all_sheet_ids.add(crossing[1])
+            crossing_sheet.duplicates_count = crossing_sums["duplicates_count__sum"]
+            crossing_sheet.shared_count = crossing_sums["shared_count__sum"]
             crossing_sheet.last_crossing = timezone.now()
             crossing_sheet.save()
 
