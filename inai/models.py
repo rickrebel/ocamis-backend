@@ -639,7 +639,7 @@ class LapSheet(models.Model):
     total_count = models.IntegerField(default=0)
     processed_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
-    drug_count = models.IntegerField(default=0)
+    drugs_count = models.IntegerField(default=0)
     medical_unit_count = models.IntegerField(default=0)
     area_count = models.IntegerField(default=0)
     doctor_count = models.IntegerField(default=0)

@@ -464,7 +464,7 @@ class MatchAws:
             rx_count += len_folios
             totals_by_date[complex_date]["rx_count"] += len_folios
         report_errors["rx_count"] = rx_count
-        report_errors["drug_count"] = success_drugs_count
+        report_errors["drugs_count"] = success_drugs_count
         report_errors["processed_count"] = processed_count
         report_errors["total_count"] = total_count
         report_errors["discarded_count"] = discarded_count

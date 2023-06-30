@@ -4,7 +4,7 @@ SELECT
     rx.iso_year,
     rx.month,
     deliv.name AS delivered_short_name,
-    COUNT(drug.uuid) AS drug_count,
+    COUNT(drug.uuid) AS drugs_count,
     SUM(drug.prescribed_amount) AS total_prescribed_amount,
     SUM(drug.delivered_amount) AS total_delivered_amount
 FROM
@@ -30,32 +30,34 @@ ORDER BY
 SELECT
     inst.code AS code,
     ent.name AS entity_name,
-    rx.iso_year,
-    rx.month,
-    deliv.name AS delivered_short_name,
-    COUNT(drug.uuid) AS drug_count,
-    SUM(drug.prescribed_amount) AS total_prescribed_amount,
-    SUM(drug.delivered_amount) AS total_delivered_amount
+    ew.month,
+    ew.year,
+    SUM(ew.rx_count) as rx_count,
+    SUM(ew.zero) as zero,
+    SUM(ew.unknown) as unknown,
+    SUM(ew.unavailable) as unavailable,
+    SUM(ew.partial) as partial,
+    SUM(ew.over_delivered) as over_delivered,
+    SUM(ew.error) as error,
+    SUM(ew.denied) as denied,
+    SUM(ew.complete) as complete,
+    SUM(ew.cancelled) as cancelled
 FROM
     geo_entity ent
+    JOIN inai_entityweek as ew ON ent.id = ew.entity_id
     JOIN geo_institution inst ON ent.institution_id = inst.id
-    JOIN formula_rx rx ON ent.id = rx.entity_id
-    JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id
-    JOIN med_cat_delivered deliv ON drug.delivered_id = deliv.hex_hash
+WHERE
+    ent.id = 55
 GROUP BY
     ent.name,
     inst.code,
-    rx.iso_year,
-    rx.month,
-    deliv.name
+    ew.month,
+    ew.year
 ORDER BY
     ent.name,
     inst.code,
-    rx.iso_year,
-    rx.month,
-    deliv.name;
-
-
+    ew.month,
+    ew.year;
 
 
 SELECT

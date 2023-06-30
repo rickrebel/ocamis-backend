@@ -174,7 +174,7 @@ class LapSheetAdmin(admin.ModelAdmin):
         "lap",
         "inserted",
         "rx_count",
-        "drug_count",
+        "drugs_count",
         "total_count",
         "sheet_file",
     ]

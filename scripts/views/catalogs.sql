@@ -39,7 +39,7 @@ SELECT
     rx.iso_year,
     rx.iso_week,
     sheet.id AS sheet_id,
-    COUNT(drug.uuid) AS drug_count
+    COUNT(drug.uuid) AS drugs_count
 FROM
     geo_entity ent
     JOIN formula_rx rx ON ent.id = rx.entity_id
@@ -54,7 +54,7 @@ ORDER BY
     ent.id,
     rx.iso_year,
     rx.iso_week,
-    drug_count DESC;
+    drugs_count DESC;
 
 
 SELECT
