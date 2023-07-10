@@ -180,7 +180,8 @@ class SheetFileEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SheetFile
-        fields = "__all__"
+        # fields = "__all__"
+        exclude = ["sample_data", "error_process", "warnings"]
         read_only_fields = ["file", "sheet_name", "data_file", "file_type"]
 
 
@@ -189,7 +190,8 @@ class CrossingSheetSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CrossingSheet
-        fields = "__all__"
+        fields = [
+            "sheet_file_1", "sheet_file_2", "duplicates_count", "shared_count"]
 
 
 class DataFileSimpleSerializer(serializers.ModelSerializer):

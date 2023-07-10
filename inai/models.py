@@ -272,6 +272,13 @@ class EntityMonth(models.Model):
         verbose_name="Proveedor de servicios de salud",
         on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10)
+    year = models.SmallIntegerField(blank=True, null=True)
+    month = models.SmallIntegerField(blank=True, null=True)
+    stage = models.ForeignKey(
+        Stage, on_delete=models.CASCADE,
+        default='explore', verbose_name="Etapa actual")
+    status = models.ForeignKey(
+        StatusTask, on_delete=models.CASCADE, default='finished')
     drugs_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
@@ -296,8 +303,8 @@ class EntityMonth(models.Model):
     class Meta:
         get_latest_by = "year_month"
         ordering = ["year_month"]
-        verbose_name = "Mes de entidad"
-        verbose_name_plural = "Meses de entidad"
+        verbose_name = "8. Mes-proveedor"
+        verbose_name_plural = "8. Meses-proveedores"
 
 
 class PetitionMonth(models.Model):
@@ -518,8 +525,8 @@ class Behavior(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Comportamiento"
-        verbose_name_plural = "4. Comportamientos Merge"
+        verbose_name = "Comportamiento Merge"
+        verbose_name_plural = "CAT. Comportamientos Merge"
 
 
 class SheetFile(models.Model):
@@ -621,8 +628,8 @@ class CrossingSheet(models.Model):
 
     class Meta:
         get_latest_by = "month_agency__year_month"
-        verbose_name = "Mes de cruce"
-        verbose_name_plural = "Meses de cruce"
+        verbose_name = "Cruce de archivos"
+        verbose_name_plural = "5.1 Cruces de archivos"
 
 
 class LapSheet(models.Model):
@@ -692,6 +699,7 @@ class EntityWeek(models.Model):
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
+    crosses = JSONField(blank=True, null=True)
 
     last_crossing = models.DateTimeField(blank=True, null=True)
     last_transformation = models.DateTimeField(blank=True, null=True)
@@ -716,8 +724,8 @@ class EntityWeek(models.Model):
         get_latest_by = ["year_month", "year_week"]
         unique_together = (
             "entity", "year_week", "iso_delegation", "year_month")
-        verbose_name = "Semana de entidad"
-        verbose_name_plural = "7. Semanas de entidad"
+        verbose_name = "Semana-proveedor"
+        verbose_name_plural = "9. Semanas-proveedores"
 
 
 class TableFile(models.Model):

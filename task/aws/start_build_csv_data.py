@@ -384,6 +384,11 @@ class MatchAws:
             available_data = self.generic_match("medicament", available_data)
 
             folio_document = available_data.get("folio_document")
+            if not folio_document:
+                error = "Folio Documento; No se encontró folio documento"
+                self.append_missing_row(row, error)
+                continue
+
             folio_ocamis = "|".join([
                 str(self.entity_id),
                 str(iso_year),
@@ -835,29 +840,34 @@ class MatchAws:
                     if value == self.last_date and value:
                         value = self.last_date_formatted
                     else:
+                        # print("case")
                         if self.string_date == "MANY":
                             format_date = field.get("format_date").split(";")
                             string_dates = [date.strip() for date in format_date]
                         else:
                             string_dates = self.string_dates
+                        is_success = False
                         for string_format in string_dates:
+                            # print("string_format", string_format)
+                            # print("value", value)
                             try:
                                 if string_format == "EXCEL":
-                                    self.last_date = value
                                     days = int(value)
-                                    seconds = (value - days) * 86400
+                                    seconds = (float(value) - days) * 86400
                                     seconds = round(seconds)
                                     value = datetime(1899, 12, 30) + timedelta(
                                         days=days, seconds=seconds)
-                                    self.last_date_formatted = value
-                                    break
                                 else:
                                     value = datetime.strptime(value, string_format)
-                                    break
+                                self.last_date = value
+                                self.last_date_formatted = value
+                                is_success = True
+                                break
                             except ValueError:
-                                value = None
                                 pass
-                        if not value:
+                            except TypeError:
+                                pass
+                        if not is_success:
                             error = "No se pudo convertir la fecha"
                     # else:
                     #     self.last_date = value

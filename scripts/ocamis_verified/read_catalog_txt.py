@@ -36,141 +36,6 @@ def find_lines_with_regex(file_path="fixture/catalogo_clues_issste.txt"):
 
 # missing_clues = find_lines_with_regex()
 
-ISSSTE_DELEGATIONS = [
-    ["AGUASCALIENTES", []],
-    ["BAJA CALIFORNIA", []],
-    ["BAJA CALIFORNIA SUR", []],
-    ["CAMPECHE", []],
-    ["COAHUILA", []],
-    ["COLIMA", []],
-    ["CHIAPAS", []],
-    ["CHIHUAHUA", []],
-    ["DURANGO", []],
-    ["GUANAJUATO", []],
-    ["GUERRERO", []],
-    ["HIDALGO", []],
-    ["JALISCO", []],
-    ["ESTADO DE MÉXICO", ["MÉXICO"]],
-    ["MICHOACÁN", []],
-    ["MORELOS", []],
-    ["NAYARIT", []],
-    ["NUEVO LEÓN", []],
-    ["OAXACA", []],
-    ["PUEBLA", []],
-    ["QUERÉTARO", []],
-    ["QUINTANA ROO", []],
-    ["SAN LUIS POTOSÍ", ["SAN LUIS POTOSI"]],
-    ["SINALOA", []],
-    ["SONORA", []],
-    ["TABASCO", []],
-    ["TAMAULIPAS", []],
-    ["TLAXCALA", []],
-    ["VERACRUZ", []],
-    ["YUCATÁN", []],
-    ["ZACATECAS", []],
-    ["CD.MX. ZONA NORTE", ["ZONA NORTE"]],
-    ["CD.MX. ZONA ORIENTE", ["ZONA ORIENTE"]],
-    ["CD.MX. ZONA PONIENTE", ["ZONA PONIENTE"]],
-    ["CD.MX. ZONA SUR", ["ZONA SUR"]],
-]
-
-
-def import_delegations():
-    from geo.models import Delegation, State, Institution
-    issste = Institution.objects.get(code="ISSSTE")
-    Delegation.objects.filter(institution=issste).delete()
-    for delegation in ISSSTE_DELEGATIONS:
-        try:
-            if "CD.MX." in delegation[0] or "ZONA " in delegation[0]:
-                state = State.objects.get(code_name="CDMX")
-            else:
-                state = State.objects.get(short_name__icontains=delegation[0])
-        except State.DoesNotExist:
-            print("State not found: ", delegation)
-            continue
-        except State.MultipleObjectsReturned:
-            print("Multiple states found: ", delegation)
-            state = State.objects.get(short_name__iexact=delegation[0])
-        #Delegation.objects.get_or_create(
-        Delegation.objects.create(
-            name=delegation[0], state=state, institution=issste,
-            other_names=delegation[1])
-
-# import_delegations()
-
-
-def generate_insabi_delegations():
-    from geo.models import Delegation, State, Institution
-    insabi = Institution.objects.get(code="INSABI")
-    states = State.objects.all()
-    for state in states:
-        name = f"{state.short_name} - INSABI"
-        Delegation.objects.get_or_create(
-            name=name, state=state, institution=insabi)
-
-
-UMAES = [
-    ['UMAE Cardiología en Nuevo León', "NLIMS000315"],
-    ['UMAE Cardiología C.M.N. Siglo XXI', "DFIMS000580"],
-    ['UMAE Especialidades C.M.N. La Raza', "DFIMS000020"],
-    ['UMAE Especialidades C.M.N. Siglo XXI', "DFIMS000580"],
-    ['UMAE Especialidades Coahuila', "CLIMS000490"],
-    ['UMAE Especialidades Guanajuato', "GTIMS000226"],
-    ['UMAE Especialidades Jalisco', "JCIMS000301"],
-    ['UMAE Especialidades Nuevo León', "NLIMS000303"],
-    ['UMAE Especialidades Puebla', "PLIMS000200"],
-    ['UMAE Especialidades Sonora', "SRIMS000150"],
-    ['UMAE Especialidades Veracruz (Nte.)', "VZIMS001112"],
-    ['UMAE Especialidades Yucatán', "YNIMS000071"],
-    ['UMAE Gineco - Obstetricia Jalisco', "JCIMS000313"],
-    ['UMAE Gineco - Obstetricia La Raza', "DFIMS000044"],
-    ['UMAE Gineco - Obstetricia No. 4 (D.F. Sur)', "DFIMS000452"],
-    ['UMAE Gineco - Obstetricia Nuevo León', "NLIMS000320"],
-    ['UMAE Gineco - Pediatría Guanajuato', "GTIMS000231"],
-    ['UMAE Hospital General C.M.N. La Raza', "DFIMS000061"],
-    ['UMAE Oncología C.M.N. Siglo XXI', "DFIMS000604"],
-    ['UMAE Pediatría C.M.N. Siglo XXI', "DFIMS000616"],
-    ['UMAE Pediatría Jalisco', "JCIMS000325"],
-    ['UMAE Trauma y Orto M.S. "Dr. Victorio de la Fuente Narváez"', "DFIMS000213"],
-    ['UMAE Traumatología y Ortopedia Lomas Verdes', "MCIMS000454"],
-    ['UMAE Traumatología y Ortopedia Nuevo León', "NLIMS000344"],
-    ['UMAE Traumatología y Ortopedia Puebla', "PLIMS000212"]]
-
-IMSS_DELEGATIONS = [
-    ["DELEG NORTE", "Ciudad de México"],
-    ["DELEG SUR", "Ciudad de México"],
-    ["EDOMEX ORIENTE", "Estado de México"],
-    ["EDOMEX PONIENTE", "Estado de México"],
-    ["VERACRUZ PUERTO", "VERACRUZ"],
-    ["VERACRUZ SUR", "VERACRUZ"]]
-
-
-def generate_imss_delegations():
-    from geo.models import Delegation, State, Institution, CLUES
-    imss = Institution.objects.get(code="IMSS")
-    states = State.objects.all()
-    for state in states:
-        short_name = state.short_name.upper()
-        if short_name in ["VERACRUZ", "CIUDAD DE MÉXICO", "ESTADO DE MÉXICO"]:
-            continue
-        deleg, created = Delegation.objects.get_or_create(
-            name=short_name, state=state, institution=imss)
-    for delegation_name, clues_clave in UMAES:
-        clues = CLUES.objects.get(clues=clues_clave)
-        delegation, c = Delegation.objects.get_or_create(
-            name=delegation_name, institution=imss,
-            is_clues=True, state=clues.state)
-        # print("Delegation: ", delegation)
-        alternative_names = clues.alternative_names or []
-        alternative_names.append(delegation_name)
-        clues.delegation = delegation
-        clues.alternative_names = alternative_names
-        clues.save()
-    for delegation_name, state_name in IMSS_DELEGATIONS:
-        state = State.objects.get(short_name__iexact=state_name)
-        Delegation.objects.get_or_create(
-            name=delegation_name, institution=imss, state=state)
-
 
 def generate_agency_delegations():
     from geo.models import Delegation, Agency
@@ -244,68 +109,6 @@ def delete_insabi_delegations():
     from geo.models import Delegation, Institution
     insabi = Institution.objects.get(code="INSABI")
     Delegation.objects.filter(institution=insabi, clues__isnull=True).delete()
-
-
-def reverse_transform(only_count=False, entity=None, every_files=False):
-    from inai.models import DataFile, LapSheet, TableFile
-    finished_transform = DataFile.objects.filter(
-        stage_id="transform", status_id="finished")
-    if entity:
-        finished_transform = finished_transform.filter(
-            petition_file_control__petition__agency__entity_id=entity)
-    print("Finished transform: ", finished_transform.count())
-    need_reverse = 0
-    for data_file in finished_transform:
-        if every_files:
-            with_missed = LapSheet.objects.filter(
-                sheet_file__data_file=data_file, lap=0)
-        elif only_count:
-            with_missed = LapSheet.objects.filter(
-                sheet_file__data_file=data_file, lap=0,
-                missing_rows__gt=0, row_errors__icontains="Conteo distinto")
-        else:
-            with_missed = LapSheet.objects.filter(
-                sheet_file__data_file=data_file, lap=0,
-                missing_fields__gt=0, missing_rows=0)
-        if with_missed.exists():
-            need_reverse += 1
-            print("data_file: ", data_file)
-            data_file.stage_id = "cluster"
-            data_file.status_id = "finished"
-            data_file.save()
-            # with_missed.delete()
-    print("Need reverse: ", need_reverse)
-
-
-# reverse_transform(True, agency=7)
-# reverse_transform(False, 53, True)
-
-
-def reverse_insert(hard=False):
-    from inai.models import (
-        DataFile, TableFile, LapSheet, EntityMonth, EntityWeek)
-    from task.models import AsyncTask
-    # TableFile.objects.filter(inserted=True).update(inserted=False)
-    LapSheet.objects.filter(inserted=True).update(inserted=False)
-    LapSheet.objects.filter(inserted=None).update(inserted=False)
-    lap_sheets = LapSheet.objects.filter(cat_inserted=True)
-    lap_sheets.update(
-        missing_inserted=False, cat_inserted=False, inserted=False)
-    TableFile.objects.update(inserted=False)
-    DataFile.objects.filter(stage_id="insert")\
-        .update(stage_id="transform", status_id="finished")
-    EntityMonth.objects.filter(last_insertion__isnull=False)\
-        .update(last_insertion=None)
-    EntityWeek.objects.filter(last_insertion__isnull=False)\
-        .update(last_insertion=None)
-    EntityMonth.objects.filter(last_merge__isnull=False)\
-        .update(last_merge=None)
-    EntityWeek.objects.filter(last_merge__isnull=False)\
-        .update(last_Merge=None)
-    if hard:
-        AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
-        AsyncTask.objects.filter(task_function_id="insert_data").delete()
-        AsyncTask.objects.filter(task_function_id="send_months_to_db").delete()
 
 
 def categorize_clean_functions():
@@ -461,6 +264,17 @@ def assign_year_week_to_entity_weeks():
         crossing_sheet.save()
 
 
+def assign_year_month_to_entity_months():
+    from inai.models import EntityMonth
+    all_entity_months = EntityMonth.objects.all()
+    for entity_month in all_entity_months:
+        year_month = entity_month.year_month
+        year, month = year_month.split("-")
+        entity_month.year = year
+        entity_month.month = month
+        entity_month.save()
+
+
 def save_entity_months():
     from inai.models import SheetFile, EntityMonth
     all_sheet_files = SheetFile.objects.filter(
@@ -497,7 +311,13 @@ def move_sheets_to_status(file_control_id):
     sheet_files.update(behavior=behavior_merge)
 
 
-
+def analyze_every_months(entity_id):
+    from inai.misc_mixins.entity_month_mix import FromAws
+    from inai.models import EntityMonth
+    all_months = EntityMonth.objects.filter(entity_id=entity_id)
+    for month in all_months:
+        from_aws = FromAws(month)
+        from_aws.save_month_analysis()
 
 # assign_year_month_to_sheet_files(53)
 # move_delegation_clues()

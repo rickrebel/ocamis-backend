@@ -63,9 +63,12 @@ class EntityWeekAdmin(admin.ModelAdmin):
         "rx_count",
         "duplicates_count",
     ]
-    list_filter = ["entity__acronym", "year"]
+    list_filter = ["entity__acronym", "year", "month"]
     raw_id_fields = ["entity", "entity_month"]
     inlines = [TableFileInline]
+    search_fields = [
+        "entity__acronym", "entity__state__short_name", "year_week",
+        "year_month", "iso_delegation"]
 
 
 class EntityMonthAdmin(admin.ModelAdmin):
@@ -207,13 +210,24 @@ class TableFileAdmin(admin.ModelAdmin):
 class CrossingSheetAdmin(admin.ModelAdmin):
     list_display = [
         "entity_week",
+        "entity_month",
         "duplicates_count",
         "shared_count",
+        "last_crossing",
         "sheet_file_1",
         "sheet_file_2",
     ]
-    list_filter = ["entity_week__entity__acronym"]
-    raw_id_fields = ["entity_week", "sheet_file_1", "sheet_file_2"]
+    list_filter = [
+        "entity_week__entity__acronym", "entity_week__year",
+        "entity_week__month", "entity_week__iso_delegation",
+        "entity_month__entity__acronym", "entity_month__year",
+        "entity_month__month"]
+    raw_id_fields = [
+        "entity_week", "sheet_file_1", "sheet_file_2", "entity_month"]
+    search_fields = [
+        "entity_week__year_week", "entity_week__year_month",
+        "entity_month__year_month", "entity_month__entity__acronym",
+        "entity_week__entity__acronym", "entity_week__iso_delegation"]
 
 
 class BehaviorAdmin(admin.ModelAdmin):

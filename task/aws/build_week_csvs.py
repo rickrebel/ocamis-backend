@@ -34,6 +34,7 @@ class BuildWeekAws:
         self.pos_rx_id = 1
         self.pos_delivered = None
         self.sums_by_delivered = {}
+        self.drugs_count = 0
 
         self.headers = {"all": [], "drug": [], "rx": []}
         self.basic_fields = [
@@ -70,6 +71,7 @@ class BuildWeekAws:
             "result": {
                 "entity_id": self.entity_id,
                 "sums_by_delivered": self.sums_by_delivered,
+                "drugs_count": self.drugs_count,
                 "drug_path": name_drug,
                 "rx_path": name_rx,
                 "errors": errors,
@@ -121,6 +123,7 @@ class BuildWeekAws:
             for field in self.basic_fields:
                 current_util.append(row[self.positions.get(field)])
             sheet_id, folio_ocamis, current_uuid, current_delivered = current_util
+            self.drugs_count += 1
             current_drug = row[:self.pos_uuid_folio]
             if folio_ocamis not in every_folios:
                 every_folios[folio_ocamis] = {

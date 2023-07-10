@@ -87,7 +87,9 @@ class FromAws:
         final_paths = kwargs.get("final_paths", []) or []
         lap_sheet_aws = LapSheetAws(lap_sheet)
         new_task, errors, data = lap_sheet_aws.save_result_csv(final_paths)
+
         all_months = kwargs.get("all_months", []) or []
+
         if len(all_months) == 0:
             errors.append("No se encontraron meses")
         else:

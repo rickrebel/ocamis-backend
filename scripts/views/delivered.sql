@@ -64,6 +64,45 @@ ORDER BY
 SELECT
     inst.code AS code,
     ent.name AS entity_name,
+    deleg.name AS delegation_name,
+    ew.month,
+    ew.year,
+    SUM(ew.rx_count) as rx_count,
+    SUM(ew.zero) as zero,
+    SUM(ew.unknown) as unknown,
+    SUM(ew.unavailable) as unavailable,
+    SUM(ew.partial) as partial,
+    SUM(ew.over_delivered) as over_delivered,
+    SUM(ew.error) as error,
+    SUM(ew.denied) as denied,
+    SUM(ew.complete) as complete,
+    SUM(ew.cancelled) as cancelled
+FROM
+    geo_entity ent
+    JOIN inai_entityweek as ew ON ent.id = ew.entity_id
+    JOIN geo_delegation as deleg ON deleg.id = ew.iso_delegation
+    JOIN geo_institution inst ON ent.institution_id = inst.id
+WHERE
+    ent.id = 55
+GROUP BY
+    ent.name,
+    delegation_name,
+    inst.code,
+    ew.month,
+    ew.year
+ORDER BY
+	ew.year,
+    ew.month,
+    inst.code,
+    ent.name,
+    delegation_name;
+
+
+
+
+SELECT
+    inst.code AS code,
+    ent.name AS entity_name,
     rx.iso_year,
     rx.month,
     df2.name AS deliv_drug,

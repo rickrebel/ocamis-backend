@@ -20,7 +20,7 @@ class FromAws:
         unique_counts = kwargs.get("month_week_counts", {})
         month_pairs = kwargs.get("month_pairs", {})
         month_sheets = kwargs.get("month_sheets", {})
-        self.save_entity_week(unique_counts)
+        self.save_entity_week(unique_counts, month_pairs)
         errors = self.save_crossing_sheets(month_pairs, month_sheets)
         all_errors += errors
 
@@ -63,15 +63,20 @@ class FromAws:
         for delivered, count in sums_by_delivered.items():
             setattr(self.entity_week, delivered, count)
         self.entity_week.last_merge = timezone.now()
+        self.entity_week.drugs_count = kwargs.get("drugs_count", 0)
         self.entity_week.save()
         return [], [], True
 
-    def save_entity_week(self, month_week_counts):
+    def save_entity_week(self, month_week_counts, month_pairs):
         from django.utils import timezone
-        self.entity_week.drugs_count = month_week_counts["drugs_count"]
-        self.entity_week.rx_count = month_week_counts["rx_count"]
-        self.entity_week.duplicates_count = month_week_counts["dupli"]
-        self.entity_week.shared_count = month_week_counts["shared"]
+        fields = ["drugs_count", "rx_count", "dupli", "shared"]
+        for field in fields:
+            setattr(self.entity_week, field, month_week_counts[field])
+        self.entity_week.crosses = month_pairs
+        # self.entity_week.drugs_count = month_week_counts["drugs_count"]
+        # self.entity_week.rx_count = month_week_counts["rx_count"]
+        # self.entity_week.duplicates_count = month_week_counts["dupli"]
+        # self.entity_week.shared_count = month_week_counts["shared"]
         self.entity_week.last_crossing = timezone.now()
         self.entity_week.save()
         # current_entity_months = EntityMonth.objects.filter(
@@ -90,12 +95,12 @@ class FromAws:
         # print("start save_crossing_sheets", timezone.now())
         all_errors = []
 
-        shared_pairs = month_pairs["shared"]
         edited_crosses = []
 
         for sheet_id, value in sheets.items():
             table_file = self.entity_week.table_files.filter(
-                lap_sheet__lap=0, lap_sheet__sheet_file_id=sheet_id)
+                lap_sheet__lap=0,
+                lap_sheet__sheet_file_id=sheet_id)
             if self.split_by_delegation:
                 pass
             elif table_file.count() != 1:
@@ -123,16 +128,18 @@ class FromAws:
                 shared_count=value["shared"]
             )
 
-        def same_year_month(cr):
-            year_months = [cr.sheet_file_1.year_month, cr.sheet_file_2.year_month]
-            some_is_same = self.entity_week.year_month in year_months
-            if some_is_same:
-                edited_crosses.append(cr.id)
-            return some_is_same
+        return all_errors
+        # def same_year_month(cr):
+        #     year_months = [cr.sheet_file_1.year_month, cr.sheet_file_2.year_month]
+        #     some_is_same = self.entity_week.year_month in year_months
+        #     if some_is_same:
+        #         edited_crosses.append(cr.id)
+        #     return some_is_same
 
         already_shared = set()
         CrossingSheet.objects.filter(entity_week=self.entity_week).delete()
         current_crosses = []
+        shared_pairs = month_pairs["shared"]
         for pair, value in month_pairs["dupli"].items():
             # shared_count = shared_pairs.pop(pair, 0)
             # print("pair", pair)

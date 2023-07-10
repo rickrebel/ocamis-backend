@@ -13,34 +13,41 @@ class FromAws:
         from django.utils import timezone
         from inai.models import CrossingSheet, SheetFile, LapSheet
 
-        crossing_sheets = CrossingSheet.objects.filter(
-            entity_week__entity_month=self.entity_month).distinct()
-        crossings_simple = crossing_sheets.values_list(
-            "sheet_file_1", "sheet_file_2").distinct()
-        # crossing_sums = crossing_sheets\
-        #     .aggregate(Sum("duplicates_count"), Sum("shared_count"))\
-        #     .values_list(
-        #         "sheet_file_1", "sheet_file_2", "duplicates_count__sum",
-        #         "shared_count__sum")
-        # print("crossing_sums", crossing_sums)
+        from_aws = kwargs.get("from_aws", False)
+
+        related_weeks = self.entity_month.weeks.all()
+        all_crosses = {}
+        for related_week in related_weeks:
+            crosses = related_week.crosses
+            for pair, value in crosses["dupli"].items():
+                if pair in all_crosses:
+                    all_crosses[pair]["dupli"] += value
+                else:
+                    all_crosses[pair] = {"dupli": value, "shared": 0}
+            for pair, value in crosses["shared"].items():
+                if pair in all_crosses:
+                    all_crosses[pair]["shared"] += value
+                else:
+                    all_crosses[pair] = {"dupli": 0, "shared": value}
+        CrossingSheet.objects.filter(entity_month=self.entity_month).delete()
+
         all_sheet_ids = set()
-        for crossing in crossings_simple:
-            current_crossings = crossing_sheets.filter(
-                entity_month__isnull=True,
-                sheet_file_1_id=crossing[0],
-                sheet_file_2_id=crossing[1])
-            crossing_sums = current_crossings.aggregate(
-                Sum("duplicates_count"), Sum("shared_count"))
-            crossing_sheet, _ = CrossingSheet.objects.get_or_create(
+        current_crosses = []
+        for pair, value in all_crosses.items():
+            sheet_1, sheet_2 = pair.split("|")
+            crossing_sheet = CrossingSheet(
                 entity_month=self.entity_month,
-                sheet_file_1_id=crossing[0],
-                sheet_file_2_id=crossing[1])
-            all_sheet_ids.add(crossing[0])
-            all_sheet_ids.add(crossing[1])
-            crossing_sheet.duplicates_count = crossing_sums["duplicates_count__sum"]
-            crossing_sheet.shared_count = crossing_sums["shared_count__sum"]
-            crossing_sheet.last_crossing = timezone.now()
-            crossing_sheet.save()
+                sheet_file_1_id=sheet_1,
+                sheet_file_2_id=sheet_2,
+                duplicates_count=value["dupli"],
+                shared_count=value["shared"],
+                last_crossing=timezone.now(),
+            )
+            all_sheet_ids.add(sheet_1)
+            all_sheet_ids.add(sheet_2)
+            current_crosses.append(crossing_sheet)
+
+        CrossingSheet.objects.bulk_create(current_crosses)
 
         sum_fields = [
             "drugs_count", "rx_count", "duplicates_count", "shared_count"]
@@ -60,7 +67,8 @@ class FromAws:
         # print("result_sums", result_sums)
         for field in sum_fields:
             setattr(self.entity_month, field, result_sums[field + "__sum"])
-        self.entity_month.last_crossing = timezone.now()
+        if from_aws:
+            self.entity_month.last_crossing = timezone.now()
         self.entity_month.save()
         return [], [], True
 
@@ -241,10 +249,3 @@ class FromAws:
         self.entity_month.save()
         return [], [], True
 
-
-def analyze_every_months(entity_id):
-    from inai.models import EntityMonth
-    all_months = EntityMonth.objects.filter(entity_id=entity_id)
-    for month in all_months:
-        from_aws = FromAws(month)
-        from_aws.save_month_analysis()

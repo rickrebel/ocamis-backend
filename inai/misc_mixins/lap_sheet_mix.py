@@ -12,7 +12,6 @@ class FromAws:
         from inai.models import TableFile, EntityMonth, EntityWeek
         from django.utils import timezone
 
-        all_new_files = []
         new_tasks = []
         all_errors = []
         entity = self.lap_sheet.sheet_file.data_file.entity
@@ -35,8 +34,9 @@ class FromAws:
             string_id = "_".join([str(x) for x in concat_id])
             dict_entity_weeks[string_id] = entity_week["id"]
 
-        TableFile.objects.filter(lap_sheet=self.lap_sheet, inserted=False)\
-                         .delete()
+        TableFile.objects\
+            .filter(lap_sheet=self.lap_sheet, inserted=False)\
+            .delete()
         new_table_files = []
         entity_weeks_ids = []
         for result_file in result_files:

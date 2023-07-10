@@ -416,9 +416,10 @@ class EntityMonthViewSet(CreateRetrievView):
         from inai.api.serializers import (SheetFileMonthSerializer)
         from inai.models import CrossingSheet
         entity_month = self.get_object()
-        sheet_files = SheetFile.objects.filter(
-            laps__table_files__entity_week__entity_month=entity_month)\
-            .distinct()
+        sheet_files = entity_month.sheet_files.all()
+        # sheet_files = SheetFile.objects.filter(
+        #     laps__table_files__entity_week__entity_month=entity_month)\
+        #     .distinct()
         serializer_sheet_files = SheetFileMonthSerializer(
             sheet_files, many=True)
         crossing_sheets_1 = CrossingSheet.objects.filter(
@@ -426,14 +427,17 @@ class EntityMonthViewSet(CreateRetrievView):
         crossing_sheets_2 = CrossingSheet.objects.filter(
             sheet_file_2__in=sheet_files)
         all_crossing_sheets = crossing_sheets_1 | crossing_sheets_2
-        if all_crossing_sheets.filter(entity_month__isnull=True).exists():
+        if all_crossing_sheets.filter(entity_month__isnull=False).exists():
             all_crossing_sheets = all_crossing_sheets.filter(
-                entity_month__isnull=True)
+                entity_month__isnull=False)
 
         all_related_sheets = set()
         for crossing_sheet in all_crossing_sheets:
             all_related_sheets.add(crossing_sheet.sheet_file_1_id)
             all_related_sheets.add(crossing_sheet.sheet_file_2_id)
+        for initial_sheet in sheet_files:
+            if initial_sheet.id in all_related_sheets:
+                all_related_sheets.remove(initial_sheet.id)
         related_sheet_files = SheetFile.objects.filter(
             id__in=list(all_related_sheets))
         serializer_related_files = SheetFileMonthSerializer(
@@ -452,14 +456,24 @@ class EntityMonthViewSet(CreateRetrievView):
         entity_month = self.get_object()
 
         behavior = request.data.get("behavior")
-        sheet_files = SheetFile.objects\
-            .filter(
-                laps__table_files__entity_week__entity_month=entity_month,
+        for_all = request.data.get("all", False)
+        sheet_files = entity_month.sheet_files.filter(
+            rx_count__gt=0,
+            laps__lap=0)
+        # sheet_files = SheetFile.objects.filter(
+        #     laps__table_files__entity_week__entity_month=entity_month,
+        #     rx_count__gt=0,
+        #     laps__lap=0)
+        if for_all:
+            sheet_files = sheet_files.exclude(
                 duplicates_count=0,
                 shared_count=0,
-                rx_count__gt=0,
-                laps__lap=0)\
-            .distinct()
+            ).distinct()
+        else:
+            sheet_files = sheet_files.filter(
+                duplicates_count=0,
+                shared_count=0,
+            ).distinct()
         sheet_files.update(behavior_id=behavior)
         return Response(status=status.HTTP_200_OK)
 
