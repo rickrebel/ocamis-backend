@@ -12,19 +12,19 @@ def lambda_handler(event, context):
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries", [])
     queries_by_model = event.get("queries_by_model", {})
-    print("start", datetime.now())
+    # print("start", datetime.now())
     connection = create_connection(db_config)
     errors = []
     cursor = connection.cursor()
     first_query = event.get("first_query")
     last_query = event.get("last_query")
-    print("before first_query", datetime.now())
+    # print("before first_query", datetime.now())
     if first_query:
         cursor.execute(first_query)
         result = cursor.fetchone()
         if result[0]:
             errors.append(f"Ya se había insertado la pestaña y su lap")
-    print("after first_query", datetime.now())
+    # print("after first_query", datetime.now())
     if not errors:
         try:
             for sql_query in sql_queries:
@@ -47,7 +47,7 @@ def lambda_handler(event, context):
     #     result = cursor.fetchone()
     #     if not result[0]:
     #         errors.append(f"Hubo un error al ejecutar la última consulta")
-    print("after queries", datetime.now())
+    # print("after queries", datetime.now())
     final_result = {
         "lap_sheet_id": lap_sheet_id,
         "entity_month_id": entity_month_id,

@@ -183,7 +183,8 @@ class LapSheetAdmin(admin.ModelAdmin):
     ]
     inlines = [TableFileInline]
     search_fields = [
-        "sheet_file__file", "sheet_file__data_file__file",
+        # "sheet_file__filename",
+        # "sheet_file__data_file__file",
         "sheet_file__data_file_id"]
     list_filter = [
         "sheet_file__data_file__entity__acronym", "lap",
@@ -202,7 +203,8 @@ class TableFileAdmin(admin.ModelAdmin):
         "lap_sheet",
         "file",
     ]
-    list_filter = ["inserted", "entity__acronym", "collection", "year"]
+    list_filter = [
+        "inserted", "entity__acronym", "collection", "year", "month"]
     search_fields = ["year_month", "year_week"]
     raw_id_fields = ["lap_sheet", "entity_week"]
 

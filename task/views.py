@@ -118,6 +118,7 @@ def execute_function_aws(current_task, function_name, result, errors=None):
     # print("NAME MODEL: ", name_model)
     # print("METHOD: ", method)
     result["from_aws"] = True
+
     method, task_params, error = get_method(current_obj)
     if method:
         try:
@@ -174,8 +175,9 @@ class AWSMessage(generic.View):
         current_task.date_arrive = datetime.now()
         # print("RESULT: ", result)
         current_task.result = result
-        current_task.save()
         new_result = result.copy()
+        new_result.update(current_task.params_after or {})
+        current_task.save()
         function_after = current_task.function_after
         execute_function_aws(current_task, function_after, new_result, errors)
 

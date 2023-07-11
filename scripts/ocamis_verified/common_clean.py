@@ -51,13 +51,26 @@ def reverse_insert(hard=False):
         .update(last_insertion=None)
     EntityWeek.objects.filter(last_insertion__isnull=False)\
         .update(last_insertion=None)
-    EntityMonth.objects.filter(last_merge__isnull=False)\
-        .update(last_merge=None)
+    # EntityMonth.objects.filter(last_merge__isnull=False)\
+    #     .update(last_merge=None)
     EntityWeek.objects.filter(last_merge__isnull=False)\
-        .update(last_Merge=None)
+        .update(last_merge=None)
     SheetFile.objects.filter(behavior="merged").update(behavior="need_merge")
     if hard:
         AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
         AsyncTask.objects.filter(task_function_id="insert_data").delete()
         AsyncTask.objects.filter(task_function_id="send_months_to_db").delete()
 
+
+def save_success_params_after():
+    from task.models import AsyncTask
+    from inai.models import TableFile
+    success_tasks = AsyncTask.objects.filter(
+        task_function_id='save_csv_in_db', status_task_id="finished")
+    for task in success_tasks:
+        params_after = task.params_after or {}
+        table_files_ids = params_after.get("table_files_ids", [])
+        if not table_files_ids:
+            continue
+        table_files = TableFile.objects.filter(id__in=table_files_ids)
+        table_files.update(inserted=True)

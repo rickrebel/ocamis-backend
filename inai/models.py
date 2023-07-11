@@ -581,6 +581,10 @@ class SheetFile(models.Model):
             lap_number = last_lap.lap + 1 if last_lap.inserted else last_lap.lap
         return lap_number if lap_number >= 0 else 0
 
+    @property
+    def filename(self):
+        return str(self.file)
+
     def save_stage(self, status_id, errors):
         self.stage_id = status_id
         if errors:

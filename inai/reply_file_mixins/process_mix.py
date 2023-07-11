@@ -45,14 +45,15 @@ class ReplyFileMix:
         errors = []
         parent_task = task_params.get("parent_task")
         params_after = parent_task.params_after
+        pet_file_ctrl_id = params_after["pet_file_ctrl_id"]
+        # pet_file_ctrl_id = kwargs.get("pet_file_ctrl")
         if "errorMessage" in kwargs:
             errors.append(kwargs["errorMessage"])
             return None, errors
         if kwargs.get('errors'):
             errors += kwargs['errors']
         all_data_files_ids = []
-        pet_file_ctrl = PetitionFileControl.objects\
-            .get(id=params_after["pet_file_ctrl_id"])
+        pet_file_ctrl = PetitionFileControl.objects.get(id=pet_file_ctrl_id)
         all_files = kwargs.get("files", [])
         print("all_files", all_files)
         for data_file in all_files:

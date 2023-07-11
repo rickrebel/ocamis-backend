@@ -210,9 +210,13 @@ class FromAws:
         data_files = DataFile.objects.filter(id__in=data_files_ids)
         data_files.update(stage_id='insert', status_id='pending')
 
+        pending_lap_sheets = related_lap_sheets.filter(
+            cat_inserted=False, lap=0)
+
         collection_table_files = TableFile.objects.filter(
-            lap_sheet__in=related_lap_sheets,
-            collection__app_label="med_cat", inserted=False)
+            lap_sheet__in=pending_lap_sheets,
+            collection__app_label="med_cat",
+            inserted=False)
         if not collection_table_files.exists() and not month_table_files.exists():
             errors = ["No existen tablas por insertar para el mes "
                       f"{self.entity_month.year_month}"]
@@ -225,9 +229,11 @@ class FromAws:
             return [], errors, False
         my_insert = InsertMonth(self.entity_month, self.task_params)
         new_tasks = []
-        for lap_sheet in related_lap_sheets:
+        for lap_sheet in pending_lap_sheets:
             current_table_files = collection_table_files.filter(
                 lap_sheet=lap_sheet, collection__app_label="med_cat")
+            if not current_table_files.exists():
+                continue
             new_task = my_insert.send_lap_tables_to_db(
                 lap_sheet, current_table_files, "cat_inserted")
             new_tasks.append(new_task)

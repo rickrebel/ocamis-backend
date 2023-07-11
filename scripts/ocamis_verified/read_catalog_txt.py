@@ -319,6 +319,11 @@ def analyze_every_months(entity_id):
         from_aws = FromAws(month)
         from_aws.save_month_analysis_prev()
 
+
+
+
+
+
 # assign_year_month_to_sheet_files(53)
 # move_delegation_clues()
 # delete_insabi_delegations()
