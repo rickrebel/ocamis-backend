@@ -36,6 +36,10 @@ def lambda_handler(event, context):
             sheet_name,
             dtype='string', na_filter=False,
             keep_default_na=False, header=None)
+        data_excel = data_excel.replace(
+            to_replace=[r"\\t|\\n|\\r", "\t|\n|\r", "\|"],
+            value=[" > ", " > ", ";"],
+            regex=True)
         csv_buffer = io.StringIO()
         total_rows = data_excel.shape[0]
         data_excel.to_csv(

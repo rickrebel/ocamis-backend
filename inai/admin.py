@@ -80,7 +80,7 @@ class EntityMonthAdmin(admin.ModelAdmin):
     ]
     raw_id_fields = ["entity", "agency"]
     filter_horizontal = ["petition"]
-    list_filter = ["entity", "year_month"]
+    list_filter = ["entity__acronym", "year_month"]
     inlines = [EntityWeekInline]
 
 
@@ -204,7 +204,8 @@ class TableFileAdmin(admin.ModelAdmin):
         "file",
     ]
     list_filter = [
-        "inserted", "entity__acronym", "collection", "year", "month"]
+        "inserted", "entity__acronym", "collection", "year", "month",
+        "iso_delegation"]
     search_fields = ["year_month", "year_week"]
     raw_id_fields = ["lap_sheet", "entity_week"]
 

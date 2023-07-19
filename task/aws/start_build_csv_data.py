@@ -11,7 +11,8 @@ from task.aws.common import (
 
 available_delivered = [
     "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
-    "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO"]
+    "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
+    "Surtida Parc o No surtida", "Surtida"]
 
 
 def text_normalizer(text):
@@ -264,6 +265,7 @@ class MatchAws:
         self.last_valid_row = None
         self.last_date_formatted = None
         self.is_prepare = init_data.get("is_prepare", False)
+        self.example_count = 0
 
     def build_csv_to_data(self, file):
 
@@ -337,7 +339,14 @@ class MatchAws:
                 continue
             # if last_date != date[:10]:
             #     last_date = date[:10]
-            iso_date = some_date.isocalendar()
+            try:
+                iso_date = some_date.isocalendar()
+            except Exception as e:
+                # print(some_date)
+                error = f"Error en fecha {some_date}; {e}"
+                # print(error)
+                self.append_missing_row(row, error)
+                continue
             iso_year = iso_date[0]
             iso_week = iso_date[1]
             iso_day = iso_date[2]
@@ -788,6 +797,7 @@ class MatchAws:
         # fields_with_name = [field for field in self.existing_fields
         #                     if field["name"]]
         # for field in fields_with_name:
+        self.example_count += 1
         for field in self.existing_fields:
             error = None
             if field.get("position"):
@@ -799,8 +809,20 @@ class MatchAws:
                 if value is None or value == "":
                     value = null_to_value
             same_group_data = field.get("same_group_data")
+            copied = False
+            # if self.example_count < 15:
+            #     print("------------------")
+            #     print("field:", field.get("name"))
+            #     print("value:", value)
+            #     print("last_valid_row:", self.last_valid_row)
+            #     print("same_group_data:", same_group_data)
             if not value and same_group_data and self.last_valid_row:
                 value = self.last_valid_row.get(field["name"])
+                copied = True
+                if field["data_type"] == "Datetime":
+                    some_date = value
+            # if self.example_count < 15:
+            #     print("value final:", value)
             if not value:
                 continue
             if "almost_empty" in field:
@@ -836,9 +858,12 @@ class MatchAws:
             try:
                 if not value:
                     pass
+                elif copied:
+                    pass
                 elif field["data_type"] == "Datetime":  # and not is_same_date:
                     if value == self.last_date and value:
                         value = self.last_date_formatted
+                        # print("same")
                     else:
                         # print("case")
                         if self.string_date == "MANY":
@@ -859,6 +884,7 @@ class MatchAws:
                                         days=days, seconds=seconds)
                                 else:
                                     value = datetime.strptime(value, string_format)
+                                # print("value", value)
                                 self.last_date = value
                                 self.last_date_formatted = value
                                 is_success = True
@@ -875,6 +901,7 @@ class MatchAws:
                     #     self.last_date_formatted = value
                     if not some_date or field["name"] == "date_delivery":
                         some_date = value
+                        # print("some_date", some_date)
                 elif field["data_type"] == "Integer":
                     value = int(value)
                     if value < 0:

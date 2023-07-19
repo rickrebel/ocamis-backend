@@ -63,13 +63,6 @@ class InstitutionListSerializer(serializers.ModelSerializer):
         read_only_fields = ["responsables"]
 
 
-class EntitySerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Entity
-        fields = "__all__"
-
-
 class CLUESSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -77,6 +70,26 @@ class CLUESSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'real_name', 'alter_clasifs',
                   'prev_clasif_name', 'clasif_name', 'number_unity',
                   'total_unities', 'municipality']
+
+
+class EntityCatSerializer(serializers.ModelSerializer):
+    institution = InstitutionSerializer(read_only=True)
+    state = StateSimpleSerializer(read_only=True)
+    clues = CLUESSerializer(read_only=True, source="ent_clues", many=True)
+
+    class Meta:
+        model = Entity
+        fields = [
+            "id", "institution", "state", "clues", "name", "entity_type",
+            "acronym", "notes", "assigned_to", "status_opera"]
+
+
+class EntitySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Entity
+        fields = "__all__"
+        read_only_fields = ["name", "acronym"]
 
 
 class CLUESListSerializer(serializers.ModelSerializer):
@@ -147,30 +160,35 @@ class AgencyFileControlsSerializer(serializers.ModelSerializer):
         fields = ["file_controls"]
 
 
-# from inai.api.serializers import SheetFileSimpleSerializer
-# return SheetFileSimpleSerializer(queryset, many=True).data
-# queryset = SheetFile.objects\
-#     .filter(data_file__entity=obj.entity)\
-#     .order_by("year_month")
-# class AgencyFullSerializer(AgencySerializer):
+class EntityFileControlsSerializer(serializers.ModelSerializer):
+    file_controls = serializers.SerializerMethodField(read_only=True)
+
+    def get_file_controls(self, obj):
+        from data_param.models import FileControl
+        from data_param.api.serializers import FileControlSemiFullSerializer
+        queryset = FileControl.objects\
+            .filter(agency__entity=obj)\
+            .distinct()\
+            .order_by("data_group", "id")\
+            .prefetch_related(
+                "data_group",
+                "columns",
+                "columns__column_transformations",
+            )
+        return FileControlSemiFullSerializer(queryset, many=True).data
+
+    class Meta:
+        model = Entity
+        fields = ["file_controls"]
+
+
 class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
     from inai.api.serializers import (
         PetitionSemiFullSerializer, EntityMonthSerializer)
 
     petitions = PetitionSemiFullSerializer(many=True)
-    #agency_type = read_only_fields(many=True)
-    # months = EntityMonthSimpleSerializer(many=True)
     entity_months = EntityMonthSerializer(many=True, source="entity.entity_months")
-    # sheet_files_summarize3 = serializers.SerializerMethodField(read_only=True)
     sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
-    # sheet_files_summarize2 = serializers.SerializerMethodField(read_only=True)
-
-    # def get_sheet_files_summarize3(self, obj):
-    #     from django.db.models import Count
-    #     from inai.models import SheetFile
-    #     all_sheets = SheetFile.objects.filter(data_file__entity=obj.entity)
-    #     return all_sheets.values("behavior", "year_month").annotate(
-    #         count=Count("behavior"))
 
     def get_sheet_files_summarize(self, obj):
         from django.db.models import Count
@@ -199,24 +217,55 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
         # return all_sheets
         return count_by_year_month_and_behavior
 
-    # sheet_files = serializers.SerializerMethodField(read_only=True)
-    #
-    # def get_sheet_files(self, obj):
-    #     from inai.models import SheetFile
-    #     from django.db.models import Sum
-    #     result = SheetFile.objects\
-    #         .filter(data_file__entity=obj.entity)\
-    #         .values("year_month")\
-    #         .annotate(
-    #             rx_count=Sum("rx_count"),
-    #             duplicates_count=Sum("duplicates_count"),
-    #             shared_count=Sum("shared_count"),
-    #         )\
-    #         .order_by("year_month")
-    #     return result
-
     class Meta:
         model = Agency
+        fields = "__all__"
+
+
+class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
+    from inai.api.serializers import EntityMonthSerializer
+
+    # petitions = PetitionSemiFullSerializer(many=True)
+    petitions = serializers.SerializerMethodField(read_only=True)
+    entity_months = EntityMonthSerializer(many=True)
+    sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
+
+    def get_petitions(self, obj):
+        from inai.api.serializers import PetitionSemiFullSerializer
+        from inai.models import Petition
+        petitions = Petition.objects\
+            .filter(agency__entity=obj)\
+            .prefetch_related(
+                "agency",
+                "file_controls",
+                "negative_reasons",
+                "break_dates"
+            )
+        serializer = PetitionSemiFullSerializer(petitions, many=True)
+        return serializer.data
+
+    def get_sheet_files_summarize(self, obj):
+        from django.db.models import Count
+        from inai.models import EntityMonth
+        count_by_year_month_and_behavior = []
+        all_entity_months = EntityMonth.objects\
+            .filter(entity=obj)\
+            .order_by("year_month")
+        for entity_month in all_entity_months:
+            behavior_counts = entity_month.sheet_files\
+                .filter(behavior__isnull=False)\
+                .values("behavior")\
+                .annotate(count=Count("behavior"))
+            for behavior_count in behavior_counts:
+                count_by_year_month_and_behavior.append({
+                    "year_month": entity_month.year_month,
+                    "behavior": behavior_count["behavior"],
+                    "count": behavior_count["count"]
+                })
+        return count_by_year_month_and_behavior
+
+    class Meta:
+        model = Entity
         fields = "__all__"
 
 

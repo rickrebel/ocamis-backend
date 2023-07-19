@@ -169,6 +169,7 @@ class Platform(models.Model):
     class Meta:
         verbose_name = u"Plataforma"
         verbose_name_plural = "Plataformas"
+        ordering = ["-version"]
 
     def __str__(self):
         return self.version

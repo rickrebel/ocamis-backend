@@ -57,6 +57,11 @@ class InstitutionAdmin(admin.ModelAdmin):
         "relevance"]
 
 
+class AgencyInline(admin.TabularInline):
+    model = Agency
+    extra = 0
+
+
 class EntityAdmin(admin.ModelAdmin):
     list_display = [
         "name",
@@ -66,6 +71,7 @@ class EntityAdmin(admin.ModelAdmin):
         "is_clues",
         "population",
     ]
+    inlines = [AgencyInline]
     list_filter = ["is_clues", "institution"]
 
 

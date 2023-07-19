@@ -30,22 +30,26 @@ from task.api.serializers import (
     StatusTaskSimpleSerializer, TaskFunctionSerializer, StageSimpleSerializer)
 
 from geo.models import Agency, Entity
-from geo.api.serializers import AgencySerializer, EntitySerializer
+from geo.api.serializers import (
+    AgencySerializer, EntitySerializer, EntityCatSerializer)
 
 
 class CatalogView(views.APIView):
     permission_classes = (permissions.AllowAny, )
 
     def get(self, request):
-        #data = {}
+        # data = {}
         agencies_query = Agency.objects.filter().prefetch_related(
             "institution", "state", "clues")
+        entities_query = Entity.objects.filter().prefetch_related(
+            "institution", "state", "ent_clues")
         final_fields_query = FinalField.objects.filter(dashboard_hide=False)
 
         data = {
             "agencies": AgencySerializer(agencies_query, many=True).data,
             "entities": EntitySerializer(Entity.objects.all(), many=True).data,
-            ## CATÁLOGOS DE PARÁMETROS:
+            "entities2": EntityCatSerializer(Entity.objects.all(), many=True).data,
+            # CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,
             "collections": CollectionSimpleSerializer(
@@ -54,7 +58,7 @@ class CatalogView(views.APIView):
                 ParameterGroup.objects.all(), many=True).data,
             "final_fields": FinalFieldSimpleSerializer(
                 final_fields_query, many=True).data,
-            ## TASKS:
+            # TASKS:
             "status_tasks": StatusTaskSimpleSerializer(
                 StatusTask.objects.all(), many=True).data,
             "task_functions": TaskFunctionSerializer(
@@ -62,7 +66,7 @@ class CatalogView(views.APIView):
             "stages": StageSimpleSerializer(
                 Stage.objects.all(), many=True).data,
 
-            ## CATÁLOGOS GENERALES:
+            # CATÁLOGOS GENERALES:
             "data_types": DataTypeSimpleSerializer(
                 DataType.objects.all(), many=True).data,
             "clean_functions": CleanFunctionSimpleSerializer(

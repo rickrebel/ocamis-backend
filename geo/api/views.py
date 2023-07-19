@@ -26,15 +26,16 @@ class EntityViewSet(ListRetrieveUpdateMix):
     queryset = Entity.objects.all()
 
     action_serializers = {
+        "retrieve": serializers.EntityFullSerializer,
+        "update": serializers.EntitySerializer,
         "list": serializers.EntitySerializer,
         "send_months": serializers.EntitySerializer,
     }
 
     def get(self, request):
-        print("ESTOY EN GET")
-        agency = self.get_object()
-        serializer = serializers.AgencyFullSerializer(
-            agency, context={ 'request': request })
+        entity = self.get_object()
+        serializer = serializers.EntityFullSerializer(
+            entity, context={ 'request': request })
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["post"], detail=True, url_path='send_months')

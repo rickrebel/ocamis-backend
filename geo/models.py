@@ -1,5 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
+from category.models import StatusControl
+from django.contrib.auth.models import User
 
 
 def set_upload_path_entity(instance, filename):
@@ -129,9 +131,17 @@ class Entity(models.Model):
     split_by_delegation = models.BooleanField(
         default=False, verbose_name="Dividir por delegación")
     is_pilot = models.BooleanField(default=False, verbose_name="Es piloto")
+    notes = models.TextField(blank=True, null=True, verbose_name="Notas")
+    assigned_to = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.CASCADE,
+        verbose_name="Asignado a")
+    status_opera = models.ForeignKey(
+        StatusControl, null=True, blank=True,
+        verbose_name="Status de los registro de variables",
+        on_delete=models.CASCADE)
 
     @property
-    def agency_type(self):
+    def entity_type(self):
         if self.is_clues:
             return 'Hospital Federal'
         elif self.state:
@@ -152,6 +162,7 @@ class Entity(models.Model):
         return self.name
 
     class Meta:
+        ordering = ["state__name"]
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores"
 
@@ -471,5 +482,3 @@ class Agency(models.Model):
         verbose_name = "Sujeto Obligado"
         verbose_name_plural = "Sujetos Obligados"
         db_table = 'catalog_agency'
-
-

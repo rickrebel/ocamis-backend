@@ -162,7 +162,6 @@ class FromAws:
         self.entity_month.save()
         return [], [], True
 
-
     def rebuild_month(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import DataFile

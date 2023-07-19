@@ -44,7 +44,9 @@ def reverse_insert(hard=False):
     lap_sheets = LapSheet.objects.filter(cat_inserted=True)
     lap_sheets.update(
         missing_inserted=False, cat_inserted=False, inserted=False)
-    TableFile.objects.update(inserted=False)
+    inserted_table_files = TableFile.objects.filter(inserted=True)
+    inserted_table_files.update(inserted=False)
+    # TableFile.objects.update(inserted=False)
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
     EntityMonth.objects.filter(last_insertion__isnull=False)\
@@ -53,13 +55,14 @@ def reverse_insert(hard=False):
         .update(last_insertion=None)
     # EntityMonth.objects.filter(last_merge__isnull=False)\
     #     .update(last_merge=None)
-    EntityWeek.objects.filter(last_merge__isnull=False)\
-        .update(last_merge=None)
-    SheetFile.objects.filter(behavior="merged").update(behavior="need_merge")
+    # EntityWeek.objects.filter(last_merge__isnull=False)\
+    #     .update(last_merge=None)
+    # SheetFile.objects.filter(behavior="merged").update(behavior="need_merge")
     if hard:
-        AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
-        AsyncTask.objects.filter(task_function_id="insert_data").delete()
         AsyncTask.objects.filter(task_function_id="send_months_to_db").delete()
+        AsyncTask.objects.filter(task_function_id="insert_data").delete()
+        AsyncTask.objects.filter(task_function_id="insert_month").delete()
+        AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
 
 
 def save_success_params_after():
