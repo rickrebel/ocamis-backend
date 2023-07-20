@@ -134,7 +134,7 @@ def async_in_lambda(function_name, params, task_params):
         subgroup = query_kwargs.get("subgroup", False)
         if not many_pending and entity_month and not subgroup:
             pending_tasks = pending_tasks.filter(
-                entity_month=query_kwargs["entity_month"])
+                entity_month=query_kwargs["entity_month"], subgroup=None)
         if pending_tasks.count() > 0:
             query_kwargs["status_task_id"] = "queue"
             is_pending = True
