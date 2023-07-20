@@ -426,9 +426,17 @@ def comprobate_queue(current_task):
     if not current_task.task_function.is_queueable:
         return
     if current_task.status_task.is_completed:
-        next_task = AsyncTask.objects.filter(
+        queue_tasks = AsyncTask.objects.filter(
             task_function_id=current_task.task_function_id,
-            status_task_id="queue").order_by("id").first()
+            status_task_id="queue")
+        next_task = None
+        if queue_tasks.exists() and current_task.entity_month:
+            entity_month_tasks = queue_tasks.filter(
+                entity_month=current_task.entity_month)
+            if entity_month_tasks.exists():
+                next_task = entity_month_tasks.order_by("id").first()
+        if not next_task:
+            next_task = queue_tasks.order_by("id").first()
         if next_task:
             execute_async(next_task, next_task.original_request)
         # elif not settings.IS_LOCAL:

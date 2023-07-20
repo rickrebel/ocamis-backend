@@ -50,3 +50,21 @@ SELECT
 FROM formula_rx
 GROUP BY delivered_final_id;
 
+
+SELECT * FROM public.formula_rx
+WHERE uuid_folio = '53216182-a857-4d53-b4b5-b952428806e7';
+
+
+SELECT * FROM public.formula_rx
+WHERE iso_year = 2017 AND iso_week = 26 AND iso_delegation = 325 AND month = 6 and iso_year = 2017;
+LIMIT 400;
+
+DELETE FROM public.formula_rx
+WHERE iso_year = 2017 AND iso_week = 26 AND iso_delegation = 325 AND month = 6;
+
+DELETE FROM public.formula_drug
+WHERE rx_id IN ('002c045e-9579-4eba-950d-def58dfca681', '003fc78b-c0e5-4d1d-968c-cb3fc181d541');
+
+SELECT * FROM public.formula_drug
+WHERE rx_id IN ('002c045e-9579-4eba-950d-def58dfca681', '003fc78b-c0e5-4d1d-968c-cb3fc181d541');
+

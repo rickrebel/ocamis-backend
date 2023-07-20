@@ -67,6 +67,17 @@ class FromAws:
         self.entity_week.save()
         return [], [], True
 
+    def rebuild_week_csv_after(self, **kwargs):
+        from inai.models import TableFile
+        drugs_count = kwargs.get("drugs_count", 0)
+        table_file = TableFile.objects.get(
+            entity_week=self.entity_week,
+            collection__snake_name="drug")
+        table_file.drugs_count = drugs_count
+        table_file.save()
+        self.entity_week.drugs_count = drugs_count
+        return [], [], True
+
     def save_entity_week(self, month_week_counts, month_pairs):
         from django.utils import timezone
         fields = ["drugs_count", "rx_count", "dupli", "shared"]

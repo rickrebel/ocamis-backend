@@ -77,3 +77,12 @@ def save_success_params_after():
             continue
         table_files = TableFile.objects.filter(id__in=table_files_ids)
         table_files.update(inserted=True)
+
+
+def resend_possible_success():
+    from inai.models import TableFile
+    table_files_ids = [
+        293729, 293728, 293727, 83449, 83334, 83263,
+        296677, 296676, 296675, 82636, 82533, 82485]
+    table_files = TableFile.objects.filter(id__in=table_files_ids)
+    table_files.update(inserted=True)

@@ -320,7 +320,41 @@ def analyze_every_months(entity_id):
         from_aws.save_month_analysis_prev()
 
 
+def send_entity_weeks_to_rebuild(table_file_id=None):
+    from data_param.models import Collection
+    from inai.models import TableFile, EntityWeek
+    from django.contrib.auth.models import User
+    from scripts.common import build_s3
+    from task.views import build_task_params
+    from task.serverless import async_in_lambda
+    drug_collection = Collection.objects.get(model_name="Drug")
+    all_table_files = TableFile.objects.filter(
+        collection=drug_collection, entity_week__isnull=False)
+    if table_file_id:
+        all_table_files = all_table_files.filter(id=table_file_id)
+    print("table_files", all_table_files.count())
+    # return None
+    class RequestClass:
+        def __init__(self):
+            self.user = User.objects.get(username="rickrebel@gmail.com")
+    # request = RequestClass()
+    # key_task, task_params = build_task_params(
+    #     entity_week, "rebuild_week_csv", request)
+    for table_file in all_table_files:
+        entity_week = table_file.entity_week
+        if entity_week:
+            params = {
+                "final_path": table_file.file.name,
+                "s3": build_s3(),
+                "entity_week_id": entity_week.id,
+            }
+            task_params = {
+                "models": [entity_week]
+            }
+            async_in_lambda("rebuild_week_csv", params, task_params)
 
+
+send_entity_weeks_to_rebuild(603990)
 
 
 

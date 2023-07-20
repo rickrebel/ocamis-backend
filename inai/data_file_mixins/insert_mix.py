@@ -27,6 +27,54 @@ def build_copy_sql_aws(table_file, model_in_db, columns_join):
     """
 
 
+def rebuild_primary_key(cursor, table_name, constraint):
+    from inai.models import EntityWeek
+    from task.models import AsyncTask
+    from task.serverless import execute_async
+    fields = [
+        "entity_id", "iso_year", "month", "iso_week", "iso_delegation",
+        "month", "year"]
+    try:
+        cursor.execute(constraint)
+    except Exception as e:
+        str_e = str(e)
+        # Key (uuid_folio)=(d0c82080-f73e-4cf7-9e65-557c6ecfa64b) is duplicated.
+        if "is duplicated" in str_e and "Key (uuid_folio)" in str_e:
+            value = str_e.split("Key (uuid_folio)=")[1].split(")")[0]
+            print("value", value)
+
+            query_duplicates = f"""
+                SELECT {", ".join(fields)} 
+                 FROM {table_name} WHERE uuid_folio = '{value}'
+            """
+            cursor.execute(query_duplicates)
+            result = cursor.fetchone()
+            get_params = {field: result[i] for i, field in enumerate(fields)}
+            entity_week = EntityWeek.objects.get(**get_params)
+            print("entity_week", entity_week)
+            complement_delete_rx = [f"{field} = {result[i]}"
+                                    for i, field in enumerate(fields)]
+            query_delete_rx = f"""
+                DELETE FROM formula_rx WHERE {", ".join(complement_delete_rx)}
+            """
+            print("query_delete_rx", query_delete_rx)
+            cursor.execute(query_delete_rx)
+            complement_delete_drug = f"""
+                DELETE FROM formula_drug WHERE entity_week_id = {entity_week.id}
+            """
+            print("complement_delete_drug", complement_delete_drug)
+            cursor.execute(complement_delete_drug)
+            # last_insertion = entity_week.last_insertion
+            entity_week.last_insertion = None
+            entity_week.save()
+            task = AsyncTask.objects.filter(
+                entity_week=entity_week, task_function_id='save_csv_in_db')
+            if task.exists():
+                next_task = task.first()
+                execute_async(next_task, next_task.original_request)
+            rebuild_primary_key(cursor, table_name, constraint)
+
+
 def modify_constraints(is_create=True, is_rebuild=False):
     from scripts.ocamis_verified.constrains import get_constraints
     from datetime import datetime
@@ -36,14 +84,28 @@ def modify_constraints(is_create=True, is_rebuild=False):
     with_change = False
     cursor = connection.cursor()
     print("START", datetime.now())
+
     if is_create:  # and not platform.has_constrains:
         print("create_constrains")
         with_change = True
         for constraint in create_constrains:
-            print(">>>>> time:", datetime.now())
-            print("constraint", constraint)
-            cursor.execute(constraint)
-            print("--------------------------")
+            try:
+                print(">>>>> time:", datetime.now())
+                print("constraint", constraint)
+                if "formula_rx_pkey" in constraint:
+                    rebuild_primary_key(cursor, "formula_rx", constraint)
+                else:
+                    cursor.execute(constraint)
+                print("--------------------------")
+            except Exception as e:
+                str_e = str(e)
+                if "already exists" in str_e:
+                    continue
+                if "multiple primary keys" in str_e:
+                    continue
+                print("constraint", constraint)
+                print(f"ERROR:\n, {e}, \n--------------------------")
+                raise e
     elif not is_create:  # and platform.has_constrains:
         print("delete_constrains")
         with_change = True

@@ -8,6 +8,7 @@ from task.aws.xls_to_csv import lambda_handler as xls_to_csv
 from task.aws.decompress_gz import lambda_handler as decompress_gz
 from task.aws.analyze_uniques import lambda_handler as analyze_uniques
 from task.aws.build_week_csvs import lambda_handler as build_week_csvs
+from task.aws.rebuild_week_csv import lambda_handler as rebuild_week_csv
 
 
 def camel_to_snake(name):
@@ -123,6 +124,10 @@ def async_in_lambda(function_name, params, task_params):
         pending_tasks = AsyncTask.objects.filter(
             task_function__is_queueable=True,
             status_task__is_completed=False)
+        many_pending = pending_tasks.count() > 3
+        if not many_pending and query_kwargs.get("entity_month", False):
+            pending_tasks = pending_tasks.filter(
+                entity_month=query_kwargs["entity_month"])
         if pending_tasks.count() > 0:
             query_kwargs["status_task_id"] = "queue"
             is_pending = True

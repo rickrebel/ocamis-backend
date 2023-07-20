@@ -82,8 +82,10 @@ class Drug(models.Model):
     #     SheetFile, on_delete=models.CASCADE)
     sheet_file = models.IntegerField()
     row_seq = models.PositiveIntegerField(blank=True, null=True)
-    lap_sheet = models.ForeignKey(
-        LapSheet, on_delete=models.CASCADE)
+    # lap_sheet = models.ForeignKey(
+    #     LapSheet, on_delete=models.CASCADE)
+    lap_sheet = models.IntegerField()
+    entity_week_id = models.IntegerField(blank=True, null=True)
 
     medicament = models.ForeignKey(
         Medicament, blank=True, null=True,

@@ -767,6 +767,12 @@ class TableFile(models.Model):
     def __str__(self):
         return "%s %s" % (self.collection, self.lap_sheet)
 
+    @property
+    def final_path(self):
+        from django.conf import settings
+        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        return self.file.url if is_prod else self.file.path
+
     class Meta:
         verbose_name = "Archivo para insertar"
         verbose_name_plural = "6. Archivos para insertar"
