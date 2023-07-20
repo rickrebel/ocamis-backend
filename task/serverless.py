@@ -110,7 +110,7 @@ def async_in_lambda(function_name, params, task_params):
         "status_task_id": "pending",
         "date_start": datetime.now(),
     }
-    for field in ["parent_task", "params_after"]:
+    for field in ["parent_task", "params_after", "subgroup"]:
         if field in task_params:
             query_kwargs[field] = task_params[field]
 
@@ -130,7 +130,9 @@ def async_in_lambda(function_name, params, task_params):
                 .filter(entity_month__isnull=False) \
                 .values("entity_month").distinct().count()
             many_pending = entity_months_count > 3
-        if not many_pending and query_kwargs.get("entity_month", False):
+        entity_month = query_kwargs.get("entity_month", False)
+        subgroup = query_kwargs.get("subgroup", False)
+        if not many_pending and entity_month and not subgroup:
             pending_tasks = pending_tasks.filter(
                 entity_month=query_kwargs["entity_month"])
         if pending_tasks.count() > 0:

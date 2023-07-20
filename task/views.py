@@ -87,7 +87,6 @@ def execute_function_aws(current_task, function_name, result, errors=None):
     if not errors:
         errors = []
 
-    final_errors = []
     new_tasks = []
 
     def get_method(model_obj):
@@ -112,27 +111,29 @@ def execute_function_aws(current_task, function_name, result, errors=None):
                 pass
         return final_method, task_parameters, err
 
-    model, current_obj = find_task_model(current_task)
-    # print("CURRENT OBJ: ", current_obj)
-    # name_model = current_obj.__class__.__name__
-    # print("NAME MODEL: ", name_model)
-    # print("METHOD: ", method)
-    result["from_aws"] = True
+    if not errors:
+        final_errors = []
+        model, current_obj = find_task_model(current_task)
+        # print("CURRENT OBJ: ", current_obj)
+        # name_model = current_obj.__class__.__name__
+        # print("NAME MODEL: ", name_model)
+        # print("METHOD: ", method)
+        result["from_aws"] = True
 
-    method, task_params, error = get_method(current_obj)
-    if method:
-        try:
-            new_tasks, final_errors, data = method(
-                **result, task_params=task_params)
-        except Exception:
-            import traceback
-            error_ = traceback.format_exc()
-            print("ERROR EN EL MÉTODO: ", error_)
-            final_errors.append(str(error_))
-    else:
-        print(error)
-        final_errors.append(error)
-    errors.extend(final_errors or [])
+        method, task_params, error = get_method(current_obj)
+        if method:
+            try:
+                new_tasks, final_errors, data = method(
+                    **result, task_params=task_params)
+            except Exception:
+                import traceback
+                error_ = traceback.format_exc()
+                print("ERROR EN EL MÉTODO: ", error_)
+                final_errors.append(str(error_))
+        else:
+            print(error)
+            final_errors.append(error)
+        errors.extend(final_errors or [])
     current_task.date_end = datetime.now()
     return comprobate_status(current_task, errors, new_tasks)
 
@@ -286,7 +287,10 @@ def build_task_params(model, function_name, request, **kwargs):
     # print("build_task_params 1: ", datetime.now())
     model_name = camel_to_snake(model.__class__.__name__)
     create_kwargs = {model_name: model}
-    is_massive = bool(subgroup)
+    is_massive = False
+    if bool(subgroup):
+        create_kwargs["subgroup"] = subgroup
+        is_massive = "|" in subgroup
 
     def update_previous_tasks(tasks):
         # print("TASKS Previous: ", tasks)
@@ -307,7 +311,6 @@ def build_task_params(model, function_name, request, **kwargs):
         create_kwargs["finished_function"] = finished_function
     if is_massive:
         create_kwargs["is_massive"] = True
-        create_kwargs["subgroup"] = subgroup
     # print("build_task_params 3: ", datetime.now())
     task_function, created = TaskFunction.objects.get_or_create(
         name=function_name)
@@ -368,24 +371,33 @@ def execute_finished_function(parent_task):
         parent_task=parent_task,
         task_function_id=finished_function)
     if brothers_in_finish.exists():
-        return "finished"
-    else:
-        params_after = parent_task.params_after or {}
-        params_finished = params_after.get("params_finished", {})
+        return comprobate_children_with_errors(parent_task)
+    params_after = parent_task.params_after or {}
+    params_finished = params_after.get("params_finished", {})
 
-        class RequestClass:
-            def __init__(self):
-                self.user = parent_task.user
-        req = RequestClass()
-        add_elems = {"parent_task": parent_task}
-        model, current_obj = find_task_model(parent_task)
-        new_task, task_params = build_task_params(
-            current_obj, finished_function, req, **add_elems)
-        new_task = execute_function_aws(
-            new_task, finished_function, params_finished)
-        is_final = new_task.status_task.is_completed
-        parent_status_task_id = "finished" if is_final else "children_tasks"
-    return parent_status_task_id
+    class RequestClass:
+        def __init__(self):
+            self.user = parent_task.user
+    req = RequestClass()
+    add_elems = {"parent_task": parent_task}
+    model, current_obj = find_task_model(parent_task)
+    new_task, task_params = build_task_params(
+        current_obj, finished_function, req, **add_elems)
+    new_task = execute_function_aws(
+        new_task, finished_function, params_finished)
+    is_final = new_task.status_task.is_completed
+    return comprobate_children_with_errors(parent_task) \
+        if is_final else "children_tasks"
+
+
+def comprobate_children_with_errors(parent_task):
+    children_with_errors = AsyncTask.objects.filter(
+        parent_task=parent_task,
+        status_task__macro_status="with_errors")
+    if children_with_errors.exists():
+        return "some_errors"
+    else:
+        return "finished"
 
 
 def comprobate_brothers(current_task, status_task_id):
@@ -411,7 +423,8 @@ def comprobate_brothers(current_task, status_task_id):
                 parent_status_task_id = execute_finished_function(parent_task)
             else:
                 # print("llego a finished del padre")
-                parent_status_task_id = "finished"
+                parent_status_task_id = comprobate_children_with_errors(
+                    parent_task)
         comprobate_brothers(parent_task, parent_status_task_id)
     return current_task
 
@@ -429,8 +442,15 @@ def comprobate_queue(current_task):
         queue_tasks = AsyncTask.objects.filter(
             task_function_id=current_task.task_function_id,
             status_task_id="queue")
+        if not queue_tasks.exists():
+            return
         next_task = None
-        if queue_tasks.exists() and current_task.entity_month:
+        if current_task.subgroup:
+            subgroup_queue_tasks = queue_tasks.filter(
+                subgroup=current_task.subgroup)
+            if subgroup_queue_tasks.exists():
+                next_task = subgroup_queue_tasks.order_by("id").first()
+        if not next_task and current_task.entity_month:
             entity_month_tasks = queue_tasks.filter(
                 entity_month=current_task.entity_month)
             if entity_month_tasks.exists():

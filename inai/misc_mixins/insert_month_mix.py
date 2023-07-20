@@ -75,9 +75,10 @@ class InsertMonth:
             "s3": s3,
             "final_path": final_path,
         }
-        self.task_params["models"] = [entity_week]
-        self.task_params["function_after"] = "save_merged_from_aws"
-        return async_in_lambda("build_week_csvs", params, self.task_params)
+        current_task_params = self.task_params.copy()
+        current_task_params["models"] = [entity_week]
+        current_task_params["function_after"] = "save_merged_from_aws"
+        return async_in_lambda("build_week_csvs", params, current_task_params)
 
     def send_week_base_tables(self, entity_week: EntityWeek):
         from scripts.common import build_s3
@@ -102,9 +103,10 @@ class InsertMonth:
             "entity_week": EntityWeekSimpleSerializer(entity_week).data,
             "s3": build_s3(),
         }
-        self.task_params["models"] = [entity_week]
-        # self.task_params["function_after"] = "check_success_insert"
-        return async_in_lambda("build_week_csvs", params, self.task_params)
+        current_task_params = self.task_params.copy()
+        current_task_params["models"] = [entity_week]
+        # current_task_params["function_after"] = "check_success_insert"
+        return async_in_lambda("build_week_csvs", params, current_task_params)
 
     def build_query_tables(self, table_files):
         # all_queries = []
@@ -165,11 +167,12 @@ class InsertMonth:
             "entity_week_id": entity_week.id,
         }
         # self.task_params["function_after"] = "check_success_insert"
-        self.task_params["models"] = [self.entity_month, entity_week]
-        self.task_params["params_after"] = {
+        current_task_params = self.task_params.copy()
+        current_task_params["models"] = [self.entity_month, entity_week]
+        current_task_params["params_after"] = {
             "table_files_ids": [table_file.id for table_file in table_files],
         }
-        return async_in_lambda("save_csv_in_db", params, self.task_params)
+        return async_in_lambda("save_csv_in_db", params, current_task_params)
 
     def send_lap_tables_to_db(
             self, lap_sheet: LapSheet, table_files: list, inserted_field):
@@ -194,16 +197,19 @@ class InsertMonth:
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,
         }
-        self.task_params["models"] = [
+        current_task_params = self.task_params.copy()
+        current_task_params["models"] = [
             lap_sheet.sheet_file,
             lap_sheet.sheet_file.data_file,
             self.entity_month]
         if inserted_field == "missing_inserted":
-            self.task_params["function_after"] = "check_success_insert"
-        self.task_params["params_after"] = {
+            current_task_params["function_after"] = "check_success_insert"
+        elif inserted_field == "cat_inserted":
+            current_task_params["subgroup"] = "med_cat"
+        current_task_params["params_after"] = {
             "table_files_ids": [table_file.id for table_file in table_files],
         }
-        return async_in_lambda("save_csv_in_db", params, self.task_params)
+        return async_in_lambda("save_csv_in_db", params, current_task_params)
 
     def build_catalog_queries(
             self, path, columns_join, model_in_db, model_name):

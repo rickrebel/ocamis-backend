@@ -71,7 +71,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 "main_function": "rebuild_month",
             },
             "send_months_to_db": {
-                "finished_function": "save_formula_tables",
+                "finished_function": "all_base_tables_saved",
                 "function_name": "insert_month",
                 "main_function": "insert_month",
             },

@@ -191,6 +191,7 @@ class FromAws:
         return new_tasks, [], True
 
     def insert_month(self):
+        from task.views import build_task_params
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, DataFile
         month_table_files = TableFile.objects\
@@ -216,28 +217,78 @@ class FromAws:
             lap_sheet__in=pending_lap_sheets,
             collection__app_label="med_cat",
             inserted=False)
+        errors = []
         if not collection_table_files.exists() and not month_table_files.exists():
-            errors = ["No existen tablas por insertar para el mes "
+            error = ["No existen tablas por insertar para el mes "
                       f"{self.entity_month.year_month}"]
-            print("errors", errors)
-            return [], errors, False
+            errors.append(error)
+            # return [], errors, False
         if related_sheet_files.filter(behavior_id="pending").exists():
-            errors = [f"Hay pestañas pendientes de clasificar para el mes "
+            error = [f"Hay pestañas pendientes de clasificar para el mes "
                       f"{self.entity_month.year_month}"]
-            print("errors", errors)
-            return [], errors, False
-        my_insert = InsertMonth(self.entity_month, self.task_params)
+            errors.append(error)
+        if errors:
+            print("error", errors)
+
+        self.task_params["keep_tasks"] = True
+        task_params = self.task_params
+
+        class RequestClass:
+            def __init__(self):
+                self.user = task_params["parent_task"].user
+        req = RequestClass()
+
+        task_cats, task_params_cat = build_task_params(
+            self.entity_month, 'save_month_cat_tables', req,
+            **self.task_params)
         new_tasks = []
+        errors = []
+        new_tasks.append(task_cats)
+        my_insert_cat = InsertMonth(self.entity_month, task_params_cat)
         for lap_sheet in pending_lap_sheets:
             current_table_files = collection_table_files.filter(
                 lap_sheet=lap_sheet, collection__app_label="med_cat")
             if not current_table_files.exists():
                 continue
-            new_task = my_insert.send_lap_tables_to_db(
+            new_task = my_insert_cat.send_lap_tables_to_db(
                 lap_sheet, current_table_files, "cat_inserted")
             new_tasks.append(new_task)
 
-        return new_tasks, [], True
+        missing_table_files = TableFile.objects.filter(
+            lap_sheet__in=related_lap_sheets,
+            collection__app_label="formula",
+            inserted=False)
+        # base_table_files = TableFile.objects.filter(
+        #     lap_sheet__isnull=True,
+        #     year_month=self.entity_month.year_month,
+        #     collection__app_label="formula",
+        #     inserted=False)
+
+        task_base, task_params_base = build_task_params(
+            self.entity_month, 'save_month_base_tables', req,
+            **self.task_params)
+        new_tasks.append(task_base)
+        my_insert_base = InsertMonth(self.entity_month, task_params_base)
+        for week in self.entity_month.weeks.all():
+            week_base_table_files = week.table_files.filter(
+                lap_sheet__isnull=True,
+                collection__app_label="formula",
+                inserted=False)
+            week_task = my_insert_base.send_base_tables_to_db(
+                week, week_base_table_files)
+            new_tasks.append(week_task)
+
+        for lap_sheet in related_lap_sheets:
+            lap_missing_tables = missing_table_files.filter(lap_sheet=lap_sheet)
+            if not lap_missing_tables:
+                lap_sheet.missing_inserted = True
+                lap_sheet.sheet_file.save_stage('insert', [])
+            else:
+                new_task = my_insert_base.send_lap_tables_to_db(
+                    lap_sheet, lap_missing_tables, "missing_inserted")
+                new_tasks.append(new_task)
+
+        return new_tasks, errors, True
 
     def save_formula_tables(self, task_params, **kwargs):
         from inai.misc_mixins.insert_month_mix import InsertMonth
@@ -249,21 +300,6 @@ class FromAws:
         # for week in self.entity_month.weeks.all():
         #     month_table_files.extend(week.table_files.all().values_list(
         #         "id", flat=True))
-        sheet_files = self.entity_month.sheet_files.all()
-        lap_sheets = LapSheet.objects\
-            .filter(sheet_file__in=sheet_files)\
-            .exclude(sheet_file__behavior_id="invalid")
-        missing_table_files = TableFile.objects.filter(
-            lap_sheet__in=lap_sheets,
-            collection__app_label="formula",
-            inserted=False)
-        base_table_files = TableFile.objects.filter(
-            lap_sheet__isnull=True,
-            year_month=self.entity_month.year_month,
-            collection__app_label="formula",
-            inserted=False)
-        if not missing_table_files.exists() and not base_table_files.exists():
-            return new_tasks, errors, True
 
         class RequestClass:
             def __init__(self):
@@ -271,31 +307,11 @@ class FromAws:
         req = RequestClass()
         task_kwargs = {
             "parent_task": task_params["parent_task"],
-            "finished_function": "all_base_tables_saved"
+            # "finished_function": "all_base_tables_saved"
         }
-        task_base, task_params = build_task_params(
-            self.entity_month, 'save_month_base_tables', req, **task_kwargs)
-        my_insert = InsertMonth(self.entity_month, task_params)
-        for week in self.entity_month.weeks.all():
-            week_base_table_files = week.table_files.filter(
-                lap_sheet__isnull=True,
-                collection__app_label="formula",
-                inserted=False)
-            week_task = my_insert.send_base_tables_to_db(
-                week, week_base_table_files)
-            new_tasks.append(week_task)
         # base_task = my_insert.send_base_tables_to_db(
         #     self.entity_month, base_table_files)
         # new_tasks.append(base_task)
-        for lap_sheet in lap_sheets:
-            lap_missing_tables = missing_table_files.filter(lap_sheet=lap_sheet)
-            if not lap_missing_tables:
-                lap_sheet.missing_inserted = True
-                lap_sheet.sheet_file.save_stage('insert', [])
-            else:
-                new_task = my_insert.send_lap_tables_to_db(
-                    lap_sheet, lap_missing_tables, "missing_inserted")
-                new_tasks.append(new_task)
         # space
         return new_tasks, errors, True
 
