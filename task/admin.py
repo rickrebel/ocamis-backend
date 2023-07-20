@@ -1,9 +1,11 @@
 from django.contrib import admin
 from inai.admin import ocamis_admin_site
 from django.utils.html import format_html
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
 
 from .models import AsyncTask, Platform
-from classify_task.models import StatusTask, TaskFunction, Stage
+from classify_task.models import StatusTask, TaskFunction, Stage, UserProfile
 
 
 class AsyncTaskAdmin(admin.ModelAdmin):
@@ -169,6 +171,28 @@ class PlatformAdmin(admin.ModelAdmin):
     ]
     list_editable = ["version", "has_constrains"]
 
+
+class ProfileInLine(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+
+
+class CustomUserAdmin(UserAdmin):
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields':
+                              ('first_name', 'last_name', 'email')}),
+        ('Permissions', {'fields':
+            ('is_active', 'is_staff', 'is_superuser', "groups")}),
+    )
+    inlines = [ProfileInLine]
+    list_display = ["username", "email", "first_name", "last_name",
+                    "is_active", "is_superuser"]
+
+
+# admin.site.unregister(User)
+# admin.site.unregister(Token)
+ocamis_admin_site.register(User, CustomUserAdmin)
 
 ocamis_admin_site.register(AsyncTask, AsyncTaskAdmin)
 ocamis_admin_site.register(StatusTask, StatusTaskAdmin)

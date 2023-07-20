@@ -44,6 +44,15 @@ class UserDataSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     # token = serializers.ReadOnlyField(source="auth_token.key")
+    # image = serializers.ReadOnlyField(source="profile.image")
+    image = serializers.SerializerMethodField(read_only=True)
+
+    def get_image(self, obj):
+        from classify_task.models import UserProfile
+        user_profile = UserProfile.objects.filter(user=obj).first()
+        if user_profile and user_profile.image:
+            return user_profile.image
+        return None
 
     class Meta:
         model = User
@@ -53,4 +62,5 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_staff",
             "first_name",
             "last_name",
+            "image",
         ]

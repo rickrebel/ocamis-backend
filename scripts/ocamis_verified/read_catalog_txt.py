@@ -320,23 +320,30 @@ def analyze_every_months(entity_id):
         from_aws.save_month_analysis_prev()
 
 
-def send_entity_weeks_to_rebuild(table_file_id=None):
-    from data_param.models import Collection
-    from inai.models import TableFile, EntityWeek
-    from django.contrib.auth.models import User
+def send_entity_weeks_to_rebuild(limit=None):
+    import time
     from scripts.common import build_s3
-    from task.views import build_task_params
+    # from task.views import build_task_params
     from task.serverless import async_in_lambda
+    from data_param.models import Collection
+    from inai.models import TableFile
+    from django.contrib.auth.models import User
     drug_collection = Collection.objects.get(model_name="Drug")
+    # all_table_files = TableFile.objects.filter(
+    #     collection=drug_collection,
+    #     entity_week__isnull=False,
+    #     drugs_count=0)
     all_table_files = TableFile.objects.filter(
-        collection=drug_collection, entity_week__isnull=False)
-    if table_file_id:
-        all_table_files = all_table_files.filter(id=table_file_id)
+        collection=drug_collection,
+        entity_week__isnull=False,
+        entity_week__async_tasks__task_function_id=True)
+    if limit:
+        all_table_files = all_table_files[:limit]
     print("table_files", all_table_files.count())
-    # return None
-    class RequestClass:
-        def __init__(self):
-            self.user = User.objects.get(username="rickrebel@gmail.com")
+    return None
+    # class RequestClass:
+    #     def __init__(self):
+    #         self.user = User.objects.get(username="rickrebel@gmail.com")
     # request = RequestClass()
     # key_task, task_params = build_task_params(
     #     entity_week, "rebuild_week_csv", request)
@@ -354,7 +361,21 @@ def send_entity_weeks_to_rebuild(table_file_id=None):
             async_in_lambda("rebuild_week_csv", params, task_params)
 
 
-send_entity_weeks_to_rebuild(603990)
+# send_entity_weeks_to_rebuild()
+
+
+def delete_duplicate_table_files():
+    from inai.models import TableFile
+    # from data_param.models import Collection
+    all_table_files = TableFile.objects\
+        .filter(
+            drugs_count=0, entity_week__isnull=False,
+            collection__isnull=False)\
+        .prefetch_related("entity_week", "entity_week__entity")
+    print("all_table_files", all_table_files.count())
+    for table_file in all_table_files:
+        if table_file.entity != table_file.entity_week.entity:
+            table_file.delete()
 
 
 

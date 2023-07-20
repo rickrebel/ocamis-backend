@@ -85,7 +85,6 @@ class Drug(models.Model):
     # lap_sheet = models.ForeignKey(
     #     LapSheet, on_delete=models.CASCADE)
     lap_sheet = models.IntegerField()
-    entity_week_id = models.IntegerField(blank=True, null=True)
 
     medicament = models.ForeignKey(
         Medicament, blank=True, null=True,
@@ -99,6 +98,7 @@ class Drug(models.Model):
     date_created = models.DateTimeField(blank=True, null=True)
     date_closed = models.DateTimeField(blank=True, null=True)
     price = models.FloatField(blank=True, null=True)
+    entity_week_id = models.IntegerField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Insumos"
