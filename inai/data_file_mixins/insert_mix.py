@@ -27,10 +27,12 @@ def build_copy_sql_aws(table_file, model_in_db, columns_join):
     """
 
 
-def modify_constraints(is_create=True):
+def modify_constraints(is_create=True, is_rebuild=False):
     from scripts.ocamis_verified.constrains import get_constraints
     from datetime import datetime
-    create_constrains, delete_constrains = get_constraints()
+    create_constrains, delete_constrains = get_constraints(is_rebuild)
+    if is_rebuild:
+        return
     with_change = False
     cursor = connection.cursor()
     print("START", datetime.now())

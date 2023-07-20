@@ -33,6 +33,13 @@ def build_constraints_and_indexes(use_complement=False):
         block = "\n".join(commands)
         create_commands.append(block)
     # SPACE
+    def add_alter_block(commands):
+        first_command = commands.pop(0)
+        block_string = "\n".join(commands)
+        blocks = block_string.split(",")
+        for block in blocks:
+            create_commands.append(f"{first_command} \n {block}")
+    # SPACE
     def add_delete_block(block):
         delete_commands.append(block)
     # SPACE
@@ -49,7 +56,7 @@ def build_constraints_and_indexes(use_complement=False):
             if last_commands:
                 last_commands[-1] = last_commands[-1].replace(",", "")
                 last_commands[-1] = f"{last_commands[-1]};"
-                add_block(last_commands)
+                add_alter_block(last_commands)
             last_commands = None
             current_command = None
             last_function = None
@@ -60,22 +67,22 @@ def build_constraints_and_indexes(use_complement=False):
         if "create table " in row:
             # last_table = row.split("public.")[1]
             last_table = row.split(" table if not exists ")[1]
-            # if "formula" not in last_table:
-            if "formula" not in last_table and "med_cat" not in last_table:
+            # if "formula" not in last_table and "med_cat" not in last_table:
+            if "formula" not in last_table:
                 last_table = None
                 # last_model = None
                 continue
             # last_model = Collection.objects.get(name_in_db=last_table)
             # last_commands = [f"alter table public.{last_table}"]
-            last_commands = [f"alter table {last_table}"]
+            last_commands = [f"alter table {last_table} "]
             continue
         elif not last_table:
             if "create index" in row:
                 last_function = "index"
                 index_name = row.split("index if not exists ")[1]
                 # print("index_name:", index_name)
-                # if "formula_" not in index_name:
-                if "formula_" not in index_name and "med_cat_" not in index_name:
+                # if "formula_" not in index_name and "med_cat_" not in index_name:
+                if "formula_" not in index_name:
                     last_function = None
                     continue
                 last_commands = [f"create index if not exists {index_name}"]
@@ -133,7 +140,7 @@ def build_constraints_and_indexes(use_complement=False):
 
 
 def get_constraints(rebuild=False):
-    platforms = Platform.objects.all()
+    platforms = Platform.objects.all().order_by("version")
     platform = None
     version = None
     if not platforms:
