@@ -124,7 +124,12 @@ def async_in_lambda(function_name, params, task_params):
         pending_tasks = AsyncTask.objects.filter(
             task_function__is_queueable=True,
             status_task__is_completed=False)
-        many_pending = pending_tasks.count() > 3
+        many_pending = False
+        if pending_tasks.count() > 0:
+            entity_months_count = pending_tasks\
+                .filter(entity_month__isnull=False) \
+                .values("entity_month").distinct().count()
+            many_pending = entity_months_count > 3
         if not many_pending and query_kwargs.get("entity_month", False):
             pending_tasks = pending_tasks.filter(
                 entity_month=query_kwargs["entity_month"])

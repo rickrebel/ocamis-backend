@@ -73,6 +73,8 @@ def rebuild_primary_key(cursor, table_name, constraint):
                 next_task = task.first()
                 execute_async(next_task, next_task.original_request)
             rebuild_primary_key(cursor, table_name, constraint)
+        else:
+            raise e
 
 
 def modify_constraints(is_create=True, is_rebuild=False):

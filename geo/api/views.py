@@ -106,7 +106,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
 
             t = threading.Thread(target=run_in_thread)
             t.start()
-            seconds_sleep = 30 if entity.split_by_delegation else 2
+            seconds_sleep = 10 if entity.split_by_delegation else 1
             time.sleep(seconds_sleep)
 
         if all_tasks or all_errors:
