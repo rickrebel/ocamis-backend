@@ -247,7 +247,9 @@ class FromAws:
         my_insert_cat = InsertMonth(self.entity_month, task_params_cat)
         for lap_sheet in pending_lap_sheets:
             current_table_files = collection_table_files.filter(
-                lap_sheet=lap_sheet, collection__app_label="med_cat")
+                lap_sheet=lap_sheet,
+                collection__app_label="med_cat",
+                inserted=False)
             if not current_table_files.exists():
                 continue
             new_task = my_insert_cat.send_lap_tables_to_db(

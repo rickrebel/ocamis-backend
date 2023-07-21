@@ -56,7 +56,7 @@ WHERE uuid_folio = '53216182-a857-4d53-b4b5-b952428806e7';
 
 
 SELECT * FROM public.formula_rx
-WHERE iso_year = 2017 AND iso_week = 26 AND iso_delegation = 325 AND month = 6 and iso_year = 2017;
+WHERE iso_year = 2017 AND iso_week = 26 AND iso_delegation = 325 AND month = 6 and iso_year = 2017
 LIMIT 400;
 
 DELETE FROM public.formula_rx

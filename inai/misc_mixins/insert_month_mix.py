@@ -204,6 +204,7 @@ class InsertMonth:
             self.entity_month]
         if inserted_field == "missing_inserted":
             current_task_params["function_after"] = "check_success_insert"
+            current_task_params["subgroup"] = "missing"
         elif inserted_field == "cat_inserted":
             current_task_params["subgroup"] = "med_cat"
         current_task_params["params_after"] = {

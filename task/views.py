@@ -379,7 +379,7 @@ def execute_finished_function(parent_task):
         def __init__(self):
             self.user = parent_task.user
     req = RequestClass()
-    add_elems = {"parent_task": parent_task}
+    add_elems = {"parent_task": parent_task, "keep_tasks": True}
     model, current_obj = find_task_model(parent_task)
     new_task, task_params = build_task_params(
         current_obj, finished_function, req, **add_elems)
@@ -487,3 +487,45 @@ def debug_queue():
             execute_async(next_task, next_task.original_request)
         # else:
         #     modify_constraints(is_create=True)
+
+
+def resend_error_tasks(task_function_id="save_csv_in_db"):
+    from inai.models import TableFile
+    from task.models import AsyncTask
+    from django.utils import timezone
+    from task.serverless import execute_async
+    error_tasks = AsyncTask.objects.filter(
+        task_function_id=task_function_id,
+        status_task__macro_status="with_errors")
+    last_task = None
+    for task in error_tasks:
+        if "Ya se había insertado" in task.errors:
+            task.delete()
+            continue
+        elif "HTTP 416. Check your arguments and try again" not in task.errors:
+            table_files_ids = task.params_after.get("table_files_ids", [])
+            print("task_id: ", task.request_id or task.id)
+            table_files = TableFile.objects.filter(id__in=table_files_ids)
+            inserted_count = table_files.filter(inserted=True).count()
+            if inserted_count == len(table_files):
+                task.status_task_id = "finished"
+                task.save()
+                continue
+            if task.entity_week:
+                print("last_insertion:", task.entity_week.last_insertion)
+            else:
+                print("no hay entity_week")
+            print("-------------------------")
+    #         new_task = task
+    #         new_task.pk = None
+    #         new_task.status_task_id = "queue"
+    #         new_task.result = None
+    #         new_task.errors = None
+    #         new_task.date_sent = timezone.now()
+    #         new_task.date_arrive = None
+    #         new_task.date_end = None
+    #         new_task.save()
+    #         last_task = new_task
+    # request_params = last_task.original_request.copy()
+    # request_params["forced_queue"] = True
+    # execute_async(last_task, request_params)
