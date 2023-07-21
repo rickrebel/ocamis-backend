@@ -28,6 +28,8 @@ class FromAws:
 
     def save_csv_in_db_after(self, **kwargs):
         from inai.models import TableFile
+        # from django.utils import timezone
+        # self.entity_week.last_insertion = timezone.now()
         table_files_ids = kwargs.get("table_files_ids", [])
         TableFile.objects\
             .filter(id__in=table_files_ids)\

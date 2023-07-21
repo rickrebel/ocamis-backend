@@ -276,12 +276,15 @@ class FromAws:
                 lap_sheet__isnull=True,
                 collection__app_label="formula",
                 inserted=False)
+            if not week_base_table_files.exists():
+                continue
             week_task = my_insert_base.send_base_tables_to_db(
                 week, week_base_table_files)
             new_tasks.append(week_task)
 
         for lap_sheet in related_lap_sheets:
-            lap_missing_tables = missing_table_files.filter(lap_sheet=lap_sheet)
+            lap_missing_tables = missing_table_files.filter(
+                lap_sheet=lap_sheet)
             if not lap_missing_tables:
                 lap_sheet.missing_inserted = True
                 lap_sheet.sheet_file.save_stage('insert', [])
