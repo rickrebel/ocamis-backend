@@ -126,7 +126,7 @@ class InsertMonth:
             SET last_insertion = now()
             WHERE id = {entity_week.id}
         """
-        year_month = entity_week.year_month.replace("-", "_")
+        year_month = entity_week.year_month.replace("-", "")
         temp_complement = f"{self.entity.id}_{year_month}"
         main_queries = self.build_query_tables(table_files, temp_complement)
         params = {
