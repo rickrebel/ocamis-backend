@@ -96,7 +96,7 @@ class InsertMonth:
                 model_in_db = model_data["model_in_db"]
                 if model_data["app"] == "formula":
                     if complement:
-                        model_name = model_name.replace(
+                        model_in_db = model_name.replace(
                             "formula_", f"fm_{complement}_")
                     query_base = build_copy_sql_aws(
                         "PATH_URL", model_in_db, columns_join)
