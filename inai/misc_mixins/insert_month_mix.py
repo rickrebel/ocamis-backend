@@ -80,36 +80,7 @@ class InsertMonth:
         current_task_params["function_after"] = "save_merged_from_aws"
         return async_in_lambda("build_week_csvs", params, current_task_params)
 
-    def send_week_base_tables(self, entity_week: EntityWeek):
-        from scripts.common import build_s3
-        from inai.api.serializers import (
-            EntityWeekSimpleSerializer, TableFileAwsSerializer)
-        all_queries = []
-        for model in self.base_models:
-            model_in_db = model["model_in_db"]
-            model_data = self.models_data[model["model_name"]]
-            columns_join = model_data["columns_join"]
-            table_file = entity_week.table_files.filter(
-                collection__model_name=model["model_name"]).first()
-            query = build_copy_sql_aws(
-                table_file.file.name, model_in_db, columns_join)
-            all_queries.append(query)
-        base_tables = entity_week.table_files.filter(
-            collection__model_name__in=self.base_models_names)
-        params = {
-            "base_tables": TableFileAwsSerializer(base_tables, many=True).data,
-            "sql_queries": all_queries,
-            "db_config": ocamis_db,
-            "entity_week": EntityWeekSimpleSerializer(entity_week).data,
-            "s3": build_s3(),
-        }
-        current_task_params = self.task_params.copy()
-        current_task_params["models"] = [entity_week]
-        # current_task_params["function_after"] = "check_success_insert"
-        return async_in_lambda("build_week_csvs", params, current_task_params)
-
-    def build_query_tables(self, table_files):
-        # all_queries = []
+    def build_query_tables(self, table_files, complement=None):
         queries_by_model = {}
         for table_file in table_files:
             model_name = table_file.collection.model_name
@@ -124,9 +95,11 @@ class InsertMonth:
                 columns_join = model_data["columns_join"]
                 model_in_db = model_data["model_in_db"]
                 if model_data["app"] == "formula":
+                    if complement:
+                        model_name = model_name.replace(
+                            "formula_", f"fm_{complement}_")
                     query_base = build_copy_sql_aws(
                         "PATH_URL", model_in_db, columns_join)
-                    # all_queries.append(query)
                     queries_by_model[model_name] = {
                         "base_queries": [query_base],
                         "files": [],
@@ -148,19 +121,18 @@ class InsertMonth:
             FROM public.inai_entityweek
             WHERE id = {entity_week.id}
         """
-        # all_queries = self.build_query_tables(table_files)
-        queries_by_model = self.build_query_tables(table_files)
         last_query = f"""
             UPDATE public.inai_entityweek
             SET last_insertion = now()
             WHERE id = {entity_week.id}
         """
-        # all_queries.append(last_query)
+        year_month = entity_week.year_month.replace("-", "_")
+        temp_complement = f"{self.entity.id}_{year_month}"
+        main_queries = self.build_query_tables(table_files, temp_complement)
         params = {
             "first_query": first_query,
             "last_query": last_query,
-            "queries_by_model": queries_by_model,
-            # "sql_queries": all_queries,
+            "queries_by_model": main_queries,
             "db_config": ocamis_db,
             "entity_month_id": self.entity_month.id,
             # "entity_week": EntityWeekSimpleSerializer(entity_week).data,
@@ -181,19 +153,15 @@ class InsertMonth:
             FROM public.inai_lapsheet
             WHERE id = {lap_sheet.id}
         """
-        # all_queries = self.build_query_tables(table_files)
-        queries_by_model = self.build_query_tables(table_files)
         last_query = f"""
             UPDATE public.inai_lapsheet
             SET {inserted_field} = true
             WHERE id = {lap_sheet.id}
         """
-        # all_queries.append(last_query)
         params = {
             "first_query": first_query,
             "last_query": last_query,
-            "queries_by_model": queries_by_model,
-            # "sql_queries": all_queries,
+            "queries_by_model": self.build_query_tables(table_files),
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,
         }

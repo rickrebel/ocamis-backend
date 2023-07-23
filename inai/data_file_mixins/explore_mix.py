@@ -102,27 +102,7 @@ class ExploreMix:
     def insert_data(self, task_params, **kwargs):
         from inai.data_file_mixins.insert_mix import Insert
         from inai.models import LapSheet
-
-        if not self.stage == 'transform' and self.status == 'finished':
-            errors = ["El archivo tiene concluido el proceso de transformación"]
-            return [], errors, self
-        my_insert = Insert(self, task_params)
-        lap_sheets = LapSheet.objects\
-            .filter(sheet_file__data_file=self, lap=0)\
-            .exclude(inserted=True, sheet_file__behavior_id="invalid")
-        if not lap_sheets.exists():
-            already_inserted = LapSheet.objects.filter(
-                sheet_file__data_file=self, lap=0, inserted=True)
-            if already_inserted.exists():
-                return [], [], self
-            else:
-                errors = ["No existen tablas por insertar"]
-                return [], errors, self
-        new_tasks = []
-        for lap_sheet in lap_sheets:
-            new_task = my_insert.send_csv_to_db(lap_sheet)
-            new_tasks.append(new_task)
-        return new_tasks, [], self
+        raise "Esta función ya no se usa"
 
     def count_file_rows(self):
         from inai.models import SheetFile

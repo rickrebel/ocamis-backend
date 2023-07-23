@@ -489,7 +489,7 @@ def debug_queue():
         #     modify_constraints(is_create=True)
 
 
-def resend_error_tasks(task_function_id="save_csv_in_db"):
+def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):
     from inai.models import TableFile
     from task.models import AsyncTask
     from django.utils import timezone
@@ -497,14 +497,30 @@ def resend_error_tasks(task_function_id="save_csv_in_db"):
     error_tasks = AsyncTask.objects.filter(
         task_function_id=task_function_id,
         status_task__macro_status="with_errors")
+    sent_tasks = AsyncTask.objects.filter(
+        task_function_id=task_function_id,
+        status_task_id="running")
+    all_tasks = error_tasks | sent_tasks
+    if task_id:
+        all_tasks = all_tasks.filter(request_id=task_id)
     last_task = None
-    for task in error_tasks:
+    for task in all_tasks:
+        errors = "\n".join(task.errors)
         if "Ya se había insertado" in task.errors:
             task.delete()
             continue
-        elif "HTTP 416. Check your arguments and try again" not in task.errors:
-            table_files_ids = task.params_after.get("table_files_ids", [])
+        elif "extra data after last expected column" in errors:
+            continue
+        elif "HTTP 416. Check your arguments and try again" in errors:
+            continue
+        else:
             print("task_id: ", task.request_id or task.id)
+            print("errors: ", task.errors)
+            if task.status_task_id == "running":
+                task.status_task_id = "with_errors"
+                task.errors = ["Nunca se envío, se elimina manualmente"]
+                task.save()
+            table_files_ids = task.params_after.get("table_files_ids", [])
             table_files = TableFile.objects.filter(id__in=table_files_ids)
             inserted_count = table_files.filter(inserted=True).count()
             if inserted_count == len(table_files):
@@ -516,16 +532,24 @@ def resend_error_tasks(task_function_id="save_csv_in_db"):
             else:
                 print("no hay entity_week")
             print("-------------------------")
-    #         new_task = task
-    #         new_task.pk = None
-    #         new_task.status_task_id = "queue"
-    #         new_task.result = None
-    #         new_task.errors = None
-    #         new_task.date_sent = timezone.now()
-    #         new_task.date_arrive = None
-    #         new_task.date_end = None
-    #         new_task.save()
-    #         last_task = new_task
-    # request_params = last_task.original_request.copy()
-    # request_params["forced_queue"] = True
-    # execute_async(last_task, request_params)
+            new_task = task
+            new_task.pk = None
+            new_task.save()
+            new_task.status_task_id = "queue"
+            new_task.result = None
+            new_task.errors = None
+            new_task.date_start = timezone.now()
+            new_task.date_arrive = None
+            new_task.date_end = None
+            new_task.save()
+            last_task = new_task
+    if last_task:
+        request_params = last_task.original_request.copy()
+        request_params["forced_queue"] = True
+        execute_async(last_task, request_params)
+
+
+resend_error_tasks("save_csv_in_db", "e04f5607-5542-4fee-a7c7-1badb598447a")
+
+
+

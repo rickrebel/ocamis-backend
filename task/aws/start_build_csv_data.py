@@ -12,7 +12,7 @@ from task.aws.common import (
 available_delivered = [
     "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
     "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
-    "Surtida Parc o No surtida", "Surtida"]
+    "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA"]
 
 
 def text_normalizer(text):
@@ -25,6 +25,7 @@ def calculate_delivered(available_data):
     class_presc = available_data.get("clasif_assortment")
     if not class_presc:
         class_presc = available_data.get("clasif_assortment_presc")
+    class_presc = text_normalizer(class_presc)
     is_cancelled = class_presc == "CANCELADA"
     if class_presc:
         if class_presc not in available_delivered:
@@ -882,6 +883,8 @@ class MatchAws:
                                     seconds = round(seconds)
                                     value = datetime(1899, 12, 30) + timedelta(
                                         days=days, seconds=seconds)
+                                elif string_format == "UNIX":
+                                    value = datetime.fromtimestamp(value)
                                 else:
                                     value = datetime.strptime(value, string_format)
                                 # print("value", value)
@@ -903,7 +906,15 @@ class MatchAws:
                         some_date = value
                         # print("some_date", some_date)
                 elif field["data_type"] == "Integer":
-                    value = int(value)
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        try:
+                            value = int(float(value))
+                        except Exception:
+                            error = "No se pudo convertir a número entero"
+                    except Exception:
+                        error = "No se pudo convertir a número entero"
                     if value < 0:
                         error = "El valor no puede ser negativo"
                 elif field["data_type"] == "Float":

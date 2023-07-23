@@ -194,6 +194,20 @@ class FromAws:
         from task.views import build_task_params
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, DataFile
+
+        # CREATE TABLE fm_55_201812_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
+        # CREATE TABLE fm_55_201812_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
+
+        # INSERT INTO formula_rx
+        # SELECT *
+        # FROM fm_55_201812_rx;
+        # INSERT INTO formula_drug
+        # SELECT *
+        # FROM fm_55_201812_drug;
+
+        # DROP TABLE fm_55_201812_rx;
+        # DROP TABLE fm_55_201812_drug;
+
         month_table_files = TableFile.objects\
             .filter(
                 entity_week__entity_month=self.entity_month,
