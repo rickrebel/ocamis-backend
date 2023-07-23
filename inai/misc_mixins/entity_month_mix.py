@@ -195,18 +195,18 @@ class FromAws:
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, DataFile
 
-        # CREATE TABLE fm_55_201812_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
-        # CREATE TABLE fm_55_201812_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
+        # CREATE TABLE fm_55_201901_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
+        # CREATE TABLE fm_55_201901_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
 
         # INSERT INTO formula_rx
         # SELECT *
-        # FROM fm_55_201812_rx;
+        # FROM fm_55_201901_rx;
         # INSERT INTO formula_drug
         # SELECT *
-        # FROM fm_55_201812_drug;
+        # FROM fm_55_201901_drug;
 
-        # DROP TABLE fm_55_201812_rx;
-        # DROP TABLE fm_55_201812_drug;
+        # DROP TABLE fm_55_201901_rx;
+        # DROP TABLE fm_55_201901_drug;
 
         month_table_files = TableFile.objects\
             .filter(
