@@ -8,30 +8,16 @@ class FromAws:
         self.task_params = task_params
 
     def check_success_insert(self, **kwargs):
-        # from task.models import AsyncTask
-        # from inai.data_file_mixins.insert_mix import modify_constraints
-        # import threading
-        # import time
-        # def check_tasks_with_insert():
-        #     running_tasks = AsyncTask.objects.filter(
-        #         data_file__stage_id="insert",
-        #         data_file__status__is_completed=False)
-        #     if not running_tasks.exists():
-        #         modify_constraints(is_create=True)
-        #
-        # def delay_check():
-        #     time.sleep(20)
-        #     check_tasks_with_insert()
-        #
-        # t = threading.Thread(target=delay_check)
-        # t.start()
+
         errors = kwargs.get("errors", [])
         if not errors:
-            self.save_csv_in_db_after(**kwargs)
+            # self.save_csv_in_db_after(**kwargs)
+            self.save_lap_cat_tables_after(**kwargs)
         self.sheet_file.save_stage('insert', errors)
         return [], errors, True
 
-    def save_csv_in_db_after(self, **kwargs):
+    # def save_csv_in_db_after(self, **kwargs):
+    def save_lap_cat_tables_after(self, **kwargs):
         from inai.models import TableFile
         table_files_ids = kwargs.get("table_files_ids", [])
         TableFile.objects\

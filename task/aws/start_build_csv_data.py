@@ -25,7 +25,8 @@ def calculate_delivered(available_data):
     class_presc = available_data.get("clasif_assortment")
     if not class_presc:
         class_presc = available_data.get("clasif_assortment_presc")
-    class_presc = text_normalizer(class_presc)
+    else:
+        class_presc = text_normalizer(class_presc)
     is_cancelled = class_presc == "CANCELADA"
     if class_presc:
         if class_presc not in available_delivered:
@@ -830,6 +831,8 @@ class MatchAws:
                 value = None
             elif "text_nulls" in field:
                 text_nulls = field["text_nulls"]
+                if not isinstance(text_nulls, str):
+                    raise Exception("La transformación de NULOS no puede estar vacía")
                 text_nulls = text_nulls.split(",")
                 text_nulls = [text_null.strip() for text_null in text_nulls]
                 if value in text_nulls:

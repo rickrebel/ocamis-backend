@@ -62,18 +62,15 @@ class EntityViewSet(ListRetrieveUpdateMix):
         functions = {
             "send_analysis": {
                 "finished_function": "save_month_analysis",
-                "function_name": "analysis_month",
-                "main_function": "send_analysis",
+                "function_name": "send_analysis",
             },
             "merge_files_by_week": {
                 "finished_function": "all_base_tables_merged",
                 "function_name": "rebuild_month",
-                "main_function": "rebuild_month",
             },
             "send_months_to_db": {
                 "finished_function": "all_base_tables_saved",
-                "function_name": "insert_month",
-                "main_function": "insert_month",
+                "function_name": "pre_insert_month",
             },
         }
         function_data = functions.get(main_function_name, None)
@@ -94,8 +91,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 entity_month, function_name, request, **kwargs)
             all_tasks.append(month_task)
             base_class = EntityMonthMix(entity_month, task_params)
-            main_function = function_data.get("main_function", None)
-            main_method = getattr(base_class, main_function)
+            # main_function = function_data.get("main_function", None)
+            main_method = getattr(base_class, function_name)
 
             def run_in_thread():
                 new_tasks, errors, s = main_method()

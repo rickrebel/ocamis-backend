@@ -92,7 +92,7 @@ alter table formula_drug disable_constraints constraint formula_drug_delivered_a
 alter table formula_drug disable_constraints constraint formula_drug_row_seq_check;
 
 TRUNCATE
-    formula_prescription,
+    formula_rx,
     formula_drug,
     formula_missingrow,
     formula_missingfield

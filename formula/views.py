@@ -1,6 +1,93 @@
 from django.db import connection
 
 
+def custom_constraint(constraint, year_month):
+    constraint = constraint.replace(
+        " on formula_", f" on fm_{year_month}_")
+    constraint = constraint.replace(
+        "alter table formula_", f" alter table fm_{year_month}_")
+    constraint = constraint.replace(
+        "references formula_rx", f"references fm_{year_month}_rx")
+    clean_constraint = constraint.replace("\n", " \n")
+    if "add constraint " in clean_constraint:
+        original_constraint_name = clean_constraint.split(
+            "add constraint ")[1].split(" ")[0]
+    elif " exists " in clean_constraint:
+        original_constraint_name = clean_constraint.split(
+            " exists ")[1].split(" ")[0]
+    else:
+        raise Exception("Constraint name not found")
+    constraint_name = original_constraint_name.replace("missingrow", "mr")
+    constraint_name = constraint_name.replace("missingfield", "mf")
+    constraint_name = constraint_name.replace("fk_formula", "fk_fm")
+    constraint_name = constraint_name.replace("formula_", f"fm_{year_month}_")
+    return clean_constraint.replace(
+        original_constraint_name, constraint_name)
+
+
+def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
+    from task.models import Platform
+    from scripts.ocamis_verified.constrains import get_constraints
+    from datetime import datetime
+    create_constrains, delete_constrains = get_constraints(is_rebuild)
+    if is_rebuild:
+        return
+    with_change = False
+    cursor = connection.cursor()
+    print("START", datetime.now())
+    valid_strings = [" on TABLE ", " table TABLE ", " index if exists TABLE"]
+    valid_tables = ["formula_rx", "formula_drug"]
+    invalid_fields = ["lap_sheet_id", "sheet_file_id", "_like"]
+    constraint_list = create_constrains if is_create \
+        else reversed(delete_constrains)
+    # and platform.has_constrains:
+    print("is_create", is_create)
+    for constraint in constraint_list:
+        valid_constraint = not bool(year_month)
+        for valid_string in valid_strings:
+            for valid_table in valid_tables:
+                final_valid_string = valid_string.replace("TABLE", valid_table)
+                if final_valid_string in constraint:
+                    valid_constraint = True
+        if is_create and valid_constraint:
+            for invalid_field in invalid_fields:
+                if invalid_field in constraint:
+                    valid_constraint = False
+        if not valid_constraint:
+            continue
+        try:
+            print(">>>>> time:", datetime.now())
+            print("constraint:", constraint)
+            if year_month:
+                constraint = custom_constraint(constraint, year_month)
+                print("final_constraint:", constraint)
+            # if "formula_rx_pkey" in constraint:
+            #     rebuild_primary_key(cursor, "formula_rx", constraint)
+            # else:
+            #     cursor.execute(constraint)
+            cursor.execute(constraint)
+            print("--------------------------")
+        except Exception as e:
+            str_e = str(e)
+            if "already exists" in str_e:
+                continue
+            if "multiple primary keys" in str_e:
+                continue
+            print("constraint", constraint)
+            print(f"ERROR:\n, {e}, \n--------------------------")
+            raise e
+    # connection.commit()
+    print("FINAL", datetime.now())
+    cursor.close()
+    connection.close()
+    if with_change and not year_month:
+        Platform.objects.all().update(has_constrains=is_create)
+
+
+# modify_constraints(True, False, "55_201902")
+# modify_constraints(False, False, "55_201902")
+
+
 def rebuild_primary_key(cursor, table_name, constraint):
     from inai.models import EntityWeek
     from task.models import AsyncTask
@@ -48,7 +135,8 @@ def rebuild_primary_key(cursor, table_name, constraint):
             entity_week.last_insertion = None
             entity_week.save()
             task = AsyncTask.objects.filter(
-                entity_week=entity_week, task_function_id='save_csv_in_db')
+                entity_week=entity_week,
+                task_function_id='save_week_base_models')
             if task.exists():
                 task = task.first()
                 new_task = task
@@ -66,48 +154,3 @@ def rebuild_primary_key(cursor, table_name, constraint):
             # raise "MADA"
         else:
             raise e
-
-
-def modify_constraints(is_create=True, is_rebuild=False):
-    from task.models import Platform
-    from scripts.ocamis_verified.constrains import get_constraints
-    from datetime import datetime
-    create_constrains, delete_constrains = get_constraints(is_rebuild)
-    if is_rebuild:
-        return
-    with_change = False
-    cursor = connection.cursor()
-    print("START", datetime.now())
-    if is_create:  # and not platform.has_constrains:
-        print("create_constrains")
-        with_change = True
-        for constraint in create_constrains:
-            try:
-                print(">>>>> time:", datetime.now())
-                print("constraint", constraint)
-                if "formula_rx_pkey" in constraint:
-                    rebuild_primary_key(cursor, "formula_rx", constraint)
-                else:
-                    cursor.execute(constraint)
-                print("--------------------------")
-            except Exception as e:
-                str_e = str(e)
-                if "already exists" in str_e:
-                    continue
-                if "multiple primary keys" in str_e:
-                    continue
-                print("constraint", constraint)
-                print(f"ERROR:\n, {e}, \n--------------------------")
-                raise e
-    elif not is_create:  # and platform.has_constrains:
-        print("delete_constrains")
-        with_change = True
-        for constraint in reversed(delete_constrains):
-            print("constraint", constraint)
-            cursor.execute(constraint)
-    # connection.commit()
-    print("FINAL", datetime.now())
-    cursor.close()
-    connection.close()
-    if with_change:
-        Platform.objects.all().update(has_constrains=is_create)

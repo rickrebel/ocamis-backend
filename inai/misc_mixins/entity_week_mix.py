@@ -26,14 +26,19 @@ class FromAws:
 
         return all_tasks, all_errors, True
 
-    def save_csv_in_db_after(self, **kwargs):
+    # def save_csv_in_db_after(self, **kwargs):
+    def save_week_base_models_after(self, **kwargs):
         from inai.models import TableFile
         # from django.utils import timezone
         # self.entity_week.last_insertion = timezone.now()
-        table_files_ids = kwargs.get("table_files_ids", [])
-        TableFile.objects\
-            .filter(id__in=table_files_ids)\
-            .update(inserted=True)
+        if kwargs.get("errors"):
+            # self.entity_week.errors = True
+            print("ERRORS", kwargs.get("errors"))
+        else:
+            table_files_ids = kwargs.get("table_files_ids", [])
+            TableFile.objects\
+                .filter(id__in=table_files_ids)\
+                .update(inserted=True)
         return [], [], True
 
     def save_merged_from_aws(self, **kwargs):
@@ -82,9 +87,15 @@ class FromAws:
 
     def save_entity_week(self, month_week_counts, month_pairs):
         from django.utils import timezone
-        fields = ["drugs_count", "rx_count", "dupli", "shared"]
+        # duplicates_count
+        fields = [
+            ["drugs_count", "drugs_count"],
+            ["rx_count", "rx_count"],
+            ["duplicates_count", "dupli"],
+            ["shared_count", "shared"],
+        ]
         for field in fields:
-            setattr(self.entity_week, field, month_week_counts[field])
+            setattr(self.entity_week, field[0], month_week_counts[field[1]])
         self.entity_week.crosses = month_pairs
         # self.entity_week.drugs_count = month_week_counts["drugs_count"]
         # self.entity_week.rx_count = month_week_counts["rx_count"]

@@ -83,7 +83,7 @@ class EntityMonthSerializer(serializers.ModelSerializer):
         fields = [
             "id", "year_month", "human_name", "rx_count",
             "duplicates_count", "shared_count", "last_transformation",
-            "last_crossing", "last_merge", "last_insertion"]
+            "last_crossing", "last_merge", "last_insertion", "stage", "status"]
 
 
 class TableFileSerializer(serializers.ModelSerializer):

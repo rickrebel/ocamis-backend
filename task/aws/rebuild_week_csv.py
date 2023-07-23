@@ -57,7 +57,7 @@ class RebuildWeekAws:
         result_data = {
             "result": {
                 "entity_week_id": self.entity_week_id,
-                "drugs_count": total_rows - 1,
+                "drugs_count": total_rows,
                 "success": bool(not errors)
             },
             "request_id": self.context.aws_request_id

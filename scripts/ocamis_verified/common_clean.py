@@ -62,7 +62,9 @@ def reverse_insert(hard=False):
         AsyncTask.objects.filter(task_function_id="send_months_to_db").delete()
         AsyncTask.objects.filter(task_function_id="insert_data").delete()
         AsyncTask.objects.filter(task_function_id="insert_month").delete()
-        AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
+        AsyncTask.objects.filter(task_function_id="pre_insert_month").delete()
+        # AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
+        AsyncTask.objects.filter(task_function__is_queueable=True).delete()
 
 
 def save_success_params_after():

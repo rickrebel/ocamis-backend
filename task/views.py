@@ -111,29 +111,29 @@ def execute_function_aws(current_task, function_name, result, errors=None):
                 pass
         return final_method, task_parameters, err
 
-    if not errors:
-        final_errors = []
-        model, current_obj = find_task_model(current_task)
-        # print("CURRENT OBJ: ", current_obj)
-        # name_model = current_obj.__class__.__name__
-        # print("NAME MODEL: ", name_model)
-        # print("METHOD: ", method)
-        result["from_aws"] = True
+    # if not errors:
+    final_errors = []
+    model, current_obj = find_task_model(current_task)
+    # print("CURRENT OBJ: ", current_obj)
+    # name_model = current_obj.__class__.__name__
+    # print("NAME MODEL: ", name_model)
+    # print("METHOD: ", method)
+    result["from_aws"] = True
 
-        method, task_params, error = get_method(current_obj)
-        if method:
-            try:
-                new_tasks, final_errors, data = method(
-                    **result, task_params=task_params)
-            except Exception:
-                import traceback
-                error_ = traceback.format_exc()
-                print("ERROR EN EL MÉTODO: ", error_)
-                final_errors.append(str(error_))
-        else:
-            print(error)
-            final_errors.append(error)
-        errors.extend(final_errors or [])
+    method, task_params, error = get_method(current_obj)
+    if method:
+        try:
+            new_tasks, final_errors, data = method(
+                **result, task_params=task_params)
+        except Exception:
+            import traceback
+            error_ = traceback.format_exc()
+            print("ERROR EN EL MÉTODO: ", error_)
+            final_errors.append(str(error_))
+    else:
+        print(error)
+        final_errors.append(error)
+    errors.extend(final_errors or [])
     current_task.date_end = datetime.now()
     return comprobate_status(current_task, errors, new_tasks)
 
@@ -469,7 +469,7 @@ def debug_queue():
     from datetime import timedelta
     from django.utils import timezone
     arrived_tasks = AsyncTask.objects.filter(
-        status_task_id="success", task_function_id="save_csv_in_db")
+        status_task_id="success", task_function__is_queueable=True)
     # arrived_tasks = AsyncTask.objects.filter(
     #     status_task_id="success", task_function__is_queueable=True)
     for task in arrived_tasks:
@@ -549,7 +549,7 @@ def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):
         execute_async(last_task, request_params)
 
 
-resend_error_tasks("save_csv_in_db", "e04f5607-5542-4fee-a7c7-1badb598447a")
+# resend_error_tasks("save_csv_in_db", "e04f5607-5542-4fee-a7c7-1badb598447a")
 
 
 

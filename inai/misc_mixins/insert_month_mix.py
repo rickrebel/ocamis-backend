@@ -140,11 +140,13 @@ class InsertMonth:
         }
         # self.task_params["function_after"] = "check_success_insert"
         current_task_params = self.task_params.copy()
-        current_task_params["models"] = [self.entity_month, entity_week]
+        current_task_params["models"] = [entity_week, self.entity_month]
         current_task_params["params_after"] = {
             "table_files_ids": [table_file.id for table_file in table_files],
         }
-        return async_in_lambda("save_csv_in_db", params, current_task_params)
+        # return async_in_lambda("save_csv_in_db", params, current_task_params)
+        return async_in_lambda(
+            "save_week_base_models", params, current_task_params)
 
     def send_lap_tables_to_db(
             self, lap_sheet: LapSheet, table_files: list, inserted_field):
@@ -171,14 +173,19 @@ class InsertMonth:
             lap_sheet.sheet_file.data_file,
             self.entity_month]
         if inserted_field == "missing_inserted":
+            function_name = "save_lap_missing_tables"
             current_task_params["function_after"] = "check_success_insert"
             current_task_params["subgroup"] = "missing"
         elif inserted_field == "cat_inserted":
+            function_name = "save_lap_cat_tables"
             current_task_params["subgroup"] = "med_cat"
+        else:
+            raise Exception("No se encontró el campo de inserción")
         current_task_params["params_after"] = {
             "table_files_ids": [table_file.id for table_file in table_files],
         }
-        return async_in_lambda("save_csv_in_db", params, current_task_params)
+        # return async_in_lambda("save_csv_in_db", params, current_task_params)
+        return async_in_lambda(function_name, params, current_task_params)
 
     def build_catalog_queries(
             self, path, columns_join, model_in_db, model_name):

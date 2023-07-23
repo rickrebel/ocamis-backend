@@ -80,11 +80,11 @@ class Drug(models.Model):
         related_name='drugs')
     # sheet_file = models.ForeignKey(
     #     SheetFile, on_delete=models.CASCADE)
-    sheet_file = models.IntegerField()
+    sheet_file_id = models.IntegerField()
     row_seq = models.PositiveIntegerField(blank=True, null=True)
     # lap_sheet = models.ForeignKey(
     #     LapSheet, on_delete=models.CASCADE)
-    lap_sheet = models.IntegerField()
+    lap_sheet_id = models.IntegerField()
 
     medicament = models.ForeignKey(
         Medicament, blank=True, null=True,
@@ -105,7 +105,7 @@ class Drug(models.Model):
         verbose_name_plural = "Insumos (medicamentos)"
 
     def __str__(self):
-        return str(self.rn)
+        return str(self.uuid)
 
 
 class MissingRow(models.Model):

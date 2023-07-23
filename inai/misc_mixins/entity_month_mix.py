@@ -1,3 +1,4 @@
+from classify_task.models import Stage
 from inai.models import EntityMonth
 from task.serverless import async_in_lambda
 
@@ -14,6 +15,9 @@ class FromAws:
         from inai.models import CrossingSheet, SheetFile, LapSheet
 
         from_aws = kwargs.get("from_aws", False)
+        current_task = self.task_params.get("parent_task")
+        parent_task = current_task.parent_task
+        self.entity_month.end_stage("analysis", parent_task)
 
         related_weeks = self.entity_month.weeks.all()
         all_crosses = {}
@@ -61,7 +65,6 @@ class FromAws:
                 setattr(lap_sheet.sheet_file, field, table_sums[field + "__sum"])
             lap_sheet.sheet_file.save()
 
-        # space
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
         # print("result_sums", result_sums)
@@ -80,6 +83,10 @@ class FromAws:
             EntityWeekSimpleSerializer, TableFileAwsSerializer)
 
         all_tasks = []
+        insert_stage = Stage.objects.get(name="insert")
+        if self.entity_month.stage.order >= insert_stage.order:
+            error = f"El mes {self.entity_month.year_month} ya se insertó"
+            return all_tasks, [error], True
         for week in self.entity_month.weeks.all():
             if week.last_crossing:
                 if week.last_transformation < week.last_crossing:
@@ -165,6 +172,7 @@ class FromAws:
     def rebuild_month(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import DataFile
+        from django.utils import timezone
 
         related_sheet_files = self.entity_month.sheet_files.all()
         data_files_ids = related_sheet_files.values_list(
@@ -184,29 +192,44 @@ class FromAws:
                 continue
             week_base_table_files = ew.table_files.filter(
                 lap_sheet__lap=0).prefetch_related("lap_sheet__sheet_file")
+            if week_base_table_files.count() == 0:
+                ew.last_transformation = timezone.now()
+                ew.save()
+                continue
             table_task = my_insert.merge_week_base_tables(
                 ew, week_base_table_files)
             new_tasks.append(table_task)
 
         return new_tasks, [], True
 
-    def insert_month(self):
+    def pre_insert_month(self):
         from task.views import build_task_params
+        from django.db import connection
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, DataFile
 
-        # CREATE TABLE fm_55_201901_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
-        # CREATE TABLE fm_55_201901_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
+        # CREATE TABLE fm_55_201902_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
+        # CREATE TABLE fm_55_201902_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
+        queries = []
+        for table_name in ["rx", "drug"]:
+            queries.append(f"""
+                CREATE TABLE fm_{self.entity_month.temp_table}_{table_name}
+                (LIKE formula_{table_name} INCLUDING CONSTRAINTS);
+            """)
+        cursor = connection.cursor()
+        for query in queries:
+            cursor.execute(query)
+        cursor.close()
 
         # INSERT INTO formula_rx
         # SELECT *
-        # FROM fm_55_201901_rx;
+        # FROM fm_55_201902_rx;
         # INSERT INTO formula_drug
         # SELECT *
-        # FROM fm_55_201901_drug;
+        # FROM fm_55_201902_drug;
 
-        # DROP TABLE fm_55_201901_rx;
-        # DROP TABLE fm_55_201901_drug;
+        # DROP TABLE fm_55_201902_rx;
+        # DROP TABLE fm_55_201902_drug;
 
         month_table_files = TableFile.objects\
             .filter(
@@ -238,8 +261,9 @@ class FromAws:
             errors.append(error)
             # return [], errors, False
         if related_sheet_files.filter(behavior_id="pending").exists():
-            error = [f"Hay pestañas pendientes de clasificar para el mes "
-                      f"{self.entity_month.year_month}"]
+            error = [
+                f"Hay pestañas pendientes de clasificar para el mes "
+                f"{self.entity_month.year_month}"]
             errors.append(error)
         if errors:
             print("error", errors)
@@ -309,40 +333,22 @@ class FromAws:
 
         return new_tasks, errors, True
 
-    def save_formula_tables(self, task_params, **kwargs):
-        from inai.misc_mixins.insert_month_mix import InsertMonth
-        from inai.models import LapSheet, TableFile
-        from task.views import build_task_params
-        errors = []
-        new_tasks = []
-        # month_table_files = []
-        # for week in self.entity_month.weeks.all():
-        #     month_table_files.extend(week.table_files.all().values_list(
-        #         "id", flat=True))
-
-        class RequestClass:
-            def __init__(self):
-                self.user = task_params["parent_task"].user
-        req = RequestClass()
-        task_kwargs = {
-            "parent_task": task_params["parent_task"],
-            # "finished_function": "all_base_tables_saved"
-        }
-        # base_task = my_insert.send_base_tables_to_db(
-        #     self.entity_month, base_table_files)
-        # new_tasks.append(base_task)
-        # space
-        return new_tasks, errors, True
-
     def all_base_tables_merged(self, **kwargs):
         from django.utils import timezone
         self.entity_month.last_merge = timezone.now()
+        current_task = self.task_params.get("parent_task")
+        parent_task = current_task.parent_task
+        self.entity_month.end_stage("merge", parent_task)
         self.entity_month.save()
         return [], [], True
 
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
         self.entity_month.last_insertion = timezone.now()
+        current_task = self.task_params.get("parent_task")
+        parent_task = current_task.parent_task
+        errors = self.entity_month.end_stage("pre_insert", parent_task)
+        # if not errors:
+        #     self.entity_month.end_stage("insert", parent_task)
         self.entity_month.save()
         return [], [], True
-

@@ -53,13 +53,13 @@ class DrugAdmin(admin.ModelAdmin):
     list_display = [
         "uuid",
         "rx",
-        "sheet_file",
+        "sheet_file_id",
         "prescribed_amount",
         "delivered_amount",
         "price",
     ]
     readonly_fields = [
-        "rx", "sheet_file", "lap_sheet", "medicament", "delivered"]
+        "rx", "sheet_file_id", "lap_sheet_id", "medicament", "delivered"]
 
 
 ocamis_admin_site.register(Drug, DrugAdmin)

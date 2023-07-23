@@ -378,6 +378,92 @@ def delete_duplicate_table_files():
             table_file.delete()
 
 
+def delete_table_files_without_entity_week():
+    from inai.models import TableFile
+    all_table_files = TableFile.objects\
+        .filter(
+            entity_week__isnull=True,
+            collection__isnull=False)
+    print("all_table_files", all_table_files.count())
+    all_table_files.delete()
+
+
+def sum_one_to_drug_table_files():
+    from data_param.models import Collection
+    from inai.models import TableFile
+    drug_collection = Collection.objects.get(model_name="Drug")
+    all_table_files = TableFile.objects.filter(
+        collection=drug_collection,
+        entity_week__isnull=False)
+    for table_file in all_table_files:
+        table_file.drugs_count = table_file.drugs_count + 1
+        table_file.save()
+
+
+def delete_entity_weeks_with_zero():
+    from inai.models import EntityWeek, TableFile
+    from data_param.models import Collection
+    drug_collection = Collection.objects.get(model_name="Drug")
+    need_delete = 0
+    table_files = TableFile.objects.filter(
+        drugs_count=0, entity_week__isnull=False,
+        collection=drug_collection)
+    for table_file in table_files:
+        entity_week = table_file.entity_week
+        avoid = False
+        if entity_week.last_transformation and entity_week.last_crossing:
+            if entity_week.last_transformation < entity_week.last_crossing:
+                avoid = True
+        if not avoid:
+            table_files = entity_week.table_files.all()
+            if table_files.count() != 2:
+                print("entity_week_id", entity_week.id)
+                print("count", table_files.count())
+            else:
+                need_delete += 1
+                # print("entity_week_id", entity_week.id)
+                # table_files.delete()
+    print("need_delete", need_delete)
+
+
+def rebuild_entity_weeks():
+    from inai.models import EntityWeek, EntityMonth
+    from django.db.models import Sum
+    sum_fields = [
+        "drugs_count", "rx_count", "duplicates_count", "shared_count"]
+    # SPACE
+    def recalculate_entity_month(entity_month):
+        query_sums = [Sum(field) for field in sum_fields]
+        result_sums = entity_month.weeks.all().aggregate(*query_sums)
+        for field_1 in sum_fields:
+            setattr(entity_month, field_1, result_sums[field_1 + "__sum"])
+        entity_month.save()
+    # SPACE
+    fields = [
+        # ["drugs_count", "drugs_count"],
+        # ["rx_count", "rx_count"],
+        ["duplicates_count", "dupli"],
+        ["shared_count", "shared"]
+    ]
+    entity_months = set()
+    entity_weeks = EntityWeek.objects.filter(
+        last_crossing__isnull=False, rx_count__gt=0)
+    for entity_week in entity_weeks:
+        first_task = entity_week.async_tasks\
+            .filter(status_task_id='finished').first()
+        if first_task:
+            week_counts = first_task.result.get("month_week_counts")
+            if not week_counts:
+                continue
+            for field in fields:
+                setattr(entity_week, field[0], week_counts[field[1]])
+            entity_week.save()
+            entity_months.add(entity_week.entity_month_id)
+    entity_months = EntityMonth.objects.filter(id__in=list(entity_months))
+    for ent_month in entity_months:
+        recalculate_entity_month(ent_month)
+
+
 
 # assign_year_month_to_sheet_files(53)
 # move_delegation_clues()

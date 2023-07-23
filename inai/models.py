@@ -291,6 +291,22 @@ class EntityMonth(models.Model):
     def __str__(self):
         return "%s -- %s" % (self.entity.acronym, self.year_month)
 
+    def end_stage(self, stage_id, parent_task):
+        child_task_errors = parent_task.child_tasks.filter(
+            status_task__macro_status="with_errors")
+        all_errors = []
+        for child_task_error in child_task_errors:
+            all_errors += child_task_error.errors
+        self.stage_id = stage_id
+        if all_errors:
+            self.status_id = "with_errors"
+            self.error_process = all_errors
+        else:
+            self.status_id = "finished"
+            self.error_process = []
+        self.save()
+        return all_errors
+
     @property
     def human_name(self):
         months = [
@@ -299,6 +315,11 @@ class EntityMonth(models.Model):
         year, month = self.year_month.split("-")
         month_name = months[int(month)-1]
         return "%s/%s" % (month_name, year)
+
+    @property
+    def temp_table(self):
+        year_month = self.year_month.replace("-", "")
+        return f"{self.entity_id}_{year_month}"
 
     class Meta:
         get_latest_by = "year_month"
