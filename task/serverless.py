@@ -46,7 +46,7 @@ def execute_async(current_task, params):
     import threading
     from scripts.common import start_session
     function_name = current_task.task_function_id
-    if current_task.is_queueable:
+    if current_task.task_function.is_queueable:
         function_name = "save_csv_in_db"
 
     s3_client, dev_resource = start_session("lambda")
