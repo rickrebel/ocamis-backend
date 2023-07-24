@@ -345,8 +345,9 @@ class Match:
             duplicated_in = None
             for prev_field in self.existing_fields:
                 if prev_field.get("final_field_id") == final_field.id:
-                    duplicated_in = prev_field
-                    break
+                    if final_field.parameter_group.name != "Otros (no considerados)":
+                        duplicated_in = prev_field
+                        break
             collection_name = final_field.collection.model_name
             collection_name = camel_to_snake(collection_name)
             name_to_local = f"{collection_name}_{final_field.name}"

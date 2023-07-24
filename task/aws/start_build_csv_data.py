@@ -918,7 +918,7 @@ class MatchAws:
                             error = "No se pudo convertir a número entero"
                     except Exception:
                         error = "No se pudo convertir a número entero"
-                    if value < 0:
+                    if not error and value < 0:
                         error = "El valor no puede ser negativo"
                 elif field["data_type"] == "Float":
                     value = float(value)
