@@ -458,8 +458,8 @@ class EntityMonthViewSet(CreateRetrievView):
         behavior = request.data.get("behavior")
         for_all = request.data.get("all", False)
         sheet_files = entity_month.sheet_files.filter(
-            rx_count__gt=0,
-            laps__lap=0)
+            laps__rx_count__gt=0,
+            laps__lap=0).distinct()
         # sheet_files = SheetFile.objects.filter(
         #     laps__table_files__entity_week__entity_month=entity_month,
         #     rx_count__gt=0,

@@ -515,20 +515,17 @@ def revert_own_mistake():
 
 def revert_duplicates_table_files():
     from inai.models import LapSheet, TableFile
-    all_lap_sheets = LapSheet.objects.filter(
-        lap=0, table_files__collection__isnull=False) \
-        .prefetch_related("table_files", "table_files__collection") \
-        .distinct()
-    print("all_lap_sheets", all_lap_sheets.count())
-    for lap_sheet in all_lap_sheets:
-        table_files = lap_sheet.table_files
-        collections = table_files.values_list(
-            "collection", flat=True).distinct()
-        for collection in collections:
-            collection_files = table_files.filter(collection_id=collection)
-            if table_files.count() > 1:
-                first_table_file = collection_files.first()
-                collection_files.exclude(id=first_table_file.id).delete()
+    from django.db.models import Count
+    table_sums = TableFile.objects.filter(
+        collection__isnull=False, lap_sheet__lap=0).values(
+        "collection_id", "lap_sheet").annotate(
+        count=Count("id")).filter(count__gt=1)
+    for table_sum in table_sums:
+        table_files = TableFile.objects.filter(
+            collection_id=table_sum["collection_id"],
+            lap_sheet=table_sum["lap_sheet"])
+        first_table_file = table_files.first()
+        table_files.exclude(id=first_table_file.id).delete()
 
 
 # assign_year_month_to_sheet_files(53)

@@ -7,7 +7,7 @@ def custom_constraint(constraint, year_month):
     constraint = constraint.replace(
         "alter table formula_", f" alter table fm_{year_month}_")
     constraint = constraint.replace(
-        "references formula_rx", f"references fm_{year_month}_rx")
+        "references formula_", f"references fm_{year_month}_")
     clean_constraint = constraint.replace("\n", " \n")
     if "add constraint " in clean_constraint:
         original_constraint_name = clean_constraint.split(
@@ -21,8 +21,7 @@ def custom_constraint(constraint, year_month):
     constraint_name = constraint_name.replace("missingfield", "mf")
     constraint_name = constraint_name.replace("fk_formula", "fk_fm")
     constraint_name = constraint_name.replace("formula_", f"fm_{year_month}_")
-    return clean_constraint.replace(
-        original_constraint_name, constraint_name)
+    return clean_constraint.replace(original_constraint_name, constraint_name)
 
 
 def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
@@ -36,7 +35,7 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
     cursor = connection.cursor()
     print("START", datetime.now())
     valid_strings = [" on TABLE ", " table TABLE ", " index if exists TABLE"]
-    valid_tables = ["formula_rx", "formula_drug"]
+    valid_tables = ["rx", "drug", "missingrow", "missingfield"]
     invalid_fields = ["lap_sheet_id", "sheet_file_id", "_like"]
     constraint_list = create_constrains if is_create \
         else reversed(delete_constrains)
@@ -46,7 +45,8 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
         valid_constraint = not bool(year_month)
         for valid_string in valid_strings:
             for valid_table in valid_tables:
-                final_valid_string = valid_string.replace("TABLE", valid_table)
+                final_valid_string = valid_string.replace(
+                    "TABLE", f"formula_{valid_table}")
                 if final_valid_string in constraint:
                     valid_constraint = True
         if is_create and valid_constraint:
@@ -85,7 +85,7 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
 
 
 # modify_constraints(True, False, "55_201902")
-# modify_constraints(False, False, "55_201902")
+# modify_constraints(False, False, "55_201701")
 
 
 def rebuild_primary_key(cursor, table_name, constraint):
