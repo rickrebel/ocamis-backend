@@ -106,7 +106,10 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 t.start()
                 time.sleep(10)
             else:
-                run_in_thread()
+                new_tasks, errors, s = main_method()
+                all_tasks.extend(new_tasks)
+                all_errors.extend(errors)
+                comprobate_status(month_task, errors, new_tasks)
                 time.sleep(1)
             # seconds_sleep = 10 if entity.split_by_delegation else 1
             # time.sleep(seconds_sleep)
