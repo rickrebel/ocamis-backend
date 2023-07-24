@@ -65,9 +65,9 @@ class InsertMonth:
         only_name = f"NEW_ELEM_NAME/NEW_ELEM_NAME_" \
                     f"by_week_{complement_name}_" \
                     f"{entity_week.iso_delegation or '0'}.csv"
-        agency_type = self.entity.agency_type[:8].lower()
+        entity_type = self.entity.entity_type[:8].lower()
         acronym = self.entity.acronym.lower()
-        final_path = "/".join([agency_type, acronym, only_name])
+        final_path = "/".join([entity_type, acronym, only_name])
         s3 = build_s3()
         params = {
             "week_table_files": TableFileAwsSerializer(

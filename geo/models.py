@@ -6,12 +6,12 @@ from django.contrib.auth.models import User
 
 def set_upload_path_entity(instance, filename):
 
-    agency_type = instance.agency_type[:8].lower()
+    entity_type = instance.entity_type[:8].lower()
     try:
         acronym = instance.acronym.lower()
     except AttributeError:
         acronym = 'others'
-    return "/".join([agency_type, acronym,  filename])
+    return "/".join([entity_type, acronym,  filename])
 
 
 def default_alternative_names():
