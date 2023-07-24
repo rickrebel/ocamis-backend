@@ -351,8 +351,11 @@ class FromAws:
         from django.utils import timezone
         self.entity_month.last_insertion = timezone.now()
         current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        errors = self.entity_month.end_stage("pre_insert", parent_task)
+        if current_task.task_function_id == 'all_base_tables_saved':
+            errors = self.entity_month.end_stage("pre_insert", current_task)
+        else:
+            parent_task = current_task.parent_task
+            errors = self.entity_month.end_stage("pre_insert", parent_task)
         # if not errors:
         #     self.entity_month.end_stage("insert", parent_task)
         self.entity_month.save()

@@ -296,7 +296,7 @@ class EntityMonth(models.Model):
             status_task__macro_status="with_errors")
         all_errors = []
         for child_task_error in child_task_errors:
-            all_errors += child_task_error.errors
+            all_errors += child_task_error.errors or []
         self.stage_id = stage_id
         if all_errors:
             self.status_id = "with_errors"
@@ -529,7 +529,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     class Meta:
         ordering = ["-id"]
         verbose_name = "Archivo con datos"
-        verbose_name_plural = "3. Archivos con datos"
+        verbose_name_plural = "3. Archivos entregados con datos"
 
 
 class Behavior(models.Model):
