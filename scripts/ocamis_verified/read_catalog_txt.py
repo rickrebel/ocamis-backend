@@ -385,7 +385,8 @@ def delete_table_files_without_entity_week():
             entity_week__isnull=True,
             collection__isnull=False)
     print("all_table_files", all_table_files.count())
-    all_table_files.delete()
+    # !!!! ERROOOOOOR
+    # all_table_files.delete()
 
 
 def sum_one_to_drug_table_files():
@@ -463,6 +464,53 @@ def rebuild_entity_weeks():
     for ent_month in entity_months:
         recalculate_entity_month(ent_month)
 
+
+def revert_own_mistake():
+    from inai.models import TableFile, SheetFile
+    from data_param.models import Collection
+    import time
+    def save_model_files(lapsheet, model_paths):
+        entity = lapsheet.sheet_file.data_file.entity
+        new_table_files = []
+        for result_file in model_paths:
+            model_name = result_file.get("model")
+            if model_name == "Prescription":
+                model_name = "Rx"
+            query_create = {"entity": entity, "file": result_file["path"]}
+            collection = Collection.objects.get(model_name=model_name)
+            query_create["collection"] = collection
+            query_create["lap_sheet"] = lapsheet
+            table_file = TableFile(**query_create)
+            new_table_files.append(table_file)
+        TableFile.objects.bulk_create(new_table_files)
+    total_count = 0
+    all_sheet_files = SheetFile.objects.filter(
+        async_tasks__status_task_id="finished",
+        async_tasks__task_function="start_build_csv_data",
+        async_tasks__result__icontains='is_prepare": false')
+    print("all_sheet_files", all_sheet_files.count())
+    for x in range(14):
+        for sheet_file in all_sheet_files[x * 500:(x + 1) * 500]:
+            tasks = sheet_file.async_tasks.filter(
+                status_task_id="finished",
+                task_function="start_build_csv_data",
+                result__icontains='is_prepare": false')
+            first_task = tasks.first()
+            if not first_task:
+                continue
+            total_count += 1
+            final_paths = first_task.result.get("final_paths", [])
+            paths_with_model = [path for path in final_paths if path.get("model")]
+            lap_sheet = sheet_file.laps.filter(lap=0).first()
+            try:
+                save_model_files(lap_sheet, paths_with_model)
+            except Exception as e:
+                print("task_id", first_task.id)
+                print("error", e)
+        print("--------------")
+        print("x", x)
+        time.sleep(5)
+    print("total_count", total_count)
 
 
 # assign_year_month_to_sheet_files(53)

@@ -126,8 +126,7 @@ class InsertMonth:
             SET last_insertion = now()
             WHERE id = {entity_week.id}
         """
-        year_month = entity_week.year_month.replace("-", "")
-        temp_complement = f"{self.entity.id}_{year_month}"
+        temp_complement = self.entity_month.temp_table
         main_queries = self.build_query_tables(table_files, temp_complement)
         params = {
             "first_query": first_query,
@@ -160,13 +159,7 @@ class InsertMonth:
             SET {inserted_field} = true
             WHERE id = {lap_sheet.id}
         """
-        params = {
-            "first_query": first_query,
-            "last_query": last_query,
-            "queries_by_model": self.build_query_tables(table_files),
-            "db_config": ocamis_db,
-            "lap_sheet_id": lap_sheet.id,
-        }
+
         current_task_params = self.task_params.copy()
         current_task_params["models"] = [
             lap_sheet.sheet_file,
@@ -174,15 +167,24 @@ class InsertMonth:
             self.entity_month]
         if inserted_field == "missing_inserted":
             function_name = "save_lap_missing_tables"
+            temp_complement = self.entity_month.temp_table
             current_task_params["function_after"] = "check_success_insert"
             current_task_params["subgroup"] = "missing"
         elif inserted_field == "cat_inserted":
             function_name = "save_lap_cat_tables"
+            temp_complement = None
             current_task_params["subgroup"] = "med_cat"
         else:
             raise Exception("No se encontró el campo de inserción")
         current_task_params["params_after"] = {
             "table_files_ids": [table_file.id for table_file in table_files],
+        }
+        params = {
+            "first_query": first_query,
+            "last_query": last_query,
+            "queries_by_model": self.build_query_tables(table_files, temp_complement),
+            "db_config": ocamis_db,
+            "lap_sheet_id": lap_sheet.id,
         }
         # return async_in_lambda("save_csv_in_db", params, current_task_params)
         return async_in_lambda(function_name, params, current_task_params)

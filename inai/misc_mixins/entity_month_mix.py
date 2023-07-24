@@ -210,15 +210,20 @@ class FromAws:
 
         # CREATE TABLE fm_55_201902_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
         # CREATE TABLE fm_55_201902_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
-        queries = []
-        for table_name in ["rx", "drug"]:
-            queries.append(f"""
-                CREATE TABLE fm_{self.entity_month.temp_table}_{table_name}
+        queries = {"create": [], "drop": []}
+        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            queries["drop"].append(f"""
+                DROP TABLE IF EXISTS {temp_table} CASCADE; 
+            """)
+            queries["create"].append(f"""
+                CREATE TABLE {temp_table}
                 (LIKE formula_{table_name} INCLUDING CONSTRAINTS);
             """)
         cursor = connection.cursor()
-        for query in queries:
-            cursor.execute(query)
+        for operation in ["drop", "create"]:
+            for query in queries[operation]:
+                cursor.execute(query)
         cursor.close()
 
         # INSERT INTO formula_rx

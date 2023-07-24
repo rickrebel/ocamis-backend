@@ -40,13 +40,11 @@ def reverse_insert(hard=False):
     from task.models import AsyncTask
     # TableFile.objects.filter(inserted=True).update(inserted=False)
     LapSheet.objects.filter(inserted=True).update(inserted=False)
-    LapSheet.objects.filter(inserted=None).update(inserted=False)
     lap_sheets = LapSheet.objects.filter(cat_inserted=True)
     lap_sheets.update(
         missing_inserted=False, cat_inserted=False, inserted=False)
     inserted_table_files = TableFile.objects.filter(inserted=True)
     inserted_table_files.update(inserted=False)
-    # TableFile.objects.update(inserted=False)
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
     EntityMonth.objects.filter(last_insertion__isnull=False)\
@@ -65,6 +63,8 @@ def reverse_insert(hard=False):
         AsyncTask.objects.filter(task_function_id="pre_insert_month").delete()
         # AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
         AsyncTask.objects.filter(task_function__is_queueable=True).delete()
+
+# reverse_insert(True)
 
 
 def save_success_params_after():
