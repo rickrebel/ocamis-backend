@@ -262,7 +262,7 @@ class FromAws:
         errors = []
         if not collection_table_files.exists() and not month_table_files.exists():
             error = ["No existen tablas por insertar para el mes "
-                      f"{self.entity_month.year_month}"]
+                     f"{self.entity_month.year_month}"]
             errors.append(error)
             # return [], errors, False
         if related_sheet_files.filter(behavior_id="pending").exists():
