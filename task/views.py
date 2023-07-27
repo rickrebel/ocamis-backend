@@ -528,7 +528,7 @@ def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):
                 task.save()
                 continue
             if task.entity_week:
-                print("last_insertion:", task.entity_week.last_insertion)
+                print("last_pre_insertion:", task.entity_week.last_pre_insertion)
             else:
                 print("no hay entity_week")
             print("-------------------------")

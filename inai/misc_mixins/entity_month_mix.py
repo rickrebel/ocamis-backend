@@ -169,7 +169,7 @@ class FromAws:
         self.entity_month.save()
         return [], [], True
 
-    def rebuild_month(self):
+    def merge_files_by_week(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import DataFile
         from django.utils import timezone
@@ -349,13 +349,10 @@ class FromAws:
 
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
-        self.entity_month.last_insertion = timezone.now()
+        self.entity_month.last_pre_insertion = timezone.now()
         current_task = self.task_params.get("parent_task")
-        if current_task.task_function_id == 'all_base_tables_saved':
-            errors = self.entity_month.end_stage("pre_insert", current_task)
-        else:
-            parent_task = current_task.parent_task
-            errors = self.entity_month.end_stage("pre_insert", parent_task)
+        parent_task = current_task.parent_task
+        errors = self.entity_month.end_stage("pre_insert", parent_task)
         # if not errors:
         #     self.entity_month.end_stage("insert", parent_task)
         self.entity_month.save()

@@ -416,7 +416,8 @@ class EntityMonthViewSet(CreateRetrievView):
         from inai.api.serializers import (SheetFileMonthSerializer)
         from inai.models import CrossingSheet
         entity_month = self.get_object()
-        sheet_files = entity_month.sheet_files.all()
+        sheet_files = entity_month.sheet_files.all() \
+            .prefetch_related("data_file", "data_file__petition_file_control")
         # sheet_files = SheetFile.objects.filter(
         #     laps__table_files__entity_week__entity_month=entity_month)\
         #     .distinct()
@@ -438,8 +439,9 @@ class EntityMonthViewSet(CreateRetrievView):
         for initial_sheet in sheet_files:
             if initial_sheet.id in all_related_sheets:
                 all_related_sheets.remove(initial_sheet.id)
-        related_sheet_files = SheetFile.objects.filter(
-            id__in=list(all_related_sheets))
+        related_sheet_files = SheetFile.objects\
+            .filter(id__in=list(all_related_sheets)) \
+            .prefetch_related("data_file", "data_file__petition_file_control")
         serializer_related_files = SheetFileMonthSerializer(
             related_sheet_files, many=True)
 

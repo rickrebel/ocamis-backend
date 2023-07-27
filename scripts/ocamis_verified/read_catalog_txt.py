@@ -340,7 +340,7 @@ def send_entity_weeks_to_rebuild(limit=None):
     if limit:
         all_table_files = all_table_files[:limit]
     print("table_files", all_table_files.count())
-    return None
+    # return None
     # class RequestClass:
     #     def __init__(self):
     #         self.user = User.objects.get(username="rickrebel@gmail.com")
@@ -526,6 +526,34 @@ def revert_duplicates_table_files():
             lap_sheet=table_sum["lap_sheet"])
         first_table_file = table_files.first()
         table_files.exclude(id=first_table_file.id).delete()
+
+
+def reassign_default_stage(first_stage="initial"):
+    from inai.models import EntityMonth
+    default_entity_months = EntityMonth.objects.filter(
+        stage_id=first_stage)
+    default_entity_months.update(stage_id="init_month")
+
+
+def calculate_real_stage():
+    from inai.models import EntityMonth
+    entity_months = EntityMonth.objects.filter(
+        last_crossing__isnull=False)
+    for entity_month in entity_months:
+        if entity_month.last_merge:
+            if entity_month.last_transformation < entity_month.last_crossing < entity_month.last_merge:
+                entity_month.stage_id = "merge"
+            else:
+                entity_month.stage_id = "analysis"
+        elif entity_month.last_crossing:
+            if entity_month.last_transformation < entity_month.last_crossing:
+                entity_month.stage_id = "analysis"
+            else:
+                entity_month.stage_id = "insertion"
+        elif entity_month.last_transformation:
+            entity_month.stage_id = "insertion"
+        else:
+            entity_month.stage_id = "initial"
 
 
 # assign_year_month_to_sheet_files(53)

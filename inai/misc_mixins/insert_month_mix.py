@@ -27,6 +27,13 @@ def build_copy_sql_aws(path, model_in_db, columns_join):
     """
 
 
+def build_alternative_query(model_in_db, columns_join):
+    return f"""
+        INSERT INTO {model_in_db} ({columns_join})
+        VALUES (LIST_VALUES);
+    """
+
+
 class InsertMonth:
 
     def __init__(self, entity_month: EntityMonth, task_params=None):
@@ -77,6 +84,7 @@ class InsertMonth:
         }
         current_task_params = self.task_params.copy()
         current_task_params["models"] = [entity_week]
+        current_task_params["entity_week_id"] = entity_week.id
         current_task_params["function_after"] = "save_merged_from_aws"
         return async_in_lambda("build_week_csvs", params, current_task_params)
 
@@ -100,15 +108,21 @@ class InsertMonth:
                             "formula_", f"fm_{complement}_")
                     query_base = build_copy_sql_aws(
                         "PATH_URL", model_in_db, columns_join)
+                    alternative_query = build_alternative_query(
+                        model_in_db, columns_join)
                     queries_by_model[model_name] = {
                         "base_queries": [query_base],
+                        "alternative_query": alternative_query,
                         "files": [],
                     }
                 else:
                     base_queries = self.build_catalog_queries(
                         "PATH_URL", columns_join, model_in_db, model_name)
+                    alternative_query = build_alternative_query(
+                        model_in_db, columns_join)
                     queries_by_model[model_name] = {
                         "base_queries": base_queries,
+                        "alternative_query": alternative_query,
                         "files": [],
                     }
             queries_by_model[model_name]["files"].append(path)
@@ -116,14 +130,15 @@ class InsertMonth:
 
     def send_base_tables_to_db(
             self, entity_week: EntityWeek, table_files: list):
+        from scripts.common import build_s3
         first_query = f"""
-            SELECT last_insertion IS NOT NULL AS last_insertion
+            SELECT last_pre_insertion IS NOT NULL AS last_pre_insertion
             FROM public.inai_entityweek
             WHERE id = {entity_week.id}
         """
         last_query = f"""
             UPDATE public.inai_entityweek
-            SET last_insertion = now()
+            SET last_pre_insertion = now()
             WHERE id = {entity_week.id}
         """
         temp_complement = self.entity_month.temp_table
@@ -133,6 +148,7 @@ class InsertMonth:
             "last_query": last_query,
             "queries_by_model": main_queries,
             "db_config": ocamis_db,
+            "s3": build_s3(),
             "entity_month_id": self.entity_month.id,
             # "entity_week": EntityWeekSimpleSerializer(entity_week).data,
             "entity_week_id": entity_week.id,
@@ -149,6 +165,7 @@ class InsertMonth:
 
     def send_lap_tables_to_db(
             self, lap_sheet: LapSheet, table_files: list, inserted_field):
+        from scripts.common import build_s3
         first_query = f"""
             SELECT {inserted_field}
             FROM public.inai_lapsheet
@@ -182,6 +199,7 @@ class InsertMonth:
         params = {
             "first_query": first_query,
             "last_query": last_query,
+            "s3": build_s3(),
             "queries_by_model": self.build_query_tables(table_files, temp_complement),
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,

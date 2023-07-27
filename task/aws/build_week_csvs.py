@@ -28,6 +28,7 @@ class BuildWeekAws:
     def __init__(self, event: dict, context):
 
         self.entity_id = event.get("entity_id")
+        self.entity_week_id = event.get("entity_week_id")
         self.week_table_files = event.get("week_table_files", [])
         self.pos_uuid_folio = None
         self.positions = {}
@@ -89,6 +90,7 @@ class BuildWeekAws:
             for b_field in self.basic_fields:
                 self.positions[b_field] = row.index(b_field)
             self.headers["drug"] = row[:self.pos_uuid_folio]
+            self.headers["drug"].append("entity_week_id")
             self.buffers["drug"].writerow(self.headers["drug"])
             self.headers["rx"] = row[self.pos_uuid_folio:]
             self.buffers["rx"].writerow(self.headers["rx"])
@@ -125,6 +127,7 @@ class BuildWeekAws:
             sheet_id, folio_ocamis, current_uuid, current_delivered = current_util
             self.drugs_count += 1
             current_drug = row[:self.pos_uuid_folio]
+            current_drug.append(self.entity_week_id)
             if folio_ocamis not in every_folios:
                 every_folios[folio_ocamis] = {
                     "sheet_ids": {sheet_id},

@@ -132,7 +132,7 @@ def rebuild_primary_key(cursor, table_name, constraint):
             cursor.execute(complement_delete_drug)
             print("time_now", timezone.now())
             # last_insertion = entity_week.last_insertion
-            entity_week.last_insertion = None
+            entity_week.last_pre_insertion = None
             entity_week.save()
             task = AsyncTask.objects.filter(
                 entity_week=entity_week,

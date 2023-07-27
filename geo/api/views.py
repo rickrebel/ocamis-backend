@@ -60,15 +60,19 @@ class EntityViewSet(ListRetrieveUpdateMix):
             entity, main_function_name, request, keep_tasks=True)
 
         functions = {
+            "revert_stages": {
+                "finished_function": "revert_stages_after",
+                "function_name": "revert_stages",
+            },
             "send_analysis": {
                 "finished_function": "save_month_analysis",
                 "function_name": "send_analysis",
             },
             "merge_files_by_week": {
                 "finished_function": "all_base_tables_merged",
-                "function_name": "rebuild_month",
+                "function_name": "merge_files_by_week",
             },
-            "send_months_to_db": {
+            "pre_insert_month": {
                 "finished_function": "all_base_tables_saved",
                 "function_name": "pre_insert_month",
             },

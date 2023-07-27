@@ -81,7 +81,7 @@ class Stage(models.Model):
         verbose_name="Etapas a re-procesar")
 
     def __str__(self):
-        return self.public_name or self.name
+        return f"{self.order}. {self.public_name or self.name}"
 
     class Meta:
         ordering = ['order']

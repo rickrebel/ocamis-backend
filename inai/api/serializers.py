@@ -83,7 +83,8 @@ class EntityMonthSerializer(serializers.ModelSerializer):
         fields = [
             "id", "year_month", "human_name", "rx_count",
             "duplicates_count", "shared_count", "last_transformation",
-            "last_crossing", "last_merge", "last_insertion", "stage", "status"]
+            "last_crossing", "last_merge", "last_pre_insertion",
+            "last_insertion", "stage", "status"]
 
 
 class TableFileSerializer(serializers.ModelSerializer):
@@ -142,33 +143,6 @@ class SheetFileSerializer(serializers.ModelSerializer):
 class SheetFileSimpleSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
-
-    class Meta:
-        model = SheetFile
-        # fields = "__all__"
-        exclude = ["sample_data", "error_process", "warnings"]
-
-
-class SheetFileMonthSerializer(SheetFileSimpleSerializer):
-    name = serializers.ReadOnlyField(source="file.name")
-    url = serializers.ReadOnlyField(source="file.url")
-    table_sums = serializers.SerializerMethodField(read_only=True)
-
-    def get_table_sums(self, obj):
-        from django.db.models import Sum, F
-        sum_fields = ["rx_count", "duplicates_count", "shared_count"]
-        if obj.rx_count:
-            final_sums = {field: getattr(obj, field) for field in sum_fields}
-            return final_sums
-        sum_fields += ["drugs_count"]
-        query_sums = [Sum(field) for field in sum_fields]
-        # query_annotations = {field: Sum(field) for field in sum_fields}
-        last_lap = obj.laps.filter(lap=0).first()
-        result_sums = last_lap.table_files.filter(
-            collection__isnull=True).aggregate(*query_sums)
-        result_with_init_names = {
-            field: result_sums[f"{field}__sum"] for field in sum_fields}
-        return result_with_init_names
 
     class Meta:
         model = SheetFile
@@ -254,6 +228,36 @@ class DataFileFullSerializer(DataFileSerializer):
         model = DataFile
         exclude = ('sample_data',)
         read_only_fields = ["petition_file_control", "file"]
+
+
+class SheetFileMonthSerializer(SheetFileSimpleSerializer):
+    name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+    table_sums = serializers.SerializerMethodField(read_only=True)
+    data_file = DataFileSerializer(read_only=True)
+    file_control = serializers.IntegerField(
+        source="data_file.petition_file_control.file_control_id")
+
+    def get_table_sums(self, obj):
+        from django.db.models import Sum, F
+        sum_fields = ["rx_count", "duplicates_count", "shared_count"]
+        if obj.rx_count:
+            final_sums = {field: getattr(obj, field) for field in sum_fields}
+            return final_sums
+        sum_fields += ["drugs_count"]
+        query_sums = [Sum(field) for field in sum_fields]
+        # query_annotations = {field: Sum(field) for field in sum_fields}
+        last_lap = obj.laps.filter(lap=0).first()
+        result_sums = last_lap.table_files.filter(
+            collection__isnull=True).aggregate(*query_sums)
+        result_with_init_names = {
+            field: result_sums[f"{field}__sum"] for field in sum_fields}
+        return result_with_init_names
+
+    class Meta:
+        model = SheetFile
+        # fields = "__all__"
+        exclude = ["sample_data", "error_process", "warnings"]
 
 
 class EntityMonthSimpleSerializer(serializers.ModelSerializer):

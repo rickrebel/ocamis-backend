@@ -264,6 +264,25 @@ class DataFileViewSet(CreateRetrievView):
         return Response(
             {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=["get"], detail=True, url_path="back_start")
+    def back_start(self, request, **kwargs):
+        from inai.api.serializers import DataFileSerializer
+        data_file = self.get_object()
+        data_file.sheet_files.all().delete()
+        data_file.stage_id = 'initial'
+        data_file.status_id = 'finished'
+        data_file.filtered_sheets = []
+        data_file.total_rows = 0
+        data_file.suffix = None
+        data_file.error_process = None
+        data_file.warnings = None
+        data_file.save()
+
+        data_file_full = DataFileSerializer(data_file)
+
+        return Response(
+            {"data_file_full": data_file_full.data}, status=status.HTTP_200_OK)
+
 
 class OpenDataInaiViewSet(ListRetrieveView):
     queryset = DataFile.objects.all()

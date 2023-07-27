@@ -286,6 +286,7 @@ class EntityMonth(models.Model):
     last_transformation = models.DateTimeField(blank=True, null=True)
     last_crossing = models.DateTimeField(blank=True, null=True)
     last_merge = models.DateTimeField(blank=True, null=True)
+    last_pre_insertion = models.DateTimeField(blank=True, null=True)
     last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
@@ -729,7 +730,7 @@ class EntityWeek(models.Model):
     last_crossing = models.DateTimeField(blank=True, null=True)
     last_transformation = models.DateTimeField(blank=True, null=True)
     last_merge = models.DateTimeField(blank=True, null=True)
-    last_insertion = models.DateTimeField(blank=True, null=True)
+    last_pre_insertion = models.DateTimeField(blank=True, null=True)
 
     # PROVISIONAL HARDCODED
     zero = models.IntegerField(blank=True, null=True)

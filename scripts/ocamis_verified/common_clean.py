@@ -47,10 +47,14 @@ def reverse_insert(hard=False):
     inserted_table_files.update(inserted=False)
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
-    EntityMonth.objects.filter(last_insertion__isnull=False)\
-        .update(last_insertion=None)
-    EntityWeek.objects.filter(last_insertion__isnull=False)\
-        .update(last_insertion=None)
+    EntityMonth.objects.filter(last_pre_insertion__isnull=False)\
+        .update(last_pre_insertion=None)
+    EntityWeek.objects.filter(last_pre_insertion__isnull=False)\
+        .update(last_pre_insertion=None)
+    EntityMonth.objects.filter(stage_id='pre_insert')\
+        .update(stage_id='merge', status_id='finished')
+    EntityMonth.objects.filter(stage_id='insert')\
+        .update(stage_id='merge', status_id='finished')
     # EntityMonth.objects.filter(last_merge__isnull=False)\
     #     .update(last_merge=None)
     # EntityWeek.objects.filter(last_merge__isnull=False)\
@@ -88,3 +92,45 @@ def resend_possible_success():
         296677, 296676, 296675, 82636, 82533, 82485]
     table_files = TableFile.objects.filter(id__in=table_files_ids)
     table_files.update(inserted=True)
+
+
+def upload_s3_files(local_file, s3_dir):
+    import boto3
+    # import boto3.s3.transfer as s3transfer
+    from scripts.common import build_s3
+    s3 = build_s3()
+    print("s3: ", s3)
+    s3_client = boto3.client(
+        "s3",
+        aws_access_key_id=s3["aws_access_key_id"],
+        aws_secret_access_key=s3["aws_secret_access_key"],
+    )
+    # bucket_name = s3["bucket_name"]
+    bucket_name = "cdn-desabasto.s3-accelerate.amazonaws.com"
+    aws_location = s3["aws_location"]
+    s3_file = f"{aws_location}/{s3_dir}{local_file.split('/')[-1]}"
+    print("local_file: ", local_file)
+    try:
+        # s3_client.put_object(
+        #     Bucket=bucket_name,
+        #     Key=f"{aws_location}/{final_name}",
+        #     Body=csv_buffer.getvalue(),
+        #     ContentType="text/csv",
+        #     ACL="public-read",
+        # )
+        s3_client.upload_file(local_file, bucket_name, s3_file)
+        print("Upload Successful")
+        return True
+    except FileNotFoundError:
+        print("The file was not found")
+        return False
+    except Exception as e:
+        print("Error: ", e)
+        return False
+
+
+# upload_s3_files = upload_s3_files(
+#     'D:\\RecetasIMSS\\req_mayo_2020_02.txt.gz', 'nacional/imss/202107/')
+
+# upload_s3_files2 = upload_s3_files(
+#     'C:\\Users\\Ricardo\\Downloads\\req_mayo_2020_02.txt.gz', 'nacional/imss/202107/')

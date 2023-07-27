@@ -158,10 +158,11 @@ class StageAdmin(admin.ModelAdmin):
         "public_name",
         "order",
         "icon",
+        "next_stage",
         "main_function",
         # "retry_function",
     ]
-    list_editable = ["order", "icon"]
+    list_editable = ["order"]
 
 
 class PlatformAdmin(admin.ModelAdmin):

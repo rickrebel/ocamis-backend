@@ -1,6 +1,6 @@
 import requests
 import json
-from task.aws.common import request_headers, create_connection
+from task.aws.common import request_headers, create_connection, BotoUtils
 
 
 # def save_csv_in_db(event, context):
@@ -12,12 +12,34 @@ def lambda_handler(event, context):
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries", [])
     queries_by_model = event.get("queries_by_model", {})
+    s3_utils = BotoUtils(event.get("s3"))
     # print("start", datetime.now())
     connection = create_connection(db_config)
     errors = []
     cursor = connection.cursor()
     first_query = event.get("first_query")
     last_query = event.get("last_query")
+
+    def execute_query(query_content, path_file=None, alt_query=None):
+        try:
+            cursor.execute(query_content)
+        except Exception as e:
+            if path_file and "extra data after last expected column" in str(e):
+                print("holi")
+                csv_content = s3_utils.get_object_file(path_file)
+                # INSERT INTO formula_rx
+                # SELECT *
+                # FROM fm_55_201902_rx;
+                new_values = ""
+                for idx, row in enumerate(csv_content):
+                    if idx:
+                        new_values = ", ".join(row)
+                if new_values:
+                    alt_query = alt_query.replace("NEW_VALUES", new_values)
+                    execute_query(alt_query)
+            else:
+                errors.append(f"Hubo un error al guardar; {str(e)}")
+
     # print("before first_query", datetime.now())
     if first_query:
         cursor.execute(first_query)
@@ -26,28 +48,27 @@ def lambda_handler(event, context):
             errors.append(f"Ya se había insertado la pestaña y su lap")
     # print("after first_query", datetime.now())
     if not errors:
-        try:
-            for sql_query in sql_queries:
-                cursor.execute(sql_query)
-            for model_name, content in queries_by_model.items():
-                base_queries = content["base_queries"]
-                files = content["files"]
-                for query_base in base_queries:
-                    for path in files:
-                        query = query_base.replace("PATH_URL", path)
-                        cursor.execute(query)
-            if last_query:
-                print("before last_query", datetime.now())
-                cursor.execute(last_query)
-            cursor.close()
-            connection.commit()
-        except Exception as e:
-            connection.rollback()
-            errors.append(f"Hubo un error al guardar; {str(e)}")
-    #     result = cursor.fetchone()
-    #     if not result[0]:
-    #         errors.append(f"Hubo un error al ejecutar la última consulta")
-    # print("after queries", datetime.now())
+        for sql_query in sql_queries:
+            execute_query(sql_query)
+    if not errors:
+        for model_name, content in queries_by_model.items():
+            base_queries = content["base_queries"]
+            alternative_query = content.get("alternative_query")
+            files = content["files"]
+            for query_base in base_queries:
+                for path in files:
+                    query = query_base.replace("PATH_URL", path)
+                    execute_query(query, path, alternative_query)
+    if not errors:
+        if last_query:
+            print("before last_query", datetime.now())
+            execute_query(last_query)
+    if errors:
+        connection.rollback()
+        # errors.append(f"Hubo un error al guardar; {str(e)}")
+    else:
+        cursor.close()
+        connection.commit()
     final_result = {
         "lap_sheet_id": lap_sheet_id,
         "entity_month_id": entity_month_id,
