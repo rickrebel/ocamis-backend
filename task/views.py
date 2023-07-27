@@ -171,16 +171,20 @@ class AWSMessage(generic.View):
         # print("request_id: ", request_id)
         result = body.get("result", {})
         errors = result.get("errors", [])
-        current_task = AsyncTask.objects.get(request_id=str(request_id))
-        current_task.status_task_id = "success"
-        current_task.date_arrive = datetime.now()
-        # print("RESULT: ", result)
-        current_task.result = result
-        new_result = result.copy()
-        new_result.update(current_task.params_after or {})
-        current_task.save()
-        function_after = current_task.function_after
-        execute_function_aws(current_task, function_after, new_result, errors)
+        try:
+            current_task = AsyncTask.objects.get(request_id=str(request_id))
+            current_task.status_task_id = "success"
+            current_task.date_arrive = datetime.now()
+            # print("RESULT: ", result)
+            current_task.result = result
+            new_result = result.copy()
+            new_result.update(current_task.params_after or {})
+            current_task.save()
+            function_after = current_task.function_after
+            execute_function_aws(current_task, function_after, new_result, errors)
+        except Exception as e:
+            print("ERROR AL GUARDAR 1: ", e)
+            print("body: \n", body)
 
         return HttpResponse()
 
@@ -476,7 +480,8 @@ def debug_queue():
         if task.date_arrive + timedelta(seconds=5) < timezone.now():
             comprobate_status(task)
             errors = task.errors
-            task.sheet_file.save_stage('transform', errors)
+            if task.sheet_file:
+                task.sheet_file.save_stage('transform', errors)
     every_completed = AsyncTask.objects.filter(
         status_task__is_completed=True,
         task_function__is_queueable=True)

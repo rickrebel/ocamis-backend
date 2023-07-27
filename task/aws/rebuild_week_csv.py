@@ -41,10 +41,18 @@ class RebuildWeekAws:
         current_rows = []
         total_rows = 0
         example_prints = 0
+        len_rows = 0
         for idx, row in enumerate(csv_content):
             if not idx:
+                row = [field for field in row
+                       if field != "entity_week_id"]
+                len_rows = len(row)
                 row.append("entity_week_id")
             else:
+                row = row[:len_rows]
+                if len(row) < len_rows:
+                    row.append(None)
+                # row.append(None)
                 row.append(self.entity_week_id)
                 total_rows += 1
             if example_prints < 10:

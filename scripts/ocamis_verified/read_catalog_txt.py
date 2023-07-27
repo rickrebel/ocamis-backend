@@ -336,7 +336,11 @@ def send_entity_weeks_to_rebuild(limit=None):
     all_table_files = TableFile.objects.filter(
         collection=drug_collection,
         entity_week__isnull=False,
-        entity_week__async_tasks__task_function_id=True)
+        drugs_count=1,
+        # drugs_count__gt=0,
+        # entity_week__async_tasks__errors__icontains="extra data after last expected"
+    ).distinct()
+    # entity_week__async_tasks__task_function_id=True)
     if limit:
         all_table_files = all_table_files[:limit]
     print("table_files", all_table_files.count())
@@ -541,19 +545,14 @@ def calculate_real_stage():
         last_crossing__isnull=False)
     for entity_month in entity_months:
         if entity_month.last_merge:
-            if entity_month.last_transformation < entity_month.last_crossing < entity_month.last_merge:
+            if entity_month.last_crossing < entity_month.last_merge:
                 entity_month.stage_id = "merge"
             else:
                 entity_month.stage_id = "analysis"
-        elif entity_month.last_crossing:
+        elif entity_month.last_crossing and entity_month.last_transformation:
             if entity_month.last_transformation < entity_month.last_crossing:
                 entity_month.stage_id = "analysis"
-            else:
-                entity_month.stage_id = "insertion"
-        elif entity_month.last_transformation:
-            entity_month.stage_id = "insertion"
-        else:
-            entity_month.stage_id = "initial"
+        entity_month.save()
 
 
 # assign_year_month_to_sheet_files(53)
