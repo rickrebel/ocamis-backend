@@ -113,7 +113,7 @@ class FromAws:
             #     entity_week=week,
             #     collection__isnull=True)
             table_files = all_table_files.filter(entity_week=week)
-            file_names = table_files.values_list("file__name", flat=True)
+            file_names = table_files.values_list("file", flat=True)
             params = {
                 "init_data": {
                     "entity_id": week.entity_id,
