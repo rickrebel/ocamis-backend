@@ -117,7 +117,7 @@ class FromAws:
             params = {
                 "init_data": {
                     "entity_id": week.entity_id,
-                    "table_files": file_names
+                    "table_files": list(file_names)
                 },
                 "s3": build_s3(),
             }
