@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from geo.models import Agency, Entity
+from geo.models import Agency, Entity, Delegation
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
@@ -279,6 +279,8 @@ class EntityMonth(models.Model):
         default='explore', verbose_name="Etapa actual")
     status = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, default='finished')
+    error_process = JSONField(blank=True, null=True)
+
     drugs_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
@@ -297,9 +299,15 @@ class EntityMonth(models.Model):
             status_task__macro_status="with_errors")
         all_errors = []
         for child_task_error in child_task_errors:
-            all_errors += child_task_error.errors or []
+            current_errors = child_task_error.errors
+            if not current_errors:
+                g_children = child_task_error.child_tasks.filter(
+                    status_task__macro_status="with_errors")
+                for g_child in g_children:
+                    current_errors += g_child.errors or []
+            all_errors += current_errors or []
         self.stage_id = stage_id
-        if all_errors:
+        if child_task_errors.exists():
             self.status_id = "with_errors"
             self.error_process = all_errors
         else:
@@ -307,6 +315,16 @@ class EntityMonth(models.Model):
             self.error_process = []
         self.save()
         return all_errors
+
+    def save_stage(self, stage_id, errors):
+        self.stage_id = stage_id
+        if errors:
+            self.status_id = "with_errors"
+            self.error_process = errors
+        else:
+            self.status_id = "finished"
+            self.error_process = []
+        self.save()
 
     @property
     def human_name(self):
@@ -541,6 +559,7 @@ class Behavior(models.Model):
     icon = models.CharField(max_length=80, blank=True, null=True)
     color = models.CharField(max_length=80, blank=True, null=True)
     is_merge = models.BooleanField(default=False)
+    is_discarded = models.BooleanField(default=False)
     is_valid = models.BooleanField(default=False)
 
     def __str__(self):
@@ -712,7 +731,9 @@ class EntityWeek(models.Model):
     year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.SmallIntegerField(blank=True, null=True)
     iso_week = models.SmallIntegerField(blank=True, null=True)
-    iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
+    # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
+    iso_delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10, blank=True, null=True)
     year = models.SmallIntegerField(blank=True, null=True)
     month = models.SmallIntegerField(blank=True, null=True)
@@ -759,7 +780,8 @@ class TableFile(models.Model):
         LapSheet, related_name="table_files", on_delete=models.CASCADE,
         blank=True, null=True)
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True)
+        Entity, on_delete=models.CASCADE, blank=True, null=True,
+        related_name="table_files")
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     collection = models.ForeignKey(

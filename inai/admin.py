@@ -240,7 +240,8 @@ class BehaviorAdmin(admin.ModelAdmin):
         "description",
         "icon",
         "is_valid",
-        "is_merge"
+        "is_discarded",
+        "is_merge",
     ]
 
 

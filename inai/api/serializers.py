@@ -74,17 +74,32 @@ class NameColumnEditSerializer(serializers.ModelSerializer):
 
 class EntityMonthSerializer(serializers.ModelSerializer):
     # all_laps_inserted = serializers.SerializerMethodField(read_only=True)
-
     # def get_all_laps_inserted(self, obj):
     #     return obj.laps.filter(lap=0).first().all_laps_inserted
 
     class Meta:
         model = EntityMonth
         fields = [
-            "id", "year_month", "human_name", "rx_count",
+            "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
             "last_insertion", "stage", "status"]
+
+
+class EntityMonthFullSerializer(serializers.ModelSerializer):
+    drugs_counts = serializers.SerializerMethodField(read_only=True)
+
+    def get_drugs_counts(self, obj):
+        from geo.api.serializers import calc_drugs_summarize
+        return calc_drugs_summarize(obj)
+
+    class Meta:
+        model = EntityMonth
+        fields = [
+            "id", "year_month", "human_name", "rx_count", "drugs_count",
+            "duplicates_count", "shared_count", "last_transformation",
+            "last_crossing", "last_merge", "last_pre_insertion",
+            "last_insertion", "stage", "status", "drugs_counts"]
 
 
 class TableFileSerializer(serializers.ModelSerializer):

@@ -129,6 +129,7 @@ def async_task_post_save(sender, instance, created, **kwargs):
     serializer = AsyncTaskFullSerializer \
         if instance.is_current else AsyncTaskSerializer
     # serializer = AsyncTaskSerializer
+    print("channel_layer", channel_layer)
     async_to_sync(channel_layer.group_send)(
         "dashboard", {
             "type": "send_task_info",

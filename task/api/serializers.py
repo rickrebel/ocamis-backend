@@ -57,6 +57,7 @@ class AsyncTaskFullSerializer(AsyncTaskSerializer):
     from inai.api.serializers import DataFileSerializer
     data_file_full = DataFileSerializer(read_only=True, source="data_file")
     file_control_full = serializers.SerializerMethodField(read_only=True)
+    entity_month_full = serializers.SerializerMethodField(read_only=True)
 
     def get_file_control_full(self, obj):
         from data_param.api.serializers import FileControlSerializer
@@ -66,6 +67,12 @@ class AsyncTaskFullSerializer(AsyncTaskSerializer):
         # print("file_control", file_control)
         # print("serializer: \n", FileControlSerializer(file_control).data)
         return FileControlSerializer(file_control).data
+
+    def get_entity_month_full(self, obj):
+        from inai.api.serializers import EntityMonthFullSerializer
+        if not obj.entity_month or obj.task_function.model_name != "entity_month":
+            return None
+        return EntityMonthFullSerializer(obj.entity_month).data
 
 
 class TaskFunctionSerializer(serializers.ModelSerializer):

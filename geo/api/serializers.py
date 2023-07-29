@@ -222,6 +222,48 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
         fields = "__all__"
 
 
+def calc_drugs_summarize(obj):
+    from django.db.models import Sum, F
+    drugs_counts_by_week = obj.weeks \
+        .values("entity_month") \
+        .annotate(drugs_count=Sum(F("drugs_count"))) \
+        .values("entity_month", "drugs_count")
+    drugs_count_by_drug = obj.table_files \
+        .filter(entity_week__isnull=False) \
+        .exclude(collection__model_name="Rx") \
+        .prefetch_related("collection", "lap_sheet__sheet_file__behavior") \
+        .values(
+            "entity_week__entity_month",
+            "collection__model_name",
+            "lap_sheet__sheet_file__behavior__is_discarded"
+        ) \
+        .annotate(
+            drugs_count=Sum(F("drugs_count")),
+            entity_month=F("entity_week__entity_month"),
+            collection=F("collection__model_name"),
+            discarded=F("lap_sheet__sheet_file__behavior__is_discarded")) \
+        .values("entity_month", "drugs_count", "collection", "discarded")
+    final_result = { }
+    for drugs_count_by_week in drugs_counts_by_week:
+        final_result[drugs_count_by_week["entity_month"]] = {
+            "by_week": drugs_count_by_week["drugs_count"],
+            "Drug": 0,
+            "by_tables_included": 0,
+            "by_tables_discarded": 0,
+        }
+    for drugs_count_by_drug in drugs_count_by_drug:
+        entity_month = drugs_count_by_drug["entity_month"]
+        collection = drugs_count_by_drug["collection"]
+        if collection == "Drug":
+            field = "Drug"
+        else:
+            field = "by_tables_included"
+            if drugs_count_by_drug["discarded"]:
+                field = "by_tables_discarded"
+        final_result[entity_month][field] = drugs_count_by_drug["drugs_count"]
+    return final_result
+
+
 class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
     from inai.api.serializers import EntityMonthSerializer
 
@@ -229,6 +271,7 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
     petitions = serializers.SerializerMethodField(read_only=True)
     entity_months = EntityMonthSerializer(many=True)
     sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
+    drugs_summarize = serializers.SerializerMethodField(read_only=True)
 
     def get_petitions(self, obj):
         from inai.api.serializers import PetitionSemiFullSerializer
@@ -263,6 +306,9 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
                     "count": behavior_count["count"]
                 })
         return count_by_year_month_and_behavior
+
+    def get_drugs_summarize(self, obj):
+        return calc_drugs_summarize(obj)
 
     class Meta:
         model = Entity

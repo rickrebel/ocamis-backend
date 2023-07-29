@@ -9,6 +9,17 @@ class FromAws:
         self.entity_month = entity_month
         self.task_params = task_params
 
+    def revert_stages(self):
+        from inai.models import TableFile
+        self.entity_month.stage_id = "init_month"
+        self.entity_month.status_id = "finished"
+        self.entity_month.save()
+        table_files = TableFile.objects.filter(
+            entity_week__entity_month=self.entity_month,
+            collection__isnull=False)
+        table_files.update(inserted=False)
+        return [], [], True
+
     def save_month_analysis(self, **kwargs):
         from django.db.models import Sum
         from django.utils import timezone
@@ -97,18 +108,20 @@ class FromAws:
             if week.last_crossing:
                 if week.last_transformation < week.last_crossing:
                     continue
-            init_data = EntityWeekSimpleSerializer(week).data
+            # init_data = EntityWeekSimpleSerializer(week).data
             # table_files = TableFile.objects.filter(
             #     entity_week=week,
             #     collection__isnull=True)
             table_files = all_table_files.filter(entity_week=week)
-            init_data["table_files"] = table_files.values_list(
-                "file__name", flat=True)
+            file_names = table_files.values_list("file__name", flat=True)
             params = {
-                "init_data": init_data,
+                "init_data": {
+                    "entity_id": week.entity_id,
+                    "table_files": file_names
+                },
                 "s3": build_s3(),
             }
-            self.task_params["models"] = [week, self.entity_month]
+            self.task_params["models"] = [week]
             self.task_params["function_after"] = "analyze_uniques_after"
             params_after = self.task_params.get("params_after", {})
             # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
@@ -216,11 +229,6 @@ class FromAws:
                      f"{self.entity_month.year_month}"]
             errors.append(error)
             # return [], errors, False
-        if related_sheet_files.filter(behavior_id="pending").exists():
-            error = [
-                f"Hay pestañas pendientes de clasificar para el mes "
-                f"{self.entity_month.year_month}"]
-            errors.append(error)
         if errors:
             print("error", errors)
 

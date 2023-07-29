@@ -356,12 +356,12 @@ class MatchAws:
             iso_day = iso_date[2]
             year = some_date.year
             month = some_date.month
-            iso_delegation, delegation_error = self.delegation_match(
+            iso_delegation, iso_del2, delegation_error = self.delegation_match(
                 available_data)
             if delegation_error:
                 self.append_missing_row(row, delegation_error)
                 continue
-            complex_date = (iso_year, iso_week, iso_delegation, year, month)
+            complex_date = (iso_year, iso_week, iso_del2, year, month)
             if complex_date not in buffers_by_date:
                 all_rx[complex_date] = {}
                 totals_by_date[complex_date] = {
@@ -1007,6 +1007,7 @@ class MatchAws:
             return None, None
         delegation_name = available_data.get("medical_unit_delegation_name", None)
         delegation_id = None
+        delegation_id2 = None
         delegation_error = None
         if delegation_name:
             delegation_name = text_normalizer(delegation_name)
@@ -1015,7 +1016,12 @@ class MatchAws:
             except Exception:
                 delegation_error = f"No se encontró la delegación;" \
                                    f" {delegation_name}"
-        return delegation_id, delegation_error
+            if "UMAE " in delegation_name:
+                delegation_id2 = self.delegation_cat["TODAS LAS UMAES"]
+            else:
+                delegation_id2 = delegation_id
+
+        return delegation_id, delegation_id2, delegation_error
 
     def append_missing_row(self, row_data, error=None, drug_id=None):
         self.last_valid_row = None

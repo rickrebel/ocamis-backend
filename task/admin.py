@@ -29,7 +29,8 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         "parent_task", "user", "entity_week", "entity", "entity_month"]
     list_filter = [
         "status_task", "is_current", "is_massive", "task_function", "user",
-        "function_after"]
+        "function_after", "task_function__is_queueable",
+        "status_task__is_completed", "status_task__macro_status"]
     search_fields = ["data_file_id", "request_id", "task_function__name"]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
 
@@ -61,12 +62,15 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     def display_status(self, obj):
         # ▶️
         macro_status = obj.status_task.macro_status
+        # icon = "🛑⛔🚫⭕❌❗‼️⚠️✅🟣🔴🟠🟡⚪"
         if macro_status == "finished":
             icon = "🟢"
+        elif macro_status == "created":
+            icon = "🟣"
         elif macro_status == "pending":
             icon = "🟡"
         elif macro_status == "with_errors":
-            icon = "🔴"
+            icon = "🛑"
         else:
             icon = "❔"
         return format_html(f"{icon} {obj.status_task.public_name}")

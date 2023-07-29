@@ -63,18 +63,24 @@ class EntityViewSet(ListRetrieveUpdateMix):
             "revert_stages": {
                 "finished_function": "revert_stages_after",
                 "function_name": "revert_stages",
+                "stage": "init_month",
             },
             "send_analysis": {
                 "finished_function": "save_month_analysis",
                 "function_name": "send_analysis",
+                "stage": "analysis",
             },
             "merge_files_by_week": {
                 "finished_function": "all_base_tables_merged",
                 "function_name": "merge_files_by_week",
+                "stage": "merge",
+                "all_classified": True,
             },
             "pre_insert_month": {
                 "finished_function": "all_base_tables_saved",
                 "function_name": "pre_insert_month",
+                "stage": "pre_insert",
+                "all_classified": True,
             },
         }
         function_data = functions.get(main_function_name, None)
@@ -93,7 +99,12 @@ class EntityViewSet(ListRetrieveUpdateMix):
             # related_weeks = entity_month.weeks.all()
             month_task, task_params = build_task_params(
                 entity_month, function_name, request, **kwargs)
+            stage = function_data.get("stage", None)
+            entity_month.stage_id = stage
+            entity_month.status_id = "created"
+            entity_month.save()
             all_tasks.append(month_task)
+            month_errors = []
             base_class = EntityMonthMix(entity_month, task_params)
             # main_function = function_data.get("main_function", None)
             main_method = getattr(base_class, function_name)
@@ -105,15 +116,21 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 comprobate_status(month_task, errors, new_tasks)
                 # time.sleep(2)
 
-            if entity.split_by_delegation:
+            if function_data.get("all_classified", False):
+                if entity_month.sheet_files.filter(behavior_id="pending").exists():
+                    month_errors.append(
+                        f"Hay pestañas pendientes de clasificar para el mes "
+                        f"{entity_month.year_month}")
+            if month_errors:
+                print("month_errors", month_errors)
+                entity_month.save_stage(stage, month_errors)
+                comprobate_status(month_task, month_errors, [])
+            elif entity.split_by_delegation:
                 t = threading.Thread(target=run_in_thread)
                 t.start()
                 time.sleep(10)
             else:
-                new_tasks, errors, s = main_method()
-                all_tasks.extend(new_tasks)
-                all_errors.extend(errors)
-                comprobate_status(month_task, errors, new_tasks)
+                run_in_thread()
                 time.sleep(1)
             # seconds_sleep = 10 if entity.split_by_delegation else 1
             # time.sleep(seconds_sleep)
