@@ -14,6 +14,8 @@ available_delivered = [
     "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
     "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA"]
 
+# DISPENSADA, NO DISPENSADA
+
 
 def text_normalizer(text):
     text = text.upper().strip()
