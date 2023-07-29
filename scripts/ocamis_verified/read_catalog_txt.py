@@ -255,13 +255,6 @@ def assign_year_week_to_entity_weeks():
         year_week = f"{iso_year}-{iso_week:02d}"
         table_file.year_week = year_week
         table_file.save()
-    for crossing_sheet in CrossingSheet.objects.filter(
-            iso_week__isnull=False):
-        iso_week = crossing_sheet.iso_week
-        iso_year = crossing_sheet.iso_year
-        year_week = f"{iso_year}-{iso_week:02d}"
-        crossing_sheet.year_week = year_week
-        crossing_sheet.save()
 
 
 def assign_year_month_to_entity_months():

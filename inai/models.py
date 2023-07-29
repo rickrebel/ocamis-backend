@@ -641,10 +641,6 @@ class CrossingSheet(models.Model):
     entity_month = models.ForeignKey(
         EntityMonth, related_name="crossing_sheets",
         on_delete=models.CASCADE, blank=True, null=True)
-    # year_week = models.CharField(max_length=8, blank=True, null=True)
-    # iso_year = models.PositiveIntegerField(default=0)
-    # iso_week = models.PositiveIntegerField(default=0)
-    # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
     last_crossing = models.DateTimeField(blank=True, null=True)

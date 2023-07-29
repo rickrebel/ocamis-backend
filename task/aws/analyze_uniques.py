@@ -79,8 +79,9 @@ class UniquesAws:
         positions = {}
         all_drugs = []
         for table_file in self.table_files:
-            file = table_file["file"]
-            csv_content = self.s3_utils.get_object_file(file)
+            # file = table_file["file"]
+            # csv_content = self.s3_utils.get_object_file(file)
+            csv_content = self.s3_utils.get_object_file(table_file)
             # csv_data = csv.reader(io.StringIO(data), delimiter='|')
             for idx, cols in enumerate(csv_content):
                 # print("idx", idx)

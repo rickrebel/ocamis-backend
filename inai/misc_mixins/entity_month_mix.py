@@ -87,16 +87,23 @@ class FromAws:
         if self.entity_month.stage.order >= insert_stage.order:
             error = f"El mes {self.entity_month.year_month} ya se insertó"
             return all_tasks, [error], True
+        all_table_files = TableFile.objects\
+            .filter(
+                entity_week__entity_month=self.entity_month,
+                collection__isnull=True,
+            ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
+
         for week in self.entity_month.weeks.all():
             if week.last_crossing:
                 if week.last_transformation < week.last_crossing:
                     continue
             init_data = EntityWeekSimpleSerializer(week).data
-            table_files = TableFile.objects.filter(
-                entity_week=week,
-                collection__isnull=True)
-            init_data["table_files"] = TableFileAwsSerializer(
-                table_files, many=True).data
+            # table_files = TableFile.objects.filter(
+            #     entity_week=week,
+            #     collection__isnull=True)
+            table_files = all_table_files.filter(entity_week=week)
+            init_data["table_files"] = table_files.values_list(
+                "file__name", flat=True)
             params = {
                 "init_data": init_data,
                 "s3": build_s3(),
@@ -112,62 +119,6 @@ class FromAws:
             # if self.entity_month.entity.split_by_delegation:
             #     time.sleep(0.2)
         return all_tasks, [], True
-
-    def save_month_analysis_prev(self, **kwargs):
-        from django.db.models import Sum
-        from django.utils import timezone
-        from inai.models import CrossingSheet, SheetFile, LapSheet
-
-        crossing_sheets = CrossingSheet.objects.filter(
-            entity_week__entity_month=self.entity_month).distinct()
-        crossings_simple = crossing_sheets.values_list(
-            "sheet_file_1", "sheet_file_2").distinct()
-        # crossing_sums = crossing_sheets\
-        #     .aggregate(Sum("duplicates_count"), Sum("shared_count"))\
-        #     .values_list(
-        #         "sheet_file_1", "sheet_file_2", "duplicates_count__sum",
-        #         "shared_count__sum")
-        # print("crossing_sums", crossing_sums)
-        all_sheet_ids = set()
-        for crossing in crossings_simple:
-            current_crossings = crossing_sheets.filter(
-                entity_month__isnull=True,
-                sheet_file_1_id=crossing[0],
-                sheet_file_2_id=crossing[1])
-            crossing_sums = current_crossings.aggregate(
-                Sum("duplicates_count"), Sum("shared_count"))
-            crossing_sheet, _ = CrossingSheet.objects.get_or_create(
-                entity_month=self.entity_month,
-                sheet_file_1_id=crossing[0],
-                sheet_file_2_id=crossing[1])
-            all_sheet_ids.add(crossing[0])
-            all_sheet_ids.add(crossing[1])
-            crossing_sheet.duplicates_count = crossing_sums["duplicates_count__sum"]
-            crossing_sheet.shared_count = crossing_sums["shared_count__sum"]
-            crossing_sheet.last_crossing = timezone.now()
-            crossing_sheet.save()
-
-        sum_fields = [
-            "drugs_count", "rx_count", "duplicates_count", "shared_count"]
-        query_sheet_sums = [Sum(field) for field in sum_fields]
-        # query_annotations = {field: Sum(field) for field in sum_fields}
-        all_laps = LapSheet.objects.filter(
-            sheet_file__in=all_sheet_ids, lap=0)
-        for lap_sheet in all_laps:
-            table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
-            for field in sum_fields:
-                setattr(lap_sheet.sheet_file, field, table_sums[field + "__sum"])
-            lap_sheet.sheet_file.save()
-
-        # space
-        query_sums = [Sum(field) for field in sum_fields]
-        result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
-        # print("result_sums", result_sums)
-        for field in sum_fields:
-            setattr(self.entity_month, field, result_sums[field + "__sum"])
-        self.entity_month.last_crossing = timezone.now()
-        self.entity_month.save()
-        return [], [], True
 
     def merge_files_by_week(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth

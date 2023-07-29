@@ -114,12 +114,7 @@ class FromAws:
         # )
 
     def save_crossing_sheets(self, month_pairs, sheets):
-        from django.utils import timezone
-        from inai.models import SheetFile, CrossingSheet
-        # print("start save_crossing_sheets", timezone.now())
         all_errors = []
-
-        edited_crosses = []
 
         for sheet_id, value in sheets.items():
             table_file = self.entity_week.table_files.filter(
@@ -138,13 +133,6 @@ class FromAws:
                     f"year_month {self.entity_week.year_month}"
                 all_errors.append(error)
                 continue
-            # current_sheet = SheetFile.objects.get(id=sheet_id)
-            # if current_sheet.year_month != self.entity_week.year_month:
-            #     continue
-            # current_sheet.rx_count = value["rx_count"]
-            # current_sheet.duplicates_count = value["dupli"]
-            # current_sheet.shared_count = value["shared"]
-            # current_sheet.save()
             table_file.update(
                 rx_count=value["rx_count"],
                 # drugs_count=value["drugs_count"],
@@ -153,73 +141,3 @@ class FromAws:
             )
 
         return all_errors
-        # def same_year_month(cr):
-        #     year_months = [cr.sheet_file_1.year_month, cr.sheet_file_2.year_month]
-        #     some_is_same = self.entity_week.year_month in year_months
-        #     if some_is_same:
-        #         edited_crosses.append(cr.id)
-        #     return some_is_same
-
-        already_shared = set()
-        CrossingSheet.objects.filter(entity_week=self.entity_week).delete()
-        current_crosses = []
-        shared_pairs = month_pairs["shared"]
-        for pair, value in month_pairs["dupli"].items():
-            # shared_count = shared_pairs.pop(pair, 0)
-            # print("pair", pair)
-            # print("value", value)
-            sheet_1, sheet_2 = pair.split("|")
-            # cross, created = CrossingSheet.objects.get_or_create(
-            shared_count = shared_pairs.get(pair, 0)
-            if shared_count:
-                already_shared.add(pair)
-            cross = CrossingSheet(
-                # entity=self.entity_week.entity,
-                entity_week=self.entity_week,
-                sheet_file_1_id=sheet_1,
-                sheet_file_2_id=sheet_2,
-                duplicates_count=value,
-                shared_count=shared_count,
-                last_crossing=timezone.now(),
-                # iso_week=self.entity_week.iso_week,
-                # iso_year=self.entity_week.iso_year,
-                # year_week=self.entity_week.year_week,
-                # iso_delegation=self.entity_week.iso_delegation
-            )
-            current_crosses.append(cross)
-            # if not same_year_month(cross):
-            #     continue
-            # if not created:
-            #     print("cross", cross)
-            #     print("last_crossing", cross.last_crossing)
-            #     print("!!!!!!!!!!!!!!!!!!!!!\n")
-
-        for pair, value in shared_pairs.items():
-            if pair in already_shared:
-                continue
-            sheet_1, sheet_2 = pair.split("|")
-            # cross, created = CrossingSheet.objects.get_or_create(
-            cross = CrossingSheet(
-                entity_week=self.entity_week,
-                sheet_file_1_id=sheet_1,
-                sheet_file_2_id=sheet_2,
-                duplicates_count=0,
-                shared_count=value,
-                last_crossing=timezone.now(),
-            )
-            current_crosses.append(cross)
-            # if not same_year_month(cross):
-            #     continue
-
-        CrossingSheet.objects.bulk_create(current_crosses)
-        return all_errors
-
-        # year_month_crosses_1 = CrossingSheet.objects.filter(
-        #     entity=self.entity_week.entity,
-        #     sheet_file_1__year_month=self.entity_week.year_month)
-        # year_month_crosses_2 = CrossingSheet.objects.filter(
-        #     entity=self.entity_week.entity,
-        #     sheet_file_2__year_month=self.entity_week.year_month)
-        # year_month_crosses = year_month_crosses_1 | year_month_crosses_2
-        # year_month_crosses = year_month_crosses.exclude(id__in=edited_crosses)
-        # year_month_crosses.delete()
