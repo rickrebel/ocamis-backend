@@ -222,14 +222,16 @@ class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
         fields = "__all__"
 
 
-def calc_drugs_summarize(obj):
+def calc_drugs_summarize(obj, table_files=None):
     from django.db.models import Sum, F
     drugs_counts_by_week = obj.weeks \
         .values("entity_month") \
         .annotate(drugs_count=Sum(F("drugs_count"))) \
         .values("entity_month", "drugs_count")
-    drugs_count_by_drug = obj.table_files \
-        .filter(entity_week__isnull=False) \
+    if not table_files:
+        table_files = obj.table_files \
+            .filter(entity_week__isnull=False)
+    drugs_count_by_drug = table_files \
         .exclude(collection__model_name="Rx") \
         .prefetch_related("collection", "lap_sheet__sheet_file__behavior") \
         .values(

@@ -91,7 +91,9 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
 
     def get_drugs_counts(self, obj):
         from geo.api.serializers import calc_drugs_summarize
-        return calc_drugs_summarize(obj)
+        table_files = TableFile.objects.filter(
+            entity_week__entity_month=obj)
+        return calc_drugs_summarize(obj, table_files)
 
     class Meta:
         model = EntityMonth
