@@ -37,10 +37,10 @@ class MyFinalConsumer(AsyncJsonWebsocketConsumer):
     async def send_task_info(self, event):
         # last_msg["status"] = event["text"]
         result = event["result"]
-        print(
-            "ENVIANDOOO: ",
-            result["task_data"]["status_task"],
-            result["task_data"]["task_function"])
+        # print(
+        #     "ENVIANDOOO: ",
+        #     result["task_data"]["status_task"],
+        #     result["task_data"]["task_function"])
         await self.send_json(result)
 
     async def disconnect(self, close_code):

@@ -10,14 +10,39 @@ class FromAws:
         self.task_params = task_params
 
     def revert_stages(self):
-        from inai.models import TableFile
+        from inai.models import TableFile, CrossingSheet
         self.entity_month.stage_id = "init_month"
         self.entity_month.status_id = "finished"
+        self.entity_month.last_crossing = None
+        self.entity_month.last_merge = None
+        self.entity_month.last_pre_insertion = None
         self.entity_month.save()
-        table_files = TableFile.objects.filter(
+        base_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month,
             collection__isnull=False)
-        table_files.update(inserted=False)
+        base_table_files.delete()
+        lap_table_files = TableFile.objects.filter(
+            entity_week__entity_month=self.entity_month,
+            lap_sheet__isnull=False)
+        lap_table_files.update(
+            inserted=False,
+            rx_count=0,
+            duplicates_count=0,
+            shared_count=0,
+        )
+        CrossingSheet.objects.filter(
+            entity_month=self.entity_month).delete()
+        entity_weeks = self.entity_month.weeks.all()
+        entity_weeks.update(
+            rx_count=0,
+            drugs_count=0,
+            duplicates_count=0,
+            shared_count=0,
+            last_crossing=None,
+            last_merge=None,
+            last_pre_insertion=None,
+            crosses=None,
+        )
         return [], [], True
 
     def save_month_analysis(self, **kwargs):
@@ -90,8 +115,6 @@ class FromAws:
         # import time
         from scripts.common import build_s3
         from inai.models import TableFile
-        from inai.api.serializers import (
-            EntityWeekSimpleSerializer, TableFileAwsSerializer)
 
         all_tasks = []
         insert_stage = Stage.objects.get(name="insert")

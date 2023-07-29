@@ -10,9 +10,9 @@ class MessageSendAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        print("MessageSendAPIView GET")
+        # print("MessageSendAPIView GET")
         channel_layer = get_channel_layer()
-        print("channel_layer:", channel_layer)
+        # print("channel_layer:", channel_layer)
         # get the channel group name
         async_to_sync(channel_layer.group_send)(
             "dashboard", {"type": "send_info_to_user_group",

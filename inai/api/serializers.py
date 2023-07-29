@@ -83,7 +83,7 @@ class EntityMonthSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
-            "last_insertion", "stage", "status"]
+            "last_insertion", "stage", "status", "entity_id"]
 
 
 class EntityMonthFullSerializer(serializers.ModelSerializer):
@@ -93,6 +93,7 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
         from geo.api.serializers import calc_drugs_summarize
         table_files = TableFile.objects.filter(
             entity_week__entity_month=obj)
+        # print("calc_drugs_summarize \n", calc_drugs_summarize(obj, table_files))
         return calc_drugs_summarize(obj, table_files)
 
     class Meta:
@@ -101,7 +102,7 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
-            "last_insertion", "stage", "status", "drugs_counts"]
+            "last_insertion", "stage", "status", "drugs_counts", "entity_id"]
 
 
 class TableFileSerializer(serializers.ModelSerializer):

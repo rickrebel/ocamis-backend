@@ -245,9 +245,10 @@ def calc_drugs_summarize(obj, table_files=None):
             collection=F("collection__model_name"),
             discarded=F("lap_sheet__sheet_file__behavior__is_discarded")) \
         .values("entity_month", "drugs_count", "collection", "discarded")
-    final_result = { }
+    final_result = {}
     for drugs_count_by_week in drugs_counts_by_week:
-        final_result[drugs_count_by_week["entity_month"]] = {
+        entity_month = str(drugs_count_by_week["entity_month"])
+        final_result[entity_month] = {
             "by_week": drugs_count_by_week["drugs_count"],
             "Drug": 0,
             "by_tables_included": 0,
@@ -262,6 +263,7 @@ def calc_drugs_summarize(obj, table_files=None):
             field = "by_tables_included"
             if drugs_count_by_drug["discarded"]:
                 field = "by_tables_discarded"
+        entity_month = str(entity_month)
         final_result[entity_month][field] = drugs_count_by_drug["drugs_count"]
     return final_result
 

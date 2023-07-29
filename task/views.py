@@ -183,7 +183,7 @@ class AWSMessage(generic.View):
             function_after = current_task.function_after
             execute_function_aws(current_task, function_after, new_result, errors)
         except Exception as e:
-            print("ERROR AL GUARDAR 1: ", e)
+            print("ERROR AL GUARDAR 2: ", e)
             print("body: \n", body)
 
         return HttpResponse()

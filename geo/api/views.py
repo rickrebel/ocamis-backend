@@ -46,18 +46,25 @@ class EntityViewSet(ListRetrieveUpdateMix):
         from task.views import comprobate_status, build_task_params
         from inai.models import EntityMonth, TableFile
         entity_months_ids = request.data.get("entity_months", None)
+        entity_months_id = request.data.get("entity_month", None)
         main_function_name = request.data.get("function_name", None)
+        # query_stage = request.data.get("stage", None)
         entity = self.get_object()
         if entity_months_ids:
             entity_months = EntityMonth.objects.filter(
                 id__in=entity_months_ids)
+        elif entity_months_id:
+            entity_months = EntityMonth.objects.filter(id=entity_months_id)
         else:
             entity_months = EntityMonth.objects.filter(entity=entity)
         print("entity_months", entity_months)
         all_tasks = []
         all_errors = []
-        key_task, task_params = build_task_params(
-            entity, main_function_name, request, keep_tasks=True)
+        if entity_months_id:
+            key_task = None
+        else:
+            key_task, task_params = build_task_params(
+                entity, main_function_name, request, keep_tasks=True)
 
         functions = {
             "revert_stages": {
@@ -126,8 +133,9 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 entity_month.save_stage(stage, month_errors)
                 comprobate_status(month_task, month_errors, [])
             elif entity.split_by_delegation:
-                t = threading.Thread(target=run_in_thread)
-                t.start()
+                run_in_thread()
+                # t = threading.Thread(target=run_in_thread)
+                # t.start()
                 time.sleep(10)
             else:
                 run_in_thread()
@@ -135,7 +143,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
             # seconds_sleep = 10 if entity.split_by_delegation else 1
             # time.sleep(seconds_sleep)
 
-        if all_tasks or all_errors:
+        if (all_tasks or all_errors) and key_task:
             return comprobate_status(
                 key_task, all_errors, all_tasks, want_http_response=True)
 

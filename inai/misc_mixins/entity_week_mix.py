@@ -114,6 +114,29 @@ class FromAws:
         # )
 
     def save_crossing_sheets(self, month_pairs, sheets):
+        from inai.models import TableFile
+        all_errors = []
+
+        table_files = self.entity_week.table_files.filter(
+            lap_sheet__lap=0)
+
+        for table_file in table_files:
+            sheet_id = table_file.lap_sheet.sheet_file_id
+            if sheet_id not in sheets:
+                continue
+            value = sheets[sheet_id]
+            table_file.rx_count = value["rx_count"]
+            table_file.duplicates_count = value["dupli"]
+            table_file.shared_count = value["shared"]
+
+        TableFile.objects.bulk_update(
+            table_files,
+            ["rx_count", "duplicates_count", "shared_count"]
+        )
+
+        return all_errors
+
+    def save_crossing_sheets_old(self, month_pairs, sheets):
         all_errors = []
 
         for sheet_id, value in sheets.items():
