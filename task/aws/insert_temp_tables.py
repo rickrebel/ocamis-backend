@@ -6,10 +6,7 @@ from task.aws.common import request_headers, create_connection, BotoUtils
 # def insert_temp_tables(event, context):
 def lambda_handler(event, context):
     from datetime import datetime
-    raise Exception("No se puede ejecutar esta función")
     # print("model_name", event.get("model_name"))
-    lap_sheet_id = event.get("lap_sheet_id")
-    entity_month_id = event.get("entity_month_id")
     db_config = event.get("db_config")
 
     first_query = event.get("first_query")
@@ -19,8 +16,6 @@ def lambda_handler(event, context):
     insert_queries = event.get("insert_queries", [])
     drop_queries = event.get("drop_queries", [])
     last_query = event.get("last_query")
-
-    queries_by_model = event.get("queries_by_model", {})
     # print("start", datetime.now())
     connection = create_connection(db_config)
     errors = []
@@ -95,8 +90,6 @@ def lambda_handler(event, context):
         cursor.close()
         connection.commit()
     final_result = {
-        "lap_sheet_id": lap_sheet_id,
-        "entity_month_id": entity_month_id,
         "errors": errors,
         "success": bool(not errors)
     }
@@ -113,6 +106,3 @@ def lambda_handler(event, context):
         'statusCode': 200,
         'body': json_result
     }
-
-# data_files/nacional/issste/202107/medicament_3772_default_lap0.csv
-# nacional/issste/202107/reporte_recetas_primer_nivel_202105_3.csv

@@ -11,10 +11,7 @@ def exist_temp_table(table_name):
         SELECT EXISTS(
             SELECT 1
             FROM pg_class c
-            JOIN pg_namespace n
-            ON n.oid = c.relnamespace
             WHERE c.relname = '{table_name}'
-            AND n.nspname = 'pg_temp'
         );
     """
     cursor = connection.cursor()
