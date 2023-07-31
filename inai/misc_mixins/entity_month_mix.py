@@ -1,6 +1,27 @@
 from classify_task.models import Stage
 from inai.models import EntityMonth
 from task.serverless import async_in_lambda
+from django.conf import settings
+ocamis_db = getattr(settings, "DATABASES", {}).get("default")
+
+
+def exist_temp_table(table_name):
+    from django.db import connection
+    query_if_exists = f"""
+        SELECT EXISTS(
+            SELECT 1
+            FROM pg_class c
+            JOIN pg_namespace n
+            ON n.oid = c.relnamespace
+            WHERE c.relname = '{table_name}'
+            AND n.nspname = 'pg_temp'
+        );
+    """
+    cursor = connection.cursor()
+    cursor.execute(query_if_exists)
+    exists_temp_tables = cursor.fetchone()[0]
+    cursor.close()
+    return exists_temp_tables
 
 
 class FromAws:
@@ -144,7 +165,7 @@ class FromAws:
                 },
                 "s3": build_s3(),
             }
-            self.task_params["models"] = [week]
+            self.task_params["models"] = [week, self.entity_month]
             self.task_params["function_after"] = "analyze_uniques_after"
             params_after = self.task_params.get("params_after", {})
             # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
@@ -198,30 +219,25 @@ class FromAws:
         # CREATE TABLE fm_55_201902_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
         # CREATE TABLE fm_55_201902_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
         queries = {"create": [], "drop": []}
+
+        drug_table = f"fm_{self.entity_month.temp_table}_drug"
+        cursor = connection.cursor()
+        exists_temp_tables = exist_temp_table(drug_table)
+
         for table_name in ["rx", "drug", "missingrow", "missingfield"]:
             temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
-            queries["drop"].append(f"""
-                DROP TABLE IF EXISTS {temp_table} CASCADE; 
-            """)
             queries["create"].append(f"""
                 CREATE TABLE {temp_table}
                 (LIKE formula_{table_name} INCLUDING CONSTRAINTS);
             """)
-        cursor = connection.cursor()
-        for operation in ["drop", "create"]:
-            for query in queries[operation]:
+            queries["drop"].append(f"""
+                DROP TABLE IF EXISTS {temp_table} CASCADE; 
+            """)
+        # for operation in ["create", "drop"]:
+        if not exists_temp_tables:
+            for query in queries["create"]:
                 cursor.execute(query)
         cursor.close()
-
-        # INSERT INTO formula_rx
-        # SELECT *
-        # FROM fm_55_201902_rx;
-        # INSERT INTO formula_drug
-        # SELECT *
-        # FROM fm_55_201902_drug;
-
-        # DROP TABLE fm_55_201902_rx;
-        # DROP TABLE fm_55_201902_drug;
 
         month_table_files = TableFile.objects\
             .filter(
@@ -320,6 +336,99 @@ class FromAws:
 
         return new_tasks, errors, True
 
+    def final_insert_month(self):
+        from django.db import connection
+        from django.db.models import Sum
+        from inai.models import TableFile
+        from formula.views import modify_constraints
+
+        weeks = self.entity_month.weeks.filter(
+
+        )
+        drugs_counts = TableFile.objects.filter(
+                entity_week__entity_month=self.entity_month,
+                collection__model_name="Drug")\
+            .values("id", "drugs_count")
+        # drugs_counts = {d["id"]: d["drugs_count"] for d in drugs_counts}
+        drugs_counts = list(drugs_counts)
+
+        # counts_object = {}
+        # for table_file in table_files:
+        #     counts_object[table_file["id"]] = table_file["drugs_count"]
+
+        temp_drug = f"fm_{self.entity_month.temp_table}_drug"
+        count_query = f"""
+            SELECT entity_week_id,
+            COUNT(*)
+            FROM {temp_drug}
+            GROUP BY entity_week_id;
+        """
+        constraint_queries = modify_constraints(
+            True, False, self.entity_month.temp_table)
+
+        # INSERT INTO formula_rx
+        # SELECT *
+        # FROM fm_55_201902_rx;
+        # INSERT INTO formula_drug
+        # SELECT *
+        # FROM fm_55_201902_drug;
+
+        # DROP TABLE fm_55_201902_rx;
+        # DROP TABLE fm_55_201902_drug;
+        errors = []
+        insert_queries = []
+        drop_queries = []
+        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            exists_temp_tables = exist_temp_table(temp_table)
+            if not exists_temp_tables:
+                if table_name in ["rx", "drug"]:
+                    errors.append(f"No existe la tabla esencial {temp_table}")
+                else:
+                    continue
+            insert_queries.append(f"""
+                INSERT INTO formula_{table_name}
+                SELECT *
+                FROM {temp_table};
+            """)
+            drop_queries.append(f"""
+                DROP TABLE IF EXISTS {temp_table} CASCADE;
+            """)
+
+        if errors:
+            return [], errors, False
+
+        first_query = f"""
+            SELECT last_insertion IS NOT NULL AS last_insertion
+            FROM public.inai_entitymonth
+            WHERE id = {self.entity_month.id}
+        """
+        last_query = f"""
+            UPDATE public.inai_entitymonth
+            SET last_insertion = now()
+            WHERE id = {self.entity_month.id}
+        """
+
+        params = {
+            "entity_month_id": self.entity_month.id,
+            "temp_table": self.entity_month.temp_table,
+            "db_config": ocamis_db,
+            "first_query": first_query,
+            "count_query": count_query,
+            "drugs_counts": drugs_counts,
+            "constraint_queries": constraint_queries,
+            "insert_queries": insert_queries,
+            "drop_queries": drop_queries,
+            "last_query": last_query,
+        }
+        all_tasks = []
+        self.task_params["models"] = [self.entity_month]
+        async_task = async_in_lambda(
+            "insert_temp_tables", params, self.task_params)
+        if async_task:
+            all_tasks.append(async_task)
+        return all_tasks, [], True
+
     def all_base_tables_merged(self, **kwargs):
         from django.utils import timezone
         self.entity_month.last_merge = timezone.now()
@@ -329,12 +438,26 @@ class FromAws:
         self.entity_month.save()
         return [], [], True
 
+    def insert_temp_tables_after(self, **kwargs):
+        return [], [], True
+
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
         self.entity_month.last_pre_insertion = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
         errors = self.entity_month.end_stage("pre_insert", parent_task)
+        # if not errors:
+        #     self.entity_month.end_stage("insert", parent_task)
+        self.entity_month.save()
+        return [], [], True
+
+    def all_temp_tables_inserted(self, **kwargs):
+        from django.utils import timezone
+        self.entity_month.last_pre_insertion = timezone.now()
+        current_task = self.task_params.get("parent_task")
+        parent_task = current_task.parent_task
+        errors = self.entity_month.end_stage("insert", parent_task)
         # if not errors:
         #     self.entity_month.end_stage("insert", parent_task)
         self.entity_month.save()

@@ -62,11 +62,10 @@ def reverse_insert(hard=False):
     # SheetFile.objects.filter(behavior="merged").update(behavior="need_merge")
     if hard:
         AsyncTask.objects.filter(task_function_id="send_months_to_db").delete()
-        AsyncTask.objects.filter(task_function_id="insert_data").delete()
         AsyncTask.objects.filter(task_function_id="insert_month").delete()
-        AsyncTask.objects.filter(task_function_id="pre_insert_month").delete()
+        # AsyncTask.objects.filter(task_function_id="pre_insert_month").delete()
         # AsyncTask.objects.filter(task_function_id="save_csv_in_db").delete()
-        AsyncTask.objects.filter(task_function__is_queueable=True).delete()
+        # AsyncTask.objects.filter(task_function__is_queueable=True).delete()
 
 # reverse_insert(True)
 
@@ -75,7 +74,8 @@ def save_success_params_after():
     from task.models import AsyncTask
     from inai.models import TableFile
     success_tasks = AsyncTask.objects.filter(
-        task_function_id='save_csv_in_db', status_task_id="finished")
+        task_function_id='save_csv_in_db',
+        status_task_id="finished")
     for task in success_tasks:
         params_after = task.params_after or {}
         table_files_ids = params_after.get("table_files_ids", [])

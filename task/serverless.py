@@ -4,6 +4,7 @@ from datetime import datetime
 from task.aws.start_build_csv_data import lambda_handler as start_build_csv_data
 from task.aws.start_build_csv_data import lambda_handler as prepare_files
 from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
+from task.aws.insert_temp_tables import lambda_handler as insert_temp_tables
 from task.aws.xls_to_csv import lambda_handler as xls_to_csv
 from task.aws.decompress_gz import lambda_handler as decompress_gz
 from task.aws.analyze_uniques import lambda_handler as analyze_uniques
@@ -122,29 +123,49 @@ def async_in_lambda(function_name, params, task_params):
     # print("query_kwargs:\n", query_kwargs, "\n")
 
     # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
-    is_pending = False
+
+    def save_and_send(in_queue=False):
+        if in_queue:
+            query_kwargs["status_task_id"] = "queue"
+        final_task = AsyncTask.objects.create(**query_kwargs)
+        if in_queue:
+            return final_task
+        return execute_async(final_task, params)
+
     if task_function.is_queueable:
         pending_tasks = AsyncTask.objects.filter(
             task_function__is_queueable=True,
-            status_task__is_completed=False)
-        many_pending = False
-        if pending_tasks.count() > 0:
-            entity_months_count = pending_tasks\
-                .filter(entity_month__isnull=False) \
-                .values("entity_month").distinct().count()
-            many_pending = entity_months_count > 3
-        entity_month = query_kwargs.get("entity_month", False)
-        subgroup = query_kwargs.get("subgroup", False)
-        if not many_pending and entity_month and not subgroup:
-            pending_tasks = pending_tasks.filter(
-                entity_month=query_kwargs["entity_month"], subgroup=None)
-        if pending_tasks.count() > 0:
-            query_kwargs["status_task_id"] = "queue"
-            is_pending = True
-    current_task = AsyncTask.objects.create(**query_kwargs)
-    if is_pending:
-        return current_task
-    return execute_async(current_task, params)
+            status_task__is_completed=False,
+            task_function=task_function)
+        has_pending = pending_tasks.count() > 0
+        if not has_pending:
+            return save_and_send()
+        if task_function.simultaneous_groups == 1 and has_pending:
+            return save_and_send(in_queue=True)
+        group_obj = None
+        if task_function.group_queue:
+            group_obj = query_kwargs.get(task_function.group_queue, False)
+        if not group_obj:
+            return save_and_send(True)
+
+        filter_group = {f"{task_function.group_queue}": group_obj}
+        group_tasks = pending_tasks.filter(**filter_group)
+        many_same_group = group_tasks.count() >= task_function.queue_size
+        if many_same_group:
+            return save_and_send(True)
+        if group_tasks.count() > 0:
+            return save_and_send()
+
+        if task_function.simultaneous_groups > 1:
+            groups_count = pending_tasks\
+                .values(task_function.group_queue)\
+                .distinct().count()
+            many_groups = groups_count >= task_function.simultaneous_groups
+            if not many_groups:
+                return save_and_send()
+        # entity_month = query_kwargs.get("entity_month", False)
+        return save_and_send(True)
+
 
 
 def create_file_lmd(file_bytes, upload_path, only_name, s3_vars):

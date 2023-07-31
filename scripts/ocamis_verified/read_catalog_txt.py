@@ -548,6 +548,18 @@ def calculate_real_stage():
         entity_month.save()
 
 
+def comprobate_table_insert_when_pre_insert():
+    from inai.models import EntityWeek
+    entity_weeks = EntityWeek.objects.filter(
+        last_pre_insertion__isnull=False,
+        table_files__collection__isnull=False,
+        table_files__inserted=False)
+    for entity_week in entity_weeks:
+        entity_week.table_files.filter(
+            collection__isnull=False, inserted=False).update(
+            inserted=True)
+
+
 # assign_year_month_to_sheet_files(53)
 # move_delegation_clues()
 # delete_insabi_delegations()

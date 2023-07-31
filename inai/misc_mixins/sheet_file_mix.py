@@ -20,11 +20,11 @@ class FromAws:
     def save_lap_cat_tables_after(self, **kwargs):
         from inai.models import TableFile
         errors = kwargs.get("errors", [])
-        if not errors:
-            table_files_ids = kwargs.get("table_files_ids", [])
-            TableFile.objects\
-                .filter(id__in=table_files_ids)\
-                .update(inserted=True)
+        # if not errors:
+        #     table_files_ids = kwargs.get("table_files_ids", [])
+        #     TableFile.objects\
+        #         .filter(id__in=table_files_ids)\
+        #         .update(inserted=True)
         return [], [], True
 
     def build_csv_data_from_aws(self, **kwargs):

@@ -282,6 +282,7 @@ class EntityMonth(models.Model):
     error_process = JSONField(blank=True, null=True)
 
     drugs_count = models.IntegerField(default=0)
+    drugs_in_pre_insertion = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)

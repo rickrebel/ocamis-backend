@@ -48,7 +48,7 @@ class TableFileInline(admin.StackedInline):
 
 class EntityWeekInline(admin.TabularInline):
     model = EntityWeek
-    raw_id_fields = ["entity", "entity_month"]
+    raw_id_fields = ["entity", "entity_month", "iso_delegation"]
     extra = 0
 
 
@@ -64,7 +64,7 @@ class EntityWeekAdmin(admin.ModelAdmin):
         "duplicates_count",
     ]
     list_filter = ["entity__acronym", "year", "month"]
-    raw_id_fields = ["entity", "entity_month"]
+    raw_id_fields = ["entity", "entity_month", "iso_delegation"]
     inlines = [TableFileInline]
     search_fields = [
         "entity__acronym", "entity__state__short_name", "year_week",

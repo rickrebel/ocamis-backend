@@ -155,6 +155,7 @@ class TaskFunctionAdmin(admin.ModelAdmin):
         "model_name",
     ]
     list_editable = ["public_name", "is_active", "is_from_aws", "is_queueable"]
+    list_filter = ["is_active", "is_queueable", "is_from_aws"]
 
 
 class StageAdmin(admin.ModelAdmin):

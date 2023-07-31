@@ -44,6 +44,12 @@ class TaskFunction(models.Model):
     is_active = models.BooleanField(default=False, verbose_name="active")
     is_from_aws = models.BooleanField(default=False, verbose_name="AWS")
     is_queueable = models.BooleanField(default=False, verbose_name="queue")
+    queue_size = models.IntegerField(default=1, verbose_name="queue size")
+    group_queue = models.CharField(
+        max_length=100, choices=MODEL_CHOICES, blank=True, null=True,
+        verbose_name="agrupables")
+    simultaneous_groups = models.IntegerField(
+        default=1, verbose_name="Grupos simultáneos")
 
     def __str__(self):
         active_mark = "✅" if self.is_active else "❌"

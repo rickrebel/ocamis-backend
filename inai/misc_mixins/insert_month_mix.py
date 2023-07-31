@@ -143,6 +143,7 @@ class InsertMonth:
         """
         temp_complement = self.entity_month.temp_table
         main_queries = self.build_query_tables(table_files, temp_complement)
+        table_files_ids = [table_file.id for table_file in table_files]
         params = {
             "first_query": first_query,
             "last_query": last_query,
@@ -152,13 +153,14 @@ class InsertMonth:
             "entity_month_id": self.entity_month.id,
             # "entity_week": EntityWeekSimpleSerializer(entity_week).data,
             "entity_week_id": entity_week.id,
+            "table_files_ids": table_files_ids,
         }
         # self.task_params["function_after"] = "check_success_insert"
         current_task_params = self.task_params.copy()
         current_task_params["models"] = [entity_week, self.entity_month]
-        current_task_params["params_after"] = {
-            "table_files_ids": [table_file.id for table_file in table_files],
-        }
+        # current_task_params["params_after"] = {
+        #     "table_files_ids": [table_file.id for table_file in table_files],
+        # }
         # return async_in_lambda("save_csv_in_db", params, current_task_params)
         return async_in_lambda(
             "save_week_base_models", params, current_task_params)
@@ -193,9 +195,10 @@ class InsertMonth:
             current_task_params["subgroup"] = "med_cat"
         else:
             raise Exception("No se encontró el campo de inserción")
-        current_task_params["params_after"] = {
-            "table_files_ids": [table_file.id for table_file in table_files],
-        }
+        table_files_ids = [table_file.id for table_file in table_files]
+        # current_task_params["params_after"] = {
+        #     "table_files_ids": [table_file.id for table_file in table_files],
+        # }
         params = {
             "first_query": first_query,
             "last_query": last_query,
@@ -203,6 +206,7 @@ class InsertMonth:
             "queries_by_model": self.build_query_tables(table_files, temp_complement),
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,
+            "table_files_ids": table_files_ids,
         }
         # return async_in_lambda("save_csv_in_db", params, current_task_params)
         return async_in_lambda(function_name, params, current_task_params)

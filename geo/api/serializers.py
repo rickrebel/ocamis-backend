@@ -253,6 +253,7 @@ def calc_drugs_summarize(obj, table_files=None):
             "Drug": 0,
             "by_tables_included": 0,
             "by_tables_discarded": 0,
+            "in_month": getattr(obj, "drugs_count", 0)
         }
     for drugs_count_by_drug in drugs_count_by_drug:
         entity_month = drugs_count_by_drug["entity_month"]

@@ -9,6 +9,7 @@ def lambda_handler(event, context):
     # print("model_name", event.get("model_name"))
     lap_sheet_id = event.get("lap_sheet_id")
     entity_month_id = event.get("entity_month_id")
+    table_files_ids = event.get("table_files_ids", [])
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries", [])
     queries_by_model = event.get("queries_by_model", {})
@@ -24,21 +25,6 @@ def lambda_handler(event, context):
         try:
             cursor.execute(query_content)
         except Exception as e:
-            # if path_file and "extra data after last expected column" in str(e):
-            #     print("holi")
-            #     csv_content = s3_utils.get_object_file(path_file)
-            #     # INSERT INTO formula_rx
-            #     # SELECT *
-            #     # FROM fm_55_201902_rx;
-            #     new_values = ""
-            #     for idx, row in enumerate(csv_content):
-            #         if idx:
-            #             new_values = ", ".join(row)
-            #     if new_values:
-            #         alt_query = alt_query.replace("LIST_VALUES", new_values)
-            #         print("alt_query", alt_query)
-            #         execute_query(alt_query)
-            # else:
             errors.append(f"Hubo un error al guardar; {str(e)}")
 
     # print("before first_query", datetime.now())
@@ -64,6 +50,11 @@ def lambda_handler(event, context):
         if last_query:
             print("before last_query", datetime.now())
             execute_query(last_query)
+        if table_files_ids:
+            print("before table_files_ids", datetime.now())
+            query = f"UPDATE inai_tablefile SET inserted = true " \
+                    f"WHERE id IN ({','.join(table_files_ids)})"
+            execute_query(query)
     if errors:
         connection.rollback()
         # errors.append(f"Hubo un error al guardar; {str(e)}")

@@ -89,6 +89,12 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 "stage": "pre_insert",
                 "all_classified": True,
             },
+            "final_insert_month": {
+                "finished_function": "all_temp_tables_inserted",
+                "function_name": "final_insert_month",
+                "stage": "insert",
+                "all_classified": True,
+            },
         }
         function_data = functions.get(main_function_name, None)
         if not function_data:

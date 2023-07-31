@@ -34,11 +34,11 @@ class FromAws:
         if kwargs.get("errors"):
             # self.entity_week.errors = True
             print("ERRORS", kwargs.get("errors"))
-        else:
-            table_files_ids = kwargs.get("table_files_ids", [])
-            TableFile.objects\
-                .filter(id__in=table_files_ids)\
-                .update(inserted=True)
+        # else:
+        #     table_files_ids = kwargs.get("table_files_ids", [])
+        #     TableFile.objects\
+        #         .filter(id__in=table_files_ids)\
+        #         .update(inserted=True)
         return [], [], True
 
     def save_merged_from_aws(self, **kwargs):

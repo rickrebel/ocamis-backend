@@ -39,6 +39,7 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
     invalid_fields = ["lap_sheet_id", "sheet_file_id", "_like"]
     constraint_list = create_constrains if is_create \
         else reversed(delete_constrains)
+    new_constraints = []
     # and platform.has_constrains:
     print("is_create", is_create)
     for constraint in constraint_list:
@@ -56,17 +57,19 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
         if not valid_constraint:
             continue
         try:
-            print(">>>>> time:", datetime.now())
-            print("constraint:", constraint)
             if year_month:
                 constraint = custom_constraint(constraint, year_month)
-                print("final_constraint:", constraint)
+                # print("final_constraint:", constraint)
+                new_constraints.append(constraint)
+            else:
+                print(">>>>> time:", datetime.now())
+                print("constraint:", constraint)
+                cursor.execute(constraint)
+                print("--------------------------")
             # if "formula_rx_pkey" in constraint:
             #     rebuild_primary_key(cursor, "formula_rx", constraint)
             # else:
             #     cursor.execute(constraint)
-            cursor.execute(constraint)
-            print("--------------------------")
         except Exception as e:
             str_e = str(e)
             if "already exists" in str_e:
@@ -80,7 +83,9 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
     print("FINAL", datetime.now())
     cursor.close()
     connection.close()
-    if with_change and not year_month:
+    if year_month:
+        return new_constraints
+    elif with_change:
         Platform.objects.all().update(has_constrains=is_create)
 
 
