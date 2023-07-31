@@ -345,9 +345,12 @@ class FromAws:
         drugs_counts = TableFile.objects.filter(
                 entity_week__entity_month=self.entity_month,
                 collection__model_name="Drug")\
-            .values("id", "drugs_count")
+            .values("entity_week_id", "drugs_count")
         # drugs_counts = {d["id"]: d["drugs_count"] for d in drugs_counts}
         drugs_counts = list(drugs_counts)
+        drugs_object = {}
+        for drug in drugs_counts:
+            drugs_object[drug["entity_week_id"]] = drug["drugs_count"]
 
         # counts_object = {}
         # for table_file in table_files:
@@ -363,15 +366,6 @@ class FromAws:
         constraint_queries = modify_constraints(
             True, False, self.entity_month.temp_table)
 
-        # INSERT INTO formula_rx
-        # SELECT *
-        # FROM fm_55_201902_rx;
-        # INSERT INTO formula_drug
-        # SELECT *
-        # FROM fm_55_201902_drug;
-
-        # DROP TABLE fm_55_201902_rx;
-        # DROP TABLE fm_55_201902_drug;
         errors = []
         insert_queries = []
         drop_queries = []
@@ -412,7 +406,7 @@ class FromAws:
             "db_config": ocamis_db,
             "first_query": first_query,
             "count_query": count_query,
-            "drugs_counts": drugs_counts,
+            "drugs_object": drugs_object,
             "constraint_queries": constraint_queries,
             "insert_queries": insert_queries,
             "drop_queries": drop_queries,
