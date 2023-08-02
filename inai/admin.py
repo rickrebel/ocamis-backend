@@ -207,7 +207,7 @@ class TableFileAdmin(admin.ModelAdmin):
         "inserted", "entity__acronym", "collection", "year", "month",
         "iso_delegation"]
     search_fields = ["year_month", "year_week"]
-    raw_id_fields = ["lap_sheet", "entity_week"]
+    raw_id_fields = ["entity", "lap_sheet", "entity_week", "iso_delegation"]
 
 
 class CrossingSheetAdmin(admin.ModelAdmin):

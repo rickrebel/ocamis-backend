@@ -364,32 +364,33 @@ class FromAws:
 
         temp_drug = f"fm_{self.entity_month.temp_table}_drug"
         temp_rx = f"fm_{self.entity_month.temp_table}_rx"
-
         if self.entity_month.error_process:
             error_process_list = self.entity_month.error_process
             error_process_str = "\n".join(error_process_list)
-            if "semanas con más medicamentos" not in error_process_str:
+            blocked_error = "blocked by process " in error_process_str
+            if "semanas con más medicamentos" in error_process_str:
+                models = {
+                    "rx": "uuid_folio",
+                    "drug": "uuid",
+                }
+                for table_name, field in models.items():
+                    temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+                    clean_queries.append(f"""
+                        DELETE FROM {temp_table}
+                        WHERE {field} IN (
+                            SELECT {field}
+                            FROM (
+                                SELECT {field}, ROW_NUMBER() OVER (
+                                    PARTITION BY {field}
+                                    ORDER BY {field}) AS rnum
+                                FROM {temp_table}
+                            ) t
+                            WHERE t.rnum > 1
+                        );
+                    """)
+            elif not blocked_error:
                 error = f"Existen otros errores: {error_process_str}"
                 return [], [error], True
-            models = {
-                "rx": "uuid_folio",
-                "drug": "uuid",
-            }
-            for table_name, field in models.items():
-                temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
-                clean_queries.append(f"""
-                    DELETE FROM {temp_table}
-                    WHERE {field} IN (
-                        SELECT {field}
-                        FROM (
-                            SELECT {field}, ROW_NUMBER() OVER (
-                                PARTITION BY {field}
-                                ORDER BY {field}) AS rnum
-                            FROM {temp_table}
-                        ) t
-                        WHERE t.rnum > 1
-                    );
-                """)
 
         drugs_counts = TableFile.objects.filter(
                 entity_week__entity_month=self.entity_month,
