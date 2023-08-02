@@ -795,7 +795,9 @@ class TableFile(models.Model):
     year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
     iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
-    iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
+    # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
+    iso_delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=8, blank=True, null=True)
     year = models.PositiveSmallIntegerField(blank=True, null=True)
     month = models.PositiveSmallIntegerField(blank=True, null=True)
