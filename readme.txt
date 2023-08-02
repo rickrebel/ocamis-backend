@@ -4,7 +4,7 @@ tener instalado python3
 
 instalar pip
 
-#Instalar venv
+# Instalar venv
 python3 -m venv desabasto
 
 Iniciar venv

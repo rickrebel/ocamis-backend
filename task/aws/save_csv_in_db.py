@@ -52,8 +52,9 @@ def lambda_handler(event, context):
             execute_query(last_query)
         if table_files_ids:
             print("before table_files_ids", datetime.now())
+            str_table_files_ids = [str(x) for x in table_files_ids]
             query = f"UPDATE inai_tablefile SET inserted = true " \
-                    f"WHERE id IN ({','.join(table_files_ids)})"
+                    f"WHERE id IN ({','.join(str_table_files_ids)})"
             execute_query(query)
     if errors:
         connection.rollback()

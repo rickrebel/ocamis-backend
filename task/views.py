@@ -443,17 +443,19 @@ def comprobate_queue(current_task):
     if not current_task.task_function.is_queueable:
         return
     if current_task.status_task.is_completed:
+        task_function = current_task.task_function
         queue_tasks = AsyncTask.objects.filter(
-            task_function_id=current_task.task_function_id,
+            task_function=task_function,
             status_task_id="queue")
         if not queue_tasks.exists():
             return
         next_task = None
-        if current_task.subgroup:
-            subgroup_queue_tasks = queue_tasks.filter(
-                subgroup=current_task.subgroup)
-            if subgroup_queue_tasks.exists():
-                next_task = subgroup_queue_tasks.order_by("id").first()
+        if task_function.group_queue:
+            group_obj = getattr(current_task, task_function.group_queue)
+            filter_group = {f"{task_function.group_queue}": group_obj}
+            same_group_tasks = queue_tasks.filter(**filter_group)
+            if same_group_tasks.exists():
+                next_task = same_group_tasks.order_by("id").first()
         if not next_task and current_task.entity_month:
             entity_month_tasks = queue_tasks.filter(
                 entity_month=current_task.entity_month, subgroup=None)
@@ -473,7 +475,8 @@ def debug_queue():
     from datetime import timedelta
     from django.utils import timezone
     arrived_tasks = AsyncTask.objects.filter(
-        status_task_id="success", task_function__is_queueable=True)
+        status_task_id="success",
+        task_function__is_queueable=True)
     # arrived_tasks = AsyncTask.objects.filter(
     #     status_task_id="success", task_function__is_queueable=True)
     for task in arrived_tasks:

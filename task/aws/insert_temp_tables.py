@@ -10,8 +10,9 @@ def lambda_handler(event, context):
     db_config = event.get("db_config")
 
     first_query = event.get("first_query")
+    clean_queries = event.get("clean_queries", [])
     count_query = event.get("count_query")
-    drugs_counts = event.get("drugs_counts")
+    drugs_object = event.get("drugs_object")
     constraint_queries = event.get("constraint_queries", [])
     insert_queries = event.get("insert_queries", [])
     drop_queries = event.get("drop_queries", [])
@@ -33,22 +34,34 @@ def lambda_handler(event, context):
         if result[0]:
             errors.append(f"Ya se había insertado este mes completo")
 
+    if not errors and clean_queries:
+        for clean_query in clean_queries:
+            execute_query(clean_query)
+
+    print("drugs_object", drugs_object)
     # print("before first_query", datetime.now())
     if not errors:
         cursor.execute(count_query)
         week_counts = cursor.fetchall()
         below_weeks = []
         above_weeks = []
+        not_founded_weeks = []
         for week_count in week_counts:
             week_id = week_count[0]
+            str_week_id = str(week_id)
             count = week_count[1]
-            week_count = drugs_counts.get(id=week_id)
-            if week_count == count:
+            week_count = drugs_object.get(str_week_id)
+            if not week_count:
+                not_founded_weeks.append(week_id)
+            elif week_count == count:
                 continue
             elif week_count > count:
-                below_weeks.append(week_id)
+                below_weeks.append({week_id: f"{count} vs {week_count}"})
             else:
-                above_weeks.append(week_id)
+                above_weeks.append({week_id: f"{count} vs {week_count}"})
+        if len(not_founded_weeks) > 0:
+            errors.append(f"Hubo {len(not_founded_weeks)} semanas no encontradas \
+                en la base de datos, semanas: {not_founded_weeks}")
         if len(above_weeks) > 0:
             errors.append(f"Hubo {len(above_weeks)} semanas con más medicamentos \
                 de los esperados, semanas: {above_weeks}")

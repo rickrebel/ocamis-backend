@@ -338,10 +338,40 @@ class FromAws:
         from django.db.models import Sum
         from inai.models import TableFile
         from formula.views import modify_constraints
+        errors = []
 
-        weeks = self.entity_month.weeks.filter(
+        clean_queries = []
 
-        )
+        temp_drug = f"fm_{self.entity_month.temp_table}_drug"
+        temp_rx = f"fm_{self.entity_month.temp_table}_rx"
+
+        if self.entity_month.stage_id == "insert" and \
+                self.entity_month.status_id == "with_errors":
+            error_process_list = self.entity_month.error_process
+            error_process_str = "\n".join(error_process_list)
+            if "semanas con más medicamentos" not in error_process_str:
+                error = f"Existen otros errores: {error_process_str}"
+                return [], [error], True
+            models = {
+                "rx": "uuid_folio",
+                "drug": "uuid",
+            }
+            for table_name, field in models.items():
+                temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+                clean_queries.append(f"""
+                    DELETE FROM {temp_table}
+                    WHERE {field} IN (
+                        SELECT {field}
+                        FROM (
+                            SELECT {field}, ROW_NUMBER() OVER (
+                                PARTITION BY {field}
+                                ORDER BY {field}) AS rnum
+                            FROM {temp_table}
+                        ) t
+                        WHERE t.rnum > 1
+                    );
+                """)
+
         drugs_counts = TableFile.objects.filter(
                 entity_week__entity_month=self.entity_month,
                 collection__model_name="Drug")\
@@ -356,7 +386,7 @@ class FromAws:
         # for table_file in table_files:
         #     counts_object[table_file["id"]] = table_file["drugs_count"]
 
-        temp_drug = f"fm_{self.entity_month.temp_table}_drug"
+
         count_query = f"""
             SELECT entity_week_id,
             COUNT(*)
@@ -366,7 +396,6 @@ class FromAws:
         constraint_queries = modify_constraints(
             True, False, self.entity_month.temp_table)
 
-        errors = []
         insert_queries = []
         drop_queries = []
         for table_name in ["rx", "drug", "missingrow", "missingfield"]:

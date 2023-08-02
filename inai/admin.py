@@ -81,7 +81,7 @@ class EntityMonthAdmin(admin.ModelAdmin):
     raw_id_fields = ["entity", "agency"]
     filter_horizontal = ["petition"]
     list_filter = ["entity__acronym", "year_month"]
-    inlines = [EntityWeekInline]
+    # inlines = [EntityWeekInline]
 
 
 # class EntityMonthInline(admin.TabularInline):
