@@ -141,7 +141,7 @@ def async_in_lambda(function_name, params, task_params):
         if not has_pending:
             return save_and_send()
         if task_function.simultaneous_groups == 1 and has_pending:
-            return save_and_send(in_queue=True)
+            return save_and_send(True)
         group_obj = None
         if task_function.group_queue:
             group_obj = query_kwargs.get(task_function.group_queue, False)
@@ -159,7 +159,8 @@ def async_in_lambda(function_name, params, task_params):
         if task_function.simultaneous_groups > 1:
             groups_count = pending_tasks\
                 .values(task_function.group_queue)\
-                .distinct().count()
+                .distinct(task_function.group_queue)\
+                .count()
             many_groups = groups_count >= task_function.simultaneous_groups
             if not many_groups:
                 return save_and_send()
