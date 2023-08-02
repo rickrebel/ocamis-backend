@@ -77,8 +77,9 @@ class InsertMonth:
         final_path = "/".join([entity_type, acronym, only_name])
         s3 = build_s3()
         params = {
-            "week_table_files": TableFileAwsSerializer(
-                week_table_files, many=True).data,
+            # "week_table_files": TableFileAwsSerializer(
+            #     week_table_files, many=True).data,
+            "week_table_files": week_table_files,
             "s3": s3,
             "final_path": final_path,
         }

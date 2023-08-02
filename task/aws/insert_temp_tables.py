@@ -13,7 +13,8 @@ def lambda_handler(event, context):
     clean_queries = event.get("clean_queries", [])
     count_query = event.get("count_query")
     drugs_object = event.get("drugs_object")
-    constraint_queries = event.get("constraint_queries", [])
+    # constraint_queries = event.get("constraint_queries", [])
+    constraint_queries = []
     insert_queries = event.get("insert_queries", [])
     drop_queries = event.get("drop_queries", [])
     last_query = event.get("last_query")

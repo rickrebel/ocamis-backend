@@ -456,11 +456,11 @@ def comprobate_queue(current_task):
             same_group_tasks = queue_tasks.filter(**filter_group)
             if same_group_tasks.exists():
                 next_task = same_group_tasks.order_by("id").first()
-        if not next_task and current_task.entity_month:
-            entity_month_tasks = queue_tasks.filter(
-                entity_month=current_task.entity_month, subgroup=None)
-            if entity_month_tasks.exists():
-                next_task = entity_month_tasks.order_by("id").first()
+        # if not next_task and current_task.entity_month:
+        #     entity_month_tasks = queue_tasks.filter(
+        #         entity_month=current_task.entity_month, subgroup=None)
+        #     if entity_month_tasks.exists():
+        #         next_task = entity_month_tasks.order_by("id").first()
         if not next_task:
             next_task = queue_tasks.order_by("id").first()
         if next_task:

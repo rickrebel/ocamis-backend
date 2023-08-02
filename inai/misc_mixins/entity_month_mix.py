@@ -176,8 +176,9 @@ class FromAws:
 
     def merge_files_by_week(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
-        from inai.models import DataFile
+        from inai.models import DataFile, TableFile
         from django.utils import timezone
+        from django.db.models import F
 
         related_sheet_files = self.entity_month.sheet_files.all()
         data_files_ids = related_sheet_files.values_list(
@@ -187,7 +188,21 @@ class FromAws:
 
         my_insert = InsertMonth(self.entity_month, self.task_params)
         new_tasks = []
-        entity_weeks = self.entity_month.weeks.all()
+        entity_weeks = self.entity_month.weeks.all().prefetch_related(
+            "table_files", "table_files__collection", "table_files__lap_sheet",
+            "table_files__lap_sheet__sheet_file")
+
+        all_table_files = TableFile.objects \
+            .filter(
+                entity_week__entity_month=self.entity_month,
+                lap_sheet__lap=0,
+            ).exclude(lap_sheet__sheet_file__behavior_id="invalid") \
+            .values(
+                "entity_week_id", "id", "file", "collection", "year",
+                "month", "year_month", "iso_week", "iso_year", "year_week",
+                "lap_sheet__sheet_file__behavior_id"
+            ).annotate(
+                sheet_behavior=F("lap_sheet__sheet_file__behavior_id"))
 
         for ew in entity_weeks:
             if ew.last_merge:
@@ -195,9 +210,14 @@ class FromAws:
                     continue
             if self.entity_month.entity_id == 55 and ew.complete:
                 continue
-            week_base_table_files = ew.table_files.filter(
-                lap_sheet__lap=0).prefetch_related("lap_sheet__sheet_file")
-            if week_base_table_files.count() == 0:
+            # lap_sheet.sheet_file.behavior_id
+            # week_base_table_files = ew.table_files\
+            #     .filter(lap_sheet__lap=0)\
+            #     .prefetch_related("lap_sheet__sheet_file")
+            week_base_table_files = list(all_table_files.filter(
+                entity_week_id=ew.id))
+            # if week_base_table_files.count() == 0:
+            if not week_base_table_files:
                 ew.last_transformation = timezone.now()
                 ew.save()
                 continue

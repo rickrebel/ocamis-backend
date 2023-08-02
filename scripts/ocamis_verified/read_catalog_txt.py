@@ -329,9 +329,9 @@ def send_entity_weeks_to_rebuild(limit=None):
     all_table_files = TableFile.objects.filter(
         collection=drug_collection,
         entity_week__isnull=False,
-        drugs_count=1,
+        # drugs_count=1,
         # drugs_count__gt=0,
-        # entity_week__async_tasks__errors__icontains="extra data after last expected"
+        entity_week__async_tasks__errors__icontains="extra data after last expected"
     ).distinct()
     # entity_week__async_tasks__task_function_id=True)
     if limit:
