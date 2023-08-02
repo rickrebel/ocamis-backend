@@ -159,7 +159,7 @@ def async_in_lambda(function_name, params, task_params):
         if task_function.simultaneous_groups > 1:
             groups_count = pending_tasks\
                 .values(task_function.group_queue)\
-                .distinct(task_function.group_queue)\
+                .distinct()\
                 .count()
             many_groups = groups_count >= task_function.simultaneous_groups
             if not many_groups:
