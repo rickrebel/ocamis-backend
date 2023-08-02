@@ -442,31 +442,45 @@ def comprobate_queue(current_task):
     # if not is_queue:
     if not current_task.task_function.is_queueable:
         return
+
+    def send_to_execute(tasks):
+        for task in tasks:
+            execute_async(task, task.original_request)
+
     if current_task.status_task.is_completed:
         task_function = current_task.task_function
         queue_tasks = AsyncTask.objects.filter(
             task_function=task_function,
-            status_task_id="queue")
+            status_task_id="queue").order_by("id")
         if not queue_tasks.exists():
             return
-        next_task = None
         if task_function.group_queue:
             group_obj = getattr(current_task, task_function.group_queue)
             filter_group = {f"{task_function.group_queue}": group_obj}
             same_group_tasks = queue_tasks.filter(**filter_group)
             if same_group_tasks.exists():
-                next_task = same_group_tasks.order_by("id").first()
-        # if not next_task and current_task.entity_month:
-        #     entity_month_tasks = queue_tasks.filter(
-        #         entity_month=current_task.entity_month, subgroup=None)
-        #     if entity_month_tasks.exists():
-        #         next_task = entity_month_tasks.order_by("id").first()
-        if not next_task:
-            next_task = queue_tasks.order_by("id").first()
-        if next_task:
-            execute_async(next_task, next_task.original_request)
-        # elif not settings.IS_LOCAL:
-        #     modify_constraints(is_create=True)
+                if task_function.queue_size == 1:
+                    next_task = same_group_tasks.order_by("id").first()
+                    execute_async(next_task, next_task.original_request)
+                else:
+                    filter_group["task_function"] = task_function
+                    filter_group["status_task_id"] = "running"
+                    running_tasks = AsyncTask.objects.filter(**filter_group)
+                    remain_tasks = task_function.queue_size - running_tasks.count()
+                    if remain_tasks > 0:
+                        send_to_execute(same_group_tasks[:remain_tasks])
+            else:
+                not_started_tasks = queue_tasks.filter(
+                    parent_task__status_task_id="created")
+                if not not_started_tasks.exists():
+                    not_started_tasks = queue_tasks.filter(
+                        parent_task__parent_task__status_task_id="created")
+                if not_started_tasks.exists():
+                    first_task = not_started_tasks.first()
+                    execute_async(first_task, first_task.original_request)
+                    comprobate_queue(first_task)
+        else:
+            send_to_execute(queue_tasks[:task_function.queue_size])
 
 
 def debug_queue():

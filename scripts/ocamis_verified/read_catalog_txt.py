@@ -514,20 +514,13 @@ def revert_own_mistake2():
     from inai.models import TableFile, SheetFile
     from data_param.models import Collection
     import time
-    def save_model_files(lapsheet, model_paths):
-        entity = lapsheet.sheet_file.data_file.entity
-        new_table_files = []
-        for result_file in model_paths:
-            model_name = result_file.get("model")
-            if model_name == "Prescription":
-                model_name = "Rx"
-            query_create = {"entity": entity, "file": result_file["path"]}
-            collection = Collection.objects.get(model_name=model_name)
-            query_create["collection"] = collection
-            query_create["lap_sheet"] = lapsheet
-            table_file = TableFile(**query_create)
-            new_table_files.append(table_file)
-        TableFile.objects.bulk_create(new_table_files)
+    count_fields = ["drugs_count", "rx_count"]
+    # space
+    def save_tables_counts(table_file, model_paths):
+        query_update = { "file": result_file["path"] }
+        for field in count_fields:
+            query_update[field] = result_file.get(field, 0)
+        table_file.__dict__.update(**query_update)
     total_count = 0
     all_sheet_files = SheetFile.objects.filter(
         async_tasks__status_task_id="finished",
@@ -536,7 +529,7 @@ def revert_own_mistake2():
         async_tasks__result__icontains='is_prepare": false').distinct()
     print("all_sheet_files", all_sheet_files.count())
     for x in range(14):
-        for sheet_file in all_sheet_files[x * 500:(x + 1) * 500]:
+        for sheet_file in all_sheet_files[x * 100:(x + 1) * 100]:
             tasks = sheet_file.async_tasks.filter(
                 status_task_id="finished",
                 task_function="start_build_csv_data",
@@ -549,7 +542,7 @@ def revert_own_mistake2():
             paths_without_model = [path for path in final_paths if not path.get("model")]
             lap_sheet = sheet_file.laps.filter(lap=0).first()
             try:
-                save_model_files(lap_sheet, paths_with_model)
+                save_tables_counts(lap_sheet, paths_with_model)
             except Exception as e:
                 print("task_id", first_task.id)
                 print("error", e)
