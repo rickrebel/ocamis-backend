@@ -155,7 +155,7 @@ class FromAws:
             new_file_ids.append(table_file.id)
             table_file.__dict__.update(**query_update)
             # table_file.file = result_file["path"]
-            table_file.save()
+            # table_file.save()
             # new_file.change_status('initial|finished')
             all_new_files.append(table_file)
             # new_tasks = self.lap_sheet.send_csv_to_db(result_file["path"], model_name)
