@@ -432,6 +432,7 @@ class FromAws:
             "temp_table": self.entity_month.temp_table,
             "db_config": ocamis_db,
             "first_query": first_query,
+            "clean_queries": clean_queries,
             "count_query": count_query,
             "drugs_object": drugs_object,
             "constraint_queries": constraint_queries,
