@@ -345,8 +345,7 @@ class FromAws:
         temp_drug = f"fm_{self.entity_month.temp_table}_drug"
         temp_rx = f"fm_{self.entity_month.temp_table}_rx"
 
-        if self.entity_month.stage_id == "insert" and \
-                self.entity_month.status_id == "with_errors":
+        if self.entity_month.error_process:
             error_process_list = self.entity_month.error_process
             error_process_str = "\n".join(error_process_list)
             if "semanas con más medicamentos" not in error_process_str:
@@ -385,7 +384,6 @@ class FromAws:
         # counts_object = {}
         # for table_file in table_files:
         #     counts_object[table_file["id"]] = table_file["drugs_count"]
-
 
         count_query = f"""
             SELECT entity_week_id,
