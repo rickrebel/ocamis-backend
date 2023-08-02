@@ -42,7 +42,8 @@ class DataFileInline(admin.TabularInline):
 class TableFileInline(admin.StackedInline):
     model = TableFile
     extra = 0
-    raw_id_fields = ["entity", "lap_sheet", "entity_week", "iso_delegation"]
+    raw_id_fields = [
+        "entity", "lap_sheet", "entity_week", "iso_delegation", "collection"]
     show_change_link = True
 
 

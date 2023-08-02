@@ -305,7 +305,8 @@ class EntityMonth(models.Model):
                 g_children = child_task_error.child_tasks.filter(
                     status_task__macro_status="with_errors")
                 for g_child in g_children:
-                    current_errors += g_child.errors or []
+                    if g_child:
+                        current_errors += g_child.errors or []
             all_errors += current_errors or []
         self.stage_id = stage_id
         if child_task_errors.exists():

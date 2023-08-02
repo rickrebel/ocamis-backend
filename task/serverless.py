@@ -165,6 +165,8 @@ def async_in_lambda(function_name, params, task_params):
                 return save_and_send()
         # entity_month = query_kwargs.get("entity_month", False)
         return save_and_send(True)
+    else:
+        return save_and_send()
 
 
 

@@ -510,6 +510,62 @@ def revert_own_mistake():
     print("total_count", total_count)
 
 
+def revert_own_mistake2():
+    from inai.models import TableFile, SheetFile
+    from data_param.models import Collection
+    import time
+    def save_model_files(lapsheet, model_paths):
+        entity = lapsheet.sheet_file.data_file.entity
+        new_table_files = []
+        for result_file in model_paths:
+            model_name = result_file.get("model")
+            if model_name == "Prescription":
+                model_name = "Rx"
+            query_create = {"entity": entity, "file": result_file["path"]}
+            collection = Collection.objects.get(model_name=model_name)
+            query_create["collection"] = collection
+            query_create["lap_sheet"] = lapsheet
+            table_file = TableFile(**query_create)
+            new_table_files.append(table_file)
+        TableFile.objects.bulk_create(new_table_files)
+    total_count = 0
+    all_sheet_files = SheetFile.objects.filter(
+        async_tasks__status_task_id="finished",
+        rx_count=0,
+        async_tasks__task_function="start_build_csv_data",
+        async_tasks__result__icontains='is_prepare": false').distinct()
+    print("all_sheet_files", all_sheet_files.count())
+    for x in range(14):
+        for sheet_file in all_sheet_files[x * 500:(x + 1) * 500]:
+            tasks = sheet_file.async_tasks.filter(
+                status_task_id="finished",
+                task_function="start_build_csv_data",
+                result__icontains='is_prepare": false')
+            first_task = tasks.first()
+            if not first_task:
+                continue
+            total_count += 1
+            final_paths = first_task.result.get("final_paths", [])
+            paths_without_model = [path for path in final_paths if not path.get("model")]
+            lap_sheet = sheet_file.laps.filter(lap=0).first()
+            try:
+                save_model_files(lap_sheet, paths_with_model)
+            except Exception as e:
+                print("task_id", first_task.id)
+                print("error", e)
+        print("--------------")
+        print("x", x)
+        time.sleep(5)
+    print("total_count", total_count)
+
+
+def receive_specific_task(task_id="start_build_csv_data"):
+    from inai.models import SheetFile
+    from task.serverless import async_in_lambda
+    from task.models import AsyncTask
+    all_sheet_files = SheetFile.objects.filter()
+
+
 def revert_duplicates_table_files():
     from inai.models import LapSheet, TableFile
     from django.db.models import Count
