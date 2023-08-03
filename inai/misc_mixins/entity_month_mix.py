@@ -66,7 +66,7 @@ class FromAws:
     def save_month_analysis(self, **kwargs):
         from django.db.models import Sum
         from django.utils import timezone
-        from inai.models import CrossingSheet, SheetFile, LapSheet
+        from inai.models import CrossingSheet, LapSheet
 
         from_aws = kwargs.get("from_aws", False)
         current_task = self.task_params.get("parent_task")
@@ -353,17 +353,20 @@ class FromAws:
 
         return new_tasks, errors, True
 
-    def final_insert_month(self):
-        from django.db import connection
-        from django.db.models import Sum
+    def validate_month(self):
         from inai.models import TableFile
         from formula.views import modify_constraints
+        clean_queries = []
         errors = []
 
-        clean_queries = []
+        for table_name in ["rx", "drug"]:
+            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            exists_temp_tables = exist_temp_table(temp_table)
+            if not exists_temp_tables:
+                errors.append(f"No existe la tabla esencial {temp_table}")
+        if errors:
+            return [], errors, False
 
-        temp_drug = f"fm_{self.entity_month.temp_table}_drug"
-        temp_rx = f"fm_{self.entity_month.temp_table}_rx"
         if self.entity_month.error_process:
             error_process_list = self.entity_month.error_process
             error_process_str = "\n".join(error_process_list)
@@ -401,11 +404,7 @@ class FromAws:
         drugs_object = {}
         for drug in drugs_counts:
             drugs_object[drug["entity_week_id"]] = drug["drugs_count"]
-
-        # counts_object = {}
-        # for table_file in table_files:
-        #     counts_object[table_file["id"]] = table_file["drugs_count"]
-
+        temp_drug = f"fm_{self.entity_month.temp_table}_drug"
         count_query = f"""
             SELECT entity_week_id,
             COUNT(*)
@@ -415,6 +414,37 @@ class FromAws:
         constraint_queries = modify_constraints(
             True, False, self.entity_month.temp_table)
 
+        last_query = f"""
+            UPDATE public.inai_entitymonth
+            SET last_validate = now()
+            WHERE id = {self.entity_month.id}
+        """
+
+        params = {
+            "entity_month_id": self.entity_month.id,
+            "temp_table": self.entity_month.temp_table,
+            "db_config": ocamis_db,
+            "clean_queries": clean_queries,
+            "count_query": count_query,
+            "drugs_object": drugs_object,
+            "constraint_queries": constraint_queries,
+            "last_query": last_query,
+        }
+
+        all_tasks = []
+        self.task_params["models"] = [self.entity_month]
+        async_task = async_in_lambda(
+            "validate_temp_tables", params, self.task_params)
+        if async_task:
+            all_tasks.append(async_task)
+        return all_tasks, errors, True
+
+    def final_insert_month(self):
+        errors = []
+
+        # counts_object = {}
+        # for table_file in table_files:
+        #     counts_object[table_file["id"]] = table_file["drugs_count"]
         insert_queries = []
         drop_queries = []
         for table_name in ["rx", "drug", "missingrow", "missingfield"]:
@@ -453,10 +483,6 @@ class FromAws:
             "temp_table": self.entity_month.temp_table,
             "db_config": ocamis_db,
             "first_query": first_query,
-            "clean_queries": clean_queries,
-            "count_query": count_query,
-            "drugs_object": drugs_object,
-            "constraint_queries": constraint_queries,
             "insert_queries": insert_queries,
             "drop_queries": drop_queries,
             "last_query": last_query,
@@ -487,6 +513,17 @@ class FromAws:
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
         errors = self.entity_month.end_stage("pre_insert", parent_task)
+        # if not errors:
+        #     self.entity_month.end_stage("insert", parent_task)
+        self.entity_month.save()
+        return [], [], True
+
+    def all_base_tables_validated(self, **kwargs):
+        from django.utils import timezone
+        self.entity_month.last_validate = timezone.now()
+        current_task = self.task_params.get("parent_task")
+        parent_task = current_task.parent_task
+        errors = self.entity_month.end_stage("validate", parent_task)
         # if not errors:
         #     self.entity_month.end_stage("insert", parent_task)
         self.entity_month.save()

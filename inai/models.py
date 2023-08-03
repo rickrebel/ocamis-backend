@@ -290,6 +290,7 @@ class EntityMonth(models.Model):
     last_crossing = models.DateTimeField(blank=True, null=True)
     last_merge = models.DateTimeField(blank=True, null=True)
     last_pre_insertion = models.DateTimeField(blank=True, null=True)
+    last_validate = models.DateTimeField(blank=True, null=True)
     last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):

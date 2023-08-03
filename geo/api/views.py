@@ -89,6 +89,12 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 "stage": "pre_insert",
                 "all_classified": True,
             },
+            "validate_month": {
+                "finished_function": "all_base_tables_validated",
+                "function_name": "validate_month",
+                "stage": "validate",
+                "all_classified": True,
+            },
             "final_insert_month": {
                 "finished_function": "all_temp_tables_inserted",
                 "function_name": "final_insert_month",
