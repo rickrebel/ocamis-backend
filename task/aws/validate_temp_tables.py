@@ -3,7 +3,7 @@ import json
 from task.aws.common import send_simple_response, create_connection
 
 
-# def insert_temp_tables(event, context):
+# def validate_temp_tables(event, context):
 def lambda_handler(event, context):
     from datetime import datetime
     # print("model_name", event.get("model_name"))
