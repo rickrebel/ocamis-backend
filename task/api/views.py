@@ -92,7 +92,6 @@ class AsyncTaskViewSet(ListRetrieveView):
             .filter(date_end__gte=last_request)\
             .prefetch_related(*prefetch_async)
         all_tasks = task_by_start | task_by_end
-        all_tasks = task_by_start
         data = {
             "new_tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,
             "last_request": now.strftime("%Y-%m-%d %H:%M:%S"),
