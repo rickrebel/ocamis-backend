@@ -77,7 +77,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         else:
             icon = "❔"
         div = f"""
-            <div title='{json.dumps(obj.errors)}'>
+            <div title='{json.dumps(obj.errors)[:8000]}'>
             {icon} {obj.status_task.public_name}
             </div>
         """
