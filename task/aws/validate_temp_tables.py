@@ -44,7 +44,7 @@ def lambda_handler(event, context):
             count = week_count[1]
             week_count = drugs_object.get(str_week_id)
             if not week_count:
-                not_founded_weeks.append(week_id)
+                not_founded_weeks.append(str_week_id)
             elif week_count == count:
                 continue
             elif week_count > count:

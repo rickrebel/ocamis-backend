@@ -536,7 +536,7 @@ class MatchAws:
                 "iso_year": iso_year,
                 "iso_week": iso_week,
                 "year_week": f"{iso_year}-{iso_week:02d}",
-                "iso_delegation": iso_delegation,
+                "iso_delegation_id": iso_delegation,
                 "year": year,
                 "month": month,
                 "year_month": f"{year}-{month:02d}",

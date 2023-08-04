@@ -406,6 +406,7 @@ class FromAws:
             elif not blocked_error:
                 error = f"Existen otros errores: {error_process_str}"
                 self.entity_month.error_process = [error]
+                self.entity_month.status_id = "with_errors"
                 self.entity_month.save()
                 return [], [error], True
 

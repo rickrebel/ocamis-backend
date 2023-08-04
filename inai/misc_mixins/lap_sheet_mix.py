@@ -16,7 +16,7 @@ class FromAws:
         all_errors = []
         entity = self.lap_sheet.sheet_file.data_file.entity
         optional_fields = [
-            "iso_year", "iso_week", "year_week", "iso_delegation",
+            "iso_year", "iso_week", "year_week", "iso_delegation_id",
             "year", "month", "year_month"]
         count_fields = ["drugs_count", "rx_count"]
         all_year_months = set()
