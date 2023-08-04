@@ -19,8 +19,8 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         "display_status",
         "date",
         "display_other_dates",
-        "parent_task",
-        "is_massive",
+        # "parent_task",
+        # "is_massive",
         "is_current",
         # "date_start",
         # "date_end",
@@ -29,9 +29,9 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         "petition", "file_control", "data_file", "reply_file", "sheet_file",
         "parent_task", "user", "entity_week", "entity", "entity_month"]
     list_filter = [
-        "status_task", "task_function", "user", "function_after",
-        "parent_task__task_function", "task_function__is_queueable",
-        "status_task__is_completed", "status_task__macro_status",
+        "status_task", "task_function", "task_function__is_queueable",
+        "status_task__is_completed", "user", "status_task__macro_status",
+        "function_after", "parent_task__task_function",
         "is_current", "is_massive"]
     search_fields = ["data_file_id", "request_id", "task_function__name"]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
@@ -62,6 +62,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     display_function.short_description = "Función"
 
     def display_status(self, obj):
+        import json
         # ▶️
         macro_status = obj.status_task.macro_status
         # icon = "🛑⛔🚫⭕❌❗‼️⚠️✅🟣🔴🟠🟡⚪"
@@ -75,7 +76,12 @@ class AsyncTaskAdmin(admin.ModelAdmin):
             icon = "🛑"
         else:
             icon = "❔"
-        return format_html(f"{icon} {obj.status_task.public_name}")
+        div = f"""
+            <div title='{json.dumps(obj.errors)}'>
+            {icon} {obj.status_task.public_name}
+            </div>
+        """
+        return format_html(div)
     display_status.short_description = "Status"
 
     def display_other_dates(self, obj):

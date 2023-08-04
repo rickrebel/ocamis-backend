@@ -29,6 +29,8 @@ class FromAws:
 
     def revert_stages(self):
         from inai.models import TableFile, CrossingSheet
+        from django.db import connection
+
         self.entity_month.stage_id = "init_month"
         self.entity_month.status_id = "finished"
         self.entity_month.last_crossing = None
@@ -61,6 +63,16 @@ class FromAws:
             last_pre_insertion=None,
             crosses=None,
         )
+        cursor = connection.cursor()
+        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            cursor.execute(f"""
+                DROP TABLE IF EXISTS {temp_table} CASCADE;
+            """)
+        cursor.close()
+        connection.commit()
+        connection.close()
+
         return [], [], True
 
     def save_month_analysis(self, **kwargs):
@@ -393,6 +405,8 @@ class FromAws:
                     """)
             elif not blocked_error:
                 error = f"Existen otros errores: {error_process_str}"
+                self.entity_month.error_process = [error]
+                self.entity_month.save()
                 return [], [error], True
 
         drugs_counts = TableFile.objects.filter(
