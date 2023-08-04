@@ -81,7 +81,16 @@ class AsyncTaskAdmin(admin.ModelAdmin):
             {icon} {obj.status_task.public_name}
             </div>
         """
-        return format_html(div)
+        div_simple = f"""
+            <div>
+            {icon} {obj.status_task.public_name}
+            </div>
+        """
+        try:
+            return format_html(div)
+        except Exception as e:
+            print("e", e)
+            return format_html(div_simple)
     display_status.short_description = "Status"
 
     def display_other_dates(self, obj):
