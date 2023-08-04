@@ -54,26 +54,12 @@ def decode_content(data_rows, decode):
 
 def send_simple_response(errors, event, context):
     import json
-    final_result = {
-        "errors": errors,
-        "success": bool(not errors)
-    }
-
-    result_data = {
-        "result": final_result,
-        "request_id": context.aws_request_id
-    }
-    json_result = json.dumps(result_data)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=json_result, headers=request_headers)
-
     result_data = {
         "result": {
             "errors": errors,
             "success": bool(not errors)
         },
-        "request_id": event["request_id"]
+        "request_id": context.aws_request_id
     }
     json_result = json.dumps(result_data)
     if "webhook_url" in event:

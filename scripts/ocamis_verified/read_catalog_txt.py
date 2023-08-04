@@ -332,7 +332,9 @@ def send_entity_weeks_to_rebuild(limit=None):
         # drugs_count=1,
         # drugs_count__gt=0,
         entity_week__async_tasks__errors__icontains="extra data after last expected"
-    ).distinct()
+    )\
+        .exclude(entity_week__async_tasks__task_function_id="rebuild_week_csv")\
+        .distinct()
     # entity_week__async_tasks__task_function_id=True)
     if limit:
         all_table_files = all_table_files[:limit]
