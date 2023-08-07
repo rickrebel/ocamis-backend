@@ -153,7 +153,6 @@ class ExtractorsMix:
 
     def decompress_file_gz(self, task_params=None):
         from task.serverless import async_in_lambda
-        from scripts.common import build_s3
         from inai.models import set_upload_path
 
         only_name = "split/NEW_FILE_NAME"
@@ -163,7 +162,6 @@ class ExtractorsMix:
             # "final_path": self.final_path,
             "file": self.file.name,
             "directory": directory,
-            "s3": build_s3(),
         }
         task_params = task_params or { }
         # task_params[]
@@ -177,7 +175,6 @@ class ExtractorsMix:
     def get_data_from_excel(
             self, type_explor, file_control=None, task_params=None):
         from task.serverless import async_in_lambda
-        from scripts.common import build_s3
         from scripts.common import explore_sheets
         is_explore = bool(type_explor)
         if is_explore:
@@ -193,7 +190,6 @@ class ExtractorsMix:
             params = {
                 "final_path": self.final_path,
                 "only_name": self.file.name,
-                "s3": build_s3(),
             }
             task_params = task_params or {}
             new_task = async_in_lambda("xls_to_csv", params, task_params)
@@ -294,7 +290,6 @@ class ExtractorsMix:
     def get_data_from_file_simple(
             self, type_explor, file_control=None, task_params=None):
         from task.serverless import async_in_lambda
-        from scripts.common import build_s3
         from scripts.recipe_specials import special_issste
 
         errors = []
@@ -303,7 +298,6 @@ class ExtractorsMix:
         if type_explor == 'only_save' or type_explor == 'forced_save':
             params = {
                 "file": self.file.name,
-                "s3": build_s3(),
                 "delimiter": file_control.delimiter,
             }
             task_params = task_params or {}

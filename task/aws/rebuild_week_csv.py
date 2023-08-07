@@ -2,7 +2,7 @@ import requests
 import json
 import csv
 import io
-from task.aws.common import request_headers, BotoUtils
+from task.aws.common import send_simple_response, BotoUtils
 
 
 # def rebuild_week_csv(event, context):
@@ -12,14 +12,7 @@ def lambda_handler(event, context):
     uniques_aws = RebuildWeekAws(event, context)
     # print("before build_week_csvs")
     final_result = uniques_aws.rebuild_week_csv()
-    json_result = json.dumps(final_result)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=json_result, headers=request_headers)
-    return {
-        'statusCode': 200,
-        'body': json_result
-    }
+    return send_simple_response(event, context, result=final_result)
 
 
 class RebuildWeekAws:
@@ -61,14 +54,8 @@ class RebuildWeekAws:
             current_rows.append(row)
         self.buffer.writerows(current_rows)
         self.s3_utils.save_file_in_aws(self.csv.getvalue(), self.final_path)
-        errors = []
-        result_data = {
-            "result": {
-                "entity_week_id": self.entity_week_id,
-                "drugs_count": total_rows,
-                "success": bool(not errors)
-            },
-            "request_id": self.context.aws_request_id
+        result = {
+            "entity_week_id": self.entity_week_id,
+            "drugs_count": total_rows
         }
-
-        return result_data
+        return result

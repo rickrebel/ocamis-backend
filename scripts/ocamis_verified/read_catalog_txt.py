@@ -329,12 +329,13 @@ def send_entity_weeks_to_rebuild(limit=None):
     all_table_files = TableFile.objects.filter(
         collection=drug_collection,
         entity_week__isnull=False,
+        entity_week__entity_month_id=483,
         # drugs_count=1,
         # drugs_count__gt=0,
         entity_week__async_tasks__errors__icontains="extra data after last expected"
     )\
-        .exclude(entity_week__async_tasks__task_function_id="rebuild_week_csv")\
         .distinct()
+    # .exclude(entity_week__async_tasks__task_function_id="rebuild_week_csv")\
     # entity_week__async_tasks__task_function_id=True)
     if limit:
         all_table_files = all_table_files[:limit]
@@ -609,6 +610,16 @@ def comprobate_table_insert_when_pre_insert():
         entity_week.table_files.filter(
             collection__isnull=False, inserted=False).update(
             inserted=True)
+
+
+def rename_task_function(original_name, new_name):
+    from task.models import AsyncTask
+    AsyncTask.objects.filter(
+        task_function_id=original_name).update(
+        task_function_id=new_name)
+
+
+# rename_task_function("analysis_month", "send_analysis")
 
 
 # assign_year_month_to_sheet_files(53)

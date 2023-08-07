@@ -7,11 +7,9 @@ class ReplyFileMix:
     def decompress(self, pet_file_ctrl, task_params=None):
         import pathlib
         from inai.models import DataFile
-        from scripts.common import build_s3
         from inai.models import set_upload_path
         from task.serverless import async_in_lambda
 
-        base_s3 = build_s3()
         if DataFile.objects.filter(reply_file=self).exists():
             return None
         suffixes = pathlib.Path(self.final_path).suffixes
@@ -22,7 +20,6 @@ class ReplyFileMix:
             return None
         params = {
             "file": self.file.name,
-            "s3": base_s3,
             "suffixes": list(suffixes),
             "upload_path": set_upload_path(self, "NEW_FILE_NAME")
         }
@@ -31,9 +28,6 @@ class ReplyFileMix:
         params_after = task_params.get("params_after", {})
         params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
         task_params["params_after"] = params_after
-        # body_response = decompress_zip_aws(params, None)
-        # body_response = execute_in_lambda("decompress_zip_aws", params)
-        # body_response = async_in_lambda(
         async_task = async_in_lambda("decompress_zip_aws", params, task_params)
         # print async_task
         return async_task

@@ -1,6 +1,4 @@
-import requests
-import json
-from task.aws.common import request_headers, BotoUtils
+from task.aws.common import send_simple_response, BotoUtils
 
 group_names = ["dupli", "shared"]
 
@@ -13,19 +11,9 @@ def get_pairs(input_list):
 # def analyze_uniques(event, context):
 def lambda_handler(event, context):
     # print("model_name", event.get("model_name"))
-    init_data = event["init_data"]
-    init_data["s3"] = event["s3"]
-    init_data["webhook_url"] = event.get("webhook_url")
-    uniques_aws = UniquesAws(init_data, context)
+    uniques_aws = UniquesAws(event, context)
     final_result = uniques_aws.build_analysis()
-    json_result = json.dumps(final_result)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=json_result, headers=request_headers)
-    return {
-        'statusCode': 200,
-        'body': json_result
-    }
+    return send_simple_response(event, context, result=final_result)
 
 
 def get_duplicate_folios(all_folios):
@@ -109,13 +97,12 @@ def build_pairs_sheets(all_folios):
 
 class UniquesAws:
 
-    def __init__(self, init_data: dict, context):
+    def __init__(self, event: dict, context):
 
-        self.entity_id = init_data.get("entity_id")
-        # self.current_month = init_data.get("month")
-        self.table_files = init_data.get("table_files", [])
+        self.entity_id = event.get("entity_id")
+        self.table_files = event.get("table_files", [])
 
-        self.s3_utils = BotoUtils(init_data.get("s3"))
+        self.s3_utils = BotoUtils(event.get("s3"))
 
         self.context = context
 
@@ -134,20 +121,12 @@ class UniquesAws:
         unique_counts["drugs_count"] = drugs_count
         # self.save_sheets_months(unique_counts)
         # self.save_crossing_sheets(month_pairs, month_sheets)
-        errors = []
-        final_request_id = self.context.aws_request_id
-        result_data = {
-            "result": {
-                "errors": errors,
-                "success": bool(not errors),
-                "month_week_counts": unique_counts,
-                "month_pairs": month_pairs,
-                "month_sheets": month_sheets,
-            },
-            "request_id": final_request_id
+        result = {
+            "month_week_counts": unique_counts,
+            "month_pairs": month_pairs,
+            "month_sheets": month_sheets,
         }
-        # return json_result
-        return result_data
+        return result
 
     def get_all_drugs(self):
 

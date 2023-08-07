@@ -1,6 +1,6 @@
-from common import calculate_delimiter, obtain_decode, decode_content
-import json
-import requests
+# from common import calculate_delimiter, obtain_decode, decode_content, send_simple_response
+from task.aws.common import (
+    calculate_delimiter, obtain_decode, decode_content, send_simple_response)
 
 
 def divide_rows(data_rows, delimiter):
@@ -50,12 +50,11 @@ def lambda_handler(event, context):
     decode = event.get("decode")
     delimiter = event.get("delimiter")
 
-    message_response = {}
+    result = {}
     if not decode:
         decode = obtain_decode(data_rows)
         if decode == "unknown":
             errors.append("No se pudo decodificar el archivo")
-            message_response["errors"] = errors
 
     if not errors:
 
@@ -69,22 +68,7 @@ def lambda_handler(event, context):
                 "total_rows": total_rows,
             }
         }
-        message_response = {
-            "result": {
-                "new_sheets": validated_data,
-                "all_sheet_names": ["default"],
-                # "delimiter": delimiter,
-                "decode": decode,
-            },
-            "request_id": context.aws_request_id,
-        }
-    message_dumb = json.dumps(message_response)
-
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        response_status = requests.post(webhook_url, data=message_dumb,
-                                        headers={ "Content-Type": "application/json" })
-    return {
-        'statusCode': 200,
-        'body': message_dumb
-    }
+        result["new_sheets"] = validated_data
+        result["all_sheet_names"] = ["default"]
+        result["decode"] = decode
+    return send_simple_response(event, context, errors, result)

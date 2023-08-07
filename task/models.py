@@ -17,6 +17,7 @@ class AsyncTask(models.Model):
     parent_task = models.ForeignKey(
         "self", related_name="child_tasks",
         blank=True, null=True, on_delete=models.CASCADE)
+
     entity = models.ForeignKey(
         Entity, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
@@ -42,12 +43,10 @@ class AsyncTask(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
+
     status_task = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Estado de la tarea")
-    function_name = models.CharField(
-        max_length=100, blank=True, null=True,
-        verbose_name="Nombre de la función")
     task_function = models.ForeignKey(
         TaskFunction, blank=True, null=True, on_delete=models.CASCADE,
         related_name="functions")
@@ -72,6 +71,7 @@ class AsyncTask(models.Model):
     is_current = models.BooleanField(
         default=True, verbose_name="last")
     traceback = models.TextField(blank=True, null=True)
+
     date_start = models.DateTimeField(blank=True, null=True)
     date_sent = models.DateTimeField(blank=True, null=True)
     date_arrive = models.DateTimeField(blank=True, null=True)

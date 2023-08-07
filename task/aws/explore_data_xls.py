@@ -1,5 +1,4 @@
-import json
-import requests
+from task.aws.common import send_simple_response
 
 
 def clean_na(row):
@@ -41,25 +40,8 @@ def lambda_handler(event, context):
             list_val_tail = iter_data_tail.tolist()
             all_sheets[sheet_name]["tail_data"] = list_val_tail
 
-    message_response = {
-        "result": {
-            "new_sheets": all_sheets,
-            "all_sheet_names": all_sheet_names
-        },
-        "request_id": context.aws_request_id
+    result = {
+        "new_sheets": all_sheets,
+        "all_sheet_names": all_sheet_names
     }
-    message_dumb = json.dumps(message_response)
-
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        response_status = requests.post(webhook_url, data=message_dumb,
-                                        headers={ "Content-Type": "application/json" })
-        # clean_resp = response_status.json()
-        print("response_status", response_status)
-        # message_response["response_webhook"] = clean_resp
-        # return message_response
-    return {
-        'statusCode': 200,
-        'body': message_dumb
-    }
-
+    return send_simple_response(event, context, result=result)

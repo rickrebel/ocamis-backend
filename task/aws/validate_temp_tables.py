@@ -1,5 +1,3 @@
-import requests
-import json
 from task.aws.common import send_simple_response, create_connection
 
 
@@ -61,7 +59,7 @@ def lambda_handler(event, context):
             errors.append(f"Hubo {len(below_weeks)} semanas con menos medicamentos \
                 de los esperados, semanas: {below_weeks}")
 
-    if not errors:
+    if not errors and constraint_queries:
         for constraint in constraint_queries:
             try:
                 cursor.execute(constraint)
@@ -88,4 +86,4 @@ def lambda_handler(event, context):
         connection.commit()
     connection.close()
 
-    return send_simple_response(errors, event, context)
+    return send_simple_response(event, context, errors=errors)

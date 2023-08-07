@@ -163,7 +163,7 @@ class AWSMessage(generic.View):
             print("ERROR AL LEER EL BODY: ", e)
             print("request original: \n", request)
             return HttpResponse()
-        # print("body: \n", body)
+        # print("body 0: \n", body)
         special_function = body.get("special_function", {})
         if special_function:
             return calculate_special_function(special_function)
@@ -182,11 +182,13 @@ class AWSMessage(generic.View):
             current_task.save()
             function_after = current_task.function_after
             execute_function_aws(current_task, function_after, new_result, errors)
+            response = "success"
         except Exception as e:
-            print("ERROR AL GUARDAR 2: ", e)
-            print("body: \n", body)
+            print("ERROR AL GUARDAR 1: ", e)
+            print("body error 1: \n", body)
+            response = "error"
 
-        return HttpResponse()
+        return HttpResponse(response)
 
 
 def extract_only_message(error_text):
@@ -240,7 +242,7 @@ class AWSErrors(generic.View):
                 comprobate_status(current_task, error, [])
         except Exception as e:
             print("ERROR AL GUARDAR 1: ", e)
-            print("body: \n", body)
+            print("body error 2: \n", body)
         return HttpResponse()
 
 

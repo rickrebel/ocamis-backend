@@ -18,37 +18,13 @@ def camel_to_snake(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def execute_in_lambda(function_name, params, in_lambda=True):
-    from scripts.common import start_session
-    s3_client, dev_resource = start_session("lambda")
-    if in_lambda:
-        dumb_params = json.dumps(params)
-        print("SE ENVÍA A LAMBDA", function_name)
-        function_name = f"{function_name}:normal"
-        response = s3_client.invoke(
-            FunctionName=function_name,
-            InvocationType='RequestResponse',
-            Payload=dumb_params
-        )
-        print("response", response)
-        #print("response['Payload']", response['Payload'])
-        payload_response = json.loads(response['Payload'].read())
-        if "errorMessage" in payload_response:
-            print("ERROR EN LAMBDA:\n", payload_response)
-            #raise Exception(payload_response["errorMessage"])
-        return payload_response
-    else:
-        print("EJECUTADO EN LOCAL")
-        context = {"aws_request_id": "local"}
-        return globals()[function_name](params, context)
-
-
 def execute_async(current_task, params):
     import threading
     from scripts.common import start_session
-    function_name = current_task.task_function_id
-    if current_task.task_function.is_queueable and "save" in function_name:
-        function_name = "save_csv_in_db"
+    task_function = current_task.task_function
+    function_name = task_function.lambda_function or task_function.name
+    # if current_task.task_function.is_queueable and "save" in function_name:
+    #     function_name = "save_csv_in_db"
 
     s3_client, dev_resource = start_session("lambda")
     use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
@@ -101,9 +77,12 @@ def execute_async(current_task, params):
 
 def async_in_lambda(function_name, params, task_params):
     from task.models import AsyncTask, TaskFunction
+    from scripts.common import build_s3
 
     api_url = getattr(settings, "API_URL", False)
     params["webhook_url"] = f"{api_url}task/webhook_aws/"
+    params["s3"] = build_s3()
+    params["function_name"] = function_name
     task_function = TaskFunction.objects.get(name=function_name)
     function_after = task_params.get("function_after", f"{function_name}_after")
     query_kwargs = {

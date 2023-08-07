@@ -2,12 +2,10 @@ import io
 import csv
 import uuid as uuid_lib
 import json
-import requests
 import unidecode
 import re
-# from .common import obtain_decode
 from task.aws.common import (
-    obtain_decode, calculate_delivered_final, request_headers, BotoUtils)
+    obtain_decode, calculate_delivered_final, send_simple_response, BotoUtils)
 
 available_delivered = [
     "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
@@ -101,19 +99,12 @@ def lambda_handler(event, context):
     #     context["aws_request_id"] = event["artificial_request_id"]
     init_data = event["init_data"]
     init_data["s3"] = event["s3"]
-    init_data["webhook_url"] = event.get("webhook_url")
     match_aws = MatchAws(init_data, context)
 
     file = event["file"]
 
     final_result = match_aws.build_csv_to_data(file)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=final_result, headers=request_headers)
-    return {
-        'statusCode': 200,
-        'body': final_result
-    }
+    return send_simple_response(event, context, result=final_result)
 
 
 class MatchAws:
@@ -254,7 +245,6 @@ class MatchAws:
         self.cat_keys = {}
         for med_cat in self.real_med_cat_models:
             self.cat_keys[med_cat] = set()
-        self.webhook_url = init_data.get("webhook_url")
 
         self.last_revised = datetime.now()
 
@@ -492,17 +482,15 @@ class MatchAws:
                 if self.cat_keys.get(cat_name) else 0
         all_months = [[year, month] for (year, month) in self.months]
         result_data = {
-            "result": {
-                "report_errors": report_errors,
-                "is_prepare": self.is_prepare,
-                "sheet_file_id": self.sheet_file_id,
-                "lap_sheet_id": self.lap_sheet_id,
-                "all_months": all_months,
-            },
-            "request_id": self.context.aws_request_id
+            "report_errors": report_errors,
+            "is_prepare": self.is_prepare,
+            "sheet_file_id": self.sheet_file_id,
+            "lap_sheet_id": self.lap_sheet_id,
+            "all_months": all_months,
         }
         if self.is_prepare:
-            return json.dumps(result_data)
+            # return json.dumps(result_data)
+            return result_data
 
         self.buffers["missing_field"].writerows(self.all_missing_fields)
         self.buffers["missing_row"].writerows(self.all_missing_rows)
@@ -545,9 +533,9 @@ class MatchAws:
             })
             self.s3_utils.save_file_in_aws(csvs_by_date[complex_date].getvalue(), only_name)
 
-        result_data["result"]["final_paths"] = all_final_paths
-        result_data["result"]["decode"] = self.decode
-        return json.dumps(result_data)
+        result_data["final_paths"] = all_final_paths
+        result_data["decode"] = self.decode
+        return result_data
 
     def special_division(self, row_data):
         fragments = []

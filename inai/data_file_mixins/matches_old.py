@@ -110,7 +110,6 @@ class Match:
         # self.catalog_state = {}
 
     def build_csv_converted(self, is_prepare=False):
-        from scripts.common import build_s3
         from task.serverless import async_in_lambda
 
         string_date = self.get_date_format()
@@ -170,7 +169,6 @@ class Match:
             self.task_params["models"] = [sheet_file]
             params = {
                 "init_data": init_data,
-                "s3": build_s3(),
                 "file": sheet_file.file.name,
                 "sheet_name": sheet_file.sheet_name,
             }

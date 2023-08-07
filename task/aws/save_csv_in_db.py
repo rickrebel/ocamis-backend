@@ -1,6 +1,6 @@
 import requests
 import json
-from task.aws.common import request_headers, create_connection, BotoUtils
+from task.aws.common import send_simple_response, create_connection, BotoUtils
 
 
 # def save_csv_in_db(event, context):
@@ -62,25 +62,13 @@ def lambda_handler(event, context):
     else:
         cursor.close()
         connection.commit()
+    connection.close()
+
     final_result = {
         "lap_sheet_id": lap_sheet_id,
         "entity_month_id": entity_month_id,
-        "errors": errors,
-        "success": bool(not errors)
     }
-    connection.close()
-    result_data = {
-        "result": final_result,
-        "request_id": context.aws_request_id
-    }
-    json_result = json.dumps(result_data)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=json_result, headers=request_headers)
-    return {
-        'statusCode': 200,
-        'body': json_result
-    }
+    return send_simple_response(event, context, errors, final_result)
 
 # data_files/nacional/issste/202107/medicament_3772_default_lap0.csv
 # nacional/issste/202107/reporte_recetas_primer_nivel_202105_3.csv

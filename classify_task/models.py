@@ -38,6 +38,8 @@ class TaskFunction(models.Model):
     )
 
     name = models.CharField(max_length=100, primary_key=True)
+    lambda_function = models.CharField(max_length=100, blank=True, null=True)
+
     model_name = models.CharField(
         max_length=100, choices=MODEL_CHOICES, blank=True, null=True)
     public_name = models.CharField(max_length=120, blank=True, null=True)
@@ -53,8 +55,16 @@ class TaskFunction(models.Model):
 
     def __str__(self):
         active_mark = "✅" if self.is_active else "❌"
-        aws_mark = "🌐" if self.is_from_aws else ""
-        return f"{active_mark} {self.name} ({self.model_name}){aws_mark}"
+        # aws_mark = "🌐" if self.is_from_aws else ""
+        if self.model_name:
+            initials_model_name = self.model_name.split("_")
+            mini_model_name = "".join([x[0] for x in initials_model_name])
+        else:
+            mini_model_name = ""
+        if self.lambda_function:
+            mini_model_name = f"{self.lambda_function}-{mini_model_name}"
+        aws_mark = "↕️ " if self.is_from_aws else ""
+        return f"{aws_mark}{self.name} ({mini_model_name}) {active_mark}"
 
     class Meta:
         verbose_name = "Función (tarea)"
@@ -70,21 +80,23 @@ class Stage(models.Model):
     description = models.TextField(blank=True, null=True)
     order = models.IntegerField(default=5)
     icon = models.CharField(max_length=30, blank=True, null=True)
-    # next_function = models.ForeignKey(
-    #     "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
-    #     related_name="next_functions")
     main_function = models.ForeignKey(
         "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="Función principal", related_name="stages")
-    #function_from_aws = models.
     next_stage = models.OneToOneField(
         "Stage", blank=True, null=True, on_delete=models.CASCADE,
         related_name="previous_stage")
+    finished_function = models.CharField(
+        max_length=100, blank=True, null=True,
+        verbose_name="Función al terminar")
     available_next_stages = models.ManyToManyField(
         "Stage", blank=True, related_name="previous_stages")
     re_process_stages = models.ManyToManyField(
         "Stage", blank=True, related_name="re_processing",
         verbose_name="Etapas a re-procesar")
+    field_last_edit = models.CharField(
+        max_length=100, blank=True, null=True,
+        verbose_name="Campo de última edición")
 
     def __str__(self):
         return f"{self.order}. {self.public_name or self.name}"

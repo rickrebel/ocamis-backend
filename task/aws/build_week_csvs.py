@@ -1,26 +1,15 @@
-import requests
-import json
 import csv
 import io
 from task.aws.common import (
-    request_headers, calculate_delivered_final, BotoUtils)
+    send_simple_response, calculate_delivered_final, BotoUtils)
 
 
 # def build_week_csvs(event, context):
 def lambda_handler(event, context):
-    # print("model_name", event.get("model_name"))
-
     uniques_aws = BuildWeekAws(event, context)
     print("before build_week_csvs")
     final_result = uniques_aws.build_week_csvs()
-    json_result = json.dumps(final_result)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=json_result, headers=request_headers)
-    return {
-        'statusCode': 200,
-        'body': json_result
-    }
+    return send_simple_response(event, context, result=final_result)
 
 
 class BuildWeekAws:
@@ -67,21 +56,16 @@ class BuildWeekAws:
         self.s3_utils.save_file_in_aws(self.csvs["drug"].getvalue(), name_drug)
         name_rx = self.final_path.replace("NEW_ELEM_NAME", "rx")
         self.s3_utils.save_file_in_aws(self.csvs["rx"].getvalue(), name_rx)
-        errors = []
-        result_data = {
-            "result": {
-                "entity_id": self.entity_id,
-                "sums_by_delivered": self.sums_by_delivered,
-                "drugs_count": self.drugs_count,
-                "drug_path": name_drug,
-                "rx_path": name_rx,
-                "errors": errors,
-                "success": bool(not errors)
-            },
-            "request_id": self.context.aws_request_id
+
+        result = {
+            "entity_id": self.entity_id,
+            "sums_by_delivered": self.sums_by_delivered,
+            "drugs_count": self.drugs_count,
+            "drug_path": name_drug,
+            "rx_path": name_rx,
         }
 
-        return result_data
+        return result
 
     def build_headers_and_positions(self, row):
         if self.pos_uuid_folio is None:

@@ -45,9 +45,11 @@ class EntityViewSet(ListRetrieveUpdateMix):
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
         from inai.models import EntityMonth, TableFile
+        from classify_task.models import Stage
         entity_months_ids = request.data.get("entity_months", None)
         entity_months_id = request.data.get("entity_month", None)
         main_function_name = request.data.get("function_name", None)
+        stage_name = request.data.get("stage", None)
         # query_stage = request.data.get("stage", None)
         entity = self.get_object()
         if entity_months_ids:
@@ -66,6 +68,14 @@ class EntityViewSet(ListRetrieveUpdateMix):
             key_task, task_params = build_task_params(
                 entity, main_function_name, request, keep_tasks=True)
 
+        stage = Stage.objects\
+            .filter(main_function__name=main_function_name).first()
+        if not stage and stage_name:
+            stage = Stage.objects.filter(name=stage_name).first()
+        if not stage:
+            return Response(
+                {"error": f"No se encontró la función {main_function_name}"},
+                status=status.HTTP_400_BAD_REQUEST)
         functions = {
             "revert_stages": {
                 "finished_function": "revert_stages_after",
@@ -102,31 +112,30 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 "all_classified": True,
             },
         }
-        function_data = functions.get(main_function_name, None)
-        if not function_data:
-            return Response(
-                {"error": f"No se encontró la función {main_function_name}"},
-                status=status.HTTP_400_BAD_REQUEST)
 
-        function_name = function_data.get("function_name", None)
         kwargs = {
             "parent_task": key_task,
-            "finished_function": function_data.get("finished_function", None),
+            "finished_function": stage.finished_function
         }
 
         for entity_month in entity_months:
             # related_weeks = entity_month.weeks.all()
             month_task, task_params = build_task_params(
-                entity_month, function_name, request, **kwargs)
-            stage = function_data.get("stage", None)
-            entity_month.stage_id = stage
+                entity_month, main_function_name, request, **kwargs)
+            prev_stage = entity_month.stage
+            if prev_stage.next_stage != stage:
+                all_errors.append(
+                    f"El mes {entity_month.year_month} está en la etapa "
+                    f"{prev_stage.public_name} y no puede pasar a la etapa "
+                    f"{stage.public_name}")
+                continue
+            entity_month.stage = stage
             entity_month.status_id = "created"
             entity_month.save()
             all_tasks.append(month_task)
             month_errors = []
             base_class = EntityMonthMix(entity_month, task_params)
-            # main_function = function_data.get("main_function", None)
-            main_method = getattr(base_class, function_name)
+            main_method = getattr(base_class, main_function_name)
 
             def run_in_thread():
                 new_tasks, errors, s = main_method()
@@ -135,7 +144,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 comprobate_status(month_task, errors, new_tasks)
                 # time.sleep(2)
 
-            if function_data.get("all_classified", False):
+            all_classified = stage.order > 11
+            if all_classified:
                 if entity_month.sheet_files.filter(behavior_id="pending").exists():
                     month_errors.append(
                         f"Hay pestañas pendientes de clasificar para el mes "

@@ -64,7 +64,6 @@ class InsertMonth:
                             if model["model"] in self.base_models_names]
 
     def merge_week_base_tables(self, entity_week: EntityWeek, week_table_files: list):
-        from scripts.common import build_s3
         from inai.api.serializers import TableFileAwsSerializer
         fields_in_name = ["iso_year", "iso_week", "year", "month"]
         complement_name = "_".join([str(getattr(entity_week, field))
@@ -77,12 +76,10 @@ class InsertMonth:
         entity_type = self.entity.entity_type[:8].lower()
         acronym = self.entity.acronym.lower()
         final_path = "/".join([entity_type, acronym, only_name])
-        s3 = build_s3()
         params = {
             # "week_table_files": TableFileAwsSerializer(
             #     week_table_files, many=True).data,
             "week_table_files": week_table_files,
-            "s3": s3,
             "final_path": final_path,
         }
         current_task_params = self.task_params.copy()
@@ -133,7 +130,6 @@ class InsertMonth:
 
     def send_base_tables_to_db(
             self, entity_week: EntityWeek, table_files: list):
-        from scripts.common import build_s3
         first_query = f"""
             SELECT last_pre_insertion IS NOT NULL AS last_pre_insertion
             FROM public.inai_entityweek
@@ -152,7 +148,6 @@ class InsertMonth:
             "last_query": last_query,
             "queries_by_model": main_queries,
             "db_config": ocamis_db,
-            "s3": build_s3(),
             "entity_month_id": self.entity_month.id,
             # "entity_week": EntityWeekSimpleSerializer(entity_week).data,
             "entity_week_id": entity_week.id,
@@ -170,7 +165,6 @@ class InsertMonth:
 
     def send_lap_tables_to_db(
             self, lap_sheet: LapSheet, table_files: list, inserted_field):
-        from scripts.common import build_s3
         first_query = f"""
             SELECT {inserted_field}
             FROM public.inai_lapsheet
@@ -205,7 +199,6 @@ class InsertMonth:
         params = {
             "first_query": first_query,
             "last_query": last_query,
-            "s3": build_s3(),
             "queries_by_model": self.build_query_tables(table_files, temp_complement),
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,

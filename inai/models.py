@@ -291,6 +291,7 @@ class EntityMonth(models.Model):
     last_merge = models.DateTimeField(blank=True, null=True)
     last_pre_insertion = models.DateTimeField(blank=True, null=True)
     last_validate = models.DateTimeField(blank=True, null=True)
+    last_indexing = models.DateTimeField(blank=True, null=True)
     last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
@@ -348,6 +349,27 @@ class EntityMonth(models.Model):
         ordering = ["year_month"]
         verbose_name = "8. Mes-proveedor"
         verbose_name_plural = "8. Meses-proveedores"
+
+
+class Step(models.Model):
+    entity_month = models.ForeignKey(
+        EntityMonth, on_delete=models.CASCADE,
+        related_name="steps",
+        verbose_name="Mes-proveedor")
+    stage = models.ForeignKey(
+        Stage, on_delete=models.CASCADE,
+        verbose_name="Etapa")
+    status = models.ForeignKey(
+        StatusTask, on_delete=models.CASCADE,
+        verbose_name="Status")
+    error_process = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s -- %s" % (self.entity_month, self.stage)
+
+    class Meta:
+        verbose_name = "9. Paso"
+        verbose_name_plural = "9. Pasos"
 
 
 class PetitionMonth(models.Model):

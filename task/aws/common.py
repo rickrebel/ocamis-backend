@@ -1,6 +1,86 @@
 import boto3
+import json
 import requests
 request_headers = {"Content-Type": "application/json"}
+
+
+class SendResultToWebhook:
+
+    def __init__(self, event, json_result):
+        self.webhook_url = event["webhook_url"]
+        self.s3 = event.get("s3")
+        self.json_result = json_result
+        self.sum_time = 0
+        self.current_time = 2
+
+    def send_to_webhook(self):
+        import time
+        response_data = requests.post(
+            self.webhook_url, data=self.json_result, headers=request_headers)
+        # print("response_data", response_data)
+        try:
+            # response_json = response_data.json()
+            # print("response_json", response_json)
+            text_response = response_data.text
+            # content = response_data.content
+            # content_str = content.decode("utf-8")
+            status_code = response_data.status_code
+            if text_response == "error":
+                self.save_error_task("ocamis")
+            elif status_code != 200:
+                self.current_time *= 2
+                self.sum_time += self.current_time
+                # print("ERROR EN WEBHOOK")
+                # print("content_str", text_response)
+                if self.sum_time < 120:
+                    time.sleep(self.current_time)
+                    self.send_to_webhook()
+                else:
+                    self.save_error_task("time_response")
+
+        except Exception as e:
+            print("error_basic", e)
+            self.save_error_task("webhook")
+
+    def save_error_task(self, type_error):
+        result_data = json.loads(self.json_result)
+        result_data["type_error"] = type_error
+        # lambda_utils = BotoUtils(self.s3, service="lambda")
+        # lambda_utils.s3_client.invoke(
+        #     FunctionName='retry_task',
+        #     InvocationType='Event',
+        #     LogType='Tail',
+        #     Payload=json.dumps(result_data)
+        # )
+        s3_utils = BotoUtils(self.s3)
+        request_id = result_data.get("request_id")
+        file_name = f"aws_errors/{request_id}.json"
+        json_data = json.dumps(result_data)
+        s3_utils.save_file_in_aws(
+            json_data, file_name, content_type="application/json")
+
+
+def send_simple_response(event, context, errors=None, result=None):
+    if not errors:
+        errors = []
+    if not result:
+        result = {}
+    result["success"] = bool(not errors)
+    result["errors"] = errors
+    result_data = {
+        "result": result,
+        "request_id": context.aws_request_id,
+        "aws_function_name": context.function_name,
+        "function_name": event.get("function_name"),
+    }
+    json_result = json.dumps(result_data)
+    send_result = SendResultToWebhook(event, json_result)
+    send_result.send_to_webhook()
+
+    return {
+        'statusCode': 200,
+        'body': json_result
+    }
 
 
 def calculate_delimiter(data):
@@ -52,25 +132,6 @@ def decode_content(data_rows, decode):
     return decoded_data
 
 
-def send_simple_response(errors, event, context):
-    import json
-    result_data = {
-        "result": {
-            "errors": errors,
-            "success": bool(not errors)
-        },
-        "request_id": context.aws_request_id
-    }
-    json_result = json.dumps(result_data)
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(webhook_url, data=json_result, headers=request_headers)
-    return {
-        'statusCode': 200,
-        'body': json_result
-    }
-
-
 def calculate_delivered_final(all_delivered, all_write=None):
     error = None
     if all_write:
@@ -114,16 +175,16 @@ def create_connection(db_config):
 
 class BotoUtils:
 
-    def __init__(self, s3):
+    def __init__(self, s3, service="s3"):
         self.s3 = s3
         aws_access_key_id = self.s3["aws_access_key_id"]
         aws_secret_access_key = self.s3["aws_secret_access_key"]
         self.s3_client = boto3.client(
-            's3', aws_access_key_id=aws_access_key_id,
+            service, aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key)
 
         self.dev_resource = boto3.resource(
-            's3', aws_access_key_id=aws_access_key_id,
+            service, aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key)
 
     def get_object_file(self, file, file_type="csv"):
@@ -180,7 +241,7 @@ class BotoUtils:
 
         return json.loads(obj['Body'].read().decode('utf-8'))
 
-    def save_file_in_aws(self, body, final_name):
+    def save_file_in_aws(self, body, final_name, content_type="text/csv"):
         bucket_name = self.s3.get("bucket_name")
         aws_location = self.s3.get("aws_location")
 
@@ -188,6 +249,6 @@ class BotoUtils:
             Body=body,
             Bucket=bucket_name,
             Key=f"{aws_location}/{final_name}",
-            ContentType="text/csv",
+            ContentType=content_type,
             ACL="public-read",
         )

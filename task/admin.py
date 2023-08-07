@@ -10,27 +10,20 @@ from classify_task.models import StatusTask, TaskFunction, Stage, UserProfile
 
 class AsyncTaskAdmin(admin.ModelAdmin):
     list_display = [
-        # "request_id",
         "request_short",
-        # "function_name",
-        # "task_function",
         "display_function",
-        # "status_task",
         "display_status",
         "date",
         "display_other_dates",
-        # "parent_task",
-        # "is_massive",
         "is_current",
-        # "date_start",
-        # "date_end",
     ]
     raw_id_fields = [
         "petition", "file_control", "data_file", "reply_file", "sheet_file",
         "parent_task", "user", "entity_week", "entity", "entity_month"]
     list_filter = [
-        "status_task", "task_function", "task_function__is_queueable",
-        "status_task__is_completed", "user", "status_task__macro_status",
+        "status_task", "task_function__is_queueable",
+        "status_task__is_completed",
+        "task_function", "user", "status_task__macro_status",
         "function_after", "parent_task__task_function",
         "is_current", "is_massive"]
     search_fields = ["data_file_id", "request_id", "task_function__name"]

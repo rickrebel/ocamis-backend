@@ -1,29 +1,5 @@
-import requests
-import json
 import boto3
-from task.aws.common import obtain_decode, request_headers
-
-
-def get_object_file(s3, file):
-    aws_access_key_id = s3["aws_access_key_id"]
-    aws_secret_access_key = s3["aws_secret_access_key"]
-    bucket_name = s3["bucket_name"]
-    aws_location = s3["aws_location"]
-
-    dev_resource = boto3.resource(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-
-    content_object = dev_resource.Object(
-        bucket_name=bucket_name,
-        key=f"{aws_location}/{file}"
-    )
-
-    return content_object
-    # streaming_body_1 = content_object.get()['Body']
-    # return streaming_body_1
-    # object_final = io.BytesIO(streaming_body_1.read())
-    # return object_final
+from task.aws.common import obtain_decode, send_simple_response, BotoUtils
 
 
 def write_split_files(complete_file, simple_name, event):
@@ -128,12 +104,15 @@ def lambda_handler(event, context):
     import gzip
 
     file = event["file"]
-    s3 = event["s3"]
+    # s3 = event["s3"]
+    s3_utils = BotoUtils(event["s3"])
     print("HOLA DECOMPRESS")
 
     is_gz = file.endswith(".gz")
+    file_type = "gz" if is_gz else "csv"
 
-    file_obj = get_object_file(s3, file)
+    # file_obj = get_object_file(s3, file)
+    file_obj = s3_utils.get_object_file(file, file_type)
     decompressed_path = file.replace(".gz", "")
     pos_slash = decompressed_path.rfind("/")
     only_name = decompressed_path[pos_slash + 1:]
@@ -141,29 +120,14 @@ def lambda_handler(event, context):
     # new_files = {}
     # is_csv = file.endswith(".csv")
     if is_gz:
-        with gzip.GzipFile(fileobj=file_obj.get()['Body']) as gzip_file:
+        with gzip.GzipFile(fileobj=file_obj) as gzip_file:
             result, errors = write_split_files(gzip_file, only_name, event)
     else:
         with file_obj.get()['Body'] as csv_file:
             result, errors = write_split_files(csv_file, only_name, event)
     result["matched"] = True
     result["file_type_id"] = "split"
-
-    message_response = {
-        "result": result,
-        "errors": errors,
-        "request_id": context.aws_request_id,
-    }
-    message_dumb = json.dumps(message_response)
-
-    if "webhook_url" in event:
-        webhook_url = event["webhook_url"]
-        requests.post(
-            webhook_url, data=message_dumb, headers=request_headers)
-    return {
-        'statusCode': 200,
-        'body': message_dumb
-    }
+    return send_simple_response(event, context, errors, result)
 
 
 def divide_rows(data_rows, delimiter):

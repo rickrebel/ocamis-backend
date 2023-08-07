@@ -143,7 +143,6 @@ class FromAws:
 
     def send_analysis(self):
         # import time
-        from scripts.common import build_s3
         from inai.models import TableFile
 
         all_tasks = []
@@ -168,11 +167,8 @@ class FromAws:
             table_files = all_table_files.filter(entity_week=week)
             file_names = table_files.values_list("file", flat=True)
             params = {
-                "init_data": {
-                    "entity_id": week.entity_id,
-                    "table_files": list(file_names)
-                },
-                "s3": build_s3(),
+                "entity_id": week.entity_id,
+                "table_files": list(file_names)
             }
             self.task_params["models"] = [week, self.entity_month]
             self.task_params["function_after"] = "analyze_uniques_after"
@@ -367,7 +363,6 @@ class FromAws:
 
     def validate_month(self):
         from inai.models import TableFile
-        from formula.views import modify_constraints
         clean_queries = []
         errors = []
 
@@ -419,6 +414,12 @@ class FromAws:
         drugs_object = {}
         for drug in drugs_counts:
             drugs_object[drug["entity_week_id"]] = drug["drugs_count"]
+        if not drugs_object:
+            error = "No se encontraron semanas con medicamentos"
+            self.entity_month.error_process = [error]
+            self.entity_month.status_id = "with_errors"
+            self.entity_month.save()
+            return [], [error], True
         temp_drug = f"fm_{self.entity_month.temp_table}_drug"
         count_query = f"""
             SELECT entity_week_id,
@@ -426,8 +427,6 @@ class FromAws:
             FROM {temp_drug}
             GROUP BY entity_week_id;
         """
-        constraint_queries = modify_constraints(
-            True, False, self.entity_month.temp_table)
 
         last_query = f"""
             UPDATE public.inai_entitymonth
@@ -442,7 +441,6 @@ class FromAws:
             "clean_queries": clean_queries,
             "count_query": count_query,
             "drugs_object": drugs_object,
-            "constraint_queries": constraint_queries,
             "last_query": last_query,
         }
 
@@ -450,6 +448,52 @@ class FromAws:
         self.task_params["models"] = [self.entity_month]
         async_task = async_in_lambda(
             "validate_temp_tables", params, self.task_params)
+        if async_task:
+            all_tasks.append(async_task)
+        return all_tasks, errors, True
+
+    def indexing_month(self):
+        from formula.views import modify_constraints
+        errors = []
+
+        for table_name in ["rx", "drug"]:
+            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            exists_temp_tables = exist_temp_table(temp_table)
+            if not exists_temp_tables:
+                errors.append(f"No existe la tabla esencial {temp_table}")
+        if errors:
+            return [], errors, False
+
+        if self.entity_month.error_process:
+            error_process_list = self.entity_month.error_process
+            error_process_str = "\n".join(error_process_list)
+            error = f"Existen otros errores: {error_process_str}"
+            self.entity_month.error_process = [error]
+            self.entity_month.status_id = "with_errors"
+            self.entity_month.save()
+            return [], [error], True
+
+        constraint_queries = modify_constraints(
+            True, False, self.entity_month.temp_table)
+
+        last_query = f"""
+            UPDATE public.inai_entitymonth
+            SET last_indexing = now()
+            WHERE id = {self.entity_month.id}
+        """
+
+        params = {
+            "entity_month_id": self.entity_month.id,
+            "temp_table": self.entity_month.temp_table,
+            "db_config": ocamis_db,
+            "constraint_queries": constraint_queries,
+            "last_query": last_query,
+        }
+
+        all_tasks = []
+        self.task_params["models"] = [self.entity_month]
+        async_task = async_in_lambda(
+            "indexing_temp_tables", params, self.task_params)
         if async_task:
             all_tasks.append(async_task)
         return all_tasks, errors, True
