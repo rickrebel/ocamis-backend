@@ -591,6 +591,17 @@ class FromAws:
         self.entity_month.save()
         return [], [], True
 
+    def all_base_tables_indexed(self, **kwargs):
+        from django.utils import timezone
+        self.entity_month.last_validate = timezone.now()
+        current_task = self.task_params.get("parent_task")
+        parent_task = current_task.parent_task
+        self.entity_month.end_stage("indexing", parent_task)
+        # if not errors:
+        #     self.entity_month.end_stage("insert", parent_task)
+        self.entity_month.save()
+        return [], [], True
+
     def all_temp_tables_inserted(self, **kwargs):
         from django.utils import timezone
         self.entity_month.last_pre_insertion = timezone.now()
