@@ -123,12 +123,17 @@ class EntityViewSet(ListRetrieveUpdateMix):
             month_task, task_params = build_task_params(
                 entity_month, main_function_name, request, **kwargs)
             prev_stage = entity_month.stage
-            if prev_stage.next_stage != stage:
-                all_errors.append(
-                    f"El mes {entity_month.year_month} está en la etapa "
-                    f"{prev_stage.public_name} y no puede pasar a la etapa "
-                    f"{stage.public_name}")
-                continue
+            if entity_months_ids:
+                if prev_stage.next_stage == stage:
+                    pass
+                elif prev_stage == stage:
+                    pass
+                else:
+                    all_errors.append(
+                        f"El mes {entity_month.year_month} está en la etapa "
+                        f"{prev_stage.public_name} y no puede pasar a la etapa "
+                        f"{stage.public_name}")
+                    continue
             entity_month.stage = stage
             entity_month.status_id = "created"
             entity_month.save()
