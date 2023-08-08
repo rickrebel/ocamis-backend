@@ -27,6 +27,7 @@ class BuildWeekAws:
         self.drugs_count = 0
 
         self.headers = {"all": [], "drug": [], "rx": []}
+        self.len_rows = 0
         self.basic_fields = [
             "sheet_file_id", "folio_ocamis", "uuid_folio", "delivered_final_id"]
         self.basic_models = ["drug", "rx"]
@@ -70,10 +71,14 @@ class BuildWeekAws:
     def build_headers_and_positions(self, row):
         if self.pos_uuid_folio is None:
             self.headers["all"] = row
+
             self.pos_uuid_folio = row.index("uuid_folio")
             for b_field in self.basic_fields:
                 self.positions[b_field] = row.index(b_field)
             self.headers["drug"] = row[:self.pos_uuid_folio]
+            self.headers["drug"] = [field for field in self.headers["drug"]
+                                    if field != "entity_week_id"]
+            self.len_rows = len(self.headers["drug"])
             self.headers["drug"].append("entity_week_id")
             self.buffers["drug"].writerow(self.headers["drug"])
             self.headers["rx"] = row[self.pos_uuid_folio:]
@@ -110,7 +115,7 @@ class BuildWeekAws:
                 current_util.append(row[self.positions.get(field)])
             sheet_id, folio_ocamis, current_uuid, current_delivered = current_util
             self.drugs_count += 1
-            current_drug = row[:self.pos_uuid_folio]
+            current_drug = row[:self.len_rows]
             current_drug.append(self.entity_week_id)
             if folio_ocamis not in every_folios:
                 every_folios[folio_ocamis] = {

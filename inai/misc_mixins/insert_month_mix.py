@@ -81,9 +81,10 @@ class InsertMonth:
             #     week_table_files, many=True).data,
             "week_table_files": week_table_files,
             "final_path": final_path,
+            "entity_week_id": entity_week.id,
         }
         current_task_params = self.task_params.copy()
-        current_task_params["models"] = [entity_week]
+        current_task_params["models"] = [entity_week, self.entity_month]
         current_task_params["entity_week_id"] = entity_week.id
         current_task_params["function_after"] = "save_merged_from_aws"
         return async_in_lambda("build_week_csvs", params, current_task_params)
@@ -149,7 +150,6 @@ class InsertMonth:
             "queries_by_model": main_queries,
             "db_config": ocamis_db,
             "entity_month_id": self.entity_month.id,
-            # "entity_week": EntityWeekSimpleSerializer(entity_week).data,
             "entity_week_id": entity_week.id,
             "table_files_ids": table_files_ids,
         }

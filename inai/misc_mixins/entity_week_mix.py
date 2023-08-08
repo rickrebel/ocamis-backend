@@ -43,11 +43,11 @@ class FromAws:
 
     def save_merged_from_aws(self, **kwargs):
         from django.utils import timezone
-        from inai.models import TableFile, SheetFile
-        from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
+        from inai.models import TableFile
         from data_param.models import Collection
         base_models = ["drug", "rx"]
         new_table_files = []
+        drugs_count = kwargs.get("drugs_count", 0)
         for model in base_models:
             file_path = kwargs.get(f"{model}_path")
             collection = Collection.objects.get(snake_name=model)
@@ -64,13 +64,15 @@ class FromAws:
                 entity_week=self.entity_week,
                 collection=collection)
             table_file.file = file_path
+            if model == "drug":
+                table_file.drugs_count = drugs_count
             table_file.save()
             new_table_files.append(table_file)
         sums_by_delivered = kwargs.get("sums_by_delivered", {})
         for delivered, count in sums_by_delivered.items():
             setattr(self.entity_week, delivered, count)
         self.entity_week.last_merge = timezone.now()
-        self.entity_week.drugs_count = kwargs.get("drugs_count", 0)
+        self.entity_week.drugs_count = drugs_count
         self.entity_week.save()
         return [], [], True
 

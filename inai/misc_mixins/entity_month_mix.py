@@ -238,7 +238,7 @@ class FromAws:
         return new_tasks, [], True
 
     def pre_insert_month(self):
-        from task.views import build_task_params
+        from task.views import comprobate_status, build_task_params
         from django.db import connection
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from inai.models import LapSheet, TableFile, DataFile
@@ -311,6 +311,8 @@ class FromAws:
             **self.task_params)
         new_tasks = []
         errors = []
+        cat_tasks = []
+
         new_tasks.append(task_cats)
         my_insert_cat = InsertMonth(self.entity_month, task_params_cat)
         for lap_sheet in pending_lap_sheets:
@@ -322,7 +324,10 @@ class FromAws:
                 continue
             new_task = my_insert_cat.send_lap_tables_to_db(
                 lap_sheet, current_table_files, "cat_inserted")
+            cat_tasks.append(new_task)
             new_tasks.append(new_task)
+        if not cat_tasks:
+            comprobate_status(task_cats)
 
         missing_table_files = TableFile.objects.filter(
             lap_sheet__in=related_lap_sheets,
@@ -339,6 +344,7 @@ class FromAws:
             **self.task_params)
         new_tasks.append(task_base)
         my_insert_base = InsertMonth(self.entity_month, task_params_base)
+        base_tasks = []
         for week in self.entity_month.weeks.all():
             week_base_table_files = week.table_files.filter(
                 lap_sheet__isnull=True,
@@ -348,7 +354,10 @@ class FromAws:
                 continue
             week_task = my_insert_base.send_base_tables_to_db(
                 week, week_base_table_files)
+            base_tasks.append(week_task)
             new_tasks.append(week_task)
+        if not base_tasks:
+            comprobate_status(task_base)
 
         for lap_sheet in related_lap_sheets:
             lap_missing_tables = missing_table_files.filter(
