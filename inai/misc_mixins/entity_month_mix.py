@@ -580,6 +580,9 @@ class FromAws:
     def validate_temp_tables_after(self, **kwargs):
         return [], [], True
 
+    def indexing_temp_tables_after(self, **kwargs):
+        return [], [], True
+
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
         self.entity_month.last_pre_insertion = timezone.now()
