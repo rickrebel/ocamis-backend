@@ -106,10 +106,14 @@ def async_in_lambda(function_name, params, task_params):
     def save_and_send(in_queue=False):
         if in_queue:
             query_kwargs["status_task_id"] = "queue"
-        final_task = AsyncTask.objects.create(**query_kwargs)
-        if in_queue:
-            return final_task
-        return execute_async(final_task, params)
+        try:
+            final_task = AsyncTask.objects.create(**query_kwargs)
+            if in_queue:
+                return final_task
+            return execute_async(final_task, params)
+        except Exception as e:
+            print("ERROR AL CREAR TASK", e, "\nvars:\n", query_kwargs)
+            return None
 
     if task_function.is_queueable:
         pending_tasks = AsyncTask.objects.filter(

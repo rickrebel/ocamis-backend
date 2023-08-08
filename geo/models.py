@@ -402,8 +402,7 @@ class Agency(models.Model):
     name = models.CharField(
         max_length=120, blank=True, null=True,
         verbose_name="Nombre",
-        help_text="Solo cuando sea distinta al nombre de la institución/CLUES"
-        )
+        help_text="Solo cuando sea distinta al nombre de la institución/CLUES")
     acronym = models.CharField(
         max_length=20, verbose_name="Siglas del Sujeto Obligado",
         blank=True, null=True)

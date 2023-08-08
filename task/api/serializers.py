@@ -70,7 +70,10 @@ class AsyncTaskFullSerializer(AsyncTaskSerializer):
 
     def get_entity_month_full(self, obj):
         from inai.api.serializers import EntityMonthFullSerializer
-        if not obj.entity_month or obj.task_function.model_name != "entity_month":
+        function = obj.task_function
+        if function.is_from_aws:
+            return None
+        if not obj.entity_month or function.model_name != "entity_month":
             return None
         return EntityMonthFullSerializer(obj.entity_month).data
 

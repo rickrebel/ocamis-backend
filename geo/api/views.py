@@ -122,6 +122,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
             # related_weeks = entity_month.weeks.all()
             month_task, task_params = build_task_params(
                 entity_month, main_function_name, request, **kwargs)
+            all_tasks.append(month_task)
             prev_stage = entity_month.stage
             if entity_months_ids:
                 if prev_stage.next_stage == stage:
@@ -129,27 +130,40 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 elif prev_stage == stage:
                     pass
                 else:
-                    all_errors.append(
-                        f"El mes {entity_month.year_month} está en la etapa "
-                        f"{prev_stage.public_name} y no puede pasar a la etapa "
-                        f"{stage.public_name}")
+                    error_msg = f"""
+                        El mes {entity_month.year_month} está en la etapa 
+                        {prev_stage.public_name} y no puede pasar a la etapa 
+                        {stage.public_name}
+                    """
+                    comprobate_status(month_task, [error_msg], [])
+                    all_errors.append(error_msg)
                     continue
+
+            print("prev_stage", prev_stage)
+            print("stage", stage)
+            is_revert = prev_stage.order > stage.order
+            if main_function_name == "revert_stages":
+                is_revert = True
             entity_month.stage = stage
             entity_month.status_id = "created"
             entity_month.save()
-            all_tasks.append(month_task)
             month_errors = []
             base_class = EntityMonthMix(entity_month, task_params)
-            main_method = getattr(base_class, main_function_name)
+            function_name = "revert_stages" if is_revert else main_function_name
+            main_method = getattr(base_class, function_name)
 
             def run_in_thread():
-                new_tasks, errors, s = main_method()
+                if is_revert:
+                    new_tasks, errors, s = main_method(stage)
+                else:
+                    new_tasks, errors, s = main_method()
                 all_tasks.extend(new_tasks)
                 all_errors.extend(errors)
                 comprobate_status(month_task, errors, new_tasks)
                 # time.sleep(2)
 
-            all_classified = stage.order > 11
+            stage_merge = Stage.objects.get(name="merge")
+            all_classified = stage.order >= stage_merge.order
             if all_classified:
                 if entity_month.sheet_files.filter(behavior_id="pending").exists():
                     month_errors.append(

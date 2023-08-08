@@ -27,62 +27,84 @@ class FromAws:
         self.entity_month = entity_month
         self.task_params = task_params
 
-    def revert_stages(self):
-        from inai.models import TableFile, CrossingSheet
+    def revert_stages(self, final_stage: Stage):
+        from inai.models import TableFile, CrossingSheet, LapSheet
         from django.db import connection
 
-        self.entity_month.stage_id = "init_month"
+        self.entity_month.stage = final_stage
         self.entity_month.status_id = "finished"
-        self.entity_month.last_crossing = None
-        self.entity_month.last_merge = None
-        self.entity_month.last_insertion = None
+
         self.entity_month.last_validate = None
-        self.entity_month.last_merging = None
         self.entity_month.last_indexing = None
-        self.entity_month.last_pre_insertion = None
-        self.entity_month.save()
+        self.entity_month.last_insertion = None
+        entity_weeks = self.entity_month.weeks.all()
         base_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month,
             collection__isnull=False)
-        base_table_files.delete()
         lap_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month,
             lap_sheet__isnull=False)
-        lap_table_files.update(
-            inserted=False,
-            rx_count=0,
-            duplicates_count=0,
-            shared_count=0,
-        )
-        CrossingSheet.objects.filter(
-            entity_month=self.entity_month).delete()
-        entity_weeks = self.entity_month.weeks.all()
-        entity_weeks.update(
-            rx_count=0,
-            drugs_count=0,
-            duplicates_count=0,
-            shared_count=0,
-            last_crossing=None,
-            last_merge=None,
-            last_pre_insertion=None,
-            crosses=None,
-        )
-        cursor = connection.cursor()
-        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
-            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
-            cursor.execute(f"""
-                DROP TABLE IF EXISTS {temp_table} CASCADE;
-            """)
-        cursor.close()
-        connection.commit()
-        connection.close()
+        sheet_files = self.entity_month.sheet_files.all()
+
+        stage_pre_insert = Stage.objects.get(name="pre_insert")
+        if final_stage.order <= stage_pre_insert.order:
+            self.entity_month.last_pre_insertion = None
+            entity_weeks.update(
+                last_pre_insertion=None)
+            lap_table_files.update(inserted=False)
+
+            related_lap_sheets = LapSheet.objects \
+                .filter(sheet_file__in=sheet_files, lap=0)
+
+            related_lap_sheets.update(
+                cat_inserted=False,
+                missing_inserted=False)
+
+            base_table_files.update(inserted=False)
+            cursor = connection.cursor()
+            for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+                temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+                cursor.execute(f"""
+                    DROP TABLE IF EXISTS {temp_table} CASCADE;
+                """)
+            cursor.close()
+            connection.commit()
+            connection.close()
+
+        stage_merge = Stage.objects.get(name="merge")
+        if final_stage.order <= stage_merge.order:
+            self.entity_month.last_merge = None
+            base_table_files.delete()
+            entity_weeks.update(
+                last_merge=None)
+
+        stage_analysis = Stage.objects.get(name="analysis")
+        if final_stage.order <= stage_analysis.order:
+            self.entity_month.last_crossing = None
+            lap_table_files.update(
+                rx_count=0,
+                duplicates_count=0,
+                shared_count=0)
+            CrossingSheet.objects.filter(
+                entity_month=self.entity_month).delete()
+            entity_weeks.update(
+                rx_count=0,
+                drugs_count=0,
+                duplicates_count=0,
+                shared_count=0,
+                last_crossing=None,
+                crosses=None)
+            all_sheet_ids = self.entity_month.sheet_files.all() \
+                .values_list("id", flat=True)
+            self.save_sums(all_sheet_ids)
+
+        self.entity_month.save()
 
         return [], [], True
 
     def save_month_analysis(self, **kwargs):
-        from django.db.models import Sum
         from django.utils import timezone
-        from inai.models import CrossingSheet, LapSheet
+        from inai.models import CrossingSheet
 
         from_aws = kwargs.get("from_aws", False)
         current_task = self.task_params.get("parent_task")
@@ -126,30 +148,36 @@ class FromAws:
             all_sheet_ids.add(sheet_1)
             all_sheet_ids.add(sheet_2)
             current_crosses.append(crossing_sheet)
-
+        self.save_sums(all_sheet_ids)
         CrossingSheet.objects.bulk_create(current_crosses)
+
+        if from_aws:
+            self.entity_month.last_crossing = timezone.now()
+        self.entity_month.save()
+        return [], [], True
+
+    def save_sums(self, all_sheet_ids):
+        from inai.models import LapSheet
+        from django.db.models import Sum
 
         sum_fields = [
             "drugs_count", "rx_count", "duplicates_count", "shared_count"]
         query_sheet_sums = [Sum(field) for field in sum_fields]
         # query_annotations = {field: Sum(field) for field in sum_fields}
         all_laps = LapSheet.objects.filter(
-            sheet_file__in=all_sheet_ids, lap=0)
+            sheet_file_id__in=all_sheet_ids, lap=0)
         for lap_sheet in all_laps:
             table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
             for field in sum_fields:
-                setattr(lap_sheet.sheet_file, field, table_sums[field + "__sum"])
+                setattr(lap_sheet.sheet_file, field, table_sums[f"{field}__sum"])
             lap_sheet.sheet_file.save()
 
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
         # print("result_sums", result_sums)
         for field in sum_fields:
-            setattr(self.entity_month, field, result_sums[field + "__sum"])
-        if from_aws:
-            self.entity_month.last_crossing = timezone.now()
-        self.entity_month.save()
-        return [], [], True
+            setattr(self.entity_month, field, result_sums[f"{field}__sum"])
+
 
     def send_analysis(self):
         # import time
