@@ -79,18 +79,20 @@ class AsyncTask(models.Model):
 
     def save_status(self, status_id=None):
         from datetime import datetime
-        if status_id:
-            self.status_task_id = status_id
-        else:
-            self.status_task_id = self.status_task_id
-        is_completed = StatusTask.objects.filter(
-            name=self.status_task_id, is_completed=True).exists()
-        if is_completed and not self.date_end:
-            self.date_end = datetime.now()
-        self.save()
-        # if self.status_task_id == "finished":
-        #     self.is_current = False
-        #     self.save()
+        is_changed = self.status_task_id != status_id
+        if is_changed:
+            if status_id:
+                self.status_task_id = status_id
+            else:
+                self.status_task_id = self.status_task_id
+            is_completed = StatusTask.objects.filter(
+                name=self.status_task_id, is_completed=True).exists()
+            if is_completed and not self.date_end:
+                self.date_end = datetime.now()
+            self.save()
+            # if self.status_task_id == "finished":
+            #     self.is_current = False
+            #     self.save()
         return self
 
     @property
