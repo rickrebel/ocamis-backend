@@ -45,8 +45,11 @@ def lambda_handler(event, context):
         below_weeks = []
         above_weeks = []
         not_founded_weeks = []
+        not_inserted_weeks = []
+        week_ids_in_db = set()
         for week_count in week_counts:
             week_id = week_count[0]
+            week_ids_in_db.add(week_id)
             str_week_id = str(week_id)
             count = week_count[1]
             week_count = drugs_object.get(str_week_id)
@@ -58,9 +61,16 @@ def lambda_handler(event, context):
                 below_weeks.append({week_id: f"{count} vs {week_count}"})
             else:
                 above_weeks.append({week_id: f"{count} vs {week_count}"})
+        for week_id, week_count in drugs_object.items():
+            if int(week_id) not in week_ids_in_db:
+                not_inserted_weeks.append(week_id)
         if len(not_founded_weeks) > 0:
             errors.append(f"Hubo {len(not_founded_weeks)} semanas no encontradas \
-                en la base de datos, semanas: {not_founded_weeks}")
+                en la base de datos, semanas: {not_founded_weeks}; \
+                week_counts: {week_counts}")
+        if len(not_inserted_weeks) > 0:
+            errors.append(f"Hubo {len(not_inserted_weeks)} semanas no insertadas \
+                en la base de datos, semanas: {not_inserted_weeks}")
         if len(above_weeks) > 0:
             errors.append(f"Hubo {len(above_weeks)} semanas con más medicamentos \
                 de los esperados, semanas: {above_weeks}")

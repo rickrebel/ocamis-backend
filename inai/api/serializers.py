@@ -83,6 +83,7 @@ class EntityMonthSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
+            "last_indexing",
             "last_insertion", "stage", "status", "entity_id", "error_process"]
 
 
@@ -102,7 +103,8 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion", "error_process",
-            "last_insertion", "stage", "status", "drugs_counts", "entity_id"]
+            "last_indexing", "last_insertion",
+            "stage", "status", "drugs_counts", "entity_id"]
 
 
 class TableFileSerializer(serializers.ModelSerializer):

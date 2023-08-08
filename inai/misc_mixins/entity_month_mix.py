@@ -35,6 +35,8 @@ class FromAws:
         self.entity_month.status_id = "finished"
         self.entity_month.last_crossing = None
         self.entity_month.last_merge = None
+        self.entity_month.last_insertion = None
+        self.entity_month.last_merging = None
         self.entity_month.last_pre_insertion = None
         self.entity_month.save()
         base_table_files = TableFile.objects.filter(
@@ -592,8 +594,7 @@ class FromAws:
         return [], [], True
 
     def all_base_tables_indexed(self, **kwargs):
-        from django.utils import timezone
-        self.entity_month.last_validate = timezone.now()
+        # self.entity_month.last_indexing = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
         self.entity_month.end_stage("indexing", parent_task)
@@ -604,7 +605,7 @@ class FromAws:
 
     def all_temp_tables_inserted(self, **kwargs):
         from django.utils import timezone
-        self.entity_month.last_pre_insertion = timezone.now()
+        # self.entity_month.last_insertion = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
         errors = self.entity_month.end_stage("insert", parent_task)

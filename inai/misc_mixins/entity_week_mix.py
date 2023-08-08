@@ -122,6 +122,7 @@ class FromAws:
 
         for table_file in table_files:
             sheet_id = table_file.lap_sheet.sheet_file_id
+            sheet_id = str(sheet_id)
             if sheet_id not in sheets:
                 continue
             value = sheets[sheet_id]

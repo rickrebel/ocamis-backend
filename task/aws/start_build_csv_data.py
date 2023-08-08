@@ -992,7 +992,7 @@ class MatchAws:
 
     def delegation_match(self, available_data):
         if not self.split_by_delegation:
-            return None, None
+            return None, None, None
         delegation_name = available_data.get("medical_unit_delegation_name", None)
         delegation_id = None
         delegation_id2 = None
