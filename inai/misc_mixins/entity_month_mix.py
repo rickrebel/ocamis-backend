@@ -32,11 +32,15 @@ class FromAws:
         from django.db import connection
 
         self.entity_month.stage = final_stage
-        self.entity_month.status_id = "finished"
+        if final_stage.name == "revert_stages":
+            self.entity_month.status_id = "finished"
+        else:
+            self.entity_month.status_id = "created"
 
         self.entity_month.last_validate = None
         self.entity_month.last_indexing = None
         self.entity_month.last_insertion = None
+        self.entity_month.error_process = None
         entity_weeks = self.entity_month.weeks.all()
         base_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month,
