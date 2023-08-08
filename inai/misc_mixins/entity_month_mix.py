@@ -226,8 +226,8 @@ class FromAws:
             if ew.last_merge:
                 if ew.last_transformation < ew.last_crossing < ew.last_merge:
                     continue
-            if self.entity_month.entity_id == 55 and ew.complete:
-                continue
+            # if self.entity_month.entity_id == 55 and ew.complete:
+            #     continue
             # lap_sheet.sheet_file.behavior_id
             # week_base_table_files = ew.table_files\
             #     .filter(lap_sheet__lap=0)\
