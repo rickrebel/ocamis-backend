@@ -236,7 +236,7 @@ class FromAws:
                 entity_week_id=ew.id))
             # if week_base_table_files.count() == 0:
             if not week_base_table_files:
-                ew.last_transformation = timezone.now()
+                ew.last_merge = timezone.now()
                 ew.save()
                 continue
             table_task = my_insert.merge_week_base_tables(
