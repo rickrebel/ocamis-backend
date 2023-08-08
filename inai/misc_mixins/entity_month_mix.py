@@ -36,7 +36,9 @@ class FromAws:
         self.entity_month.last_crossing = None
         self.entity_month.last_merge = None
         self.entity_month.last_insertion = None
+        self.entity_month.last_validate = None
         self.entity_month.last_merging = None
+        self.entity_month.last_indexing = None
         self.entity_month.last_pre_insertion = None
         self.entity_month.save()
         base_table_files = TableFile.objects.filter(
@@ -89,8 +91,12 @@ class FromAws:
 
         related_weeks = self.entity_month.weeks.all()
         all_crosses = {}
+        all_errors = []
         for related_week in related_weeks:
             crosses = related_week.crosses
+            if not crosses:
+                error = f"La semana {related_week.iso_week} no tiene cruces"
+                all_errors.append(error)
             for pair, value in crosses["dupli"].items():
                 if pair in all_crosses:
                     all_crosses[pair]["dupli"] += value
@@ -101,6 +107,8 @@ class FromAws:
                     all_crosses[pair]["shared"] += value
                 else:
                     all_crosses[pair] = {"dupli": 0, "shared": value}
+        if all_errors:
+            return [], all_errors, False
         CrossingSheet.objects.filter(entity_month=self.entity_month).delete()
 
         all_sheet_ids = set()
