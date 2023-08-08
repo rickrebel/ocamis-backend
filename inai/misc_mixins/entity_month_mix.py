@@ -618,6 +618,7 @@ class FromAws:
         return [], [], True
 
     def validate_temp_tables_after(self, **kwargs):
+        errors = kwargs.get("errors", [])
         return [], [], True
 
     def indexing_temp_tables_after(self, **kwargs):
@@ -636,10 +637,24 @@ class FromAws:
 
     def all_base_tables_validated(self, **kwargs):
         from django.utils import timezone
+        import json
         self.entity_month.last_validate = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
         errors = self.entity_month.end_stage("validate", parent_task)
+        for error in errors:
+            if "semanas no insertadas en la base" in error:
+                week_ids = error.split(": ")[1]
+                week_ids = json.loads(week_ids)
+                for week_id in week_ids:
+                    week = self.entity_month.weeks.get(id=week_id)
+                    week.last_pre_insertion = None
+                    week.table_files.update(inserted=False)
+                    week.save()
+                self.entity_month.stage_id = "pre_insert"
+                self.entity_month.status_id = "with_errors"
+                self.entity_month.save()
+                return [], errors, False
         # if not errors:
         #     self.entity_month.end_stage("insert", parent_task)
         self.entity_month.save()

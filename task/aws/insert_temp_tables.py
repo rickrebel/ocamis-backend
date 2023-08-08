@@ -59,7 +59,7 @@ def lambda_handler(event, context):
             week_count = drugs_object.get(str_week_id)
             if not week_count:
                 if count:
-                    not_founded_weeks.append(str_week_id)
+                    not_founded_weeks.append(week_id)
             elif week_count == count:
                 continue
             elif week_count > count:
@@ -68,7 +68,7 @@ def lambda_handler(event, context):
                 above_weeks.append({week_id: f"{count} vs {week_count}"})
         for week_id, week_count in drugs_object.items():
             if week_id not in week_ids_in_db and week_count:
-                not_inserted_weeks.append(week_id)
+                not_inserted_weeks.append(int(week_id))
 
         if len(not_founded_weeks) > 0:
             errors.append(f"Hubo {len(not_founded_weeks)} semanas no encontradas \

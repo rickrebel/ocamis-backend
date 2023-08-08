@@ -139,8 +139,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     all_errors.append(error_msg)
                     continue
 
-            print("prev_stage", prev_stage)
-            print("stage", stage)
+            # print("prev_stage", prev_stage)
+            # print("stage", stage)
             is_revert = prev_stage.order > stage.order
             if main_function_name == "revert_stages":
                 is_revert = True
