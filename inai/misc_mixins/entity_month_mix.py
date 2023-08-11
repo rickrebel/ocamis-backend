@@ -201,7 +201,7 @@ class FromAws:
             ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
 
         for week in self.entity_month.weeks.all():
-            if week.last_crossing:
+            if week.last_crossing and week.last_transformation:
                 if week.last_transformation < week.last_crossing:
                     continue
             # init_data = EntityWeekSimpleSerializer(week).data
