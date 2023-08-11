@@ -159,7 +159,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                     new_tasks, errors, s = main_method()
                 all_tasks.extend(new_tasks)
                 all_errors.extend(errors)
-                # comprobate_status(month_task, errors, new_tasks)
+                comprobate_status(month_task, errors, new_tasks)
                 # time.sleep(2)
 
             stage_merge = Stage.objects.get(name="merge")

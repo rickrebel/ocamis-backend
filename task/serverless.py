@@ -117,10 +117,12 @@ def async_in_lambda(function_name, params, task_params):
             return execute_async(final_task, params)
 
     if task_function.is_queueable:
-        pending_tasks = AsyncTask.objects.filter(
-            task_function__is_queueable=True,
-            status_task__is_completed=False,
-            task_function=task_function)
+        pending_tasks = AsyncTask.objects\
+            .filter(
+                task_function__is_queueable=True,
+                status_task__is_completed=False,
+                task_function=task_function) \
+            .exclude(id=final_task.id)
         has_pending = pending_tasks.count() > 0
         if not has_pending:
             return save_and_send()
