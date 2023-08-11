@@ -19,6 +19,7 @@ def lambda_handler(event, context):
     # print("start", datetime.now())
     connection = create_connection(db_config)
     errors = []
+    warnings = []
     cursor = connection.cursor()
 
     def execute_query(query_content):
@@ -71,17 +72,17 @@ def lambda_handler(event, context):
                 not_inserted_weeks.append(int(week_id))
 
         if len(not_founded_weeks) > 0:
-            errors.append(f"Hubo {len(not_founded_weeks)} semanas no encontradas \
+            warnings.append(f"Hubo {len(not_founded_weeks)} semanas no encontradas \
                 en la base de datos, semanas: {not_founded_weeks}; \
                 week_counts: {week_counts}")
         if len(not_inserted_weeks) > 0:
-            errors.append(f"Hubo {len(not_inserted_weeks)} semanas no insertadas \
+            warnings.append(f"Hubo {len(not_inserted_weeks)} semanas no insertadas \
                 en la base de datos, semanas: {not_inserted_weeks}")
         if len(above_weeks) > 0:
-            errors.append(f"Hubo {len(above_weeks)} semanas con más medicamentos \
+            warnings.append(f"Hubo {len(above_weeks)} semanas con más medicamentos \
                 de los esperados, semanas: {above_weeks}")
         if len(below_weeks) > 0:
-            errors.append(f"Hubo {len(below_weeks)} semanas con menos medicamentos \
+            warnings.append(f"Hubo {len(below_weeks)} semanas con menos medicamentos \
                 de los esperados, semanas: {below_weeks}")
 
     if not errors and insert_queries:
@@ -123,5 +124,6 @@ def lambda_handler(event, context):
         cursor.close()
         connection.commit()
     connection.close()
+    errors.extend(warnings)
 
     return send_simple_response(event, context, errors=errors)

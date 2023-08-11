@@ -619,6 +619,56 @@ def rename_task_function(original_name, new_name):
         task_function_id=new_name)
 
 
+def delete_bad_month():
+    from datetime import datetime
+    from django.db import connection
+    from inai.models import EntityMonth
+    errors = []
+    cursor = connection.cursor()
+    drop_queries = []
+    # space
+    def execute_query(query_content):
+        try:
+            cursor.execute(query_content)
+        except Exception as e:
+            str_e = str(e)
+            if "current transaction is aborted" in str_e:
+                return
+            errors.append(f"Hubo un error al guardar; {str(e)}")
+    query_1 = f"""
+        DELETE FROM formula_rx
+        WHERE entity_id = 55 AND year = 2017 AND month = 7
+    """
+    drop_queries.append(query_1)
+    entity_m = EntityMonth.objects.get(entity_id=55, year_month="2017-07")
+    all_weeks = entity_m.weeks.all().values_list("id", flat=True)
+    query_2 = f"""
+        DELETE FROM formula_drug
+        WHERE entity_week_id IN {tuple(all_weeks)}
+    """
+    drop_queries.append(query_2)
+    sheet_files = entity_m.sheet_files.all().values_list("id", flat=True)
+    query_3 = f"""
+        DELETE FROM formula_missingrow
+        WHERE sheet_file_id IN {tuple(sheet_files)};
+    """
+    drop_queries.append(query_3)
+    for drop_query in drop_queries:
+        print("drop_query", drop_query)
+        print("before drop_query", datetime.now())
+        execute_query(drop_query)
+    print("errors", errors)
+    print("end", datetime.now())
+    if errors:
+        connection.rollback()
+        # errors.append(f"Hubo un error al guardar; {str(e)}")
+    else:
+        cursor.close()
+        connection.commit()
+    print("end 2", datetime.now())
+    connection.close()
+
+
 # rename_task_function("analysis_month", "send_analysis")
 
 

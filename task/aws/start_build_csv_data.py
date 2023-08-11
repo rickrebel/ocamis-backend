@@ -531,7 +531,8 @@ class MatchAws:
                 "drugs_count": totals_by_date[complex_date]["drugs_count"],
                 "rx_count": totals_by_date[complex_date]["rx_count"],
             })
-            self.s3_utils.save_file_in_aws(csvs_by_date[complex_date].getvalue(), only_name)
+            self.s3_utils.save_file_in_aws(
+                csvs_by_date[complex_date].getvalue(), only_name)
 
         result_data["final_paths"] = all_final_paths
         result_data["decode"] = self.decode

@@ -139,8 +139,7 @@ class MissingField(models.Model):
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     missing_row = models.ForeignKey(
-        MissingRow,
-        on_delete=models.CASCADE)
+        MissingRow, on_delete=models.CASCADE)
     # name_column = models.IntegerField(blank=True, null=True)
     name_column = models.ForeignKey(
         NameColumn, on_delete=models.CASCADE)

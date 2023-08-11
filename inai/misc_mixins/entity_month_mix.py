@@ -123,6 +123,7 @@ class FromAws:
             if not crosses:
                 error = f"La semana {related_week.iso_week} no tiene cruces"
                 all_errors.append(error)
+                continue
             for pair, value in crosses["dupli"].items():
                 if pair in all_crosses:
                     all_crosses[pair]["dupli"] += value
