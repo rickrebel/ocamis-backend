@@ -174,15 +174,16 @@ class FromAws:
         for lap_sheet in all_laps:
             table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
             for field in sum_fields:
-                setattr(lap_sheet.sheet_file, field, table_sums[f"{field}__sum"])
+                setattr(lap_sheet.sheet_file, field,
+                        table_sums[f"{field}__sum"] or 0)
             lap_sheet.sheet_file.save()
 
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
         # print("result_sums", result_sums)
         for field in sum_fields:
-            setattr(self.entity_month, field, result_sums[f"{field}__sum"])
-
+            setattr(self.entity_month, field,
+                    result_sums[f"{field}__sum"] or 0)
 
     def send_analysis(self):
         # import time
