@@ -114,12 +114,12 @@ class MissingRow(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, on_delete=models.CASCADE, related_name='missing_rows')
     # row_seq = models.IntegerField(default=1)
-    drug = models.ForeignKey(
-        Drug, blank=True, null=True,
-        on_delete=models.CASCADE)
     # tab = models.CharField(max_length=255, blank=True, null=True)
 
     # ¡ÚLTIMOS CAMPOS SIEMPRE!
+    drug = models.ForeignKey(
+        Drug, blank=True, null=True,
+        on_delete=models.CASCADE)
     original_data = JSONField(blank=True, null=True)
     inserted = models.BooleanField(blank=True, null=True)
     # errors = JSONField(blank=True, null=True, default=list)

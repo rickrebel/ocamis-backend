@@ -563,7 +563,7 @@ def receive_specific_task(task_id="start_build_csv_data"):
 
 
 def revert_duplicates_table_files():
-    from inai.models import LapSheet, TableFile
+    from inai.models import TableFile
     from django.db.models import Count
     table_sums = TableFile.objects.filter(
         collection__isnull=False, lap_sheet__lap=0).values(

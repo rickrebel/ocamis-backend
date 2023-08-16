@@ -406,7 +406,7 @@ class FromAws:
                 lap_sheet=lap_sheet)
             if not lap_missing_tables:
                 lap_sheet.missing_inserted = True
-                lap_sheet.sheet_file.save_stage('insert', [])
+                # lap_sheet.sheet_file.save_stage('insert', [])
             else:
                 new_task = my_insert_base.send_lap_tables_to_db(
                     lap_sheet, lap_missing_tables, "missing_inserted")

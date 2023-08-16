@@ -1017,6 +1017,7 @@ class MatchAws:
         if self.last_missing_row:
             if error:
                 self.last_missing_row[-2] = False
+                self.last_missing_row[-1][-4] = None
                 self.all_missing_rows[-1][-1] = error
             return self.all_missing_rows[-1][0]
         last_revised = self.last_revised
