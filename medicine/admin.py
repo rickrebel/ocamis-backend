@@ -86,7 +86,7 @@ class ContainerAdmin(admin.ModelAdmin):
     ]
     list_filter = ["is_current", "origen_cvmei"]
     raw_id_fields = ["presentation"]
-    search_fields = ["name", "key", "short_name"]
+    search_fields = ["name", "key", "short_name", "key2"]
 
 
 ocamis_admin_site.register(PresentationType, PresentationTypeAdmin)

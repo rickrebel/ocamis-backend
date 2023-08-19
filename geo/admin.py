@@ -93,7 +93,8 @@ class CLUESAdmin(admin.ModelAdmin):
         "institution",
         "state"
     ]
-    raw_id_fields = ["state", "institution"]
+    raw_id_fields = [
+        "state", "institution", "municipality", "delegation", "entity"]
     search_fields = [
         "name",
         "institution__name",
