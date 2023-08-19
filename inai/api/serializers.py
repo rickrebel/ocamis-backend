@@ -95,7 +95,10 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
         table_files = TableFile.objects.filter(
             entity_week__entity_month=obj)
         # print("calc_drugs_summarize \n", calc_drugs_summarize(obj, table_files))
-        return calc_drugs_summarize(obj, table_files)
+        drugs_sum = calc_drugs_summarize(obj, table_files)
+        return drugs_sum.get(str(obj.id), {})
+        # print("drugs_sum", drugs_sum)
+        # return drugs_sum
 
     class Meta:
         model = EntityMonth

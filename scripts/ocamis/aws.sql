@@ -111,6 +111,32 @@ TRUNCATE
      RESTART IDENTITY;
 
 
+-- alter table formula_missingrow
+-- add constraint formula_missingrow_pkey
+-- primary key (uuid);
+
+-- create index if not exists formula_missingrow_drug_id_746af424
+-- on formula_missingrow (drug_id);
+
+-- alter table formula_missingfield
+-- add constraint formula_missingfield_pkey
+-- primary key (uuid);
+
+-- create index if not exists formula_missingfield_missing_row_id_8903ee88
+-- on formula_missingfield (missing_row_id);
+
+-- alter table formula_missingfield
+-- add constraint formula_missingfield_missing_row_id_8903ee88_fk_formula_m
+-- foreign key (missing_row_id) references formula_missingrow
+-- deferrable initially deferred;
+
+alter table formula_missingrow drop constraint if exists formula_missingrow_pkey;
+alter table formula_missingrow drop constraint if exists formula_missingrow_drug_id_746af424_fk_formula_drug_uuid;
+alter table formula_missingfield drop constraint if exists formula_missingfield_pkey;
+alter table formula_missingfield drop constraint if exists formula_missingfield_missing_row_id_8903ee88_fk_formula_m;
+drop index if exists formula_missingfield_missing_row_id_8903ee88;
+
+
 -- !!! BORRA EVERYTHING !!!
 DO $$DECLARE
   table_name2 text;

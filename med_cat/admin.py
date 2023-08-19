@@ -24,8 +24,9 @@ class DiagnosisAdmin(admin.ModelAdmin):
 
 
 class MedicamentAdmin(admin.ModelAdmin):
-    list_display = ["key2", "own_key2", "component_name",
-                    "presentation_description", "container_name", "entity"]
+    list_display = [
+        "key2", "own_key2", "component_name",
+        "presentation_description", "container_name", "entity"]
     list_filter = ["entity"]
     raw_id_fields = ["entity", "component", "presentation", "container"]
 

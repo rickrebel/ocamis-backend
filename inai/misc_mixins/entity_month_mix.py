@@ -27,60 +27,88 @@ class FromAws:
         self.entity_month = entity_month
         self.task_params = task_params
 
-    def revert_stages(self):
-        from inai.models import TableFile, CrossingSheet
+    def revert_stages(self, final_stage: Stage):
+        from inai.models import TableFile, CrossingSheet, LapSheet
         from django.db import connection
 
-        self.entity_month.stage_id = "init_month"
-        self.entity_month.status_id = "finished"
-        self.entity_month.last_crossing = None
-        self.entity_month.last_merge = None
+        self.entity_month.stage = final_stage
+        if final_stage.name == "revert_stages":
+            self.entity_month.status_id = "finished"
+        else:
+            self.entity_month.status_id = "created"
+
+        self.entity_month.last_validate = None
+        self.entity_month.last_indexing = None
         self.entity_month.last_insertion = None
-        self.entity_month.last_merging = None
-        self.entity_month.last_pre_insertion = None
-        self.entity_month.save()
+        self.entity_month.error_process = None
+        entity_weeks = self.entity_month.weeks.all()
         base_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month,
             collection__isnull=False)
-        base_table_files.delete()
         lap_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month,
             lap_sheet__isnull=False)
-        lap_table_files.update(
-            inserted=False,
-            rx_count=0,
-            duplicates_count=0,
-            shared_count=0,
-        )
-        CrossingSheet.objects.filter(
-            entity_month=self.entity_month).delete()
-        entity_weeks = self.entity_month.weeks.all()
-        entity_weeks.update(
-            rx_count=0,
-            drugs_count=0,
-            duplicates_count=0,
-            shared_count=0,
-            last_crossing=None,
-            last_merge=None,
-            last_pre_insertion=None,
-            crosses=None,
-        )
-        cursor = connection.cursor()
-        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
-            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
-            cursor.execute(f"""
-                DROP TABLE IF EXISTS {temp_table} CASCADE;
-            """)
-        cursor.close()
-        connection.commit()
-        connection.close()
+        sheet_files = self.entity_month.sheet_files.all()
+
+        stage_pre_insert = Stage.objects.get(name="pre_insert")
+        if final_stage.order <= stage_pre_insert.order:
+            self.entity_month.last_pre_insertion = None
+            entity_weeks.update(
+                last_pre_insertion=None)
+            lap_table_files.update(inserted=False)
+
+            related_lap_sheets = LapSheet.objects \
+                .filter(sheet_file__in=sheet_files, lap=0)
+
+            related_lap_sheets.update(
+                cat_inserted=False,
+                missing_inserted=False)
+
+            base_table_files.update(inserted=False)
+            cursor = connection.cursor()
+            for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+                temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+                cursor.execute(f"""
+                    DROP TABLE IF EXISTS {temp_table} CASCADE;
+                """)
+            cursor.close()
+            connection.commit()
+            connection.close()
+
+        stage_merge = Stage.objects.get(name="merge")
+        if final_stage.order <= stage_merge.order:
+            self.entity_month.last_merge = None
+            base_table_files.delete()
+            entity_weeks.update(
+                last_merge=None)
+
+        stage_analysis = Stage.objects.get(name="analysis")
+        if final_stage.order <= stage_analysis.order:
+            self.entity_month.last_crossing = None
+            lap_table_files.update(
+                rx_count=0,
+                duplicates_count=0,
+                shared_count=0)
+            CrossingSheet.objects.filter(
+                entity_month=self.entity_month).delete()
+            entity_weeks.update(
+                rx_count=0,
+                drugs_count=0,
+                duplicates_count=0,
+                shared_count=0,
+                last_crossing=None,
+                crosses=None)
+            all_sheet_ids = self.entity_month.sheet_files.all() \
+                .values_list("id", flat=True)
+            self.save_sums(all_sheet_ids)
+
+        self.entity_month.save()
 
         return [], [], True
 
     def save_month_analysis(self, **kwargs):
-        from django.db.models import Sum
         from django.utils import timezone
-        from inai.models import CrossingSheet, LapSheet
+        from inai.models import CrossingSheet
 
         from_aws = kwargs.get("from_aws", False)
         current_task = self.task_params.get("parent_task")
@@ -89,8 +117,13 @@ class FromAws:
 
         related_weeks = self.entity_month.weeks.all()
         all_crosses = {}
+        all_errors = []
         for related_week in related_weeks:
             crosses = related_week.crosses
+            if not crosses:
+                error = f"La semana {related_week.iso_week} no tiene cruces"
+                all_errors.append(error)
+                continue
             for pair, value in crosses["dupli"].items():
                 if pair in all_crosses:
                     all_crosses[pair]["dupli"] += value
@@ -101,6 +134,8 @@ class FromAws:
                     all_crosses[pair]["shared"] += value
                 else:
                     all_crosses[pair] = {"dupli": 0, "shared": value}
+        if all_errors:
+            return [], all_errors, False
         CrossingSheet.objects.filter(entity_month=self.entity_month).delete()
 
         all_sheet_ids = set()
@@ -118,30 +153,37 @@ class FromAws:
             all_sheet_ids.add(sheet_1)
             all_sheet_ids.add(sheet_2)
             current_crosses.append(crossing_sheet)
-
+        self.save_sums(all_sheet_ids)
         CrossingSheet.objects.bulk_create(current_crosses)
+
+        if from_aws:
+            self.entity_month.last_crossing = timezone.now()
+        self.entity_month.save()
+        return [], [], True
+
+    def save_sums(self, all_sheet_ids):
+        from inai.models import LapSheet
+        from django.db.models import Sum
 
         sum_fields = [
             "drugs_count", "rx_count", "duplicates_count", "shared_count"]
         query_sheet_sums = [Sum(field) for field in sum_fields]
         # query_annotations = {field: Sum(field) for field in sum_fields}
         all_laps = LapSheet.objects.filter(
-            sheet_file__in=all_sheet_ids, lap=0)
+            sheet_file_id__in=all_sheet_ids, lap=0)
         for lap_sheet in all_laps:
             table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
             for field in sum_fields:
-                setattr(lap_sheet.sheet_file, field, table_sums[field + "__sum"])
+                setattr(lap_sheet.sheet_file, field,
+                        table_sums[f"{field}__sum"] or 0)
             lap_sheet.sheet_file.save()
 
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
         # print("result_sums", result_sums)
         for field in sum_fields:
-            setattr(self.entity_month, field, result_sums[field + "__sum"])
-        if from_aws:
-            self.entity_month.last_crossing = timezone.now()
-        self.entity_month.save()
-        return [], [], True
+            setattr(self.entity_month, field,
+                    result_sums[f"{field}__sum"] or 0)
 
     def send_analysis(self):
         # import time
@@ -159,7 +201,7 @@ class FromAws:
             ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
 
         for week in self.entity_month.weeks.all():
-            if week.last_crossing:
+            if week.last_crossing and week.last_transformation:
                 if week.last_transformation < week.last_crossing:
                     continue
             # init_data = EntityWeekSimpleSerializer(week).data
@@ -218,8 +260,8 @@ class FromAws:
             if ew.last_merge:
                 if ew.last_transformation < ew.last_crossing < ew.last_merge:
                     continue
-            if self.entity_month.entity_id == 55 and ew.complete:
-                continue
+            # if self.entity_month.entity_id == 55 and ew.complete:
+            #     continue
             # lap_sheet.sheet_file.behavior_id
             # week_base_table_files = ew.table_files\
             #     .filter(lap_sheet__lap=0)\
@@ -228,7 +270,7 @@ class FromAws:
                 entity_week_id=ew.id))
             # if week_base_table_files.count() == 0:
             if not week_base_table_files:
-                ew.last_transformation = timezone.now()
+                ew.last_merge = timezone.now()
                 ew.save()
                 continue
             table_task = my_insert.merge_week_base_tables(
@@ -364,7 +406,7 @@ class FromAws:
                 lap_sheet=lap_sheet)
             if not lap_missing_tables:
                 lap_sheet.missing_inserted = True
-                lap_sheet.sheet_file.save_stage('insert', [])
+                # lap_sheet.sheet_file.save_stage('insert', [])
             else:
                 new_task = my_insert_base.send_lap_tables_to_db(
                     lap_sheet, lap_missing_tables, "missing_inserted")
@@ -578,6 +620,7 @@ class FromAws:
         return [], [], True
 
     def validate_temp_tables_after(self, **kwargs):
+        errors = kwargs.get("errors", [])
         return [], [], True
 
     def indexing_temp_tables_after(self, **kwargs):
@@ -596,10 +639,24 @@ class FromAws:
 
     def all_base_tables_validated(self, **kwargs):
         from django.utils import timezone
+        import json
         self.entity_month.last_validate = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
         errors = self.entity_month.end_stage("validate", parent_task)
+        for error in errors:
+            if "semanas no insertadas en la base" in error:
+                week_ids = error.split(": ")[1]
+                week_ids = json.loads(week_ids)
+                for week_id in week_ids:
+                    week = self.entity_month.weeks.get(id=week_id)
+                    week.last_pre_insertion = None
+                    week.table_files.update(inserted=False)
+                    week.save()
+                self.entity_month.stage_id = "pre_insert"
+                self.entity_month.status_id = "with_errors"
+                self.entity_month.save()
+                return [], errors, False
         # if not errors:
         #     self.entity_month.end_stage("insert", parent_task)
         self.entity_month.save()

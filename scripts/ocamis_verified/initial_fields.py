@@ -156,8 +156,7 @@ def insert_populations():
         ["29", 1414381],
         ["30", 4993018],
         ["31", 1824086],
-        ["32", 1455943],
-        ]
+        ["32", 1455943]]
     for pob_st in pob_states2:
         agencies = Agency.objects.filter(
             state__inegi_code=pob_st[0], clues__isnull=True)

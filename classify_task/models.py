@@ -61,7 +61,7 @@ class TaskFunction(models.Model):
             mini_model_name = "".join([x[0] for x in initials_model_name])
         else:
             mini_model_name = ""
-        if self.lambda_function:
+        if self.lambda_function and self.lambda_function != self.name:
             mini_model_name = f"{self.lambda_function}-{mini_model_name}"
         aws_mark = "↕️ " if self.is_from_aws else ""
         return f"{aws_mark}{self.name} ({mini_model_name}) {active_mark}"
