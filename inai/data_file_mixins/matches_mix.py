@@ -266,6 +266,7 @@ class Match:
             ["document_type"],
             ["prescribed_amount"],
             ["delivered_amount"],
+            ["not_delivered_amount"],
             ["clasif_assortment"],
             ["clasif_assortment_presc"],
             ["price:Drug"],
