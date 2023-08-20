@@ -182,46 +182,6 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
         fields = ["file_controls"]
 
 
-class AgencyFullSerializer(AgencySerializer, AgencyFileControlsSerializer):
-    from inai.api.serializers import (
-        PetitionSemiFullSerializer, EntityMonthSerializer)
-
-    petitions = PetitionSemiFullSerializer(many=True)
-    entity_months = EntityMonthSerializer(many=True, source="entity.entity_months")
-    sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
-
-    def get_sheet_files_summarize(self, obj):
-        from django.db.models import Count
-        from inai.models import SheetFile, TableFile, EntityMonth
-        all_sheets = SheetFile.objects\
-            .filter(
-                data_file__entity=obj.entity,
-                laps__table_files__year_month__isnull=False)\
-            .values("laps__table_files__year_month", "id", "behavior")\
-            .distinct()
-        count_by_year_month_and_behavior = []
-        all_entity_months = EntityMonth.objects\
-            .filter(entity=obj.entity)\
-            .order_by("year_month")
-        for entity_month in all_entity_months:
-            behavior_counts = entity_month.sheet_files\
-                .filter(behavior__isnull=False)\
-                .values("behavior")\
-                .annotate(count=Count("behavior"))
-            for behavior_count in behavior_counts:
-                count_by_year_month_and_behavior.append({
-                    "year_month": entity_month.year_month,
-                    "behavior": behavior_count["behavior"],
-                    "count": behavior_count["count"]
-                })
-        # return all_sheets
-        return count_by_year_month_and_behavior
-
-    class Meta:
-        model = Agency
-        fields = "__all__"
-
-
 def calc_drugs_summarize(obj, table_files=None):
     from django.db.models import Sum, F
     drugs_counts_by_week = obj.weeks \
@@ -269,6 +229,30 @@ def calc_drugs_summarize(obj, table_files=None):
     return final_result
 
 
+def calc_sheet_files_summarize(entity, entity_month=None):
+    from django.db.models import Count
+    from inai.models import EntityMonth
+    count_by_year_month_and_behavior = []
+    if entity_month:
+        all_entity_months = [entity_month]
+    else:
+        all_entity_months = EntityMonth.objects\
+            .filter(entity=entity)\
+            .order_by("year_month")
+    for entity_month in all_entity_months:
+        behavior_counts = entity_month.sheet_files\
+            .filter(behavior__isnull=False)\
+            .values("behavior")\
+            .annotate(count=Count("behavior"))
+        for behavior_count in behavior_counts:
+            count_by_year_month_and_behavior.append({
+                "year_month": entity_month.year_month,
+                "behavior": behavior_count["behavior"],
+                "count": behavior_count["count"]
+            })
+    return count_by_year_month_and_behavior
+
+
 class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
     from inai.api.serializers import EntityMonthSerializer
 
@@ -293,24 +277,7 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
         return serializer.data
 
     def get_sheet_files_summarize(self, obj):
-        from django.db.models import Count
-        from inai.models import EntityMonth
-        count_by_year_month_and_behavior = []
-        all_entity_months = EntityMonth.objects\
-            .filter(entity=obj)\
-            .order_by("year_month")
-        for entity_month in all_entity_months:
-            behavior_counts = entity_month.sheet_files\
-                .filter(behavior__isnull=False)\
-                .values("behavior")\
-                .annotate(count=Count("behavior"))
-            for behavior_count in behavior_counts:
-                count_by_year_month_and_behavior.append({
-                    "year_month": entity_month.year_month,
-                    "behavior": behavior_count["behavior"],
-                    "count": behavior_count["count"]
-                })
-        return count_by_year_month_and_behavior
+        return calc_sheet_files_summarize(obj)
 
     def get_drugs_summarize(self, obj):
         return calc_drugs_summarize(obj)

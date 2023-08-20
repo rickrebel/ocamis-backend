@@ -76,42 +76,6 @@ class EntityViewSet(ListRetrieveUpdateMix):
             return Response(
                 {"error": f"No se encontró la función {main_function_name}"},
                 status=status.HTTP_400_BAD_REQUEST)
-        functions = {
-            "revert_stages": {
-                "finished_function": "revert_stages_after",
-                "function_name": "revert_stages",
-                "stage": "init_month",
-            },
-            "send_analysis": {
-                "finished_function": "save_month_analysis",
-                "function_name": "send_analysis",
-                "stage": "analysis",
-            },
-            "merge_files_by_week": {
-                "finished_function": "all_base_tables_merged",
-                "function_name": "merge_files_by_week",
-                "stage": "merge",
-                "all_classified": True,
-            },
-            "pre_insert_month": {
-                "finished_function": "all_base_tables_saved",
-                "function_name": "pre_insert_month",
-                "stage": "pre_insert",
-                "all_classified": True,
-            },
-            "validate_month": {
-                "finished_function": "all_base_tables_validated",
-                "function_name": "validate_month",
-                "stage": "validate",
-                "all_classified": True,
-            },
-            "final_insert_month": {
-                "finished_function": "all_temp_tables_inserted",
-                "function_name": "final_insert_month",
-                "stage": "insert",
-                "all_classified": True,
-            },
-        }
 
         kwargs = {
             "parent_task": key_task,
@@ -216,35 +180,18 @@ class AgencyViewSet(ListRetrieveUpdateMix):
     
     action_serializers = {
         "list": serializers.AgencySerializer,
-        "retrieve": serializers.AgencyFullSerializer,
+        "retrieve": serializers.AgencySerializer,
         "update": serializers.AgencySerializer,
         "data_viz": serializers.AgencyVizSerializer,
     }
 
-    def get(self, request):
-        print("ESTOY EN GET")
-        agency = self.get_object()
-        serializer = serializers.AgencyFullSerializer(
-            agency, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    # @action(methods=["post"], detail=True, url_path='create_months')
-    # def create_months(self, request, **kwargs):
-    #     import json
-    #     from inai.models import EntityMonth
-    #     year = request.data.get("year")
+    # def get(self, request):
+    #     print("ESTOY EN GET")
     #     agency = self.get_object()
-    #     for month in range(12):
-    #         try:
-    #             month += 1
-    #             ye_mo = f"{year}-{month:02d}"
-    #             EntityMonth.objects.create(agency=agency, year_month=ye_mo)
-    #         except Exception as e:
-    #             return Response(
-    #                 {"errors": ["No se pudo crear", "%s" % e]},
-    #                 status=status.HTTP_400_BAD_REQUEST)
-    #     return Response(status=status.HTTP_202_ACCEPTED)
-    
+    #     serializer = serializers.AgencyFullSerializer(
+    #         agency, context={'request': request})
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
+
     @action(methods=["get"], detail=False, url_path='data_viz')
     def data_viz(self, request, **kwargs):
         from geo.api.final_viz import (

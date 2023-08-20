@@ -89,16 +89,23 @@ class EntityMonthSerializer(serializers.ModelSerializer):
 
 class EntityMonthFullSerializer(serializers.ModelSerializer):
     drugs_counts = serializers.SerializerMethodField(read_only=True)
+    behavior_counts = serializers.SerializerMethodField(read_only=True)
 
     def get_drugs_counts(self, obj):
         from geo.api.serializers import calc_drugs_summarize
         table_files = TableFile.objects.filter(
             entity_week__entity_month=obj)
         # print("calc_drugs_summarize \n", calc_drugs_summarize(obj, table_files))
-        drugs_sum = calc_drugs_summarize(obj, table_files)
-        return drugs_sum.get(str(obj.id), {})
+        if table_files:
+            drugs_sum = calc_drugs_summarize(obj, table_files)
+            return drugs_sum.get(str(obj.id), {})
+        return {}
         # print("drugs_sum", drugs_sum)
         # return drugs_sum
+
+    def get_behavior_counts(self, obj):
+        from geo.api.serializers import calc_sheet_files_summarize
+        return calc_sheet_files_summarize(None, obj)
 
     class Meta:
         model = EntityMonth
@@ -106,7 +113,7 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion", "error_process",
-            "last_indexing", "last_insertion",
+            "last_indexing", "last_insertion", "behavior_counts",
             "stage", "status", "drugs_counts", "entity_id"]
 
 

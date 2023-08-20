@@ -28,7 +28,7 @@ class StatusControl(models.Model):
     color = models.CharField(
         max_length=30, blank=True, null=True,
         help_text="https://vuetifyjs.com/en/styles/colors/")
-    icon = models.CharField(max_length=20, blank=True, null=True)
+    icon = models.CharField(max_length=40, blank=True, null=True)
     order = models.IntegerField(default=4)
     description = models.TextField(blank=True, null=True)
     addl_params = JSONField(blank=True, null=True)
