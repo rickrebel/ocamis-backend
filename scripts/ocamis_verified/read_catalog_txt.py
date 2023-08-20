@@ -618,60 +618,86 @@ def rename_task_function(original_name, new_name):
         task_function_id=original_name).update(
         task_function_id=new_name)
 
-
-def delete_bad_month():
-    from datetime import datetime
-    from django.db import connection
-    from inai.models import EntityMonth
-    errors = []
-    cursor = connection.cursor()
-    drop_queries = []
-    # space
-    def execute_query(query_content):
-        try:
-            cursor.execute(query_content)
-        except Exception as e:
-            str_e = str(e)
-            if "current transaction is aborted" in str_e:
-                return
-            errors.append(f"Hubo un error al guardar; {str(e)}")
-    query_1 = f"""
-        DELETE FROM formula_rx
-        WHERE entity_id = 55 AND year = 2017 AND month = 7
-    """
-    drop_queries.append(query_1)
-    entity_m = EntityMonth.objects.get(entity_id=55, year_month="2017-07")
-    all_weeks = entity_m.weeks.all().values_list("id", flat=True)
-    query_2 = f"""
-        DELETE FROM formula_drug
-        WHERE entity_week_id IN {tuple(all_weeks)}
-    """
-    drop_queries.append(query_2)
-    sheet_files = entity_m.sheet_files.all().values_list("id", flat=True)
-    query_3 = f"""
-        DELETE FROM formula_missingrow
-        WHERE sheet_file_id IN {tuple(sheet_files)};
-    """
-    drop_queries.append(query_3)
-    for drop_query in drop_queries:
-        print("drop_query", drop_query)
-        print("before drop_query", datetime.now())
-        execute_query(drop_query)
-    print("errors", errors)
-    print("end", datetime.now())
-    if errors:
-        connection.rollback()
-        # errors.append(f"Hubo un error al guardar; {str(e)}")
-    else:
-        cursor.close()
-        connection.commit()
-    print("end 2", datetime.now())
-    connection.close()
-
-
 # rename_task_function("analysis_month", "send_analysis")
-
 
 # assign_year_month_to_sheet_files(53)
 # move_delegation_clues()
 # delete_insabi_delegations()
+
+
+def get_bad_inserted():
+    from inai.models import TableFile
+    from django.db import connection
+    from django.db.models import F
+    cursor = connection.cursor()
+    drugs_in_csvs = TableFile.objects.filter(
+        collection__model_name="Drug",
+        drugs_count__gt=0,
+        entity_week__entity_month__last_insertion__isnull=False) \
+        .values("entity_week_id", "drugs_count", "entity_id",
+                "entity_week__entity_month__year_month") \
+        .annotate(year_month=F("entity_week__entity_month__year_month"))
+    objects_in_csvs = {drug["entity_week_id"]: drug for drug in drugs_in_csvs}
+    errors = []
+    count_query = f"""
+        SELECT entity_week_id, count 
+        FROM entity_week_count;
+    """
+    cursor.execute(count_query)
+    week_counts_in_db = cursor.fetchall()
+    print("week_counts_in_db", len(week_counts_in_db))
+    cursor.close()
+    connection.close()
+    result = {
+        "not_founded_weeks": [],
+        "below_saved": [],
+        "below_saved_details": [],
+        "above_saved": [],
+        "above_saved_details": [],
+        "weeks_not_in_db": [],
+        "failed_entity_months": {},
+    }
+    def add_failed_week(week_obj, type_error):
+        result[type_error].append(week_obj["entity_week_id"])
+        entity_month = f"{week_obj['entity_id']}-{week_obj['year_month']}"
+        if entity_month not in result["failed_entity_months"]:
+            result["failed_entity_months"][entity_month] = {}
+        if type_error not in result["failed_entity_months"][entity_month]:
+            result["failed_entity_months"][entity_month][type_error] = 0
+        result["failed_entity_months"][entity_month][type_error] += 1
+    weeks_in_db = [week_db[0] for week_db in week_counts_in_db if week_db[1]]
+    for week_csv in drugs_in_csvs:
+        if week_csv["entity_week_id"] not in weeks_in_db:
+            add_failed_week(week_csv, "weeks_not_in_db")
+    for week_id, count_in_db in week_counts_in_db:
+        if not count_in_db:
+            continue
+        try:
+            week_in_csv = objects_in_csvs[week_id]
+            # week_in_csv = drugs_in_csvs.get(entity_week_id=week_id)
+            count_in_csv = week_in_csv["drugs_count"]
+            if count_in_csv > count_in_db:
+                add_failed_week(week_in_csv, "below_saved")
+                result["below_saved_details"].append(
+                    {week_id: f"{count_in_csv} vs {count_in_db}"})
+            elif count_in_csv < count_in_db:
+                add_failed_week(week_in_csv, "above_saved")
+                result["above_saved_details"].append(
+                    {week_id: f"{count_in_csv} vs {count_in_db}"})
+        except TableFile.DoesNotExist:
+            result["not_founded_weeks"].append(week_id)
+    for counter, value in result.items():
+        print(counter, len(value))
+    return result
+
+
+def generate_report_inserted():
+    bad_inserted = get_bad_inserted()
+    failed_months = bad_inserted["failed_entity_months"]
+    sorted_failed_months = sorted(
+        failed_months.items(), key=lambda x: x[0], reverse=False)
+    for key, value in sorted_failed_months:
+        print(key, value)
+
+
+# generate_report_inserted()

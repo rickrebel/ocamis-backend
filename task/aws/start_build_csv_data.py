@@ -7,90 +7,11 @@ import re
 from task.aws.common import (
     obtain_decode, calculate_delivered_final, send_simple_response, BotoUtils)
 
-available_delivered = [
-    "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
-    "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
-    "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA"]
-
-# DISPENSADA, NO DISPENSADA
-
 
 def text_normalizer(text):
     text = text.upper().strip()
     text = unidecode.unidecode(text)
     return re.sub(r'[^a-zA-Z\s]', '', text)
-
-
-def calculate_delivered(available_data):
-    class_presc = available_data.get("clasif_assortment")
-    if not class_presc:
-        class_presc = available_data.get("clasif_assortment_presc")
-    else:
-        class_presc = text_normalizer(class_presc)
-    is_cancelled = class_presc == "CANCELADA"
-    if class_presc:
-        if class_presc not in available_delivered:
-            error = f"Clasificación de surtimiento no contemplada; {class_presc}"
-            return available_data, error
-    prescribed_amount = available_data.get("prescribed_amount")
-
-    def identify_errors(av_data, amount, text):
-        err = None
-        if amount is None:
-            if is_cancelled:
-                av_data["prescribed_amount"] = available_data.get(
-                    "prescribed_amount", 0)
-                av_data["delivered_amount"] = available_data.get(
-                    "delivered_amount", 0)
-                av_data["delivered_id"] = "cancelled"
-            else:
-                err = f"No se puede determinar el status de entrega; " \
-                      f"No encontramos la cantidad {text}"
-        elif amount > 30000:
-            err = f"Existe una cantidad inusualmente alta; cantidad {text}"
-        elif amount < 0:
-            err = f"Existe una cantidad negativa; cantidad {text}"
-        return av_data, err
-
-    available_data, error = identify_errors(
-        available_data, prescribed_amount, "prescrita")
-    if error or available_data.get("delivered_id"):
-        return available_data, error
-
-    delivered_amount = available_data.get("delivered_amount")
-
-    if delivered_amount is None:
-        not_delivered_amount = available_data.pop("not_delivered_amount", None)
-        if not_delivered_amount is not None:
-            delivered_amount = prescribed_amount - not_delivered_amount
-            available_data["delivered_amount"] = delivered_amount
-
-    available_data, error = identify_errors(
-        available_data, delivered_amount, "entregada")
-    if error or available_data.get("delivered_id"):
-        return available_data, error
-    if prescribed_amount == delivered_amount:
-        if is_cancelled:
-            delivered = "cancelled"
-        elif prescribed_amount == 0:
-            delivered = "zero"
-        else:
-            delivered = "complete"
-    elif not delivered_amount:
-        if is_cancelled:
-            delivered = "cancelled"
-        else:
-            delivered = "denied"
-    elif delivered_amount < prescribed_amount:
-        delivered = "partial"
-    elif delivered_amount > prescribed_amount:
-        delivered = "over_delivered"
-    elif is_cancelled:
-        delivered = "cancelled"
-    else:
-        return available_data, "No se puede determinar el status de entrega"
-    available_data["delivered_id"] = delivered
-    return available_data, None
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
@@ -206,6 +127,18 @@ class MatchAws:
                            if field.get("same_separator")]
         self.copy_from_up = [field for field in self.existing_fields
                              if field.get("same_group_data")]
+        amount_fields = [field for field in self.existing_fields
+                         if "_amount" in field["name"] or
+                         "clasif_assortment" in field["name"]]
+
+        self.global_delivered = None
+        if len(amount_fields) == 1:
+            amount_field = amount_fields[0]
+            if amount_field["name"] == "delivered_amount":
+                self.global_delivered = "only_delivered"
+            elif amount_field["name"] == "prescribed_amount":
+                self.global_delivered = "only_prescribed"
+
         self.some_same_separator = len(self.sep_fields) > 0
         self.regex_fields = []
         for field in self.existing_fields:
@@ -375,7 +308,7 @@ class MatchAws:
             available_data["date_closed"] = available_data.get("date_delivery")
             self.months.add((year, month))
 
-            available_data, error = calculate_delivered(available_data)
+            available_data, error = self.calculate_delivered(available_data)
             if error:
                 self.append_missing_row(row, error)
                 continue
@@ -990,6 +923,88 @@ class MatchAws:
             add_hash_to_cat(hash_id, all_values)
         available_data[f"{cat_name}_id"] = hash_id
         return available_data
+
+    def calculate_delivered(self, available_data):
+        available_delivered = [
+            "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
+            "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
+            "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA"]
+        # DISPENSADA, NO DISPENSADA
+
+        class_presc = available_data.get("clasif_assortment")
+        if not class_presc:
+            class_presc = available_data.get("clasif_assortment_presc")
+        else:
+            class_presc = text_normalizer(class_presc)
+        is_cancelled = class_presc == "CANCELADA"
+        if class_presc:
+            if class_presc not in available_delivered:
+                error = f"Clasificación de surtimiento no contemplada; {class_presc}"
+                return available_data, error
+        prescribed_amount = available_data.get("prescribed_amount")
+
+        def identify_errors(av_data, amount, err_text):
+            err = None
+            if amount is None:
+                if is_cancelled:
+                    av_data["prescribed_amount"] = available_data.get(
+                        "prescribed_amount", 0)
+                    av_data["delivered_amount"] = available_data.get(
+                        "delivered_amount", 0)
+                    av_data["delivered_id"] = "cancelled"
+                elif self.global_delivered:
+                    pass
+                else:
+                    err = f"No se puede determinar el status de entrega; " \
+                          f"No encontramos la cantidad {err_text}"
+            elif amount > 30000:
+                err = f"Existe una cantidad inusualmente alta; cantidad {err_text}"
+            elif amount < 0:
+                err = f"Existe una cantidad negativa; cantidad {err_text}"
+            return av_data, err
+
+        available_data, error = identify_errors(
+            available_data, prescribed_amount, "prescrita")
+        if error or available_data.get("delivered_id"):
+            return available_data, error
+
+        delivered_amount = available_data.get("delivered_amount")
+
+        if delivered_amount is None:
+            not_delivered_amount = available_data.pop("not_delivered_amount", None)
+            if not_delivered_amount is not None:
+                delivered_amount = prescribed_amount - not_delivered_amount
+                available_data["delivered_amount"] = delivered_amount
+
+        available_data, error = identify_errors(
+            available_data, delivered_amount, "entregada")
+        if error or available_data.get("delivered_id"):
+            return available_data, error
+        if self.global_delivered:
+            available_data["delivered_id"] = self.global_delivered
+            return available_data, None
+        if prescribed_amount == delivered_amount:
+            if is_cancelled:
+                delivered = "cancelled"
+            elif prescribed_amount == 0:
+                delivered = "zero"
+            else:
+                delivered = "complete"
+        elif not delivered_amount:
+            if is_cancelled:
+                delivered = "cancelled"
+            else:
+                delivered = "denied"
+        elif delivered_amount < prescribed_amount:
+            delivered = "partial"
+        elif delivered_amount > prescribed_amount:
+            delivered = "over_delivered"
+        elif is_cancelled:
+            delivered = "cancelled"
+        else:
+            return available_data, "No se puede determinar el status de entrega"
+        available_data["delivered_id"] = delivered
+        return available_data, None
 
     def delegation_match(self, available_data):
         if not self.split_by_delegation:

@@ -1,10 +1,3 @@
-"""
-Django settings for core project.
-
-For the full list of settings and their values, see
-https://docs.djangoproject.com/en/2.2/ref/settings/
-"""
-
 import os
 import json
 
@@ -21,18 +14,6 @@ LOCALE_PATHS = (
 )
 
 
-"""desabasto_allowed_hosts = os.getenv("DESABASTO_ALLOWED_HOSTS")
-if desabasto_allowed_hosts:
-    try:
-        hosts = json.loads(os.getenv("DESABASTO_ALLOWED_HOSTS"))
-    except Exception:
-        hosts = [host.strip() for host in desabasto_allowed_hosts.split(",")]
-else:
-    if DEBUG:
-        hosts = ["*"]
-    else:
-        hosts = []
-ALLOWED_HOSTS = hosts"""
 ALLOWED_HOSTS = ["*"]
 
 TEMPLATE_LOADERS = (

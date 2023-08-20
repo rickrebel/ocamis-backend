@@ -157,7 +157,7 @@ def calculate_delivered_final(all_delivered, all_write=None):
     if has_denied and has_cancelled:
         all_delivered.remove("denied")
     if len(all_delivered) == 1:
-        return all_delivered.pop(), error
+        return next(iter(all_delivered)), error
     return "unknown", f"No se puede determinar el status de entrega; " \
                       f"{list(initial_list)}"
 

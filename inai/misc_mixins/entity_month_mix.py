@@ -201,9 +201,9 @@ class FromAws:
             ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
 
         for week in self.entity_month.weeks.all():
-            if week.last_crossing and week.last_transformation:
-                if week.last_transformation < week.last_crossing:
-                    continue
+            # if week.last_crossing and week.last_transformation:
+            #     if week.last_transformation < week.last_crossing:
+            #         continue
             # init_data = EntityWeekSimpleSerializer(week).data
             # table_files = TableFile.objects.filter(
             #     entity_week=week,
@@ -257,9 +257,9 @@ class FromAws:
                 sheet_behavior=F("lap_sheet__sheet_file__behavior_id"))
 
         for ew in entity_weeks:
-            if ew.last_merge:
-                if ew.last_transformation < ew.last_crossing < ew.last_merge:
-                    continue
+            # if ew.last_merge:
+            #     if ew.last_transformation < ew.last_crossing < ew.last_merge:
+            #         continue
             # if self.entity_month.entity_id == 55 and ew.complete:
             #     continue
             # lap_sheet.sheet_file.behavior_id

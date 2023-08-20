@@ -59,9 +59,9 @@ def obtain_names_from_s3(
 # obtain_names_from_s3(
 #     "data_files/nacional/issste/0063700513521/recetas_2018", "0063700513521",
 #     False, 1165)
-obtain_names_from_s3(
-    "data_files/nacional/issste/330017123002614/drive-download-", "330017123002614",
-    True)
+# obtain_names_from_s3(
+#     "data_files/nacional/issste/330017123002614/drive-download-", "330017123002614",
+#     True)
 
 
 def delete_paths_from_aws(path):

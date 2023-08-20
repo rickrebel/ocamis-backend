@@ -55,6 +55,7 @@ def build_s3():
         "aws_access_key_id": getattr(settings, "AWS_ACCESS_KEY_ID"),
         "aws_secret_access_key": getattr(settings, "AWS_SECRET_ACCESS_KEY"),
         "bucket_name": getattr(settings, "AWS_STORAGE_BUCKET_NAME"),
+        "region_aws": getattr(settings, "AWS_S3_REGION_NAME"),
         "aws_location": getattr(settings, "AWS_LOCATION"),
     }
 
@@ -69,7 +70,7 @@ def start_session(service='s3', endpoint_url=None):
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
     region_aws = getattr(settings, "AWS_S3_REGION_NAME")
     if endpoint_url is None:
-        config = Config(read_timeout=600, retries={ 'max_attempts': 0 })
+        config = Config(read_timeout=600, retries={'max_attempts': 0})
     else:
         config = Config(
             read_timeout=600,
