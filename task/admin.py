@@ -157,12 +157,13 @@ class TaskFunctionAdmin(admin.ModelAdmin):
     list_display = [
         "name",
         "is_active",
+        "public_name",
         "is_from_aws",
         "is_queueable",
-        "public_name",
+        "ebs_percent",
         "model_name",
     ]
-    list_editable = ["public_name", "is_active", "is_from_aws", "is_queueable"]
+    list_editable = ["public_name", "is_active"]
     list_filter = ["is_active", "is_queueable", "is_from_aws"]
 
 

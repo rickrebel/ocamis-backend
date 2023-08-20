@@ -116,7 +116,15 @@ def async_in_lambda(function_name, params, task_params):
         else:
             return execute_async(final_task, params)
 
-    if task_function.is_queueable:
+    if task_function.ebs_percent:
+        pending_count = AsyncTask.objects\
+            .filter(
+                task_function__ebs_percent__gt=0,
+                status_task__is_completed=False) \
+            .exclude(id=final_task.id).count()
+        return save_and_send(pending_count > 0)
+
+    elif task_function.is_queueable:
         pending_tasks = AsyncTask.objects\
             .filter(
                 task_function__is_queueable=True,

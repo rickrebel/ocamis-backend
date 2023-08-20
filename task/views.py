@@ -451,6 +451,14 @@ def comprobate_queue(current_task):
 
     if current_task.status_task.is_completed:
         task_function = current_task.task_function
+        if task_function.ebs_percent:
+            pending_rds_tasks = AsyncTask.objects.filter(
+                task_function__ebs_percent__gt=0,
+                status_task__is_completed=False)
+            if pending_rds_tasks.exists():
+                next_task = pending_rds_tasks.order_by("id").first()
+                execute_async(next_task, next_task.original_request)
+            return
         queue_tasks = AsyncTask.objects.filter(
             task_function=task_function,
             status_task_id="queue").order_by("id")

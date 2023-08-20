@@ -46,6 +46,8 @@ class TaskFunction(models.Model):
     is_active = models.BooleanField(default=False, verbose_name="active")
     is_from_aws = models.BooleanField(default=False, verbose_name="AWS")
     is_queueable = models.BooleanField(default=False, verbose_name="queue")
+    ebs_percent = models.IntegerField(
+        default=0, verbose_name="% EBS")
     queue_size = models.IntegerField(default=1, verbose_name="queue size")
     group_queue = models.CharField(
         max_length=100, choices=MODEL_CHOICES, blank=True, null=True,
