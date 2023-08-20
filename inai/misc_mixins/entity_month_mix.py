@@ -45,9 +45,6 @@ class FromAws:
         base_table_files = TableFile.objects.filter(
             entity_week__entity_month=self.entity_month,
             collection__isnull=False)
-        lap_table_files = TableFile.objects.filter(
-            entity_week__entity_month=self.entity_month,
-            lap_sheet__isnull=False)
         sheet_files = self.entity_month.sheet_files.all()
 
         stage_pre_insert = Stage.objects.get(name="pre_insert")
@@ -55,10 +52,13 @@ class FromAws:
             self.entity_month.last_pre_insertion = None
             entity_weeks.update(
                 last_pre_insertion=None)
-            lap_table_files.update(inserted=False)
 
             related_lap_sheets = LapSheet.objects \
                 .filter(sheet_file__in=sheet_files, lap=0)
+            lap_missing_table_files = TableFile.objects.filter(
+                lap_sheet__in=related_lap_sheets,
+                collection__app_label="formula")
+            lap_missing_table_files.update(inserted=False)
 
             related_lap_sheets.update(
                 cat_inserted=False,
@@ -85,6 +85,9 @@ class FromAws:
         stage_analysis = Stage.objects.get(name="analysis")
         if final_stage.order <= stage_analysis.order:
             self.entity_month.last_crossing = None
+            lap_table_files = TableFile.objects.filter(
+                entity_week__entity_month=self.entity_month,
+                lap_sheet__isnull=False)
             lap_table_files.update(
                 rx_count=0,
                 duplicates_count=0,

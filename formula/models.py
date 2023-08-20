@@ -70,6 +70,36 @@ class Rx(models.Model):
     def __str__(self):
         return self.folio_ocamis
 
+#
+# class MiniRx(models.Model):
+#     from geo.models import CLUES, Delegation, Entity
+#     uuid_folio = models.UUIDField(
+#         primary_key=True, default=uuid_lib.uuid4, editable=False)
+#     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
+#     folio_ocamis = models.CharField(max_length=64)
+#     entity_week = models.ForeignKey(
+#         "EntityWeek", on_delete=models.CASCADE, blank=True, null=True)
+#     medical_unit = models.ForeignKey(
+#         MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
+#     area = models.ForeignKey(
+#         Area, on_delete=models.CASCADE, blank=True, null=True)
+#     delivered_final = models.ForeignKey(
+#         Delivered, on_delete=models.CASCADE, blank=True, null=True)
+#     document_type = models.ForeignKey(
+#         "DocumentType", on_delete=models.CASCADE, blank=True, null=True)
+#     doctor = models.ForeignKey(
+#         Doctor, blank=True, null=True, on_delete=models.CASCADE)
+#     diagnosis = models.ForeignKey(
+#         Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
+#
+#     class Meta:
+#         verbose_name = "Receta"
+#         verbose_name_plural = "Recetas"
+#         db_table = 'formula_rx'
+#
+#     def __str__(self):
+#         return self.folio_ocamis
+
 
 class Drug(models.Model):
 
