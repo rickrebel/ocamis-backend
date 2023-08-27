@@ -42,9 +42,9 @@ class State(models.Model):
 
     class Meta:
         ordering = ["inegi_code"]
-        verbose_name = "Estado"
-        verbose_name_plural = "Estados"
-        db_table = u'desabasto_state'
+        verbose_name = "Entidad Federativa"
+        verbose_name_plural = "Entidades Federativas"
+        db_table = 'geo_state'
 
 
 class Municipality(models.Model):
@@ -480,4 +480,4 @@ class Agency(models.Model):
         ordering = ["state__name"]
         verbose_name = "Sujeto Obligado"
         verbose_name_plural = "Sujetos Obligados"
-        db_table = 'catalog_agency'
+        db_table = 'geo_agency'

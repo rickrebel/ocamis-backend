@@ -1,42 +1,6 @@
 import re
 
 
-def get_file_csv(file_path):
-    import io
-    with io.open(file_path, "r", encoding="latin-1") as file:
-        data = file.readlines()
-        # rr_data_rows = data.split("\n")
-        # headers = rr_data_rows.pop(0)
-        # all_headers = headers.split("|")
-        # print(all_headers)
-        return data
-
-
-def find_lines_with_regex(file_path="fixture/catalogo_clues_issste.txt"):
-    from geo.models import CLUES
-    all_lines = get_file_csv(file_path)
-    matched_lines = []
-    not_found_clues = []
-    for line in all_lines:
-        # with regex, extract the string like this: "DFIST000312 096-201-00"
-        regex_format = r'\s(\w{5}\d{6})\s(\d{3}\-\d{3}\-\d{2})\s'
-        match = re.search(regex_format, line)
-        if not match:
-            continue
-        matched_lines.append([match.group(1), match.group(2)])
-        try:
-            clues = CLUES.objects.get(clues=match.group(1))
-            clues.key_issste = match.group(2)
-            clues.save()
-        except CLUES.DoesNotExist:
-            not_found_clues.append(match.group(1))
-    return not_found_clues
-    # print(matched_lines)
-
-
-# missing_clues = find_lines_with_regex()
-
-
 def generate_agency_delegations():
     from geo.models import Delegation, Agency
     agencies_with_clues = Agency.objects.filter(clues__isnull=False).distinct()
@@ -329,10 +293,11 @@ def send_entity_weeks_to_rebuild(limit=None):
     all_table_files = TableFile.objects.filter(
         collection=drug_collection,
         entity_week__isnull=False,
-        entity_week__entity_month_id=470,
+        entity_week_id__in=[31002, 36680],
+        # entity_week__entity_month_id=470,
         # drugs_count=1,
         # drugs_count__gt=0,
-        entity_week__async_tasks__errors__icontains="extra data after last expected"
+        # entity_week__async_tasks__errors__icontains="extra data after last expected"
     )\
         .distinct()
     # .exclude(entity_week__async_tasks__task_function_id="rebuild_week_csv")\
@@ -684,7 +649,7 @@ def get_bad_inserted():
                 add_failed_week(week_in_csv, "above_saved")
                 result["above_saved_details"].append(
                     {week_id: f"{count_in_csv} vs {count_in_db}"})
-        except TableFile.DoesNotExist:
+        except KeyError:
             result["not_founded_weeks"].append(week_id)
     for counter, value in result.items():
         print(counter, len(value))
@@ -698,6 +663,190 @@ def generate_report_inserted():
         failed_months.items(), key=lambda x: x[0], reverse=False)
     for key, value in sorted_failed_months:
         print(key, value)
+    return bad_inserted["weeks_not_in_db"]
 
 
-# generate_report_inserted()
+failed_weeks = generate_report_inserted()
+print("failed_weeks", len(failed_weeks))
+
+
+def insert_failed_weeks(failed_week_ids):
+    from formula.views import modify_constraints
+    failed_week_ids = failed_weeks
+    from django.db import connection
+    from inai.misc_mixins.insert_month_mix import InsertMonth
+    from inai.models import TableFile
+    cursor = connection.cursor()
+    queries = {"create": [], "drop": []}
+    current_temp_table = "55_temps"
+    errors = []
+    for table_name in ["rx", "drug"]:
+        temp_table = f"fm_{current_temp_table}_{table_name}"
+        queries["create"].append(f"""
+            CREATE TABLE {temp_table}
+            (LIKE formula_{table_name} INCLUDING CONSTRAINTS);
+        """)
+
+    def execute_query(query_content):
+        try:
+            cursor.execute(query_content)
+        except Exception as e:
+            str_e = str(e)
+            if "current transaction is aborted" in str_e:
+                return
+            errors.append(f"Hubo un error al guardar; {str(e)}")
+
+    for query in queries["create"]:
+        execute_query(query)
+
+    month_table_files = TableFile.objects\
+        .filter(
+            entity_week_id__in=failed_week_ids,
+            inserted=True)
+    print("month_table_files", month_table_files.count())
+
+    first_entity_month = month_table_files.first().entity_week.entity_month
+    my_insert_base = InsertMonth(first_entity_month)
+
+    queries_by_model = my_insert_base.build_query_tables(
+        month_table_files, current_temp_table)
+
+    for model_name, content in queries_by_model.items():
+        base_queries = content["base_queries"]
+        alternative_query = content.get("alternative_query")
+        files = content["files"]
+        for query_base in base_queries:
+            for idx, path in enumerate(files):
+                if idx % 50 == 0:
+                    print("idx", idx)
+                    print("errors", errors)
+                query = query_base.replace("PATH_URL", path)
+                execute_query(query)
+
+    print("errors", errors)
+
+    drugs_counts = TableFile.objects.filter(
+            entity_week_id__in=failed_week_ids,
+            collection__model_name="Drug")\
+        .values("entity_week_id", "drugs_count")
+    # drugs_counts = {d["id"]: d["drugs_count"] for d in drugs_counts}
+    drugs_counts = list(drugs_counts)
+    drugs_object = {drug["entity_week_id"]: drug["drugs_count"]
+                    for drug in drugs_counts}
+
+    if not drugs_object:
+        error = "No se encontraron semanas con medicamentos"
+        errors.append(error)
+
+    temp_drug = f"fm_{current_temp_table}_drug"
+
+    count_query = f"""
+        SELECT entity_week_id,
+        COUNT(*)
+        FROM {temp_drug}
+        GROUP BY entity_week_id;
+    """
+
+    some_error = False
+    cursor.execute(count_query)
+    week_counts = cursor.fetchall()
+
+    below_weeks = []
+    above_weeks = []
+    not_founded_weeks = []
+    not_inserted_weeks = []
+    week_ids_in_db = set()
+
+    for week_count in week_counts:
+        week_id = week_count[0]
+        str_week_id = str(week_id)
+        week_ids_in_db.add(week_id)
+        count = week_count[1]
+        week_count = drugs_object.get(week_id)
+        if not week_count:
+            if count:
+                print("week_id 0", week_id)
+                some_error = True
+        elif week_count == count:
+            continue
+        elif week_count > count:
+            print("week_id 1", week_id)
+            some_error = True
+        else:
+            print("week_id 2", week_id)
+            some_error = True
+
+    for week_id, week_count in drugs_object.items():
+        if week_id not in week_ids_in_db and week_count:
+            print("week_id 3", week_id)
+            some_error = True
+
+    if len(not_founded_weeks) > 0:
+        print("not_founded_weeks", len(not_founded_weeks))
+        some_error = True
+
+    if len(not_inserted_weeks) > 0:
+        print("not_inserted_weeks", len(not_inserted_weeks))
+        some_error = True
+
+    if len(above_weeks) > 0:
+        print("above_weeks", len(above_weeks))
+        some_error = True
+
+    if len(below_weeks) > 0:
+        print("below_weeks", len(below_weeks))
+        some_error = True
+
+    if some_error:
+        errors.append("Hubo un error en los conteos")
+
+    print("errors", errors)
+
+
+    errors = []
+
+    constraint_queries = modify_constraints(True, False, current_temp_table)
+
+    for constraint in constraint_queries:
+        try:
+            cursor.execute(constraint)
+        except Exception as e:
+            str_e = str(e)
+            if "already exists" in str_e:
+                continue
+            if "multiple primary keys" in str_e:
+                continue
+            if "current transaction is aborted" in str_e:
+                continue
+            print("constraint", constraint)
+            print(f"ERROR:\n, {e}, \n--------------------------")
+            errors.append(f"Error en constraint {constraint}; {str(e)}")
+
+    insert_queries = []
+    drop_queries = []
+    for table_name in ["rx", "drug"]:
+        temp_table = f"fm_{current_temp_table}_{table_name}"
+        insert_queries.append(f"""
+            INSERT INTO formula_{table_name}
+            SELECT *
+            FROM {temp_table};
+        """)
+        drop_queries.append(f"""
+            DROP TABLE IF EXISTS {temp_table} CASCADE;
+        """)
+
+    for insert_query in insert_queries:
+        execute_query(insert_query)
+
+    for drop_query in drop_queries:
+        execute_query(drop_query)
+
+    if errors:
+        connection.rollback()
+        # errors.append(f"Hubo un error al guardar; {str(e)}")
+    else:
+        cursor.close()
+        connection.commit()
+    connection.close()
+    print("errors", errors)
+

@@ -928,7 +928,8 @@ class MatchAws:
         available_delivered = [
             "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
             "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
-            "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA"]
+            "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA",
+            "SURTIDO COMPLET"]
         # DISPENSADA, NO DISPENSADA
 
         class_presc = available_data.get("clasif_assortment")

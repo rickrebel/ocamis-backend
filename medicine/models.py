@@ -14,7 +14,7 @@ class Group(models.Model):
     class Meta:
         verbose_name = "Grupo Terapeútico"
         verbose_name_plural = "1. Grupos Terapeúticos"
-        db_table = u'desabasto_group'
+        db_table = 'medicine_group'
 
 
 class Component(models.Model):
@@ -35,6 +35,7 @@ class Component(models.Model):
 
     origen_cvmei = models.BooleanField(default=False)
     is_relevant = models.BooleanField(default=True)
+    priority = models.IntegerField(default=10)
 
     is_vaccine = models.BooleanField(default=False)
 
@@ -55,7 +56,8 @@ class Component(models.Model):
     class Meta:
         verbose_name = "Componente"
         verbose_name_plural = "2. Componentes"
-        db_table = u'desabasto_component'
+        ordering = ["priority", "name"]
+        db_table = 'medicine_component'
 
 
 class PresentationType(models.Model):
@@ -65,7 +67,7 @@ class PresentationType(models.Model):
     presentation_count = models.IntegerField(default=0)
     agrupated_in = models.ForeignKey(
         "PresentationType", blank=True, null=True, on_delete=models.CASCADE)
-    #agrupated_in = models.IntegerField(blank=True, null=True)
+    # agrupated_in = models.IntegerField(blank=True, null=True)
     origen_cvmei = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -84,7 +86,7 @@ class PresentationType(models.Model):
         verbose_name = "Tipo de presentación"
         verbose_name_plural = "0. Tipos de presentación"
         ordering = ["name"]
-        db_table = u'desabasto_presentationtype'
+        db_table = 'medicine_presentationtype'
 
 
 class Presentation(models.Model):
@@ -103,7 +105,10 @@ class Presentation(models.Model):
     origen_cvmei = models.BooleanField(default=False)
 
     group = models.ForeignKey(
-        Group, blank=True, null=True, on_delete=models.CASCADE)
+        Group, blank=True, null=True,
+        on_delete=models.CASCADE, related_name="prev_presentations")
+    groups = models.ManyToManyField(
+        Group, related_name="presentations")
 
     def __str__(self):
         return " ".join([self.component.name, self.short_attributes or ""])
@@ -111,7 +116,7 @@ class Presentation(models.Model):
     class Meta:
         verbose_name = "Presentación del componente"
         verbose_name_plural = "3. Presentaciones del componente"
-        db_table = u'desabasto_presentation'
+        db_table = 'medicine_presentation'
 
 
 class Container(models.Model):
@@ -146,4 +151,4 @@ class Container(models.Model):
     class Meta:
         verbose_name = "Recipiente (Contenedor)"
         verbose_name_plural = "4. Recipientes (Contenedores)"
-        db_table = u'desabasto_container'
+        db_table = 'medicine_container'

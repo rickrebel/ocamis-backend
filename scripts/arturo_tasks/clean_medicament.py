@@ -1,4 +1,5 @@
-# Eliminando los penúltimos caracteres cuando son '00'
+
+# # Eliminando los penúltimos caracteres cuando son '00'
 # def update_med_container_id():
 #     from med_cat.models import Medicament
 #     from medicine.models import Container
@@ -51,9 +52,9 @@
 #     print(errors_medicament["Key no encontrada"][:20])
 #
 #
-# reporte_med_container()
-
-
+# # reporte_med_container()
+#
+#
 # Elimina los ultimos caracteres e intenta buscar los contenedores sin
 # revisar cuales caracteres son.
 # def update_med_container_id():
@@ -105,8 +106,8 @@
 #
 #
 # reporte_med_container()
-
-
+#
+#
 # def update_med_container_id():
 #     from med_cat.models import Medicament
 #     from medicine.models import Container
@@ -204,18 +205,16 @@ def update_med_container_id():
         "Key no encontrada": [], "No tiene formato correcto": [],
         "Multiples contenedores": [], "Otros errores": []}
     success_count = 0
-
     for medicament in medicaments_own_imss:
         medi_own_key2 = medicament.own_key2[:-2]
         container_found = Container.objects\
-                           .filter(key2=medi_own_key2).first()
+            .filter(key2=medi_own_key2).first()
         if container_found:
             success_count += 1
             medicament.container = container_found
             # medicament.save()
         else:
             errors["Key no encontrada"].append(medicament.own_key2)
-
     return success_count, errors
 
 

@@ -186,3 +186,325 @@ ORDER BY
     rx.delivered_final_id;
 
 
+
+
+
+SELECT
+	rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+GROUP BY
+    rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 1815441
+-- Query complete 00:01:58.298
+
+
+SELECT
+    unit.entity_id,
+	rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+JOIN med_cat_medicalunit unit ON rx.medical_unit_id = unit.hex_hash
+GROUP BY
+    unit.entity_id,
+    rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 1815441
+-- Query complete 00:02:09.034
+
+
+SELECT
+    unit.entity_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+JOIN med_cat_medicalunit unit ON rx.medical_unit_id = unit.hex_hash
+GROUP BY
+    unit.entity_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 163743
+-- Query complete 00:00:47.291
+
+
+SELECT
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_drug drug
+GROUP BY
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 163743
+-- Query complete 00:00:19.862
+
+
+SELECT
+	week.iso_year,
+	week.iso_week,
+	week.entity_id,
+	week.year,
+	week.month,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_drug drug
+JOIN inai_entityweek week ON drug.entity_week_id = week.id
+GROUP BY
+    week.iso_year,
+    week.iso_week,
+    week.entity_id,
+    week.year,
+    week.month,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 8782
+-- Query complete 00:00:12.874
+
+
+SELECT
+	week.iso_year,
+	week.iso_week,
+	week.entity_id,
+	week.year,
+	week.month,
+	med.container_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_drug drug
+JOIN inai_entityweek week ON drug.entity_week_id = week.id
+JOIN med_cat_medicament med ON drug.medicament_id = med.hex_hash
+WHERE med.container_id IS NOT NULL
+GROUP BY
+    week.iso_year,
+    week.iso_week,
+    week.entity_id,
+    week.year,
+    week.month,
+    med.container_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 8638
+-- Query complete 00:00:42.722
+
+
+SELECT
+    unit.entity_id,
+    unit.delegation_name,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+JOIN med_cat_medicalunit unit ON rx.medical_unit_id = unit.hex_hash
+GROUP BY
+    unit.entity_id,
+    unit.delegation_name,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 163743
+-- Query complete 00:01:46.900
+
+
+SELECT
+    unit.entity_id,
+    unit.delegation_name,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+JOIN med_cat_medicalunit unit ON rx.medical_unit_id = unit.hex_hash
+GROUP BY
+    unit.entity_id,
+    unit.delegation_name,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 44840
+-- Query complete 00:02:02.051
+
+SELECT
+	rx.entity_id,
+	rx.medical_unit_id,
+	rx.year,
+	rx.month,
+	rx.iso_year,
+	rx.iso_week,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+GROUP BY
+	rx.entity_id,
+	rx.medical_unit_id,
+	rx.year,
+	rx.month,
+	rx.iso_year,
+	rx.iso_week,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 1815441
+-- Query complete 00:02:43.846
+
+
+SELECT
+	rx.entity_id,
+	rx.year,
+	rx.month,
+	rx.iso_year,
+	rx.iso_week,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+GROUP BY
+	rx.entity_id,
+	rx.year,
+	rx.month,
+	rx.iso_year,
+	rx.iso_week,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 8782
+-- Query complete 00:00:41.318
+
+
+SELECT
+    delivered_final_id,
+    COUNT(delivered_final_id) AS total
+FROM formula_rx
+GROUP BY delivered_final_id;
+
+
+
+
+SELECT
+	unit.entity_id,
+	rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+JOIN med_cat_medicalunit unit ON rx.medical_unit_id = unit.hex_hash
+WHERE rx.medical_unit_id IN (
+	'9296a552300ea590b2484ba15c1514f3',
+	'3d3910e9a82d8a2fe5a6897a2eb2e8b3',
+	'df7c9dec7a13b8c7036912f2dece3c20')
+GROUP BY
+	unit.entity_id,
+    rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 4020
+-- Query complete 00:00:00.771
+
+SELECT
+	unit.entity_id,
+	rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM formula_rx rx
+JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id
+JOIN med_cat_medicalunit unit ON rx.medical_unit_id = unit.hex_hash
+WHERE rx.medical_unit_id IN (
+	'9296a552300ea590b2484ba15c1514f3',
+	'3d3910e9a82d8a2fe5a6897a2eb2e8b3',
+	'df7c9dec7a13b8c7036912f2dece3c20')
+GROUP BY
+	unit.entity_id,
+    rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Total rows: 1000 of 197675
+-- Query complete 00:24:49.706
+
+
+
+
+SELECT
+	rx.entity_id,
+	rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	SUM (drug.prescribed_amount) as prescribed,
+	SUM (drug.delivered_amount) as delivered,
+	COUNT(*) as total
+FROM fm_55_201907_rx rx
+JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
+JOIN med_cat_medicament med ON drug.medicament_id = med.hex_hash
+WHERE med.container_id = 43
+GROUP BY
+    rx.entity_id,
+    rx.medical_unit_id,
+	drug.entity_week_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
+-- Finished
+-- 48283.95

@@ -22,7 +22,6 @@ class StatusTask(models.Model):
         ordering = ['order']
         verbose_name = "Status de tarea"
         verbose_name_plural = "3. Status de tareas"
-        db_table = 'classify_task_statustask'
 
 
 class TaskFunction(models.Model):

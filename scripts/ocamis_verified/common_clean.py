@@ -221,7 +221,7 @@ def delete_bad_month(year, month, entity_id=55):
         DELETE FROM formula_drug
         WHERE entity_week_id IN {tuple(all_weeks)}
     """
-    # drop_queries.append(query_2)
+    drop_queries.append(query_2)
     sheet_files = entity_m.sheet_files.all().values_list("id", flat=True)
     query_3 = f"""
         SELECT uuid 
@@ -258,4 +258,4 @@ def delete_bad_month(year, month, entity_id=55):
     connection.close()
 
 
-# delete_bad_month(2018, 11)
+# delete_bad_month(2023, 1, 53)

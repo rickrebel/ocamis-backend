@@ -333,8 +333,8 @@ class EntityMonth(models.Model):
     @property
     def human_name(self):
         months = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+            "ene", "feb", "mar", "abr", "may", "jun",
+            "jul", "ago", "sep", "oct", "nov", "dic"]
         year, month = self.year_month.split("-")
         month_name = months[int(month)-1]
         return "%s/%s" % (month_name, year)

@@ -209,7 +209,6 @@ class FileControl(models.Model):
         #unique_together = ["data_group", "name"]
         verbose_name = "Grupo de control de archivos"
         verbose_name_plural = "3.1 Grupos de control de archivos"
-        db_table = "data_param_filecontrol"
 
 
 class FinalField(models.Model):
@@ -435,7 +434,6 @@ class NameColumn (models.Model):
         ordering = ["seq"]
         verbose_name = "Nombre de Columna"
         verbose_name_plural = "3.2 Nombres de Columnas"
-        db_table = "data_param_namecolumn"
 
 
 class Transformation(models.Model):
@@ -479,4 +477,3 @@ class Transformation(models.Model):
     class Meta:
         verbose_name = "Transformación a aplicar"
         verbose_name_plural = "4.1 Transformaciones a aplicar"
-        db_table = "data_param_transformation"

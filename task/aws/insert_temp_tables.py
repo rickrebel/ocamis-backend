@@ -85,11 +85,6 @@ def lambda_handler(event, context):
             warnings.append(f"Hubo {len(below_weeks)} semanas con menos medicamentos \
                 de los esperados, semanas: {below_weeks}")
 
-    if not errors and insert_queries:
-        print("before insert_query", datetime.now())
-        for insert_query in insert_queries:
-            execute_query(insert_query)
-
     if not errors and constraint_queries:
         print("before constraint_query", datetime.now())
         for constraint in constraint_queries:
@@ -107,6 +102,11 @@ def lambda_handler(event, context):
                 print(f"ERROR:\n, {e}, \n--------------------------")
                 errors.append(f"Error en constraint {constraint}; {str(e)}")
                 break
+
+    if not errors and insert_queries:
+        print("before insert_query", datetime.now())
+        for insert_query in insert_queries:
+            execute_query(insert_query)
 
     if not errors and drop_queries:
         print("before drop_query", datetime.now())

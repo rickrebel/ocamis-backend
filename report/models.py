@@ -44,7 +44,7 @@ class Responsable(models.Model):
     class Meta:
         verbose_name = "Responsable"
         verbose_name_plural = "6. Responsables"
-        db_table = u'desabasto_responsable'
+        db_table = 'desabasto_responsable'
 
 
 class Persona(models.Model):
@@ -341,7 +341,7 @@ class Report(models.Model):
     class Meta:
         verbose_name = "Reporte"
         verbose_name_plural = "1. Reportes"
-        db_table = u'desabasto_report'
+        db_table = 'desabasto_report'
 
 
 class CovidReport(models.Model):
@@ -470,7 +470,7 @@ class TestimonyMedia(models.Model):
     class Meta:
         verbose_name = "Archivo de testimonio"
         verbose_name_plural = "8. Archivos de testimonio"
-        db_table = u'desabasto_testimonymedia'
+        db_table = 'desabasto_testimonymedia'
 
     def __str__(self):
         if self.media_file:
@@ -489,14 +489,14 @@ class Supply(models.Model):
 
     report = models.ForeignKey(
         Report, related_name="supplies", on_delete=models.CASCADE)
-    #report = models.IntegerField()
+    # report = models.IntegerField()
     component = models.ForeignKey(
         Component, blank=True, null=True, on_delete=models.CASCADE)
-    #component = models.IntegerField(blank=True, null=True)
+    # component = models.IntegerField(blank=True, null=True)
     # container = models.ForeignKey(Container, blank=True, null=True)
     presentation = models.ForeignKey(
         Presentation, blank=True, null=True, on_delete=models.CASCADE)
-    #presentation = models.IntegerField(blank=True, null=True)
+    # presentation = models.IntegerField(blank=True, null=True)
 
     medicine_type = models.CharField(
         max_length=20, verbose_name="Tipo de Medicamento",
@@ -525,4 +525,4 @@ class Supply(models.Model):
     class Meta:
         verbose_name = "Medicamento o insumo"
         verbose_name_plural = "2. Medicamentos/Supplys de reportes"
-        db_table = u'desabasto_supply'
+        db_table = 'desabasto_supply'

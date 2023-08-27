@@ -297,3 +297,41 @@ def generate_imss_delegations():
         state = State.objects.get(short_name__iexact=state_name)
         Delegation.objects.get_or_create(
             name=delegation_name, institution=imss, state=state)
+
+
+def get_file_csv(file_path):
+    import io
+    with io.open(file_path, "r", encoding="latin-1") as file:
+        data = file.readlines()
+        # rr_data_rows = data.split("\n")
+        # headers = rr_data_rows.pop(0)
+        # all_headers = headers.split("|")
+        # print(all_headers)
+        return data
+
+
+def find_lines_with_regex(file_path="fixture/catalogo_clues_issste.txt"):
+    import re
+    from geo.models import CLUES
+    all_lines = get_file_csv(file_path)
+    not_found_clues = []
+    for line in all_lines:
+        # with regex, extract the string like this: "DFIST000312 096-201-00"
+        regex_format = r'\s(\w{5}\d{6})\s(\d{3}\-\d{3}\-\d{2})\s'
+        match = re.search(regex_format, line)
+        if not match:
+            continue
+        clues_key = match.group(1)
+        key_issste = match.group(2)
+        try:
+            clues = CLUES.objects.get(clues=clues_key)
+            clues.key_issste = key_issste
+            clues.save()
+        except CLUES.DoesNotExist:
+            not_found_clues.append(clues_key)
+    return not_found_clues
+
+
+# missing_clues = find_lines_with_regex()
+
+

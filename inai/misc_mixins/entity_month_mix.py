@@ -236,10 +236,6 @@ class FromAws:
         from django.db.models import F
 
         related_sheet_files = self.entity_month.sheet_files.all()
-        data_files_ids = related_sheet_files.values_list(
-            "data_file_id", flat=True).distinct()
-        data_files = DataFile.objects.filter(id__in=data_files_ids)
-        data_files.update(stage_id='merge', status_id='pending')
 
         my_insert = InsertMonth(self.entity_month, self.task_params)
         new_tasks = []
@@ -322,10 +318,6 @@ class FromAws:
         related_lap_sheets = LapSheet.objects\
             .filter(sheet_file__in=related_sheet_files)\
             .exclude(sheet_file__behavior_id="invalid")
-        data_files_ids = related_sheet_files.values_list(
-            "data_file_id", flat=True).distinct()
-        data_files = DataFile.objects.filter(id__in=data_files_ids)
-        data_files.update(stage_id='insert', status_id='pending')
 
         pending_lap_sheets = related_lap_sheets.filter(
             cat_inserted=False, lap=0)
