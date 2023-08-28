@@ -14,6 +14,14 @@ def similar(a, b):
         return 0
 
 
+def text_normalizer(text):
+    import re
+    import unidecode
+    text = text.upper().strip()
+    text = unidecode.unidecode(text)
+    return re.sub(r'[^a-zA-Z\s]', '', text)
+
+
 # @functools.lru_cache(maxsize=None)
 def get_excel_file(file_path):
     import pandas as pd

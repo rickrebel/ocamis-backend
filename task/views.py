@@ -13,16 +13,9 @@ from inai.misc_mixins.petition_mix import FromAws as Petition
 from inai.misc_mixins.sheet_file_mix import FromAws as SheetFile
 
 
-def text_normalizer(text):
-    import re
-    import unidecode
-    text = text.upper().strip()
-    text = unidecode.unidecode(text)
-    return re.sub(r'[^a-zA-Z\s]', '', text)
-
-
 def calculate_special_function(special_function):
     import json
+    from scripts.common import text_normalizer
     from geo.models import Delegation, CLUES
 
     # print("SPECIAL FUNCTION", special_function)
