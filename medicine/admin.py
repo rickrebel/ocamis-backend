@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from inai.admin import ocamis_admin_site
 from django.contrib import admin
 
 from .models import (
@@ -54,6 +53,8 @@ class ComponentAdmin(admin.ModelAdmin):
 
 class ContainerInline(admin.StackedInline):
     model = Container
+    # raw_id_fields = ["presentation"]
+    show_change_link = True
     extra = 0
 
 
@@ -89,8 +90,8 @@ class ContainerAdmin(admin.ModelAdmin):
     search_fields = ["name", "key", "short_name", "key2"]
 
 
-ocamis_admin_site.register(PresentationType, PresentationTypeAdmin)
-ocamis_admin_site.register(Group, GroupAdmin)
-ocamis_admin_site.register(Component, ComponentAdmin)
-ocamis_admin_site.register(Presentation, PresentationAdmin)
-ocamis_admin_site.register(Container, ContainerAdmin)
+admin.site.register(PresentationType, PresentationTypeAdmin)
+admin.site.register(Group, GroupAdmin)
+admin.site.register(Component, ComponentAdmin)
+admin.site.register(Presentation, PresentationAdmin)
+admin.site.register(Container, ContainerAdmin)

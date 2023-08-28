@@ -1,12 +1,9 @@
-from inai.admin import ocamis_admin_site
-
 from django.contrib import admin
 
 from .models import (
     Drug,
     Rx,
     DocumentType,
-    # MedicalSpeciality,
 )
 from med_cat.models import Doctor, Delivered
 
@@ -14,9 +11,6 @@ from med_cat.models import Doctor, Delivered
 class DocumentTypeAdmin(admin.ModelAdmin):
     list_display = ["name"]
     search_fields = ["name"]
-
-
-ocamis_admin_site.register(DocumentType, DocumentTypeAdmin)
 
 
 class DrugInline(admin.TabularInline):
@@ -46,9 +40,6 @@ class RxAdmin(admin.ModelAdmin):
     search_fields = ["folio_document", ]
 
 
-ocamis_admin_site.register(Rx, RxAdmin)
-
-
 class DrugAdmin(admin.ModelAdmin):
     list_display = [
         "uuid",
@@ -62,9 +53,6 @@ class DrugAdmin(admin.ModelAdmin):
         "rx", "sheet_file_id", "lap_sheet_id", "medicament", "delivered"]
 
 
-ocamis_admin_site.register(Drug, DrugAdmin)
-
-
 class DeliveredAdmin(admin.ModelAdmin):
     list_display = [
         "hex_hash",
@@ -73,4 +61,7 @@ class DeliveredAdmin(admin.ModelAdmin):
     ]
 
 
-ocamis_admin_site.register(Delivered, DeliveredAdmin)
+admin.site.register(DocumentType, DocumentTypeAdmin)
+admin.site.register(Rx, RxAdmin)
+admin.site.register(Drug, DrugAdmin)
+admin.site.register(Delivered, DeliveredAdmin)

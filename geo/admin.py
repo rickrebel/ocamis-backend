@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 from inai.admin import ocamis_admin_site
+from report.admin import desabasto_admin_site
 
 from django.contrib import admin
 # from django.contrib.admin import AdminSite
@@ -165,16 +164,18 @@ class DelegationAdmin(admin.ModelAdmin):
 
 
 admin.site.register(State, StateAdmin)
-ocamis_admin_site.register(State, StateAdmin)
 admin.site.register(Municipality, MunicipalityAdmin)
 admin.site.register(Institution, InstitutionAdmin)
 ocamis_admin_site.register(Institution, InstitutionAdmin)
 ocamis_admin_site.register(Entity, EntityAdmin)
+admin.site.register(Entity, EntityAdmin)
+desabasto_admin_site.register(CLUES, CLUESAdmin)
 admin.site.register(CLUES, CLUESAdmin)
-ocamis_admin_site.register(CLUES, CLUESAdmin)
-admin.site.register(Alliances, AlliancesAdmin)
-admin.site.register(Disease, DiseaseAdmin)
-# admin.site.register(Agency, AgencyAdmin)
+desabasto_admin_site.register(Alliances, AlliancesAdmin)
+desabasto_admin_site.register(Disease, DiseaseAdmin)
+
 ocamis_admin_site.register(Agency, AgencyAdmin)
+admin.site.register(Agency, AgencyAdmin)
 
 ocamis_admin_site.register(Delegation, DelegationAdmin)
+admin.site.register(Delegation, DelegationAdmin)

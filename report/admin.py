@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
+from django.contrib.admin import AdminSite
 from django.contrib import admin
 from django.contrib.admin.filters import SimpleListFilter
 
@@ -11,10 +9,18 @@ from .models import (
     Supply,
     DosisCovid,
     TestimonyMedia,
-    #Disease,
     Persona,
     ComplementReport,
 )
+
+
+class DesabastoAdminSite(AdminSite):
+    site_header = "Cero Desabasto Admin"
+    site_title = "Cero Desabasto Portal"
+    index_title = "Welcome to Cero Desabasto"
+
+
+desabasto_admin_site = DesabastoAdminSite(name='desabasto_admin')
 
 
 class NullFilterSpec(SimpleListFilter):
@@ -65,15 +71,9 @@ class ResponsableAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(Responsable, ResponsableAdmin)
-
-
 class TestimonyMediaAdmin(admin.ModelAdmin):
     list_display = ["report", "media_file", "url"]
     raw_id_fields = ["report"]
-
-
-admin.site.register(TestimonyMedia, TestimonyMediaAdmin)
 
 
 class SupplyAdmin(admin.ModelAdmin):
@@ -91,9 +91,6 @@ class SupplyAdmin(admin.ModelAdmin):
         "presentation_raw",
         "medicine_real_name"
     ]
-
-
-admin.site.register(Supply, SupplyAdmin)
 
 
 class SupplyInLine(admin.StackedInline):
@@ -195,8 +192,6 @@ class ReportAdmin(admin.ModelAdmin):
         obj = form.instance
         obj.send_responsable()
 
-admin.site.register(Report, ReportAdmin)
-
 
 class CovidReportAdmin(admin.ModelAdmin):
     model = CovidReport
@@ -243,14 +238,10 @@ class CovidReportAdmin(admin.ModelAdmin):
         return format_html(html_list)
     dosis_display.short_display = "Dosis"
 
-admin.site.register(CovidReport, CovidReportAdmin)
-
 
 class ComplementReportAdmin(admin.ModelAdmin):
     list_display = ["report", "covid_report", "validated"]
     #search_fields = ["name"]
-
-admin.site.register(ComplementReport, ComplementReportAdmin)
 
 
 class PersonaAdmin(admin.ModelAdmin):
@@ -258,12 +249,16 @@ class PersonaAdmin(admin.ModelAdmin):
     search_fields = ["informer_name", "email"]
 
 
-admin.site.register(Persona, PersonaAdmin)
-
-
 class DosisCovidAdmin(admin.ModelAdmin):
     list_display = ["brand", "round_dosis", "state", "date", "is_success"]
     search_fields = ["brand", "round_dosis", "state"]
 
 
-admin.site.register(DosisCovid, DosisCovidAdmin)
+desabasto_admin_site.register(Responsable, ResponsableAdmin)
+desabasto_admin_site.register(TestimonyMedia, TestimonyMediaAdmin)
+desabasto_admin_site.register(Supply, SupplyAdmin)
+desabasto_admin_site.register(Report, ReportAdmin)
+desabasto_admin_site.register(CovidReport, CovidReportAdmin)
+desabasto_admin_site.register(ComplementReport, ComplementReportAdmin)
+desabasto_admin_site.register(Persona, PersonaAdmin)
+desabasto_admin_site.register(DosisCovid, DosisCovidAdmin)

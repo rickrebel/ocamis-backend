@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from inai.admin import ocamis_admin_site
 
 from .models import Anomaly, TransparencyIndex, TransparencyLevel
 
@@ -40,8 +39,6 @@ class TransparencyLevelAdmin(admin.ModelAdmin):
     display_final.short_description = "Concentrado destino"
 
 
-ocamis_admin_site.register(Anomaly, AnomalyAdmin)
-
-ocamis_admin_site.register(TransparencyIndex, TransparencyIndexAdmin)
-
-ocamis_admin_site.register(TransparencyLevel, TransparencyLevelAdmin)
+admin.site.register(Anomaly, AnomalyAdmin)
+admin.site.register(TransparencyIndex, TransparencyIndexAdmin)
+admin.site.register(TransparencyLevel, TransparencyLevelAdmin)

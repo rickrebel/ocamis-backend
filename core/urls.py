@@ -5,17 +5,19 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 from inai.admin import ocamis_admin_site
+from report.admin import desabasto_admin_site
 
 
-admin.site.site_header = "Administración Cero Desabasto"
-admin.site.site_title = "Administración Cero Desabasto"
-admin.site.index_title = "Administración Cero Desabasto"
+admin.site.site_header = "Administración Catálogos OCAMIS"
+admin.site.site_title = "Administración Catálogos OCAMIS"
+admin.site.index_title = "Administración Catálogos OCAMIS"
 
 
 urlpatterns = [
     path('', lambda request: redirect('admin/', permanent=False)),
     path('admin/', admin.site.urls),
     path('ocamis_admin/', ocamis_admin_site.urls),
+    path('desabasto_admin/', desabasto_admin_site.urls),
     path('api/', include("api.urls")),
     path('sendgrid/', include('email_sendgrid.urls')),
     #path(r'^ckeditor/', include('ckeditor_uploader.urls')),

@@ -1,5 +1,5 @@
-# -*- coding: UTF-8 -*-
 from django.contrib import admin
+from report.admin import desabasto_admin_site
 from email_sendgrid.models import (
     EmailRecord, EmailEventHistory, TemplateBase, SendGridProfile)
 
@@ -17,9 +17,6 @@ class EmailRecordAdmin(admin.ModelAdmin):
     list_filter = ["sendgrid_profile", "type_message", "created"]
     inlines = [EmailEventHistoryInLine]
     readonly_fields = ["created"]
-
-
-admin.site.register(EmailRecord, EmailRecordAdmin)
 
 
 class TemplateBaseAdmin(admin.ModelAdmin):
@@ -41,6 +38,6 @@ class TemplateBaseAdmin(admin.ModelAdmin):
             return ["created"]
 
 
-admin.site.register(TemplateBase, TemplateBaseAdmin)
-
-admin.site.register(SendGridProfile)
+desabasto_admin_site.register(TemplateBase, TemplateBaseAdmin)
+desabasto_admin_site.register(SendGridProfile)
+desabasto_admin_site.register(EmailRecord, EmailRecordAdmin)

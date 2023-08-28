@@ -1,5 +1,4 @@
 from django.contrib import admin
-from inai.admin import ocamis_admin_site
 
 from .models import Doctor, Area, Diagnosis, Medicament, MedicalUnit
 
@@ -37,8 +36,8 @@ class MedicalUnitAdmin(admin.ModelAdmin):
     list_filter = ["entity", "delegation_name"]
 
 
-ocamis_admin_site.register(Doctor, DoctorAdmin)
-ocamis_admin_site.register(Area, AreaAdmin)
-ocamis_admin_site.register(Diagnosis, DiagnosisAdmin)
-ocamis_admin_site.register(Medicament, MedicamentAdmin)
-ocamis_admin_site.register(MedicalUnit, MedicalUnitAdmin)
+admin.site.register(Doctor, DoctorAdmin)
+admin.site.register(Area, AreaAdmin)
+admin.site.register(Diagnosis, DiagnosisAdmin)
+admin.site.register(Medicament, MedicamentAdmin)
+admin.site.register(MedicalUnit, MedicalUnitAdmin)
