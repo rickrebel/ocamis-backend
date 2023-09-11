@@ -19,7 +19,7 @@ def text_normalizer(text):
     import unidecode
     text = text.upper().strip()
     text = unidecode.unidecode(text)
-    return re.sub(r'[^a-zA-Z\s]', '', text)
+    return re.sub(r'[^a-zA-Z0-9\s]', '', text)
 
 
 # @functools.lru_cache(maxsize=None)

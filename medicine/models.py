@@ -108,7 +108,7 @@ class Presentation(models.Model):
         Group, blank=True, null=True,
         on_delete=models.CASCADE, related_name="prev_presentations")
     groups = models.ManyToManyField(
-        Group, related_name="presentations")
+        Group, related_name="presentations", blank=True)
 
     def __str__(self):
         return " ".join([self.component.name, self.short_attributes or ""])

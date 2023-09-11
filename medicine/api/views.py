@@ -22,6 +22,7 @@ class ComponentList(MultiSerializerListRetrieveMix):
     queryset = Component.objects.all()
     action_serializers = {
         "retrieve": serializers.ComponentRetrieveSerializer,
+        "priority": serializers.ComponentVizSerializer,
     }
 
     def list(self, request):
@@ -79,6 +80,19 @@ class ComponentList(MultiSerializerListRetrieveMix):
             raise NotFound({"errors": "No se encontro la clave: %s" % clave})
         serializer = serializers.ComponentRetrieveSerializer(
             container.presentation.component)
+        return Response(serializer.data)
+
+    @action(methods=['get'], detail=False, url_path='priority')
+    def priority(self, request, **kwargs):
+        components = Component.objects\
+            .filter(priority__lt=10)\
+            .prefetch_related(
+                "presentations",
+                "presentations__containers",
+                "presentations__groups"
+            )\
+            .order_by("priority")
+        serializer = self.get_serializer_class()(components, many=True)
         return Response(serializer.data)
 
 

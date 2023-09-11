@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 from rest_framework import serializers
 
 from report.models import Responsable
 from geo.models import (
     State, Institution, CLUES, Alliances, Municipality, Disease, Agency,
-    Entity)
+    Entity, Delegation)
 # from report.api.serializers import ResponsableListSerializer
 # from inai.models import EntityMonth
 
@@ -317,3 +316,10 @@ class AgencyVizSerializer(AgencySerializer):
             "months",
             "population",
         ]
+
+
+class DelegationVizSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Delegation
+        fields = "__all__"

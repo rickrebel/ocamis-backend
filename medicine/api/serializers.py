@@ -44,8 +44,24 @@ class PresentationSerializer(PresentationSimpleSerializer):
         fields = "__all__"
 
 
+class PresentationVizSerializer(serializers.ModelSerializer):
+    containers = ContainerSerializer(many=True)
+
+    class Meta:
+        model = Presentation
+        fields = "__all__"
+
+
 class ComponentFullSerializer(serializers.ModelSerializer):
     presentations = PresentationSerializer(many=True)
+
+    class Meta:
+        model = Component
+        fields = "__all__"
+
+
+class ComponentVizSerializer(serializers.ModelSerializer):
+    presentations = PresentationVizSerializer(many=True)
 
     class Meta:
         model = Component

@@ -56,8 +56,9 @@ class InstitutionAdmin(admin.ModelAdmin):
         "relevance"]
 
 
-class AgencyInline(admin.TabularInline):
+class AgencyInline(admin.StackedInline):
     model = Agency
+    raw_id_fields = ["clues"]
     extra = 0
 
 

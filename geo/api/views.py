@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from api.mixins import (
-    ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
+    ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
+    MultiSerializerListRetrieveMix as ListRetrieveMix)
 from desabasto.api.views import StandardResultsSetPagination
 
 from geo.models import Institution, State, CLUES, Agency, Entity
@@ -18,6 +19,21 @@ class StateViewSet(ListRetrieveUpdateMix):
         "list": serializers.StateListSerializer,
         "retrieve": serializers.StateSerializer,
     }
+
+
+class EntityVizViewSet(ListRetrieveMix):
+    permission_classes = (permissions.AllowAny,)
+    queryset = Entity.objects.all()
+    serializer_class = serializers.EntitySerializer
+
+    @action(methods=["get"], detail=True, url_path='delegation')
+    def delegation(self, request, **kwargs):
+        entity = self.get_object()
+        delegations = entity.delegations\
+            .filter(is_clues=False).order_by("state__id")
+        serializer = serializers.DelegationVizSerializer(
+            delegations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class EntityViewSet(ListRetrieveUpdateMix):

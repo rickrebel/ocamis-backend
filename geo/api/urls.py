@@ -8,7 +8,8 @@ from geo.api.views import (
     SendEmailNewOrganizationView,
     StateViewSet,
     AgencyViewSet,
-    EntityViewSet
+    EntityViewSet,
+    EntityVizViewSet,
 )
 
 router = routers.DefaultRouter()
@@ -18,6 +19,7 @@ router.register(r'clues', CLUESList)
 router.register(r'state', StateViewSet)
 router.register(r'agency', AgencyViewSet)
 router.register(r'entity', EntityViewSet)
+router.register(r'institution', EntityVizViewSet)
 
 urlpatterns = [
     path('new_organization/', SendEmailNewOrganizationView.as_view()),

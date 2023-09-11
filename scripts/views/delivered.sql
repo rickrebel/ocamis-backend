@@ -486,25 +486,3 @@ GROUP BY
 
 
 
-
-SELECT
-	rx.entity_id,
-	rx.medical_unit_id,
-	drug.entity_week_id,
-	drug.delivered_id,
-	SUM (drug.prescribed_amount) as prescribed,
-	SUM (drug.delivered_amount) as delivered,
-	COUNT(*) as total
-FROM fm_55_201907_rx rx
-JOIN fm_55_201907_drug drug ON rx.uuid_folio = drug.rx_id
-JOIN med_cat_medicament med ON drug.medicament_id = med.hex_hash
-WHERE med.container_id = 43
-GROUP BY
-    rx.entity_id,
-    rx.medical_unit_id,
-	drug.entity_week_id,
-	drug.delivered_id,
-	drug.medicament_id;
-
--- Finished
--- 48283.95

@@ -164,7 +164,7 @@ class Entity(models.Model):
     class Meta:
         ordering = ["state__name"]
         verbose_name = "Proveedor"
-        verbose_name_plural = "Proveedores"
+        verbose_name_plural = "Proveedores (Entities)"
 
 
 class CLUES(models.Model):

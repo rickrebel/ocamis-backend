@@ -236,3 +236,119 @@ class MissingField(models.Model):
     class Meta:
         verbose_name = "Documento Faltante"
         verbose_name_plural = "Documentos Faltantes"
+
+
+class MotherDrugLosartan(models.Model):
+    from geo.models import CLUES, Delegation, Entity
+    from inai.models import EntityWeek
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE, db_column="entity_id",
+        primary_key=True)
+    medical_unit = models.ForeignKey(
+        MedicalUnit, on_delete=models.CASCADE, db_column="medical_unit_id")
+    entity_week = models.ForeignKey(
+        EntityWeek, on_delete=models.CASCADE, db_column="entity_week_id")
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE, db_column="delivered_id")
+    prescribed_total = models.IntegerField(db_column="prescribed")
+    delivered_total = models.IntegerField(db_column="delivered")
+    total = models.IntegerField(db_column="total")
+
+    class Meta:
+        managed = False
+        db_table = 'mother_drug_losartan'
+        verbose_name = "Dato Losartan"
+        verbose_name_plural = "Datos Losartan"
+
+    def __str__(self):
+        return "%s -- %s -- %s -- %s" % (
+            self.entity, self.medical_unit, self.entity_week, self.delivered)
+
+
+# -- TABLE mother_drug_priority
+# SELECT med_unit.delegation_id,
+#    med_unit.clues_id,
+#    drug.entity_week_id,
+#    drug.delivered_id,
+#    cont.key,
+#    cont.id AS container_id,
+#    sum(drug.prescribed_amount) AS prescribed,
+#    sum(drug.delivered_amount) AS delivered,
+#    count(*) AS total
+#   FROM formula_rx rx
+#     JOIN med_cat_medicalunit med_unit ON rx.medical_unit_id::text = med_unit.hex_hash::text
+#     JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id
+#     JOIN med_cat_medicament med_cat ON drug.medicament_id::text = med_cat.hex_hash::text
+#     JOIN medicine_container cont ON cont.id = med_cat.container_id
+#     JOIN medicine_presentation pres ON pres.id = cont.presentation_id
+#     JOIN medicine_component comp ON comp.id = pres.component_id
+#  WHERE comp.priority < 4
+#  GROUP BY med_unit.delegation_id, med_unit.clues_id, drug.entity_week_id, drug.delivered_id, cont.key, cont.id;
+
+
+class MotherDrugPriority(models.Model):
+    from geo.models import CLUES, Delegation, Entity
+    from inai.models import EntityWeek
+    from medicine.models import Container
+    key = models.CharField(max_length=255, primary_key=True, db_column="key")
+    clues = models.ForeignKey(
+        CLUES, on_delete=models.CASCADE, db_column="clues_id")
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, db_column="delegation_id")
+    entity_week = models.ForeignKey(
+        EntityWeek, on_delete=models.CASCADE, db_column="entity_week_id")
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE, db_column="delivered_id")
+    container = models.ForeignKey(
+        Container, on_delete=models.CASCADE, db_column="container_id")
+    prescribed_total = models.IntegerField(db_column="prescribed")
+    delivered_total = models.IntegerField(db_column="delivered")
+    total = models.IntegerField(db_column="total")
+
+    class Meta:
+        managed = False
+        db_table = 'mother_drug_priority'
+        verbose_name = "Dato Prioridad"
+        verbose_name_plural = "Datos Prioridad"
+
+    def __str__(self):
+        return "%s -- %s -- %s -- %s" % (
+            self.entity_week, self.delivered, self.container, self.key)
+
+# SELECT med_unit.delegation_id,
+#    med_unit.clues_id,
+#    drug.entity_week_id,
+#    drug.delivered_id,
+#    sum(drug.prescribed_amount) AS prescribed,
+#    sum(drug.delivered_amount) AS delivered,
+#    count(*) AS total
+#   FROM formula_rx rx
+#     JOIN med_cat_medicalunit med_unit ON rx.medical_unit_id::text = med_unit.hex_hash::text
+#     JOIN formula_drug drug ON rx.uuid_folio = drug.rx_id
+#  GROUP BY med_unit.delegation_id, med_unit.clues_id, drug.entity_week_id, drug.delivered_id;
+
+
+class MotherDrugTotals(models.Model):
+    from geo.models import CLUES, Delegation, Entity
+    from inai.models import EntityWeek
+    clues = models.ForeignKey(
+        CLUES, on_delete=models.CASCADE, db_column="clues_id")
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, db_column="delegation_id")
+    entity_week = models.ForeignKey(
+        EntityWeek, on_delete=models.CASCADE, db_column="entity_week_id")
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE, db_column="delivered_id")
+    prescribed_total = models.IntegerField(db_column="prescribed")
+    delivered_total = models.IntegerField(db_column="delivered")
+    total = models.IntegerField(db_column="total", primary_key=True)
+
+    class Meta:
+        managed = False
+        db_table = 'mother_drug_totals'
+        verbose_name = "Dato Total"
+        verbose_name_plural = "Datos Totales"
+
+    def __str__(self):
+        return "%s -- %s -- %s" % (
+            self.entity_week, self.delivered, self.clues)

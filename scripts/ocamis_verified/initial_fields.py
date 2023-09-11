@@ -238,7 +238,7 @@ def generate_insabi_delegations():
 
 UMAES = [
     ['UMAE Cardiología en Nuevo León', "NLIMS000315"],
-    ['UMAE Cardiología C.M.N. Siglo XXI', "DFIMS000580"],
+    ['UMAE Cardiología C.M.N. Siglo XXI', "DFIMS000575"],
     ['UMAE Especialidades C.M.N. La Raza', "DFIMS000020"],
     ['UMAE Especialidades C.M.N. Siglo XXI', "DFIMS000580"],
     ['UMAE Especialidades Coahuila', "CLIMS000490"],
