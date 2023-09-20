@@ -259,3 +259,63 @@ def delete_bad_month(year, month, entity_id=55):
 
 
 # delete_bad_month(2023, 1, 53)
+
+
+def copy_export_sql_aws(path, model_in_db, columns_join, query):
+    from django.conf import settings
+    ocamis_db = getattr(settings, "DATABASES", {}).get("default")
+    bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+    aws_location = getattr(settings, "AWS_LOCATION")
+    region_name = getattr(settings, "AWS_S3_REGION_NAME")
+    access_key = getattr(settings, "AWS_ACCESS_KEY_ID")
+    secret_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
+    return f"""
+        SELECT aws_s3.query_export_to_s3(
+            '{query}',
+            '{columns_join}',
+            '(format csv, header true, delimiter "|", encoding "UTF8")',
+            '{bucket_name}',
+            '{aws_location}/{path}',
+            '{region_name}',
+            '{access_key}',
+            '{secret_key}'
+        )
+    """
+
+
+def backup_materialized_view(materialized_view_name):
+    from django.db import connection
+    from datetime import datetime
+    cursor = connection.cursor()
+    query = f"SELECT * FROM {materialized_view_name}"
+    cursor.execute(query)
+    all_data = cursor.fetchall()
+    print("all_data", all_data)
+    print("end", datetime.now())
+    cursor.close()
+    connection.close()
+
+
+from django.conf import settings
+from django.db import connection
+from datetime import datetime
+materialized_view_name = "med_cat_delivered"
+bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+cursor = connection.cursor()
+# query = f"SELECT aws_commons.create_s3_uri('{bucket_name}', 'cat_images/ejemplo.csv')"
+
+query = f"""
+    SELECT * from aws_s3.query_export_to_s3(
+        'SELECT * FROM med_cat_delivered',
+        'cdn-desabasto', 
+        'cat_images/ejemplo4.csv'
+    )
+"""
+cursor.execute(query)
+all_data = cursor.fetchall()
+print("all_data", all_data)
+print("end", datetime.now())
+cursor.close()
+connection.close()
+
+

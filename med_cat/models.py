@@ -161,6 +161,7 @@ class Delivered(models.Model):
     is_aggregate = models.BooleanField(
         default=False, blank=True, null=True)
     # short_name = models.CharField(max_length=32, primary_key=True)
+    is_cancelled = models.BooleanField(default=False)
     name = models.CharField(max_length=80)
     description = models.TextField(blank=True, null=True)
 

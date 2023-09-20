@@ -1,5 +1,6 @@
 from django.db.models import Count, F, Sum
-from formula.models import Drug, MotherDrugPriority
+from formula.models import Drug
+from mat.models import MotherDrugPriority
 import matplotlib.pyplot as plt
 import numpy as np
 

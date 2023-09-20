@@ -36,6 +36,7 @@ class Component(models.Model):
     origen_cvmei = models.BooleanField(default=False)
     is_relevant = models.BooleanField(default=True)
     priority = models.IntegerField(default=10)
+    description = models.TextField(blank=True, null=True)
 
     is_vaccine = models.BooleanField(default=False)
 

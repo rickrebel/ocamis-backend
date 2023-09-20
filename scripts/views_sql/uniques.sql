@@ -26,19 +26,3 @@ GROUP BY
 	rx.iso_year,
 	rx.iso_week;
 
-
-SELECT
-	rx.entity_id,
-	rx.medical_unit_id,
-	rx.year,
-	rx.month,
-	rx.delivered_final_id,
-	COUNT(*)
-FROM fm_55_201907_rx rx
-GROUP BY
-	rx.entity_id,
-	rx.delivered_final_id,
-	rx.year,
-	rx.month,
-	rx.medical_unit_id;
-

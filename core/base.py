@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'rest_framework.authtoken',
     "formula.apps.FormulaConfig",
+    "mat.apps.MatConfig",
     "data_param.apps.DataParamConfig",
     "med_cat.apps.MedCatConfig",
     "inai.apps.InaiConfig",

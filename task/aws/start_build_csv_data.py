@@ -262,6 +262,8 @@ class MatchAws:
 
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"
+                # print("some_date", some_date)
+                # print("row", row)
                 self.append_missing_row(row, error)
                 continue
             # if last_date != date[:10]:
@@ -745,7 +747,7 @@ class MatchAws:
             if not value and same_group_data and self.last_valid_row:
                 value = self.last_valid_row.get(field["name"])
                 copied = True
-                if field["data_type"] == "Datetime":
+                if field["data_type"] == "Datetime" and value:
                     some_date = value
             # if self.example_count < 15:
             #     print("value final:", value)
@@ -791,7 +793,7 @@ class MatchAws:
                 elif field["data_type"] == "Datetime":  # and not is_same_date:
                     if value == self.last_date and value:
                         value = self.last_date_formatted
-                        # print("same")
+                        # print("same", value)
                     else:
                         # print("case")
                         if self.string_date == "MANY":
@@ -800,9 +802,9 @@ class MatchAws:
                         else:
                             string_dates = self.string_dates
                         is_success = False
+                        # print("value initial:", value)
                         for string_format in string_dates:
                             # print("string_format", string_format)
-                            # print("value", value)
                             try:
                                 if string_format == "EXCEL":
                                     days = int(value)
@@ -814,7 +816,7 @@ class MatchAws:
                                     value = datetime.fromtimestamp(value)
                                 else:
                                     value = datetime.strptime(value, string_format)
-                                # print("value", value)
+                                    # print("value final: ", value)
                                 self.last_date = value
                                 self.last_date_formatted = value
                                 is_success = True
@@ -870,6 +872,8 @@ class MatchAws:
                     row, field["name_column"], value, error=error, drug_uuid=uuid)
                 value = None
             available_data[field["name"]] = value
+        # if not some_date:
+        #     print("some_date al final?", some_date)
         return available_data, some_date
 
     def build_headers(self, cat_name, need_return=False):
@@ -929,7 +933,7 @@ class MatchAws:
             "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
             "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
             "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA",
-            "SURTIDO COMPLET"]
+            "SURTIDO COMPLET", "NEGADO"]
         # DISPENSADA, NO DISPENSADA
 
         class_presc = available_data.get("clasif_assortment")
