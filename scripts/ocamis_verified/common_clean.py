@@ -296,26 +296,72 @@ def backup_materialized_view(materialized_view_name):
     connection.close()
 
 
-from django.conf import settings
-from django.db import connection
-from datetime import datetime
-materialized_view_name = "med_cat_delivered"
-bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-cursor = connection.cursor()
-# query = f"SELECT aws_commons.create_s3_uri('{bucket_name}', 'cat_images/ejemplo.csv')"
+# from django.conf import settings
+# from django.db import connection
+# from datetime import datetime
+# materialized_view_name = "med_cat_delivered"
+# bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+# cursor = connection.cursor()
+# # query = f"SELECT aws_commons.create_s3_uri('{bucket_name}', 'cat_images/ejemplo.csv')"
+#
+# query = f"""
+#     SELECT * from aws_s3.query_export_to_s3(
+#         'SELECT * FROM med_cat_delivered',
+#         'cdn-desabasto',
+#         'cat_images/ejemplo4.csv'
+#     )
+# """
+# cursor.execute(query)
+# all_data = cursor.fetchall()
+# print("all_data", all_data)
+# print("end", datetime.now())
+# cursor.close()
+# connection.close()
 
-query = f"""
-    SELECT * from aws_s3.query_export_to_s3(
-        'SELECT * FROM med_cat_delivered',
-        'cdn-desabasto', 
-        'cat_images/ejemplo4.csv'
-    )
-"""
-cursor.execute(query)
-all_data = cursor.fetchall()
-print("all_data", all_data)
-print("end", datetime.now())
-cursor.close()
-connection.close()
+
+def insert_id_to_csv(snake_name):
+    from scripts.common import build_s3
+    from task.serverless import async_in_lambda
+    prev_path = "mat_views"
+    params = {
+        "final_path": f"{prev_path}/mother_{snake_name}.csv",
+        "result_path": f"{prev_path}/mat_{snake_name}.csv",
+        "s3": build_s3(),
+        "is_enumerate": True
+    }
+    task_params = {
+        "models": []
+    }
+    async_in_lambda("rebuild_week_csv", params, task_params)
+
+
+def save_mat_view_in_db(model_name, model_in_db):
+    from django.db import connection
+    from django.conf import settings
+    from inai.data_file_mixins.matches_mix import field_of_models
+    from inai.misc_mixins.insert_month_mix import build_copy_sql_aws
+    columns = field_of_models({"model": model_name, "app": "formula"})
+    # column_names = [column["name"].replace("_total", "") for column in columns]
+    column_names = [column["name"] for column in columns]
+    columns_join = ",".join(column_names)
+    final_path = f"mat_views/{model_in_db}.csv"
+    sql_copy = build_copy_sql_aws(final_path, model_in_db, columns_join)
+    cursor = connection.cursor()
+    cursor.execute(sql_copy)
+    cursor.close()
+    connection.close()
+
+
+def sent_mat_view_to_table(model_name):
+    from task.serverless import camel_to_snake
+    # model_name = "DrugPriority"
+    snake_simple_name = camel_to_snake(model_name)
+    final_model_name = f"Mat{model_name}"
+    # save_mat_view_in_db("MatDrugTotals", "mat_drug_totals")
+    # insert_id_to_csv(snake_simple_name)
+    save_mat_view_in_db(final_model_name, f"mat_{snake_simple_name}")
+
+
+# sent_mat_view_to_table("DrugPriority")
 
 

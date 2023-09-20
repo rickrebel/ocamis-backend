@@ -8,6 +8,7 @@ from api.mixins import (
 # from desabasto.api.views import StandardResultsSetPagination
 
 from mat.models import MotherDrugPriority, MotherDrug, MotherDrugTotals
+from formula.models import MatDrugTotals, MatDrug, MatDrugPriority
 
 
 class DrugViewSet(ListRetrieveUpdateMix):
@@ -25,10 +26,12 @@ class DrugViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=False)
     def spiral(self, request):
+        from django.conf import settings
         from django.db.models import Count, F, Sum
         from django.apps import apps
         # from geo.models import Delegation, CLUES, Entity
         # from medicine.models import Component
+        is_big_active = getattr(settings, "IS_BIG_ACTIVE")
         entity_id = request.data.get('entity', 55)
         delegation_id = request.data.get('delegation', None)
         by_delegation = request.data.get('by_delegation', False)
@@ -44,7 +47,8 @@ class DrugViewSet(ListRetrieveUpdateMix):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         def build_query(is_total=False):
-            is_complex = is_total or bool(clues_id)
+            # is_complex = is_total or bool(clues_id)
+            is_complex = True
 
             prefetches = ['entity_week'] if is_complex else []
 
@@ -91,12 +95,15 @@ class DrugViewSet(ListRetrieveUpdateMix):
             if by_delegation:
                 order_values.insert(0, "delegation")
 
+            prev_model = "Mother" if is_big_active else "Mat"
             if is_total:
-                model_name = "MotherDrugTotals"
+                model_name = f"{prev_model}DrugTotals"
             else:
-                model_name = "MotherDrug" if is_complex else "MotherDrugExtended"
+                # model_name = "MotherDrug" if is_complex else "MotherDrugExtended"
+                model_name = f"{prev_model}DrugPriority"
             print("model_name: ", model_name)
-            mother_model = apps.get_model('mat', model_name)
+            app_label = "mat" if is_big_active else "formula"
+            mother_model = apps.get_model(app_label, model_name)
 
             return mother_model.objects\
                 .filter(**query_filter)\

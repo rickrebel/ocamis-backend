@@ -236,3 +236,108 @@ class MissingField(models.Model):
     class Meta:
         verbose_name = "Documento Faltante"
         verbose_name_plural = "Documentos Faltantes"
+
+
+class MatDrugPriority(models.Model):
+    from geo.models import CLUES, Delegation, Entity
+    from inai.models import EntityWeek
+    from medicine.models import Container
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
+    clues = models.ForeignKey(
+        CLUES, on_delete=models.CASCADE, blank=True, null=True)
+    entity_week = models.ForeignKey(
+        EntityWeek, on_delete=models.CASCADE)
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE)
+    key = models.CharField(max_length=255, blank=True, null=True)
+    container = models.ForeignKey(
+        Container, on_delete=models.CASCADE, blank=True, null=True)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        db_table = 'mat_drug_priority'
+
+    def __str__(self):
+        return "%s -- %s -- %s -- %s" % (
+            self.entity_week, self.delivered, self.container, self.key)
+
+
+class MatDrug(models.Model):
+    from geo.models import CLUES, Delegation, Entity
+    from inai.models import EntityWeek
+    from medicine.models import Container
+    key = models.CharField(max_length=255)
+    clues = models.ForeignKey(
+        CLUES, on_delete=models.CASCADE)
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE)
+    entity_week = models.ForeignKey(
+        EntityWeek, on_delete=models.CASCADE)
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE)
+    container = models.ForeignKey(
+        Container, on_delete=models.CASCADE)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        db_table = 'mat_drug'
+
+    def __str__(self):
+        return "%s -- %s -- %s -- %s" % (
+            self.entity_week, self.delivered, self.container, self.key)
+
+
+class MatDrugExtended(models.Model):
+    from geo.models import Delegation, Entity
+    from inai.models import EntityWeek
+    from medicine.models import Component, Presentation, Container
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE)
+    iso_year = models.PositiveSmallIntegerField()
+    iso_week = models.PositiveSmallIntegerField()
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE)
+    component = models.ForeignKey(
+        Component, on_delete=models.CASCADE)
+    presentation = models.ForeignKey(
+        Presentation, on_delete=models.CASCADE)
+    container = models.ForeignKey(
+        Container, on_delete=models.CASCADE)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        db_table = 'mat_drug_extended'
+
+    def __str__(self):
+        return "%s -- %s -- %s -- %s" % (
+            self.iso_year, self.iso_week, self.entity, self.component)
+
+
+class MatDrugTotals(models.Model):
+    from geo.models import CLUES, Delegation, Entity
+    from inai.models import EntityWeek
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
+    clues = models.ForeignKey(
+        CLUES, on_delete=models.CASCADE, blank=True, null=True)
+    entity_week = models.ForeignKey(
+        EntityWeek, on_delete=models.CASCADE)
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        db_table = 'mat_drug_totals'
+
+    def __str__(self):
+        return "%s -- %s -- %s" % (
+            self.entity_week, self.delivered, self.clues)

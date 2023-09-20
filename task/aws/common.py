@@ -187,7 +187,7 @@ class BotoUtils:
             service, aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key)
 
-    def get_object_file(self, file, file_type="csv"):
+    def get_object_file(self, file, file_type="csv", delimiter="|"):
         import csv
         import io
 
@@ -209,7 +209,8 @@ class BotoUtils:
 
             # object_final = io.BytesIO(streaming_body_1.read())
             object_final = object_final.decode("utf-8")
-            csv_content = csv.reader(io.StringIO(object_final), delimiter='|')
+            csv_content = csv.reader(
+                io.StringIO(object_final), delimiter=delimiter)
             return csv_content
         else:
             return io.BytesIO(object_final)
