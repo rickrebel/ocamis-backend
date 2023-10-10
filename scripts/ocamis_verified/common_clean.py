@@ -365,3 +365,8 @@ def sent_mat_view_to_table(model_name):
 # sent_mat_view_to_table("DrugPriority")
 
 
+def make_public_final_fields(collection_name):
+    from data_param.models import Collection, FinalField
+    final_fields = FinalField.objects.filter(
+        collection__model_name=collection_name)
+    final_fields.update(included_code="complete")

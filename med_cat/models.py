@@ -164,6 +164,9 @@ class Delivered(models.Model):
     is_cancelled = models.BooleanField(default=False)
     name = models.CharField(max_length=80)
     description = models.TextField(blank=True, null=True)
+    alternative_names = models.TextField(
+        blank=True, null=True, verbose_name="Nombres alternativos",
+        help_text="Separados por coma")
 
     class Meta:
         verbose_name = "Clasificación de entrega"

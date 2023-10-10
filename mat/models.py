@@ -5,34 +5,6 @@ is_big_active = getattr(settings, "IS_BIG_ACTIVE")
 is_managed = not is_big_active
 
 
-# Create your models here.
-class MotherDrugLosartan(models.Model):
-    from geo.models import CLUES, Delegation, Entity
-    from inai.models import EntityWeek
-    entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, db_column="entity_id",
-        primary_key=is_big_active)
-    medical_unit = models.ForeignKey(
-        MedicalUnit, on_delete=models.CASCADE, db_column="medical_unit_id")
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE, db_column="entity_week_id")
-    delivered = models.ForeignKey(
-        Delivered, on_delete=models.CASCADE, db_column="delivered_id")
-    prescribed_total = models.IntegerField(db_column="prescribed")
-    delivered_total = models.IntegerField(db_column="delivered")
-    total = models.IntegerField(db_column="total")
-
-    class Meta:
-        # managed = is_managed
-        db_table = 'mother_drug_losartan' if is_big_active else 'mat_drug_losartan'
-        verbose_name = "Dato Losartan"
-        verbose_name_plural = "Datos Losartan"
-
-    def __str__(self):
-        return "%s -- %s -- %s -- %s" % (
-            self.entity, self.medical_unit, self.entity_week, self.delivered)
-
-
 class MotherDrugPriority(models.Model):
     from geo.models import CLUES, Delegation, Entity
     from inai.models import EntityWeek

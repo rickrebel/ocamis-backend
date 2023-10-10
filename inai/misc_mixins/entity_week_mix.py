@@ -45,11 +45,13 @@ class FromAws:
         from django.utils import timezone
         from inai.models import TableFile
         from data_param.models import Collection
-        base_models = ["drug", "rx"]
+        base_models = ["drug", "rx", "complement_drug", "complement_rx"]
         new_table_files = []
         drugs_count = kwargs.get("drugs_count", 0)
         for model in base_models:
             file_path = kwargs.get(f"{model}_path")
+            if not file_path:
+                continue
             collection = Collection.objects.get(snake_name=model)
             table_file, c = TableFile.objects.get_or_create(
                 # entity_week=self.entity_week,

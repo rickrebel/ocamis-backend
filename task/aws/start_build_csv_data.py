@@ -1,5 +1,6 @@
 import io
 import csv
+from datetime import datetime, timedelta
 import uuid as uuid_lib
 import json
 import unidecode
@@ -31,7 +32,6 @@ def lambda_handler(event, context):
 class MatchAws:
 
     def __init__(self, init_data: dict, context):
-        from datetime import datetime
         for key, value in init_data.items():
             setattr(self, key, value)
 
@@ -69,6 +69,18 @@ class MatchAws:
                                if cat.get("app") == "med_cat"]
         self.real_med_cat_models = [cat["name"] for cat in self.med_cat_models
                                     if cat["model"] in self.real_models]
+        self.real_complement_models = []
+        complement_models = {
+            "ComplementDrug": "complement_drug",
+            "ComplementRx": "complement_rx",
+        }
+        for formal_name, model_name in complement_models.items():
+            if formal_name in self.real_models:
+                self.real_complement_models.append(model_name)
+        # print("real_complement_models", self.real_complement_models)
+        self.models_to_save = ["drug", "rx"]
+        self.models_to_save.extend(self.real_complement_models)
+
         self.med_cat_flat_fields = {}
         self.initial_data = {}
         for cat_name in self.real_med_cat_models:
@@ -132,6 +144,7 @@ class MatchAws:
                          "clasif_assortment" in field["name"]]
 
         self.global_delivered = None
+        self.available_deliveries = init_data.get("available_deliveries", {})
         if len(amount_fields) == 1:
             amount_field = amount_fields[0]
             if amount_field["name"] == "delivered_amount":
@@ -235,6 +248,7 @@ class MatchAws:
 
         discarded_count = self.row_start_data - 1
 
+        # print("models_to_save", self.models_to_save)
         for row in all_data[self.row_start_data - 1:]:
             required_cols_in_null = [col for col in required_cols
                                      if not row[col["position"]]]
@@ -254,15 +268,18 @@ class MatchAws:
                 "row_seq": int(row[0]),
                 "uuid": uuid,
             }
+            if "complement_drug" in self.models_to_save:
+                available_data["uuid_comp_drug"] = str(uuid_lib.uuid4())
+                available_data["drug_id"] = uuid
+
             available_data = self.special_available_data(
                 available_data, row, special_cols)
 
-            available_data, some_date = self.complement_available_data(
+            available_data, some_date = self.basic_available_data(
                 available_data, row)
 
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"
-                # print("some_date", some_date)
                 # print("row", row)
                 self.append_missing_row(row, error)
                 continue
@@ -294,10 +311,11 @@ class MatchAws:
                 csvs_by_date[complex_date] = io.StringIO()
                 buffers_by_date[complex_date] = csv.writer(
                     csvs_by_date[complex_date], delimiter="|")
-                headers_1 = self.build_headers("drug", need_return=True)
-                headers_2 = self.build_headers("rx", need_return=True)
-                headers_1.extend(headers_2)
-                buffers_by_date[complex_date].writerow(headers_1)
+                headers = []
+                for model_name in self.models_to_save:
+                    headers.extend(
+                        self.build_headers(model_name, need_return=True))
+                buffers_by_date[complex_date].writerow(headers)
 
             available_data["iso_year"] = iso_year
             available_data["iso_week"] = iso_week
@@ -311,10 +329,17 @@ class MatchAws:
             self.months.add((year, month))
 
             available_data, error = self.calculate_delivered(available_data)
-            if error:
-                self.append_missing_row(row, error)
-                continue
             delivered = available_data.get("delivered_id")
+            # if delivered and not error:
+
+            if error:
+                if "warning" in error:
+                    self.append_missing_field(
+                        row, classify_id, delivered, error=error,
+                        drug_uuid=uuid)
+                else:
+                    self.append_missing_row(row, error)
+                    continue
             delivered_write = None
             if classify_id:
                 delivered_write = available_data.get("clasif_assortment_presc")
@@ -364,6 +389,8 @@ class MatchAws:
                 uuid_folio = str(uuid_lib.uuid4())
                 available_data["uuid_folio"] = uuid_folio
                 available_data["rx_id"] = uuid_folio
+                if "complement_rx" in self.models_to_save:
+                    available_data["uuid_comp_rx"] = str(uuid_lib.uuid4())
                 available_data["delivered_final_id"] = delivered
                 available_data["folio_ocamis"] = folio_ocamis
                 available_data["folio_document"] = folio_document
@@ -377,25 +404,19 @@ class MatchAws:
                 all_rx[complex_date][folio_ocamis] = available_data
                 curr_rx = available_data
 
-            current_drug_data = []
+            current_row_data = []
             self.last_valid_row = available_data.copy()
-            for drug_field in self.model_fields["drug"]:
-                value = available_data.get(drug_field["name"], None)
-                if value is None:
-                    value = locals().get(drug_field["name"])
-                # value = available_data.get(drug_field, locals().get(drug_field))
-                current_drug_data.append(value)
-            current_rx_data = []
-            # curr_rx = all_rx.get(folio)
-            for field_rx in self.model_fields["rx"]:
-                value = curr_rx.get(field_rx["name"], None)
-                if value is None:
-                    value = locals().get(field_rx["name"])
-                current_rx_data.append(value)
-            current_drug_data.extend(current_rx_data)
-            # self.buffers["rx"][week].writerow(current_rx_data)
-            # all_data = current_rx_data.extend(current_drug_data)
-            buffers_by_date[complex_date].writerow(current_drug_data)
+            for model_name in self.models_to_save:
+                is_complement = "complement" in model_name
+                for field in self.model_fields[model_name]:
+                    field_name = field["name"]
+                    value = available_data.get(field_name, None)
+                    if value is None and is_complement:
+                        value = available_data.get(f"{model_name}_{field_name}", None)
+                    if value is None:
+                        value = locals().get(field_name, None)
+                    current_row_data.append(value)
+            buffers_by_date[complex_date].writerow(current_row_data)
             success_drugs_count += 1
             totals_by_date[complex_date]["drugs_count"] += 1
             # if len(all_rx) > self.sample_size:
@@ -714,8 +735,7 @@ class MatchAws:
             available_data[ceil_col["name"]] = ceil_col["final_value"]
         return available_data
 
-    def complement_available_data(self, available_data, row):
-        from datetime import datetime, timedelta
+    def basic_available_data(self, available_data, row):
         import re
 
         some_date = None
@@ -813,7 +833,7 @@ class MatchAws:
                                     value = datetime(1899, 12, 30) + timedelta(
                                         days=days, seconds=seconds)
                                 elif string_format == "UNIX":
-                                    value = datetime.fromtimestamp(value)
+                                    value = datetime.fromtimestamp(int(value))
                                 else:
                                     value = datetime.strptime(value, string_format)
                                     # print("value final: ", value)
@@ -832,7 +852,10 @@ class MatchAws:
                     #     value = datetime.strptime(value, self.string_date)
                     #     self.last_date_formatted = value
                     if not some_date or field["name"] == "date_delivery":
-                        some_date = value
+                        if some_date and same_group_data:
+                            pass
+                        else:
+                            some_date = value
                         # print("some_date", some_date)
                 elif field["data_type"] == "Integer":
                     try:
@@ -854,7 +877,8 @@ class MatchAws:
                 error = "No se pudo convertir a %s" % field["data_type"]
             if value and not error:
                 regex_format = field.get("regex_format")
-                if regex_format:
+                has_own_key = field.get("has_own_key")
+                if regex_format and not has_own_key:
                     if not re.match(regex_format, value):
                         error = "No se validó con el formato de %s" % field["name"]
                 elif field.get("max_length"):
@@ -894,9 +918,22 @@ class MatchAws:
         data_values = []
         is_med_unit = cat_name == "medical_unit"
         is_medicament = cat_name == "medicament"
+        own_key_alt = None
         for flat_field in flat_fields:
             field_name = flat_field["name"]
             value = available_data.get(f"{cat_name}_{field_name}", None)
+            if is_med_unit or is_medicament:
+                is_key = field_name in ["key2", "clues_key"]
+                has_own_key = flat_field.get("has_own_key")
+                if value and is_key and has_own_key:
+                    regex_format = flat_field["regex_format"]
+                    if not re.match(regex_format, value):
+                        own_key_alt = value
+                        all_values.append(None)
+                        continue
+                is_own = field_name.startswith("own_")
+                if not value and own_key_alt and is_own:
+                    value = own_key_alt
             if value and is_medicament:
                 if field_name == "key2":
                     value = value.replace(".", "")
@@ -929,11 +966,12 @@ class MatchAws:
         return available_data
 
     def calculate_delivered(self, available_data):
-        available_delivered = [
-            "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
-            "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
-            "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA",
-            "SURTIDO COMPLET", "NEGADO"]
+
+        # available_delivered = [
+        #     "ATENDIDA", "CANCELADA", "NEGADA", "PARCIAL", "SURTIDO COMPLET0",
+        #     "SURTIDO INCOMPLETO", "RECETA NO SURTIDA", "SURTIDO COMPLETO",
+        #     "SURTIDA PARC O NO SURTIDA", "SURTIDA", "EN CEROS", "COMPLETA",
+        #     "SURTIDO COMPLET", "NEGADO"]
         # DISPENSADA, NO DISPENSADA
 
         class_presc = available_data.get("clasif_assortment")
@@ -943,7 +981,8 @@ class MatchAws:
             class_presc = text_normalizer(class_presc)
         is_cancelled = class_presc == "CANCELADA"
         if class_presc:
-            if class_presc not in available_delivered:
+            # if class_presc not in available_delivered:
+            if class_presc not in self.available_deliveries:
                 error = f"Clasificación de surtimiento no contemplada; {class_presc}"
                 return available_data, error
         prescribed_amount = available_data.get("prescribed_amount")
@@ -1009,6 +1048,11 @@ class MatchAws:
         else:
             return available_data, "No se puede determinar el status de entrega"
         available_data["delivered_id"] = delivered
+        if class_presc:
+            if delivered != self.available_deliveries[class_presc]:
+                error = (f"warning: El status escrito '{class_presc}' no"
+                        f" coincide con el status calculado: '{delivered}'")
+                return available_data, error
         return available_data, None
 
     def delegation_match(self, available_data):
@@ -1061,6 +1105,8 @@ class MatchAws:
     def append_missing_field(
             self, row, name_column_id, original_value, error, drug_uuid=None):
         missing_row_id = self.append_missing_row(row, drug_id=drug_uuid)
+        if type(original_value) == datetime:
+            original_value = original_value.strftime("%Y-%m-%d %H:%M:%S")
         missing_field = []
         uuid = str(uuid_lib.uuid4())
         inserted = False

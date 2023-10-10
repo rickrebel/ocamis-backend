@@ -233,7 +233,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
     @action(methods=["get"], detail=False, url_path='filter')
     def filter(self, request, **kwargs):
-        from data_param.models import FileControl
+        from data_param.models import FileControl, CleanFunction
         from inai.models import Petition
         import json
         limiters = request.query_params.get("limiters", None)
@@ -242,6 +242,9 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             "data_group",
             "columns",
             "columns__column_transformations",
+            "columns__column_transformations__clean_function",
+            "file_transformations",
+            "file_transformations__clean_function",
             "agency",
         ).order_by("data_group__name", "agency__acronym", "name")
         total_count = 0
@@ -262,6 +265,14 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             stage = limiters.get("stage", None)
             if stage is not None:
                 all_filters["petition_file_control__data_files__stage_id"] = stage
+            transformation = limiters.get("transformation", None)
+            if transformation is not None:
+                clean_function = CleanFunction.objects.get(id=transformation)
+                if clean_function.for_all_data:
+                    text = "file_transformations__clean_function_id"
+                else:
+                    text = "columns__column_transformations__clean_function_id"
+                all_filters[text] = transformation
             status_id = limiters.get("status", None)
             if status_id is not None:
                 all_filters["petition_file_control__data_files__status_id"] = status_id

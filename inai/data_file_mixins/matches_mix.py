@@ -168,11 +168,24 @@ class Match:
                 final_dict["name"] = global_obj.name,
             return final_dict
 
+        def build_available_deliveries():
+            from med_cat.models import Delivered
+            all_deliveries = Delivered.objects.filter(
+                alternative_names__isnull=False)
+            deliveries = {}
+            for delivery in all_deliveries:
+                current_deliveries = delivery.alternative_names.split(",")
+                for current_delivery in current_deliveries:
+                    delivered_name = current_delivery.strip()
+                    deliveries[delivered_name] = delivery.hex_hash
+            return deliveries
+
         final_lap = -1 if is_prepare else self.lap
         init_data = {
             "file_name_simple": self.data_file.file.name.split(".")[0],
             "global_clues": build_global_geo(self.global_clues),
             "global_delegation": build_global_geo(self.global_delegation),
+            "available_deliveries": build_available_deliveries(),
             "decode": self.file_control.decode,
             "hash_null": hash_null,
             "delimiter": self.delimiter,

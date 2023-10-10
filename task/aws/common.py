@@ -65,8 +65,20 @@ def send_simple_response(event, context, errors=None, result=None):
         errors = []
     if not result:
         result = {}
+    else:
+        print("result:", result)
+    #     try:
+    #         json.dumps(result)
+    #         print("serializable result ok")
+    #     except Exception as e:
+    #         print("error serializable result", e)
     result["success"] = bool(not errors)
     result["errors"] = errors
+    # try:
+    #     json.dumps(errors)
+    #     print("serializable errors ok")
+    # except Exception as e:
+    #     print("error serializable errors", e)
     result_data = {
         "result": result,
         "request_id": context.aws_request_id,
