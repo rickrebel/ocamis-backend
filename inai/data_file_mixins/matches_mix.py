@@ -176,7 +176,7 @@ class Match:
             for delivery in all_deliveries:
                 current_deliveries = delivery.alternative_names.split(",")
                 for current_delivery in current_deliveries:
-                    delivered_name = current_delivery.strip()
+                    delivered_name = current_delivery.strip().upper()
                     deliveries[delivered_name] = delivery.hex_hash
             return deliveries
 
