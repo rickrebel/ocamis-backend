@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from .models import AsyncTask, Platform
+from .models import AsyncTask, Platform, CutOff, Step
 from classify_task.models import StatusTask, TaskFunction, Stage, UserProfile
 
 
@@ -144,7 +144,6 @@ class StatusTaskAdmin(admin.ModelAdmin):
         "name",
         "public_name",
         "order",
-        "description",
         "color",
         "icon",
         "is_completed",
@@ -170,15 +169,16 @@ class TaskFunctionAdmin(admin.ModelAdmin):
 class StageAdmin(admin.ModelAdmin):
     list_display = [
         "name",
-        "description",
+        # "description",
         "public_name",
+        "stage_group",
         "order",
         "icon",
-        "next_stage",
+        # "next_stage",
         "main_function",
         # "retry_function",
     ]
-    list_editable = ["order"]
+    list_editable = ["order", "stage_group", "icon"]
 
 
 class PlatformAdmin(admin.ModelAdmin):
@@ -207,6 +207,20 @@ class CustomUserAdmin(UserAdmin):
                     "is_active", "is_superuser"]
 
 
+class StepInline(admin.TabularInline):
+    model = Step
+    extra = 0
+
+
+class CutOffAdmin(admin.ModelAdmin):
+    list_display = [
+        "entity",
+        "last_entity_month",
+    ]
+    raw_id_fields = ["entity", "last_entity_month"]
+    inlines = [StepInline]
+
+
 # admin.site.unregister(User)
 # admin.site.unregister(Token)
 # ocamis_admin_site.register(User, CustomUserAdmin)
@@ -217,3 +231,4 @@ ocamis_admin_site.register(TaskFunction, TaskFunctionAdmin)
 ocamis_admin_site.register(Stage, StageAdmin)
 # ocamis_admin_site.register(Platform, PlatformAdmin)
 ocamis_admin_site.register(Platform)
+ocamis_admin_site.register(CutOff, CutOffAdmin)

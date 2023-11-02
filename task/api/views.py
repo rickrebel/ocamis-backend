@@ -2,10 +2,12 @@ from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from api.mixins import (
-    MultiSerializerListRetrieveMix as ListRetrieveView)
+    MultiSerializerListRetrieveMix as ListRetrieveView,
+    MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateView)
+
 
 from task.api import serializers
-from task.models import AsyncTask
+from task.models import AsyncTask, CutOff, Step
 
 prefetch_async = [
     "data_file",
@@ -99,3 +101,73 @@ class AsyncTaskViewSet(ListRetrieveView):
             "last_task": AsyncTask.objects.first().date_start.strftime("%Y-%m-%d %H:%M:%S"),
         }
         return Response(data, status=status.HTTP_200_OK)
+
+
+class CutOffViewSet(ListRetrieveView):
+    queryset = CutOff.objects.all().prefetch_related(
+        "steps", "last_entity_month")
+    serializer_class = serializers.CutOffSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "list": serializers.CutOffSerializer,
+        "retrieve": serializers.CutOffSerializer,
+    }
+
+    def get_queryset(self):
+        return CutOff.objects.all().prefetch_related(
+            "steps", "last_entity_month")
+
+    def create(self, request, *args, **kwargs):
+        from inai.models import EntityMonth
+        from classify_task.models import Stage
+        from category.models import StatusControl
+        year = request.data.get("year")
+        month = request.data.get("month")
+        year_month = f"{year}-{str(month).zfill(2)}"
+        entity_id = request.data.get("entity_id")
+        entity_month = EntityMonth.objects.filter(
+            year_month=year_month, entity_id=entity_id).first()
+        cut_off = CutOff.objects.create(
+            last_entity_month=entity_month, entity_id=entity_id)
+        entity_stages = Stage.objects\
+            .filter(stage_group__contains="entity-")\
+            .order_by("-order")
+        initial_status = StatusControl.objects.get(
+            name="initial", group="register")
+        for stage in entity_stages:
+            Step.objects.get_or_create(
+                cut_off=cut_off, stage=stage, status_opera=initial_status)
+        new_cut_off = CutOff.objects.get(id=cut_off.id)
+        serializer_cut_off = serializers.CutOffSerializer(new_cut_off).data
+        return Response(serializer_cut_off, status=status.HTTP_201_CREATED)
+
+
+class StepViewSet(ListRetrieveUpdateView):
+    queryset = Step.objects.all()
+    serializer_class = serializers.StepSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    action_serializers = {
+        "list": serializers.StepSerializer,
+        "retrieve": serializers.StepSerializer,
+    }
+
+    def get_queryset(self):
+        return Step.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        from django.utils import timezone
+        step = self.get_object()
+        data_step = request.data
+        print("data_step", data_step)
+        data_step["user"] = request.user.id
+        data_step["last_update"] = timezone.now()
+        print("step", step)
+        print("step.user_id", step.user_id)
+        serializer_step = self.get_serializer_class()(
+            step, data=data_step)
+        if serializer_step.is_valid():
+            serializer_step.save()
+            return Response(serializer_step.data)
+        else:
+            return Response(
+                serializer_step.errors, status=status.HTTP_400_BAD_REQUEST)

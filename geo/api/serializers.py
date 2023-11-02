@@ -4,6 +4,7 @@ from report.models import Responsable
 from geo.models import (
     State, Institution, CLUES, Alliances, Municipality, Disease, Agency,
     Entity, Delegation)
+from task.api.serializers import CutOffSerializer
 # from report.api.serializers import ResponsableListSerializer
 # from inai.models import EntityMonth
 
@@ -75,12 +76,13 @@ class EntityCatSerializer(serializers.ModelSerializer):
     institution = InstitutionSerializer(read_only=True)
     state = StateSimpleSerializer(read_only=True)
     clues = CLUESSerializer(read_only=True, source="ent_clues", many=True)
+    cut_offs = CutOffSerializer(many=True)
 
     class Meta:
         model = Entity
         fields = [
             "id", "institution", "state", "clues", "name", "entity_type",
-            "acronym", "notes", "assigned_to", "status_opera"]
+            "acronym", "notes", "assigned_to", "status_opera", "cut_offs"]
 
 
 class EntitySerializer(serializers.ModelSerializer):

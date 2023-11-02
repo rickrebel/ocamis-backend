@@ -41,14 +41,14 @@ class CatalogView(views.APIView):
         # data = {}
         agencies_query = Agency.objects.filter().prefetch_related(
             "institution", "state", "clues")
-        entities_query = Entity.objects.filter().prefetch_related(
-            "institution", "state", "ent_clues")
+        entities_query = Entity.objects.all().prefetch_related(
+            "institution", "state", "ent_clues", "cut_offs")
         final_fields_query = FinalField.objects.filter(dashboard_hide=False)
 
         data = {
             "agencies": AgencySerializer(agencies_query, many=True).data,
-            "entities": EntitySerializer(Entity.objects.all(), many=True).data,
-            "entities2": EntityCatSerializer(Entity.objects.all(), many=True).data,
+            # "entities": EntitySerializer(Entity.objects.all(), many=True).data,
+            "entities2": EntityCatSerializer(entities_query, many=True).data,
             # CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,
