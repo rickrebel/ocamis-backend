@@ -5,7 +5,7 @@ from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
 from inai.models import (
-    Petition, DataFile, ReplyFile, SheetFile, EntityWeek, EntityMonth,)
+    Petition, DataFile, ReplyFile, SheetFile, TableFile, EntityWeek, EntityMonth)
 from geo.models import Entity
 from data_param.models import FileControl
 from classify_task.models import StatusTask, TaskFunction
@@ -176,3 +176,22 @@ class Platform(models.Model):
 
     def __str__(self):
         return self.version
+
+
+class FilePath(models.Model):
+    reply_file = models.ForeignKey(
+        ReplyFile, on_delete=models.CASCADE, blank=True, null=True,
+        related_name="file_paths")
+    data_file = models.ForeignKey(
+        DataFile, on_delete=models.CASCADE, blank=True, null=True)
+    sheet_file = models.ForeignKey(
+        SheetFile, on_delete=models.CASCADE, blank=True, null=True)
+    table_file = models.ForeignKey(
+        TableFile, on_delete=models.CASCADE, blank=True, null=True)
+    path_to_file = models.CharField(
+        max_length=400, verbose_name="Ruta al archivo deseable")
+    path_in_bucket = models.CharField(
+        max_length=400, verbose_name="Ruta al archivo actual")
+    size = models.IntegerField(blank=True, null=True)
+    is_correct_path = models.BooleanField(blank=True, null=True)
+
