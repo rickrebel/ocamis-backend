@@ -35,11 +35,11 @@
 #     # from django.contrib.contenttypes.models import ContentType
 #
 #     dat = SheetFile.objects.first()
-#     # path = set_upload_path(dat, dat.file.name)
+#     path = set_upload_path(dat, dat.file.name)
 #     # content_type = ContentType.objects.get_for_model(dat)
 #     # model_name = content_type.model
-#     # print("path del primer archivo data file: ", path)
-#     print("url guardada en el campo file: ", dat.file)
+#     print("path del primer archivo data file: ", path)
+#     # print("url guardada en el campo file: ", dat.file)
 #     # print("Model name: ", model_name)
 
 
@@ -128,6 +128,7 @@
 
 def get_bucket_files():
     import boto3
+    import time
     from django.conf import settings
     from inai.models import (
         DataFile, ReplyFile, TableFile, SheetFile, set_upload_path)
@@ -153,34 +154,45 @@ def get_bucket_files():
     }
 
     # all_bucket_files = my_bucket.objects.all()
-    # all_bucket_files = my_bucket.objects.filter(Prefix="data_files/")
-    all_bucket_files = my_bucket.objects.filter(
-        Prefix="data_files/estatal/isem/202210")
+    all_bucket_files = my_bucket.objects.filter(Prefix="data_files/")
+    # all_bucket_files = my_bucket.objects.filter(
+    #     Prefix="data_files/estatal/isem/202210")
+    counter = 0
+
+    start_time = time.time()
 
     for obj in all_bucket_files:
         key = obj.key.replace('data_files/', '')
         if not any(excluded_dir in key for excluded_dir in excluded_dirs):
-            # files_to_check.append(obj.key)
-            # real_path = "algo"
             final_obj = None
-            # alemusp falta size del meta, y ambas rutas
             args = {'path_in_bucket': key, 'size': obj.size}
             for model_name, model in model_mapping.items():
                 try:
                     final_obj = model.objects.get(file=key)
                     args[model_name] = final_obj
-                    # alemusp comparación de set_upload_path
-                    path_in_db = set_upload_path(final_obj, final_obj.file.name)
-                    args['path_fo_file'] = path_in_db
-                    # alemusp Falta hacer la verificación del formato de ambos
-                    args['is_correct_path'] = key == path_in_db
-                    print("argumentos a guardar: ", args.items())
+                    # path_in_db = set_upload_path(final_obj, final_obj.file.name)
+                    # args['path_to_file'] = path_in_db
+                    args['path_to_file'] = final_obj.file.name
+                    # args['is_correct_path'] = key == path_in_db
+                    args['is_correct_path'] = key == final_obj.file.name
+                    # print("argumentos a guardar: ", args.items())
+
                     break
                 except:
                     pass
+            counter += 1
+            FilePath.objects.create(**args)
+        if counter == 10000:
+            break
 
-            # FilePath.objects.create(**args)
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Tiempo de ejecución: {execution_time} segundos")
 
+
+def clean_file_path():
+    from task.models import FilePath
+    FilePath.objects.all().delete()
 
 
 # test con la carpeta data_files/estatal/isem/202210 y el archivo específico
