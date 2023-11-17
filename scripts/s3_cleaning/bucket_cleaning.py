@@ -153,6 +153,19 @@ def get_bucket_files():
         'table_file': TableFile
     }
 
+    model_dicts = {
+        'data_file': dict(),
+        'reply_file': dict(),
+        'sheet_file': dict(),
+        'table_file': dict()
+    }
+
+    for model_name, model in model_mapping.items():
+        model_objects = model.objects.all()
+        for model_obj in model_objects:
+            args = {model_obj.file: model_obj}
+            model_dicts[model_name].update(args)
+
     # all_bucket_files = my_bucket.objects.all()
     all_bucket_files = my_bucket.objects.filter(Prefix="data_files/")
     # all_bucket_files = my_bucket.objects.filter(
@@ -166,20 +179,29 @@ def get_bucket_files():
         if not any(excluded_dir in key for excluded_dir in excluded_dirs):
             final_obj = None
             args = {'path_in_bucket': key, 'size': obj.size}
-            for model_name, model in model_mapping.items():
-                try:
-                    final_obj = model.objects.get(file=key)
-                    args[model_name] = final_obj
-                    # path_in_db = set_upload_path(final_obj, final_obj.file.name)
-                    # args['path_to_file'] = path_in_db
-                    args['path_to_file'] = final_obj.file.name
-                    # args['is_correct_path'] = key == path_in_db
-                    args['is_correct_path'] = key == final_obj.file.name
-                    # print("argumentos a guardar: ", args.items())
-
-                    break
-                except:
-                    pass
+            for model_name, dicc in model_dicts.items():
+                    try:
+                        final_obj = dicc.get(key)
+                        args[model_name] = final_obj
+                        args['path_to_file'] = final_obj.file.name
+                        args['is_correct_path'] = key == final_obj.file.name
+                        break
+                    except:
+                        pass
+            # for model_name, model in model_mapping.items():
+            #     try:
+            #         final_obj = model.objects.get(file=key)
+            #         args[model_name] = final_obj
+            #         # path_in_db = set_upload_path(final_obj, final_obj.file.name)
+            #         # args['path_to_file'] = path_in_db
+            #         args['path_to_file'] = final_obj.file.name
+            #         # args['is_correct_path'] = key == path_in_db
+            #         args['is_correct_path'] = key == final_obj.file.name
+            #         # print("argumentos a guardar: ", args.items())
+            #
+            #         break
+            #     except:
+            #         pass
             counter += 1
             FilePath.objects.create(**args)
         if counter == 10000:
@@ -194,6 +216,32 @@ def clean_file_path():
     from task.models import FilePath
     FilePath.objects.all().delete()
 
+
+def dummy_dicts():
+    from inai.models import (
+        DataFile, ReplyFile, TableFile, SheetFile)
+
+    model_mapping = {
+        'data_file': DataFile,
+        'reply_file': ReplyFile,
+        'sheet_file': SheetFile,
+        'table_file': TableFile
+    }
+
+    model_dicts = {
+        'data_file': dict(),
+        'reply_file': dict(),
+        'sheet_file': dict(),
+        'table_file': dict()
+    }
+
+    for model_name, model in model_mapping.items():
+        model_objects = model.objects.all()
+        for model_obj in model_objects[:10]:
+            args = {model_obj.file: model_obj}
+            model_dicts[model_name].update(args)
+
+    print("diccionarios dummy: ", model_dicts.items())
 
 # test con la carpeta data_files/estatal/isem/202210 y el archivo específico
 # correspondencia 926083.xlsx
