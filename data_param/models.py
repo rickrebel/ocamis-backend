@@ -438,18 +438,15 @@ class NameColumn (models.Model):
 
 class Transformation(models.Model):
 
-    # clean_function = models.IntegerField(blank=True, null=True)
     clean_function = models.ForeignKey(
         CleanFunction,
         on_delete=models.CASCADE,
         verbose_name="Función de limpieza o transformación")
-    # file_control = models.IntegerField(blank=True, null=True)
     file_control = models.ForeignKey(
         FileControl,
         related_name="file_transformations",
         on_delete=models.CASCADE, blank=True, null=True,
         verbose_name="Grupo de control")
-    # name_column = models.IntegerField(blank=True, null=True)
     name_column = models.ForeignKey(
         NameColumn,
         related_name="column_transformations",

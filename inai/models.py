@@ -351,27 +351,6 @@ class EntityMonth(models.Model):
         verbose_name_plural = "8. Meses-proveedores"
 
 
-class Step(models.Model):
-    entity_month = models.ForeignKey(
-        EntityMonth, on_delete=models.CASCADE,
-        related_name="steps",
-        verbose_name="Mes-proveedor")
-    stage = models.ForeignKey(
-        Stage, on_delete=models.CASCADE,
-        verbose_name="Etapa")
-    status = models.ForeignKey(
-        StatusTask, on_delete=models.CASCADE,
-        verbose_name="Status")
-    error_process = JSONField(blank=True, null=True)
-
-    def __str__(self):
-        return "%s -- %s" % (self.entity_month, self.stage)
-
-    class Meta:
-        verbose_name = "9. Paso"
-        verbose_name_plural = "9. Pasos"
-
-
 class PetitionMonth(models.Model):
     petition = models.ForeignKey(
         Petition,

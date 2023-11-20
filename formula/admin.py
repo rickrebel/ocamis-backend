@@ -58,6 +58,7 @@ class DeliveredAdmin(admin.ModelAdmin):
         "hex_hash",
         "name",
         "description",
+        "alternative_names",
     ]
 
 

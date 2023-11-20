@@ -301,7 +301,7 @@ def generate_imss_delegations():
 
 def get_file_csv(file_path):
     import io
-    with io.open(file_path, "r", encoding="latin-1") as file:
+    with io.open(file_path, "r", encoding="utf-8") as file:
         data = file.readlines()
         # rr_data_rows = data.split("\n")
         # headers = rr_data_rows.pop(0)
@@ -332,6 +332,52 @@ def find_lines_with_regex(file_path="fixture/catalogo_clues_issste.txt"):
     return not_found_clues
 
 
+def find_municipalities_with_regex(file_path="fixture/municipios_inegi_2023.txt"):
+    import re
+    from geo.models import Municipality, State
+    success_count = 0
+    regex_matches = 0
+    all_lines = get_file_csv(file_path)
+    not_found_muni = []
+    all_states = State.objects.all()
+    states_dict = {state.inegi_code: state.id for state in all_states}
+    all_municipalities = Municipality.objects.all()
+    municipalities_dict = {}
+    for municipality in all_municipalities:
+        mun_inegi = municipality.inegi_code
+        if len(mun_inegi) != 3:
+            mun_inegi = mun_inegi.zfill(3)
+            municipality.inegi_code = mun_inegi
+            municipality.save()
+        key = f"{municipality.state.inegi_code}-{mun_inegi}"
+        municipalities_dict[key] = municipality.id
+    regex_format = (r'^(\d{2})(\D+)\s(\d{3})\s([a-zA-Z\s]+?)'
+                    r'(?= Zona Libre de la Frontera Norte| Resto del País)')
+    for line in all_lines:
+        match = re.search(regex_format, line)
+        if not match:
+            continue
+        regex_matches += 1
+        entity_key = match.group(1)
+        municipality_key = match.group(3)
+        municipality_name = match.group(4)
+        key = f"{entity_key}-{municipality_key}"
+        if key not in municipalities_dict:
+            try:
+                success_count += 1
+                # Municipality(
+                Municipality.objects.create(
+                    inegi_code=municipality_key,
+                    name=municipality_name,
+                    state_id=states_dict[entity_key])
+                municipalities_dict[key] = True
+            except Exception as e:
+                not_found_muni.append([key, municipality_name, e])
+    print("success_count: ", success_count)
+    print("regex_matches: ", regex_matches)
+    print("not_found_muni: ", len(not_found_muni))
+    return not_found_muni
+
+
 # missing_clues = find_lines_with_regex()
-
-
+# missing_munis = find_municipalities_with_regex()

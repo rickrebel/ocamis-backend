@@ -72,6 +72,22 @@
     "create index if not exists formula_rx_medical_unit_id_27e254eb_like\n    on formula_rx (medical_unit_id varchar_pattern_ops);",
     "create index if not exists formula_drug_medicament_id_630af6c3_like\n    on formula_drug (medicament_id varchar_pattern_ops);",
 
+    "alter table formula_complementrx  \n add constraint formula_complementrx_pkey \n primary key (uuid)",
+    "alter table formula_complementrx  \n \nadd constraint formula_complementrx_age_check\n            check (age >= 0)",
+    "create index if not exists formula_complementrx_area_id_b0ff963e\n    on formula_complementrx (area_id);",
+    "alter table formula_complementrx  \n \nadd constraint formula_complementrx_area_id_b0ff963e_fk_med_cat_area_hex_hash\n   foreign key (area_id) references med_cat_area\n            deferrable initially deferred",
+    "create index if not exists formula_complementrx_diagnosis_id_b7888698\n    on formula_complementrx (diagnosis_id);",
+    "alter table formula_complementrx  \n \nadd constraint formula_complementrx_diagnosis_id_b7888698_fk_med_cat_d\n   foreign key (diagnosis_id) references med_cat_diagnosis\n            deferrable initially deferred",
+    "create index if not exists formula_complementrx_rx_id_02b25250\n    on formula_complementrx (rx_id);",
+    "alter table formula_complementrx  \n \nadd constraint formula_complementrx_rx_id_02b25250_fk_formula_rx_uuid_folio\n   foreign key (rx_id) references formula_rx\n            deferrable initially deferred;",
+
+    "alter table formula_complementdrug  \n add constraint formula_complementdrug_pkey \n primary key (uuid)",
+    "create index if not exists formula_complementdrug_drug_id_9274b9d5\n    on formula_complementdrug (drug_id);",
+    "alter table formula_complementdrug  \n \nadd constraint formula_complementdrug_drug_id_9274b9d5_fk_formula_drug_uuid\n   foreign key (drug_id) references formula_drug\n            deferrable initially deferred;",
+
+    "create index if not exists formula_complementrx_diagnosis_id_b7888698_like\n    on formula_complementrx (diagnosis_id varchar_pattern_ops);",
+    "create index if not exists formula_complementrx_area_id_b0ff963e_like\n    on formula_complementrx (area_id varchar_pattern_ops);",
+
     "alter table formula_documenttype  \n add constraint formula_documenttype_pkey \n primary key (name);",
     "create index if not exists formula_documenttype_name_ebbaa6b4_like\n    on formula_documenttype (name varchar_pattern_ops);",
     "alter table formula_medicalspeciality  \n add constraint formula_medicalspeciality_pkey \n primary key (id);"

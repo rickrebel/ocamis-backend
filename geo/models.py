@@ -166,7 +166,6 @@ class Entity(models.Model):
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores (Entities)"
 
-
 class CLUES(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
     # state = models.IntegerField()

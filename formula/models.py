@@ -137,50 +137,50 @@ class Drug(models.Model):
         return str(self.uuid)
 
 
-# class ComplementRx(models.Model):
-#     uuid = models.UUIDField(
-#         primary_key=True, default=uuid_lib.uuid4, editable=False)
-#     rx = models.ForeignKey(
-#         Rx, on_delete=models.CASCADE,
-#         related_name='complements')
-#     age = models.PositiveSmallIntegerField(blank=True, null=True)
-#     record = models.CharField(
-#         max_length=255, blank=True, null=True, verbose_name='Expediente')
-#     personal_number = models.CharField(
-#         max_length=80, blank=True, null=True, verbose_name='Número personal')
-#     gender = models.CharField(
-#         max_length=30, blank=True, null=True, verbose_name='Género')
-#     area = models.ForeignKey(
-#         Area, on_delete=models.CASCADE, blank=True, null=True)
-#     diagnosis = models.ForeignKey(
-#         Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
-#
-#     class Meta:
-#         verbose_name = "Complemento de Receta"
-#         verbose_name_plural = "Complementos de Receta"
-#
-#     def __str__(self):
-#         return str(self.uuid)
-#
-#
-# class ComplementDrug(models.Model):
-#     uuid = models.UUIDField(
-#         primary_key=True, default=uuid_lib.uuid4, editable=False)
-#     drug = models.ForeignKey(
-#         Drug, on_delete=models.CASCADE,
-#         related_name='complements')
-#     lote = models.CharField(
-#         max_length=80, blank=True, null=True, verbose_name='Lote')
-#     expiration_date = models.DateField(
-#         blank=True, null=True, verbose_name='Fecha de caducidad')
-#     total_price = models.FloatField(blank=True, null=True)
-#
-#     class Meta:
-#         verbose_name = "Insumos"
-#         verbose_name_plural = "Insumos (medicamentos)"
-#
-#     def __str__(self):
-#         return str(self.uuid)
+class ComplementRx(models.Model):
+    uuid_comp_rx = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
+    rx = models.ForeignKey(
+        Rx, on_delete=models.CASCADE,
+        related_name='complements')
+    age = models.PositiveSmallIntegerField(blank=True, null=True)
+    record = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name='Expediente')
+    personal_number = models.CharField(
+        max_length=80, blank=True, null=True, verbose_name='Número personal')
+    gender = models.CharField(
+        max_length=30, blank=True, null=True, verbose_name='Género')
+    area = models.ForeignKey(
+        Area, on_delete=models.CASCADE, blank=True, null=True)
+    diagnosis = models.ForeignKey(
+        Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Complemento de Receta"
+        verbose_name_plural = "Complementos de Receta"
+
+    def __str__(self):
+        return str(self.uuid)
+
+
+class ComplementDrug(models.Model):
+    uuid_comp_drug = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
+    drug = models.ForeignKey(
+        Drug, on_delete=models.CASCADE,
+        related_name='complements')
+    lote = models.CharField(
+        max_length=80, blank=True, null=True, verbose_name='Lote')
+    expiration_date = models.DateField(
+        blank=True, null=True, verbose_name='Fecha de caducidad')
+    total_price = models.FloatField(blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Insumos"
+        verbose_name_plural = "Insumos (medicamentos)"
+
+    def __str__(self):
+        return str(self.uuid)
 
 
 class MissingRow(models.Model):

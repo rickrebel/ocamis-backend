@@ -10,7 +10,7 @@ from inai.models import (
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
-    MultiSerializerCreateRetrieveMix as CreateRetrievView,
+    MultiSerializerCreateRetrieveMix as CreateRetrieveView,
     MultiSerializerModelViewSet)
 from rest_framework.exceptions import (PermissionDenied)
 
@@ -288,7 +288,7 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
         return Response(status=status.HTTP_200_OK)
 
 
-class PetitionFileControlViewSet(CreateRetrievView):
+class PetitionFileControlViewSet(CreateRetrieveView):
     queryset = PetitionFileControl.objects.all()
     serializer_class = serializers.PetitionFileControlFullSerializer
     permission_classes = [permissions.IsAdminUser]
@@ -337,7 +337,7 @@ class PetitionFileControlViewSet(CreateRetrievView):
         return move_and_duplicate(data_files, petition, request)
 
 
-class AscertainableViewSet(CreateRetrievView):
+class AscertainableViewSet(CreateRetrieveView):
     queryset = DataFile.objects.all()
     serializer_class = serializers.DataFileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -404,7 +404,7 @@ class AscertainableViewSet(CreateRetrievView):
         return Response(status=status.HTTP_200_OK)
 
 
-class EntityMonthViewSet(CreateRetrievView):
+class EntityMonthViewSet(CreateRetrieveView):
     queryset = EntityMonth.objects.all()
     serializer_class = serializers.EntityMonthSerializer
     permission_classes = [permissions.IsAuthenticated]

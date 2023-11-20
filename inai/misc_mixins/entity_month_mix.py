@@ -292,7 +292,9 @@ class FromAws:
         cursor = connection.cursor()
         exists_temp_tables = exist_temp_table(drug_table)
 
-        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+        formula_tables = ["rx", "drug", "missingrow", "missingfield",
+                          "complementrx", "complementdrug"]
+        for table_name in formula_tables:
             temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
             queries["create"].append(f"""
                 CREATE TABLE {temp_table}

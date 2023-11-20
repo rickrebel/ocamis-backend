@@ -250,7 +250,7 @@ def execute():
     spec_functions = [
         ("join_url", True),
         ("join_lines", True),
-        ("insert_between_months", False)
+        # ("insert_between_months", False)
     ]
     insert_from_json(
         petitions, inai_fields, 'inai', 'Petition', 'inai_open_search', 

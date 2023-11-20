@@ -5,10 +5,11 @@ from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
 from inai.models import (
-    Petition, DataFile, ReplyFile, SheetFile, TableFile, EntityWeek, EntityMonth)
+    Petition, DataFile, ReplyFile, SheetFile, TableFile, EntityWeek, EntityMonth,)
 from geo.models import Entity
 from data_param.models import FileControl
-from classify_task.models import StatusTask, TaskFunction
+from classify_task.models import StatusTask, TaskFunction, Stage
+from category.models import StatusControl
 
 
 class AsyncTask(models.Model):
@@ -195,3 +196,45 @@ class FilePath(models.Model):
     size = models.IntegerField(blank=True, null=True)
     is_correct_path = models.BooleanField(blank=True, null=True)
 
+
+class CutOff(models.Model):
+    entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE,
+        verbose_name="Entidad", related_name="cut_offs")
+    last_entity_month = models.ForeignKey(
+        EntityMonth, on_delete=models.CASCADE,
+        verbose_name="Mes de corte", blank=True, null=True)
+
+    def __str__(self):
+        return "%s - %s" % (self.entity, self.last_entity_month)
+
+    class Meta:
+        verbose_name = "Corte"
+        verbose_name_plural = "Cortes"
+
+
+class Step(models.Model):
+    cut_off = models.ForeignKey(
+        CutOff, on_delete=models.CASCADE,
+        verbose_name="Corte", related_name="steps")
+    stage = models.ForeignKey(
+        Stage, on_delete=models.CASCADE,
+        verbose_name="Etapa")
+    status_opera = models.ForeignKey(
+        StatusControl, on_delete=models.CASCADE,
+        verbose_name="Status", blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        verbose_name="Último usuario en modificar",
+        blank=True, null=True)
+    last_update = models.DateTimeField(
+        verbose_name="Última modificación", blank=True, null=True)
+
+    def __str__(self):
+        return "%s - %s" % (self.cut_off, self.stage)
+
+    class Meta:
+        verbose_name = "Paso"
+        verbose_name_plural = "Pasos"
+        ordering = ["-stage__order"]

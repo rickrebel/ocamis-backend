@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from task.models import AsyncTask
+from task.models import AsyncTask, CutOff, Step
 from classify_task.models import StatusTask, TaskFunction, Stage
 
 
@@ -93,4 +93,23 @@ class StageSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Stage
+        fields = "__all__"
+
+
+class StepSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Step
+        fields = "__all__"
+        ordering = ["-stage__order"]
+        read_only_fields = ["cut_off", "stage"]
+
+
+class CutOffSerializer(serializers.ModelSerializer):
+    from inai.api.serializers import EntityMonthSimpleSerializer
+    steps = StepSerializer(many=True, read_only=True)
+    last_entity_month = EntityMonthSimpleSerializer(read_only=True)
+
+    class Meta:
+        model = CutOff
         fields = "__all__"

@@ -7,7 +7,8 @@ class StatusTask(models.Model):
 
     name = models.CharField(max_length=80, primary_key=True)
     public_name = models.CharField(max_length=120, blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
+    # description = models.CharField(
+    #     blank=True, null=True, max_length=255, verbose_name="Descripción")
     order = models.IntegerField(default=5)
     icon = models.CharField(max_length=30, blank=True, null=True)
     color = models.CharField(max_length=30, blank=True, null=True)
@@ -73,11 +74,24 @@ class TaskFunction(models.Model):
         verbose_name_plural = "2. Funciones (tareas)"
 
 
+STAGE_GROUP_CHOICES = (
+    ("transformation", "Transformación"),
+    ("months", "Meses"),
+    ("entity", "Proveedor"),
+    ("entity-petition", "Proveedor (Solicitud)"),
+    ("entity-control", "Proveedor (Grupos de control)"),
+    ("entity-month", "Proveedor (Meses)"),
+)
+
+
 class Stage(models.Model):
     name = models.CharField(max_length=80, primary_key=True)
     public_name = models.CharField(max_length=120)
+    stage_group = models.CharField(
+        max_length=30, choices=STAGE_GROUP_CHOICES, blank=True, null=True)
     action_text = models.CharField(
         max_length=120, blank=True, null=True)
+    action_verb = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     order = models.IntegerField(default=5)
     icon = models.CharField(max_length=30, blank=True, null=True)
@@ -98,6 +112,18 @@ class Stage(models.Model):
     field_last_edit = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Campo de última edición")
+
+    def save(self, *args, **kwargs):
+        from task.models import Step
+        from geo.models import Entity
+        from category.models import StatusControl
+        if self.stage_group == "entity":
+            status_initial = StatusControl.objects.get(name="initial")
+            for entity in Entity.objects.all():
+                Step.objects.get_or_create(
+                    entity=entity, stage=self, status_opera=status_initial)
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.order}. {self.public_name or self.name}"

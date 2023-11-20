@@ -35,7 +35,8 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
     cursor = connection.cursor()
     print("START", datetime.now())
     valid_strings = [" on TABLE ", " table TABLE ", " index if exists TABLE"]
-    valid_tables = ["rx", "drug", "missingrow", "missingfield"]
+    valid_tables = ["rx", "drug", "missingrow", "missingfield",
+                    "complementrx", "complementdrug"]
     invalid_fields = ["lap_sheet_id", "sheet_file_id", "_like"]
     constraint_list = create_constrains if is_create \
         else reversed(delete_constrains)

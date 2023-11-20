@@ -10,7 +10,7 @@ from inai.models import (
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
-    MultiSerializerCreateRetrieveMix as CreateRetrievView,
+    MultiSerializerCreateRetrieveMix as CreateRetrieveView,
     MultiSerializerListRetrieveMix as ListRetrieveView)
 
 from rest_framework.exceptions import (PermissionDenied, ValidationError)
@@ -173,7 +173,7 @@ def move_and_duplicate(data_files, petition, request):
     return Response(data, status=status.HTTP_200_OK)
 
 
-class DataFileViewSet(CreateRetrievView):
+class DataFileViewSet(CreateRetrieveView):
     queryset = DataFile.objects.all()
     serializer_class = serializers.DataFileSerializer
     # permission_classes = [permissions.IsAuthenticated]
@@ -388,7 +388,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
         ]
 
         spec_functions = [
-            ("insert_between_months", False),
+            # ("insert_between_months", False),
             ("add_limit_complain", True),
         ]
         insert_from_json(
@@ -493,7 +493,7 @@ class OpenDataInaiViewSet(ListRetrieveView):
         spec_functions = [
             ("join_url", True),
             ("join_lines", True),
-            ("insert_between_months", False)
+            # ("insert_between_months", False)
         ]
         insert_from_json(
             petitions, inai_fields, 'inai', 'Petition', 'inai_open_search',

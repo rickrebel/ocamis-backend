@@ -1,12 +1,14 @@
 from django.urls import path, include
 from rest_framework import routers
-from task.api.views import AsyncTaskViewSet
+from task.api.views import AsyncTaskViewSet, CutOffViewSet, StepViewSet
 from task.views import (AWSMessage, AWSErrors, AWSSuccess)
 from task.api.views_channel import MessageSendAPIView
 
 router = routers.DefaultRouter()
 
 router.register(r'async_task', AsyncTaskViewSet)
+router.register(r'cut_off', CutOffViewSet)
+router.register(r'step', StepViewSet)
 
 urlpatterns = (
     # path('suscription_test', AWSErrors.as_view()),

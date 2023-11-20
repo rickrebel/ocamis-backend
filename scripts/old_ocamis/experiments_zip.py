@@ -73,3 +73,4 @@ def lambda_handler(event, context):
         all_new_files.append({"file": curr_file, "directory": directory})
 
     return {"files": all_new_files, "errors": all_errors}
+

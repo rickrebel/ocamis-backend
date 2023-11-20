@@ -42,6 +42,7 @@ def execute_async(current_task, params):
             class Context:
                 def __init__(self, request_id):
                     self.aws_request_id = request_id
+                    self.function_name = f"{function_name} in local"
             globals()[function_name](params, Context(request_id))
 
         t = threading.Thread(target=run_in_thread)
