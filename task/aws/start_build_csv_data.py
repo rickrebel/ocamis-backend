@@ -1,5 +1,6 @@
 import io
 import csv
+import math
 from datetime import datetime, timedelta
 import uuid as uuid_lib
 import json
@@ -966,18 +967,24 @@ class MatchAws:
         return available_data
 
     def calculate_delivered(self, available_data):
+        import math
 
-        class_presc = available_data.get("clasif_assortment")
-        if not class_presc:
-            class_presc = available_data.get("clasif_assortment_presc")
-        else:
-            class_presc = text_normalizer(class_presc)
-        is_cancelled = class_presc == "CANCELADA"
-        if class_presc:
-            # if class_presc not in available_delivered:
-            if class_presc not in self.available_deliveries:
-                error = f"Clasificación de surtimiento no contemplada; {class_presc}"
-                return available_data, error
+        def get_and_normalize(field_name):
+            err = None
+            value = available_data.get(field_name)
+            if value:
+                value = text_normalizer(value)
+                if value not in self.available_deliveries:
+                    err = f"Clasificación de surtimiento no contemplada; {value}"
+            return value, err
+
+        class_med, error1 = get_and_normalize("clasif_assortment")
+        class_presc, error2 = get_and_normalize("clasif_assortment_presc")
+        errors = [error for error in [error1, error2] if error]
+        final_class = class_med or class_presc
+        if errors:
+            return available_data, errors[0]
+        is_cancelled = final_class == "CANCELADA"
         prescribed_amount = available_data.get("prescribed_amount")
 
         def identify_errors(av_data, amount, err_text):
@@ -991,6 +998,33 @@ class MatchAws:
                     av_data["delivered_id"] = "cancelled"
                 elif self.global_delivered:
                     pass
+                elif err_text == "entregada" and class_med or class_presc:
+                    value = None
+                    real_class = self.available_deliveries[final_class]
+                    if real_class in ['cancelled', 'denied']:
+                        value = 0
+                    elif real_class == 'complete':
+                        value = prescribed_amount
+                    elif real_class == 'partial':
+                        # print("final_class", final_class)
+                        # print("real_class", real_class)
+                        # print("prescribed_amount", prescribed_amount)
+                        # print("class_med", class_med)
+                        # print("class_presc", class_presc)
+                        if class_med:
+                            value = int(math.floor(prescribed_amount / 2))
+                        else:
+                            value = prescribed_amount
+                            real_class = 'forced_partial'
+                        # print("value", value)
+                        # print("real_class", real_class)
+                        # print("------")
+                    if value is not None:
+                        av_data["delivered_amount"] = value
+                        av_data["delivered_id"] = real_class
+                    else:
+                        err = f"No se puede determinar el status de entrega; " \
+                                f"No encontramos la cantidad {err_text}"
                 else:
                     err = f"No se puede determinar el status de entrega; " \
                           f"No encontramos la cantidad {err_text}"
@@ -1041,10 +1075,10 @@ class MatchAws:
         else:
             return available_data, "No se puede determinar el status de entrega"
         available_data["delivered_id"] = delivered
-        if class_presc:
-            if delivered != self.available_deliveries[class_presc]:
-                error = (f"warning: El status escrito '{class_presc}' no"
-                        f" coincide con el status calculado: '{delivered}'")
+        if final_class:
+            if delivered != self.available_deliveries[final_class]:
+                error = (f"warning: El status escrito '{final_class}' no"
+                         f" coincide con el status calculado: '{delivered}'")
                 return available_data, error
         return available_data, None
 

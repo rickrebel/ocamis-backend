@@ -13,7 +13,9 @@ def obtain_names_from_s3(
         's3', aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key)
     my_bucket = s3.Bucket(bucket_name)
-    for object_summary in my_bucket.objects.filter(Prefix=path):
+    all_files = my_bucket.objects.filter(Prefix=path)
+    print("all_files", all_files)
+    for object_summary in all_files:
         # Delimiter = '/', MaxKeys = 1000, StartAfter = f"{path}{folio_petition}"):
         print(object_summary.key)
         final_name = object_summary.key.replace(f"{settings.AWS_LOCATION}/", '')
@@ -33,11 +35,12 @@ def obtain_names_from_s3(
                 print(e)
         else:
             try:
-                pet_file_ctrls = PetitionFileControl.objects.filter(
-                    petition__folio_petition=folio_petition)
                 if file_control_id:
-                    pet_file_ctrls = pet_file_ctrls.filter(
+                    pet_file_ctrls = PetitionFileControl.objects.filter(
                         file_control_id=file_control_id)
+                else:
+                    pet_file_ctrls = PetitionFileControl.objects.filter(
+                        petition__folio_petition=folio_petition)
                 pet_file_ctrl = pet_file_ctrls.first()
                 petition = pet_file_ctrl.petition
                 entity = petition.real_entity or petition.agency.entity
@@ -62,6 +65,10 @@ def obtain_names_from_s3(
 # obtain_names_from_s3(
 #     "data_files/nacional/issste/330017123002614/drive-download-", "330017123002614",
 #     True)
+
+obtain_names_from_s3(
+    "data_files/nacional/imss_imss-bienestar/330018022004503/", "330018022004503",
+    file_control_id=487)
 
 
 def delete_paths_from_aws(path):

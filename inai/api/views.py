@@ -52,7 +52,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         if serializer_pet.is_valid():
             petition = serializer_pet.save()
         else:
-            return Response({ "errors": serializer_pet.errors },
+            return Response({"errors": serializer_pet.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
         data_petition["petition"] = petition.id
@@ -165,9 +165,11 @@ class PetitionViewSet(ListRetrieveUpdateMix):
             {"name": "status_petition", "field": "status_petition_id"},
             {"name": "status_data", "field": "status_data_id"},
             {"name": "status_complain", "field": "status_complain_id"},
+            {"name": "invalid_reason", "field": "invalid_reason_id"},
         ]
         if limiters:
             all_filters = build_common_filters(limiters, available_filters)
+
             if limiters.get("selected_year"):
                 if limiters.get("selected_month"):
                     # all_filters["petition_months__month_agency__year_month"] =\
