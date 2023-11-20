@@ -1,4 +1,5 @@
-def get_bucket_files():
+
+def get_bucket_files(limit=100000):
     import boto3
     import time
     from django.conf import settings
@@ -35,7 +36,17 @@ def get_bucket_files():
     for model_name, model in model_mapping.items():
         model_objects = model.objects.exclude(file='')
         for model_obj in model_objects:
-            args = {model_obj.file.name: model_obj.id}
+            file_name = model_obj.file.name
+            if not file_name:
+                continue
+            short_name = model_obj.file.name.split("/")[-1]
+            args = {
+                model_obj.file.name: {
+                    'id': model_obj.id,
+                    'model_name': model_name,
+                    'new_path': set_upload_path(model_obj, short_name),
+                }
+            }
             model_dicts[model_name].update(args)
 
     # all_bucket_files = my_bucket.objects.all()
@@ -50,10 +61,7 @@ def get_bucket_files():
         key = obj.key.replace('data_files/', '')
         if not any(excluded_dir in key for excluded_dir in excluded_dirs):
             final_obj = None
-            args = {'path_in_bucket': key, 'size': obj.size,
-                    'is_correct_path': False, 'reply_file_id': None,
-                    'data_file_id': None, 'sheet_file_id': None,
-                    'table_file_id': None}
+            args = {'path_in_bucket': key, 'size': obj.size}
             for model_name, dicc in model_dicts.items():
                 model_id = dicc.get(key)
                 if model_id is None:
@@ -63,18 +71,11 @@ def get_bucket_files():
                 args['is_correct_path'] = True
                 # print("argumentos a guardar: ", args.items())
                 # counter += 1
-                created_obj = FilePath(path_in_bucket=args['path_in_bucket'],
-                                       path_to_file=args['path_to_file'],
-                                       reply_file_id=args['reply_file_id'],
-                                       data_file_id=args['data_file_id'],
-                                       sheet_file_id=args['sheet_file_id'],
-                                       table_file_id=args['table_file_id'],
-                                       is_correct_path=args['is_correct_path'],
-                                       size=args['size'])
+                created_obj = FilePath(**args)
                 objs_to_save.append(created_obj)
-                if len(objs_to_save) == 1000:
-                    FilePath.objects.bulk_create(objs_to_save)
-                    objs_to_save.clear()
+            if len(objs_to_save) >= 1000:
+                FilePath.objects.bulk_create(objs_to_save)
+                objs_to_save.clear()
             # for model_name, model in model_mapping.items():
             #     try:
             #         final_obj = model.objects.get(file=key)
@@ -92,7 +93,7 @@ def get_bucket_files():
 
             # FilePath.objects.create(**args)
         counter += 1
-        if counter == 100000:
+        if counter >= limit:
             break
 
     FilePath.objects.bulk_create(objs_to_save)
@@ -150,3 +151,8 @@ def dummy_dicts():
 # ('path_fo_file', 'estatal/isem/00872/estatal/isem/202210/correspondencia 926083.xlsx'),
 # ('is_correct_path', False)
 # ])
+
+
+example_url = "estatal/isem/202210/correspondencia 926083.xlsx"
+only_file_name = example_url.split("/")[-1]
+
