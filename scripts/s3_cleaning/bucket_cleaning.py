@@ -1,5 +1,5 @@
 
-def get_bucket_files(limit=100000):
+def get_bucket_files(limit=10000):
     import boto3
     import time
     from django.conf import settings
@@ -26,12 +26,9 @@ def get_bucket_files(limit=100000):
         'table_file': TableFile
     }
 
-    model_dicts = {
-        'data_file': dict(),
-        'reply_file': dict(),
-        'sheet_file': dict(),
-        'table_file': dict()
-    }
+    model_dicts = []
+
+    start_time_dict = time.time()
 
     for model_name, model in model_mapping.items():
         model_objects = model.objects.exclude(file='')
@@ -47,35 +44,61 @@ def get_bucket_files(limit=100000):
                     'new_path': set_upload_path(model_obj, short_name),
                 }
             }
-            model_dicts[model_name].update(args)
+            # model_dicts[model_name].update(args)
+            model_dicts.append(args)
+
+    end_time_dict = time.time()
+    execution_time_dict = end_time_dict - start_time_dict
+    print(f"Tiempo de ejecución creación diccionario: {execution_time_dict} segundos")
 
     # all_bucket_files = my_bucket.objects.all()
     all_bucket_files = my_bucket.objects.filter(Prefix="data_files/")
     # all_bucket_files = my_bucket.objects.filter(
     #     Prefix="data_files/estatal/isem/202210")
     counter = 0
+    count_after_exclusion = 0
+    count_found = 0
     objs_to_save = []
-    start_time = time.time()
+    start_time_model = time.time()
 
-    for obj in all_bucket_files:
-        key = obj.key.replace('data_files/', '')
-        if not any(excluded_dir in key for excluded_dir in excluded_dirs):
-            final_obj = None
-            args = {'path_in_bucket': key, 'size': obj.size}
-            for model_name, dicc in model_dicts.items():
-                model_id = dicc.get(key)
-                if model_id is None:
+    for bucket_obj in all_bucket_files:
+        bucket_obj_key = bucket_obj.key.replace('data_files/', '')
+        # print("key: ", key)
+        if not any(excluded_dir in bucket_obj_key for excluded_dir in excluded_dirs):
+            count_after_exclusion += 1
+            # print("key: ", key)
+            args = {'path_in_bucket': bucket_obj_key, 'size': bucket_obj.size}
+            for model_dict in model_dicts:
+                model_obj = model_dict.get(bucket_obj_key)
+                if model_obj is None:
                     continue
-                args[f"{model_name}_id"] = model_id
-                args['path_to_file'] = key
-                args['is_correct_path'] = True
+                count_found += 1
+                args['is_correct_path'] = bucket_obj_key == model_obj['new_path']
+                args['path_to_file'] = model_obj['new_path']
+                args[f"{model_obj['model_name']}_id"] = model_obj['id']
                 # print("argumentos a guardar: ", args.items())
-                # counter += 1
-                created_obj = FilePath(**args)
-                objs_to_save.append(created_obj)
+                break
+            created_obj = FilePath(**args)
+            objs_to_save.append(created_obj)
             if len(objs_to_save) >= 1000:
                 FilePath.objects.bulk_create(objs_to_save)
                 objs_to_save.clear()
+            # for model_name, dicc in model_dicts.items():
+            #     model_id = dicc.get(key)
+            #     if model_id is None:
+            #         continue
+            #     args[f"{model_name}_id"] = model_id
+            #     args['path_to_file'] = key
+            #     args['is_correct_path'] = True
+            #     # print("argumentos a guardar: ", args.items())
+            #     # counter += 1
+            #     created_obj = FilePath(**args)
+            #     objs_to_save.append(created_obj)
+            # if len(objs_to_save) >= 1000:
+            #     FilePath.objects.bulk_create(objs_to_save)
+            #     objs_to_save.clear()
+            #
+            #
             # for model_name, model in model_mapping.items():
             #     try:
             #         final_obj = model.objects.get(file=key)
@@ -92,15 +115,16 @@ def get_bucket_files(limit=100000):
             #         pass
 
             # FilePath.objects.create(**args)
-        counter += 1
+            counter += 1
         if counter >= limit:
             break
 
     FilePath.objects.bulk_create(objs_to_save)
-
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"Tiempo de ejecución: {execution_time} segundos")
+    print("Cuenta después exclusión: ", count_after_exclusion)
+    print("Encontrados: ", count_found)
+    end_time_model = time.time()
+    execution_time = end_time_model - start_time_model
+    print(f"Tiempo de ejecución creación modelo: {execution_time} segundos")
 
 
 def clean_file_path():
@@ -108,39 +132,37 @@ def clean_file_path():
     FilePath.objects.all().delete()
 
 
-def dummy_dicts():
-    from inai.models import (
-        DataFile, ReplyFile, TableFile, SheetFile)
+def dummy_change_path():
+    import boto3
+    from django.conf import settings
 
-    model_mapping = {
-        'data_file': DataFile,
-        'reply_file': ReplyFile,
-        'sheet_file': SheetFile,
-        'table_file': TableFile
-    }
+    bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+    aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
+    aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
+    s3 = boto3.resource(
+        's3', aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key)
+    my_bucket = s3.Bucket(bucket_name)
 
-    model_dicts = {
-        'data_file': dict(),
-        'reply_file': dict(),
-        'sheet_file': dict(),
-        'table_file': dict()
-    }
+    # No hay una función específica para mover. Las referencias sugieren
+    # lo siguiente: Copiar el archivo a la nueva ruta con
+    # el nombre incluido
+    objs = my_bucket.objects.filter(Prefix="data_files/experiment")
+    for obj in objs:
+        if obj.key == "data_files/experiment/Prac04.pdf":
+            my_bucket.copy(
+                {'Bucket': bucket_name,
+                 'Key': 'data_files/experiment/Prac04.pdf'},
+                'static/Prac04.pdf')
 
-    for model_name, model in model_mapping.items():
-        model_objects = model.objects.exclude(file='')
-        for model_obj in model_objects[:3]:
-            args = {model_obj.file.name: model_obj.id}
-            model_dicts[model_name].update(args)
+    # y eliminar el original de la ruta donde se encontraba
+    objs = my_bucket.objects.filter(Prefix="static/")
+    for obj in objs:
+        if obj.key == "static/Prac04.pdf":
+            obj.delete()
 
-    # for model_name, dicc in model_dicts.items():
-    #     print(f"modelo: {model_name}, tam del dicc: {len(dicc)}")
-
-    for model_name, dicc in model_dicts.items():
-        print(f"model: {model_name}")
-        for file, id in dicc.items():
-            print(f"file: {file}, id: {id}")
-
-
+    # obj = s3.Object(bucket_name, "data_files/experiment/Prac04.pdf")
+    # print("Objeto a revisar: ", obj)
 
 # test con la carpeta data_files/estatal/isem/202210 y el archivo específico
 # correspondencia 926083.xlsx
@@ -153,6 +175,5 @@ def dummy_dicts():
 # ])
 
 
-example_url = "estatal/isem/202210/correspondencia 926083.xlsx"
-only_file_name = example_url.split("/")[-1]
-
+# example_url = "estatal/isem/202210/correspondencia 926083.xlsx"
+# only_file_name = example_url.split("/")[-1]
