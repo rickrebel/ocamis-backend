@@ -20,41 +20,6 @@ from .reply_file_mixins.process_mix import ReplyFileMix
 from .petition_mixins.petition_mix import PetitionTransformsMix
 
 
-def set_upload_path_old(instance, filename):
-    # from django.conf import settings
-    # files_path = getattr(settings, "FILES_PATH")
-    is_sheet_file = getattr(instance, "data_file", False)
-    if is_sheet_file:
-        instance = instance.data_file
-    try:
-        petition = instance.petition_file_control.petition
-    except AttributeError:
-        try:
-            petition = instance.petition
-        except AttributeError:
-            return "/".join(["sin_instance", filename])
-
-    agency_type = petition.agency.agency_type[:8].lower()
-    try:
-        acronym = petition.agency.acronym.lower()
-    except AttributeError:
-        acronym = 'others'
-    try:
-        last_year_month = instance.entity_month.year_month
-    except AttributeError:
-        try:
-            last_year_month = petition.last_year_month()
-        except IndexError:
-            last_year_month = "others"
-    except Exception as e:
-        print(e)
-        last_year_month = "others"
-    # final_path = "/".join([agency_type, acronym, last_year_month, filename])
-    # print(os.path.join('/media/%s/' % instance.id, filename))
-    # print(os.path.join(files_path, final_path))
-    return "/".join([agency_type, acronym, last_year_month, filename])
-
-
 def set_upload_path(instance, filename):
     from django.conf import settings
     is_sheet_file = getattr(instance, "data_file", False)
@@ -77,12 +42,14 @@ def set_upload_path(instance, filename):
     except AttributeError:
         acronym = 'others'
     folio_petition = petition.folio_petition
-    elems = [agency_type, acronym, folio_petition, filename]
-    if reply_file := getattr(instance, "reply_file", False):
-        elems.insert(3, f"reply_file_{reply_file.id}")
+    elems = [agency_type, acronym, folio_petition]
     if settings.IS_LOCAL:
-        place = len(elems) - 1
-        elems.insert(place, "localhost")
+        elems.append("localhost")
+    if reply_file := getattr(instance, "reply_file", False):
+        elems.append(f"reply_file_{reply_file.id}")
+        if reply_file.directory:
+            elems += reply_file.directory.split("/")
+    elems.append(filename)
 
     return "/".join([agency_type, acronym, folio_petition, filename])
 
@@ -432,12 +399,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     entity = models.ForeignKey(
         Entity, related_name="data_files", on_delete=models.CASCADE,
         blank=True, null=True)
-    zip_path = models.TextField(blank=True, null=True)
+    # zip_path = models.TextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     # petition_month = models.ForeignKey(
     #     PetitionMonth, blank=True, null=True,
     #     on_delete=models.CASCADE)
-    notes = models.TextField(blank=True, null=True)
+    # notes = models.TextField(blank=True, null=True)
     # is_final = models.BooleanField(default= True)
     # origin_file = models.ForeignKey(
     #     "DataFile", blank=True, null=True, related_name="child_files",
@@ -463,24 +430,23 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     #     default='original_data',
     #     verbose_name="Tipo de archivo")
 
-    filtered_sheets = JSONField(
-        blank=True, null=True, verbose_name="Nombres de las hojas filtradas")
     suffix = models.CharField(
         max_length=10, blank=True, null=True)
     directory = models.CharField(
         max_length=255, verbose_name="Ruta en archivo comprimido",
         blank=True, null=True)
+    total_rows = models.IntegerField(default=0)
+    sheet_names = JSONField(
+        blank=True, null=True, verbose_name="Nombres de las hojas")
+    filtered_sheets = JSONField(
+        blank=True, null=True, verbose_name="Nombres de las hojas filtradas")
+    # {"all": [], "filtered": [], "matched": []}
     error_process = JSONField(
         blank=True, null=True, verbose_name="Errores de procesamiento")
     warnings = JSONField(
         blank=True, null=True, verbose_name="Advertencias")
-    total_rows = models.IntegerField(default=0)
-    # Creo que deben eliminarse:
     sample_data = JSONField(
         blank=True, null=True, verbose_name="Primeros datos, de exploración")
-    sheet_names = JSONField(
-        blank=True, null=True, verbose_name="Nombres de las hojas")
-    # {"all": [], "filtered": [], "matched": []}
     all_results = JSONField(
         blank=True, null=True, verbose_name="Todos los resultados")
 

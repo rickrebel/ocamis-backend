@@ -84,6 +84,7 @@ def definitive_function():
 
 def definitive_function_real_prev():
     base_dir = settings.BASE_DIR
+    # este archivo ya no existe, pero es un archivo como los de task/aws
     file_path = os.path.join(base_dir, "scripts/count_excel_rows.py")
     print(file_path)
     function_file = open(file_path, "r")

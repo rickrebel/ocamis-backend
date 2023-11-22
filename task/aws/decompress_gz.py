@@ -1,157 +1,130 @@
-import boto3
-from task.aws.common import obtain_decode, send_simple_response, BotoUtils
-
-
-def write_split_files(complete_file, simple_name, event):
-    import math
-    s3 = event["s3"]
-    aws_access_key_id = s3["aws_access_key_id"]
-    aws_secret_access_key = s3["aws_secret_access_key"]
-    aws_location = s3["aws_location"]
-    bucket_name = s3["bucket_name"]
-    decode = event.get("decode")
-    delimiter = event.get("delimiter")
-    directory = event["directory"]
-
-    s3_client = boto3.client(
-        's3', aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key)
-
-    [base_name, extension] = simple_name.rsplit(".", 1)
-    file_num = 0
-    new_files = []
-    errors = []
-    header_validated = []
-    tail_validated = []
-    size_hint = 300 * 1000000
-    has_cut = False
-    cut_lap = 0
-    print("size_hint", size_hint)
-
-    while True and not errors:
-        if has_cut:
-            size_hint = int(math.ceil(size_hint / 2))
-            cut_lap += 1
-        if cut_lap > 7:
-            break
-
-        try:
-            buf = complete_file.readlines(size_hint)
-        except Exception as e:
-            print("Error reading file", e)
-            has_cut = True
-            continue
-
-        if not buf:
-            print("No hay más datos")
-            break
-
-        if not header_validated:
-            header_data = buf[:220]
-            tail_data = buf[-50:]
-
-            if not decode:
-                decode = obtain_decode(header_data)
-                if decode == "unknown":
-                    errors.append("No se pudo decodificar el archivo")
-            sample_header = decode_content(header_data, decode)
-            if not delimiter:
-                delimiter = calculate_delimiter(sample_header)
-            if errors:
-                break
-
-            sample_tail = decode_content(tail_data, decode)
-            header_validated = divide_rows(sample_header, delimiter)
-            tail_validated = divide_rows(sample_tail, delimiter)
-
-        file_num += 1
-        curr_only_name = f"{base_name}_{file_num}.{extension}"
-        curr_only_name = directory.replace("NEW_FILE_NAME", curr_only_name)
-        total_rows = len(buf)
-        buf = b"".join(buf)
-        print("len buf", len(buf))
-        print("rr_file_name", curr_only_name)
-        s3_client.put_object(
-            Body=buf,
-            Bucket=bucket_name,
-            Key=f"{aws_location}/{curr_only_name}",
-            ContentType="text/csv",
-            ACL="public-read",
-        )
-        # print("éxito en creación de archivo")
-        # print("errors", errors)
-        current_file = {
-            "total_rows": total_rows,
-            "final_path": curr_only_name,
-            "sheet_name": file_num,
-        }
-        new_files.append(current_file)
-        # complete_file.seek(0, 1)
-
-    result = {
-        "new_files": new_files,
-        "decode": decode,
-        "delimiter": delimiter,
-        "all_data": header_validated,
-        "tail_data": tail_validated,
-    }
-
-    return result, errors
+from task.aws.common import (obtain_decode, send_simple_response, BotoUtils,
+                             calculate_delimiter, decode_content)
 
 
 # def decompress_gz(event, context):
 def lambda_handler(event, context):
-    import gzip
 
+    decompress_gz = DecompressGz(event, context)
     file = event["file"]
-    # s3 = event["s3"]
-    s3_utils = BotoUtils(event["s3"])
-    print("HOLA DECOMPRESS")
+    result, errors = decompress_gz.decompress(file)
 
-    is_gz = file.endswith(".gz")
-    file_type = "gz" if is_gz else "csv"
-
-    # file_obj = get_object_file(s3, file)
-    file_obj = s3_utils.get_object_file(file, file_type)
-    decompressed_path = file.replace(".gz", "")
-    pos_slash = decompressed_path.rfind("/")
-    only_name = decompressed_path[pos_slash + 1:]
-
-    # new_files = {}
-    # is_csv = file.endswith(".csv")
-    if is_gz:
-        with gzip.GzipFile(fileobj=file_obj) as gzip_file:
-            result, errors = write_split_files(gzip_file, only_name, event)
-    else:
-        with file_obj.get()['Body'] as csv_file:
-            result, errors = write_split_files(csv_file, only_name, event)
-    result["matched"] = True
-    result["file_type_id"] = "split"
     return send_simple_response(event, context, errors, result)
 
 
-def divide_rows(data_rows, delimiter):
-    # print("DIVIDE_ROWS", data_rows)
-    structured_data = []
-    for row_seq, row in enumerate(data_rows, 1):
-        # print("\n")
-        row_data = row.split(delimiter)
-        row_data = [x.strip() for x in row_data]
-        structured_data.append(row_data)
-    return structured_data
+class DecompressGz:
 
+    def __init__(self, event: dict, context):
+        self.context = context
+        self.s3_utils = BotoUtils(event["s3"])
+        self.delimiter = event.get("delimiter")
+        self.decode = event.get("decode")
+        self.directory = event["directory"]
 
-def decode_content(data_rows, decode):
-    decoded_data = []
-    for row in data_rows:
-        content = str(row) if decode == 'str' else row.decode(decode)
-        decoded_data.append(content)
-    return decoded_data
+    def decompress(self, file):
+        import gzip
+        decompressed_path = file.replace(".gz", "")
+        pos_slash = decompressed_path.rfind("/")
+        only_name = decompressed_path[pos_slash + 1:]
+        is_gz = file.endswith(".gz")
+        file_type = "gz" if is_gz else "csv"
 
+        file_obj = self.s3_utils.get_object_file(file, file_type)
 
-def calculate_delimiter(data):
-    for row in data:
-        if "|" in row:
-            return "|"
-    return ","
+        if is_gz:
+            with gzip.GzipFile(fileobj=file_obj) as gzip_file:
+                result, errors = self.write_split_files(gzip_file, only_name)
+        else:
+            with file_obj.get()['Body'] as csv_file:
+                result, errors = self.write_split_files(csv_file, only_name)
+        result["matched"] = True
+        result["file_type_id"] = "split"
+        errors += self.s3_utils.errors
+        return result, errors
 
+    def write_split_files(self, complete_file, simple_name):
+        import math
+
+        [base_name, extension] = simple_name.rsplit(".", 1)
+        file_num = 0
+        new_files = []
+        errors = []
+        header_validated = []
+        tail_validated = []
+        size_hint = 300 * 1000000
+        has_cut = False
+        cut_lap = 0
+        print("size_hint", size_hint)
+
+        while True and not errors:
+            if has_cut:
+                size_hint = int(math.ceil(size_hint / 2))
+                cut_lap += 1
+            if cut_lap > 7:
+                break
+
+            try:
+                buf = complete_file.readlines(size_hint)
+            except Exception as e:
+                print("Error reading file", e)
+                has_cut = True
+                continue
+
+            if not buf:
+                print("No hay más datos")
+                break
+
+            if not header_validated:
+                header_data = buf[:220]
+                tail_data = buf[-50:]
+
+                if not self.decode:
+                    self.decode = obtain_decode(header_data)
+                    if self.decode == "unknown":
+                        errors.append("No se pudo decodificar el archivo")
+                sample_header = decode_content(header_data, self.decode)
+                if not self.delimiter:
+                    self.delimiter = calculate_delimiter(sample_header)
+                if errors:
+                    break
+
+                sample_tail = decode_content(tail_data, self.decode)
+                header_validated = self.divide_rows(sample_header)
+                tail_validated = self.divide_rows(sample_tail)
+
+            file_num += 1
+            curr_only_name = f"{base_name}_{file_num}.{extension}"
+            curr_only_name = self.directory.replace(
+                "NEW_FILE_NAME", curr_only_name)
+            total_rows = len(buf)
+            buf = b"".join(buf)
+            print("len buf", len(buf))
+            print("rr_file_name", curr_only_name)
+            self.s3_utils.save_file_in_aws(buf, curr_only_name)
+            current_file = {
+                "total_rows": total_rows,
+                "final_path": curr_only_name,
+                "sheet_name": file_num,
+            }
+            new_files.append(current_file)
+            # complete_file.seek(0, 1)
+
+        result = {
+            "new_files": new_files,
+            "decode": self.decode,
+            "delimiter": self.delimiter,
+            "all_data": header_validated,
+            "tail_data": tail_validated,
+        }
+
+        return result, errors
+
+    def divide_rows(self, data_rows):
+        # print("DIVIDE_ROWS", data_rows)
+        structured_data = []
+        for row_seq, row in enumerate(data_rows, 1):
+            # print("\n")
+            row_data = row.split(self.delimiter)
+            row_data = [x.strip() for x in row_data]
+            structured_data.append(row_data)
+        return structured_data

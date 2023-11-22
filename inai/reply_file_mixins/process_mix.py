@@ -6,8 +6,7 @@ class ReplyFileMix:
 
     def decompress(self, pet_file_ctrl, task_params=None):
         import pathlib
-        from inai.models import DataFile
-        from inai.models import set_upload_path
+        from inai.models import DataFile, set_upload_path
         from task.serverless import async_in_lambda
 
         if DataFile.objects.filter(reply_file=self).exists():
@@ -18,10 +17,11 @@ class ReplyFileMix:
         is_zip_or_rar = suffixes.intersection({'.zip', '.rar'})
         if not is_zip_or_rar:
             return None
+        upload_path = set_upload_path(self, f"reply_file_{self.id}/NEW_FILE_NAME")
         params = {
             "file": self.file.name,
             "suffixes": list(suffixes),
-            "upload_path": set_upload_path(self, "NEW_FILE_NAME")
+            "upload_path": upload_path,
         }
         task_params = task_params or {}
         task_params["models"] = [self]
