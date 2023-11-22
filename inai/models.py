@@ -66,7 +66,10 @@ def set_upload_path(instance, filename):
         try:
             petition = instance.petition
         except AttributeError:
-            return "/".join(["sin_instance", filename])
+            elems = ["sin_instance", filename]
+            if settings.IS_LOCAL:
+                elems.insert(1, "localhost")
+            return "/".join(elems)
 
     agency_type = petition.agency.agency_type[:8].lower()
     try:
@@ -75,8 +78,11 @@ def set_upload_path(instance, filename):
         acronym = 'others'
     folio_petition = petition.folio_petition
     elems = [agency_type, acronym, folio_petition, filename]
+    if reply_file := getattr(instance, "reply_file", False):
+        elems.insert(3, f"reply_file_{reply_file.id}")
     if settings.IS_LOCAL:
-        elems.insert(3, "localhost")
+        place = len(elems) - 1
+        elems.insert(place, "localhost")
 
     return "/".join([agency_type, acronym, folio_petition, filename])
 
