@@ -195,6 +195,8 @@ class FilePath(models.Model):
         max_length=400, verbose_name="Ruta al archivo actual")
     size = models.IntegerField(blank=True, null=True)
     is_correct_path = models.BooleanField(blank=True, null=True)
+    # status = models.CharField(
+    #     max_length=100, blank=True, null=True)
 
 
 class CutOff(models.Model):

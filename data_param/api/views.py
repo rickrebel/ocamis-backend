@@ -210,9 +210,10 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         else:
             final_files = data_files
         sts_process = limiters.get("status_process", [])
+        print("STS_PROCESS", sts_process)
         final_files2 = None
         for status_process in sts_process:
-            current_files = final_files2\
+            current_files = data_files\
                 .filter(status_process_id=status_process)
             final_files2 = current_files if not final_files2 \
                 else final_files2 | current_files
@@ -238,15 +239,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         import json
         limiters = request.query_params.get("limiters", None)
         limiters = json.loads(limiters)
-        controls = FileControl.objects.all().prefetch_related(
-            "data_group",
-            "columns",
-            "columns__column_transformations",
-            "columns__column_transformations__clean_function",
-            "file_transformations",
-            "file_transformations__clean_function",
-            "agency",
-        ).order_by("data_group__name", "agency__acronym", "name")
         total_count = 0
         available_filters = [
             {"name": "status_register", "field": "status_register_id"},
@@ -265,6 +257,10 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             stage = limiters.get("stage", None)
             if stage is not None:
                 all_filters["petition_file_control__data_files__stage_id"] = stage
+            status_process = limiters.get("status_process", None)
+            has_status_process = status_process is not None
+            if has_status_process:
+                all_filters["petition_file_control__data_files__status_process_id"] = status_process
             transformation = limiters.get("transformation", None)
             if transformation is not None:
                 clean_function = CleanFunction.objects.get(id=transformation)
@@ -276,6 +272,18 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             status_id = limiters.get("status", None)
             if status_id is not None:
                 all_filters["petition_file_control__data_files__status_id"] = status_id
+
+            order = ["agency__acronym", "name"]
+            order.insert(1 if has_status_process else 2, "data_group__name")
+            controls = FileControl.objects.all().prefetch_related(
+                "data_group",
+                "columns",
+                "columns__column_transformations",
+                "columns__column_transformations__clean_function",
+                "file_transformations",
+                "file_transformations__clean_function",
+                "agency",
+            ).order_by(*order)
             if all_filters:
                 controls = controls.filter(**all_filters).distinct()
             total_count = controls.count()
@@ -292,7 +300,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             file_controls__file_control__in=controls)\
             .prefetch_related(
                 # "petition_months",
-            "entity_months",
+                "entity_months",
                 "file_controls",
                 "break_dates",
                 "negative_reasons",

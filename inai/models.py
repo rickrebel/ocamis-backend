@@ -552,7 +552,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     class Meta:
         ordering = ["-id"]
         verbose_name = "Archivo con datos"
-        verbose_name_plural = "3. Archivos entregados con datos"
+        verbose_name_plural = "3. Archivos con datos (DataFile)"
 
 
 class Behavior(models.Model):

@@ -470,8 +470,7 @@ class MatchAws:
             iso_year, iso_week, iso_delegation, year, month = complex_date
             # elem_list = [iso_year, iso_week, iso_delegation, year, month]
             elem_list = list(map(str, list(complex_date)))
-            complement = '_'.join(elem_list)
-            elem_name = f"by_week_{complement}"
+            elem_name = f"by_week_{'_'.join(elem_list)}"
             # elem_name = f"by_week_{iso_year}_{iso_week}_{year}_{month}"
             only_name = self.final_path.replace("_NEW_ELEM_NAME", elem_name)
             only_name = only_name.replace("NEW_ELEM_NAME", "by_week")

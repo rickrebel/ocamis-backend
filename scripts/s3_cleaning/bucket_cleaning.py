@@ -1,10 +1,110 @@
 
+def build_dict(only_data_files=False):
+    import time
+    from inai.models import (
+        DataFile, ReplyFile, TableFile, SheetFile, set_upload_path)
+    model_mapping = {
+        'data_file': DataFile,
+        'reply_file': ReplyFile,
+        'sheet_file': SheetFile,
+        'table_file': TableFile
+    }
+    if only_data_files:
+        model_mapping = {'data_file': DataFile}
+    # model_dicts = []
+    # model_dicts = {}
+    files_in_db = {}
+    start_time_dict = time.time()
+    for model_name, model in model_mapping.items():
+        model_objects = model.objects.filter(file__isnull=False)
+        if only_data_files:
+            model_objects = model_objects.prefetch_related(
+                'petition_file_control__file_control__data_group')
+        print(f"Modelo: {model_name}, objetos: {model_objects.count()}")
+        # for model_obj in model_objects[:2000]:
+        for model_obj in model_objects:
+            file_name = model_obj.file.name
+            # file_name = model_obj.file
+            if not file_name:
+                continue
+            new_path = None
+            # if model_name != 'table_file':
+            #     short_name = file_name.split("/")[-1]
+            #     new_path = set_upload_path(model_obj, short_name)
+            current_elem = {
+                'id': model_obj.id,
+                'model_name': model_name,
+                'new_path': new_path,
+                'file_name': file_name,
+            }
+            if only_data_files and model_obj.petition_file_control:
+                current_elem['data_group'] = \
+                    model_obj.petition_file_control.file_control.data_group.name
+            if files_in_db.get(file_name):
+                files_in_db[file_name].append(current_elem)
+                continue
+            files_in_db[file_name] = [current_elem]
+            # model_dicts.append(args)
+    # print("Archivos repetidos: ", len(repeated_files))
+    end_time_dict = time.time()
+    execution_time_dict = end_time_dict - start_time_dict
+    print(f"Tiempo de ejecución creación diccionario: "
+          f"{execution_time_dict} segundos")
+    return files_in_db
+
+
+def analyze_rep_files():
+    from pprint import pprint
+    from inai.models import DataFile
+    from category.models import StatusControl
+    files_in_db = build_dict(True)
+    rep_files2 = [rep for rep in files_in_db.values() if len(rep) >= 2]
+    print("Archivos repetidos:", len(rep_files2))
+    three_or_more = [rep for rep in rep_files2 if len(rep) >= 3]
+    print("Archivos repetidos 3 o más veces: ", len(three_or_more))
+    counters = {}
+    print_counter = 0
+    duplicates_ids = []
+    status_duplicated = StatusControl.objects.get(name="duplicated")
+    for file in rep_files2:
+        models = [elem['model_name'] for elem in file]
+        has_many_data_files = models.count('data_file') >= 2
+        detailed = [elem for elem in file if elem['data_group'] == 'detailed']
+        has_many_detailed = len(detailed) >= 2
+        if has_many_data_files and has_many_detailed:
+            # print("Data files: ", file)
+            duplicates_ids.extend([elem['id'] for elem in file
+                                   if elem['model_name'] == 'data_file'])
+        models = tuple(sorted(models))
+        # counters[models] = counters.get(models, 0) + 1
+        if len(set(models)) == 1:
+            model = f"{models[0]}_repeated_{len(file)}"
+            counters[model] = counters.get(model, 0) + 1
+        else:
+            if print_counter < 10 and len(file) > 2:
+                print_counter += 1
+                print("Distintos: ", file)
+            counters[models] = counters.get(models, 0) + 1
+    print("Duplicates ids: ", len(duplicates_ids))
+    DataFile.objects.filter(id__in=duplicates_ids)\
+        .update(status_process=status_duplicated)
+    print("Contadores:")
+    pprint(counters)
+
+
+def revert_status_process():
+    from inai.models import DataFile
+    from category.models import StatusControl
+    status_initial = StatusControl.objects.get(
+        name="initial", group="process")
+    DataFile.objects.filter(status_process__name="duplicated")\
+        .update(status_process=status_initial)
+
+
 def get_bucket_files(limit=10000):
     import boto3
     import time
     from django.conf import settings
-    from inai.models import (
-        DataFile, ReplyFile, TableFile, SheetFile, set_upload_path)
     from task.models import FilePath
 
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
@@ -19,39 +119,8 @@ def get_bucket_files(limit=10000):
         "admin/", "aws_errors/", "cat_images/", "ckeditor/", "experiment/",
         "logos/", "mat_views/", "profile_images/", "rest_framework/"]
 
-    model_mapping = {
-        'data_file': DataFile,
-        'reply_file': ReplyFile,
-        'sheet_file': SheetFile,
-        'table_file': TableFile
-    }
-
-    model_dicts = []
-
-    start_time_dict = time.time()
-
-    for model_name, model in model_mapping.items():
-        model_objects = model.objects.exclude(file='')
-        for model_obj in model_objects:
-            file_name = model_obj.file.name
-            if not file_name:
-                continue
-            short_name = model_obj.file.name.split("/")[-1]
-            args = {
-                model_obj.file.name: {
-                    'id': model_obj.id,
-                    'model_name': model_name,
-                    'new_path': set_upload_path(model_obj, short_name),
-                }
-            }
-            # model_dicts[model_name].update(args)
-            model_dicts.append(args)
-
-    end_time_dict = time.time()
-    execution_time_dict = end_time_dict - start_time_dict
-    print(f"Tiempo de ejecución creación diccionario: {execution_time_dict} segundos")
-
     # all_bucket_files = my_bucket.objects.all()
+    files_in_db = build_dict()
     all_bucket_files = my_bucket.objects.filter(Prefix="data_files/")
     # all_bucket_files = my_bucket.objects.filter(
     #     Prefix="data_files/estatal/isem/202210")
@@ -83,38 +152,6 @@ def get_bucket_files(limit=10000):
             if len(objs_to_save) >= 1000:
                 FilePath.objects.bulk_create(objs_to_save)
                 objs_to_save.clear()
-            # for model_name, dicc in model_dicts.items():
-            #     model_id = dicc.get(key)
-            #     if model_id is None:
-            #         continue
-            #     args[f"{model_name}_id"] = model_id
-            #     args['path_to_file'] = key
-            #     args['is_correct_path'] = True
-            #     # print("argumentos a guardar: ", args.items())
-            #     # counter += 1
-            #     created_obj = FilePath(**args)
-            #     objs_to_save.append(created_obj)
-            # if len(objs_to_save) >= 1000:
-            #     FilePath.objects.bulk_create(objs_to_save)
-            #     objs_to_save.clear()
-            #
-            #
-            # for model_name, model in model_mapping.items():
-            #     try:
-            #         final_obj = model.objects.get(file=key)
-            #         args[model_name] = final_obj
-            #         # path_in_db = set_upload_path(final_obj, final_obj.file.name)
-            #         # args['path_to_file'] = path_in_db
-            #         args['path_to_file'] = final_obj.file.name
-            #         # args['is_correct_path'] = key == path_in_db
-            #         args['is_correct_path'] = key == final_obj.file.name
-            #         # print("argumentos a guardar: ", args.items())
-            #
-            #         break
-            #     except:
-            #         pass
-
-            # FilePath.objects.create(**args)
             counter += 1
         if counter >= limit:
             break
@@ -177,3 +214,8 @@ def dummy_change_path():
 
 # example_url = "estatal/isem/202210/correspondencia 926083.xlsx"
 # only_file_name = example_url.split("/")[-1]
+
+list = [{'id': 1, 'model_name': 'data_file', 'file_name': 'estatal/isem/202210/correspondencia 926083.xlsx'},
+        {'id': 2, 'model_name': 'data_file', 'file_name': 'estatal/isem/202210/correspondencia 926083.xlsx'}]
+tuple_of_ids = tuple([elem['id'] for elem in list])
+

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.admin import AdminSite
+from django.contrib.admin.filters import SimpleListFilter
 
 from .models import (
     Petition, PetitionFileControl, DataFile, CrossingSheet,
@@ -125,6 +126,27 @@ class SheetFileInline(admin.StackedInline):
     raw_id_fields = ["entity_months"]
 
 
+class NullFilterField(SimpleListFilter):
+    title = "Tiene pet_file_control"
+
+    parameter_name = 'has_field'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('1', 'Sí Tiene', ),
+            ('0', 'No tiene', ),
+        )
+
+    def queryset(self, request, queryset):
+        kwargs = {'petition_file_control__isnull': True}
+        # kwargs = {'%s' % self.parameter_name: None}
+        if self.value() == '0':
+            return queryset.filter(**kwargs)
+        if self.value() == '1':
+            return queryset.exclude(**kwargs)
+        return queryset
+
+
 class DataFileAdmin(admin.ModelAdmin):
     list_display = [
         "id",
@@ -136,7 +158,8 @@ class DataFileAdmin(admin.ModelAdmin):
     raw_id_fields = [
         "entity", "petition_file_control", "reply_file"]
     list_filter = [
-        "stage", "status", "petition_file_control__petition__agency"]
+        NullFilterField, "stage", "status",
+        "petition_file_control__petition__agency"]
     search_fields = [
         "file", "petition_file_control__petition__agency__acronym",
         "petition_file_control__petition__folio_petition"]

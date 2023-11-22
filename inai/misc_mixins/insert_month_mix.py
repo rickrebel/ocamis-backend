@@ -70,9 +70,9 @@ class InsertMonth:
                                     for field in fields_in_name])
         iso_delegation = entity_week.iso_delegation.id if \
             entity_week.iso_delegation else 0
-        only_name = f"NEW_ELEM_NAME/NEW_ELEM_NAME_" \
-                    f"by_week_{complement_name}_" \
-                    f"{str(iso_delegation)}.csv"
+        only_name = (
+            f"NEW_ELEM_NAME/NEW_ELEM_NAME_by_week_{complement_name}_"
+            f"{str(iso_delegation)}.csv")
         entity_type = self.entity.entity_type[:8].lower()
         acronym = self.entity.acronym.lower()
         final_path = "/".join([entity_type, acronym, only_name])
