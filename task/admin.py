@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from .models import AsyncTask, Platform, CutOff, Step
+from .models import AsyncTask, Platform, CutOff, Step, ClickHistory
 from classify_task.models import StatusTask, TaskFunction, Stage, UserProfile
 
 
@@ -221,6 +221,12 @@ class CutOffAdmin(admin.ModelAdmin):
     inlines = [StepInline]
 
 
+class ClickHistoryAdmin(admin.ModelAdmin):
+    list_display = ["user", "date", "petition", "file_control", "entity_month"]
+    raw_id_fields = ["user", "petition", "file_control", "entity_month"]
+    list_filter = ["user"]
+
+
 # admin.site.unregister(User)
 # admin.site.unregister(Token)
 # ocamis_admin_site.register(User, CustomUserAdmin)
@@ -232,3 +238,4 @@ ocamis_admin_site.register(Stage, StageAdmin)
 # ocamis_admin_site.register(Platform, PlatformAdmin)
 ocamis_admin_site.register(Platform)
 ocamis_admin_site.register(CutOff, CutOffAdmin)
+ocamis_admin_site.register(ClickHistory, ClickHistoryAdmin)

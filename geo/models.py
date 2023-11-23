@@ -80,7 +80,7 @@ class Institution(models.Model):
         default=2, verbose_name="Relevancia (Para filtros)")
 
     def __str__(self):
-        return self.public_name or self.name
+        return self.code or self.public_name or self.name
 
     class Meta:
         verbose_name = "Institución"
@@ -462,10 +462,6 @@ class Agency(models.Model):
             raise Exception("No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
-    def __str__(self):
-        return self.name or "%s -%s -%s" % (
-            self.institution, self.state, self.clues)
-
     @property
     def agency_type(self):
         if self.clues:
@@ -474,6 +470,10 @@ class Agency(models.Model):
             return 'Estatal'
         else:
             return 'Nacional'
+
+    def __str__(self):
+        return self.acronym or "%s -%s -%s" % (
+            self.institution, self.state, self.clues)
 
     class Meta:
         ordering = ["state__name"]

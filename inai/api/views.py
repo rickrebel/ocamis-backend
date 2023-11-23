@@ -36,6 +36,13 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         # "change_months": serializers.PetitionEditSerializer,
     }
 
+    def retrieve(self, request, **kwargs):
+        from task.models import ClickHistory
+        petition = self.get_object()
+        ClickHistory.objects.create(petition=petition, user=request.user)
+        serializer = self.get_serializer_class()(petition)
+        return Response(serializer.data)
+
     def create(self, request, **kwargs):
         # self.check_permissions(request)
         data_petition = request.data
@@ -417,7 +424,10 @@ class EntityMonthViewSet(CreateRetrieveView):
     def retrieve(self, request, **kwargs):
         from inai.api.serializers import (SheetFileMonthSerializer)
         from inai.models import CrossingSheet
+        from task.models import ClickHistory
         entity_month = self.get_object()
+        ClickHistory.objects.create(
+            entity_month=entity_month, user=request.user)
         sheet_files = entity_month.sheet_files.all() \
             .prefetch_related("data_file", "data_file__petition_file_control")
         # sheet_files = SheetFile.objects.filter(

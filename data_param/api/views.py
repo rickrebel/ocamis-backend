@@ -88,8 +88,11 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         return controls
 
     def retrieve(self, request, **kwargs):
+        from task.models import ClickHistory
         print("ESTOY EN GET")
         file_control = self.get_object()
+        ClickHistory.objects.create(
+            user=request.user, file_control=file_control)
         serializer = FileControlFullSerializer(
             file_control, context={'request': request})
         data = serializer.data

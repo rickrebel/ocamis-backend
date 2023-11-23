@@ -240,3 +240,28 @@ class Step(models.Model):
         verbose_name = "Paso"
         verbose_name_plural = "Pasos"
         ordering = ["-stage__order"]
+
+
+class ClickHistory(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        verbose_name="Usuario", related_name="click_histories")
+    entity_month = models.ForeignKey(
+        EntityMonth, on_delete=models.CASCADE,
+        verbose_name="Mes", blank=True, null=True)
+    petition = models.ForeignKey(
+        Petition, on_delete=models.CASCADE,
+        verbose_name="Petición", blank=True, null=True)
+    file_control = models.ForeignKey(
+        FileControl, on_delete=models.CASCADE,
+        verbose_name="Control de archivos", blank=True, null=True)
+    date = models.DateTimeField(
+        verbose_name="Fecha", blank=True, null=True, auto_now_add=True)
+
+    def __str__(self):
+        return "%s - %s" % (self.user, self.date)
+
+    class Meta:
+        verbose_name = "Historial"
+        verbose_name_plural = "Historial"
+        ordering = ["-date"]
