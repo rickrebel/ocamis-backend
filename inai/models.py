@@ -47,8 +47,8 @@ def set_upload_path(instance, filename):
         elems.append("localhost")
     if reply_file := getattr(instance, "reply_file", False):
         elems.append(f"reply_file_{reply_file.id}")
-        if reply_file.directory:
-            elems += reply_file.directory.split("/")
+        if instance.directory:
+            elems += instance.directory.split("/")
     elems.append(filename)
 
     return "/".join([agency_type, acronym, folio_petition, filename])
