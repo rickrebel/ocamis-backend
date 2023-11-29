@@ -149,6 +149,7 @@ class NameColumnAdmin(admin.ModelAdmin):
         "parent_column",
         "file_control",
     ]
+    search_fields = ['name_in_data', 'final_field__name']
     raw_id_fields = ["parent_column", "child_column", "file_control"]
     list_filter = [
         "final_field__collection",
