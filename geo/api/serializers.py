@@ -226,6 +226,14 @@ def calc_drugs_summarize(obj, table_files=None):
             if drugs_count_by_drug["discarded"]:
                 field = "by_tables_discarded"
         entity_month = str(entity_month)
+        if not final_result.get(entity_month):
+            final_result[entity_month] = {}
+        # print("final_result\n", final_result, "\n")
+        # print("entity_month", entity_month)
+        # print("type of entity_month", type(entity_month))
+        # print("final_result[entity_month]", final_result[entity_month])
+        # print("field", field)
+        # print("drugs_count_by_drug[drugs_count]", drugs_count_by_drug["drugs_count"])
         final_result[entity_month][field] = drugs_count_by_drug["drugs_count"]
     return final_result
 
