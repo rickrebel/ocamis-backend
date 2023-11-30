@@ -69,8 +69,8 @@ class EntityWeekAdmin(admin.ModelAdmin):
     raw_id_fields = ["entity", "entity_month", "iso_delegation"]
     inlines = [TableFileInline]
     search_fields = [
-        "entity__acronym", "entity__state__short_name", "year_week",
-        "year_month", "iso_delegation"]
+        "entity__acronym", "entity__state__short_name",
+        "year_week", "year_month", "iso_delegation__name"]
 
 
 class EntityMonthAdmin(admin.ModelAdmin):

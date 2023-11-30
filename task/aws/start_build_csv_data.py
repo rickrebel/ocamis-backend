@@ -13,7 +13,8 @@ from task.aws.common import (
 def text_normalizer(text):
     text = text.upper().strip()
     text = unidecode.unidecode(text)
-    return re.sub(r'[^a-zA-Z\s]', '', text)
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    return text.strip()
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
@@ -498,9 +499,9 @@ class MatchAws:
         fragments = []
 
         def build_blocks(re_field, remain_data):
-            print("remain_data", remain_data)
+            # print("remain_data", remain_data)
             regex = re_field["regex"]
-            print("regex", regex)
+            # print("regex", regex)
             results = re.split(regex, remain_data, 1)
             if len(results) == 1:
                 results.extend(["", ""])
@@ -823,20 +824,27 @@ class MatchAws:
                             string_dates = self.string_dates
                         is_success = False
                         # print("value initial:", value)
+                        # print("string_dates:", string_dates)
                         for string_format in string_dates:
-                            # print("string_format", string_format)
                             try:
                                 if string_format == "EXCEL":
-                                    days = int(value)
-                                    seconds = (float(value) - days) * 86400
-                                    seconds = round(seconds)
+                                    if "." in value:
+                                        days, seconds = value.split(".")
+                                        days = int(days)
+                                        seconds = float("0." + seconds)
+                                        seconds = round(seconds)
+                                        # seconds = (float(value) - days) * 86400
+                                        # value = float(value)
+                                        # seconds = (value - 25569) * 86400.0
+                                    else:
+                                        days = int(value)
+                                        seconds = 0
                                     value = datetime(1899, 12, 30) + timedelta(
                                         days=days, seconds=seconds)
                                 elif string_format == "UNIX":
                                     value = datetime.fromtimestamp(int(value))
                                 else:
                                     value = datetime.strptime(value, string_format)
-                                    # print("value final: ", value)
                                 self.last_date = value
                                 self.last_date_formatted = value
                                 is_success = True

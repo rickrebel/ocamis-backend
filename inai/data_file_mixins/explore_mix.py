@@ -477,6 +477,7 @@ class ExploreMix:
             final_text = re.sub(r'[^A-Z][DE|DEL][^A-Z]', ' ', final_text)
             final_text = re.sub(r' +', ' ', final_text)
             final_text = re.sub(r'[^A-Z]', '', final_text)
+            final_text = final_text.strip()
             return final_text
 
         valid_fields = [

@@ -27,24 +27,40 @@ class DrugViewSet(ListRetrieveUpdateMix):
     @action(methods=["post"], detail=False)
     def spiral(self, request):
         from django.conf import settings
-        from django.db.models import Count, F, Sum
+        from django.db.models import F, Sum
         from django.apps import apps
-        # from geo.models import Delegation, CLUES, Entity
-        # from medicine.models import Component
         is_big_active = getattr(settings, "IS_BIG_ACTIVE")
-        entity_id = request.data.get('entity', 55)
+        entity_id = request.data.get('entity')
         delegation_id = request.data.get('delegation', None)
         by_delegation = request.data.get('by_delegation', False)
         display_totals = request.data.get('display_totals', False)
         clues_id = request.data.get('clues', None)
-        if not clues_id and not delegation_id and not entity_id:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        group_by = request.data.get('group_by', None)
+        # by_year = group_by == 'iso_year'
 
         component_id = request.data.get('component', 96)
         presentation_id = request.data.get('presentation', None)
         container_id = request.data.get('container', None)
-        if not container_id and not presentation_id and not component_id:
+
+        some_geo = clues_id or delegation_id or entity_id
+        some_drug = container_id or presentation_id or component_id
+        if group_by == 'iso_year':
+            if not some_geo or not some_drug:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        elif group_by == 'entity':
+            if not some_drug:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        elif group_by == 'delegation':
+            by_delegation = True
+            if not some_drug or not entity_id:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        elif group_by == 'component':
+            if not some_geo:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
         def build_query(is_total=False):
             # is_complex = is_total or bool(clues_id)
@@ -53,14 +69,32 @@ class DrugViewSet(ListRetrieveUpdateMix):
             prefetches = ['entity_week'] if is_complex else []
 
             prev_iso = "entity_week__" if is_complex else ""
+
+            first_values = {
+                'iso_week': f'{prev_iso}iso_week',
+                'iso_year': f'{prev_iso}iso_year',
+            }
+
+            field_ent = f"{prev_iso}entity_id"
+            field_comp = 'container__presentation__component_id' \
+                if is_complex else 'component_id'
+
             query_filter = {f"{prev_iso}iso_year__gte": 2017}
             if clues_id:
                 query_filter['clues_id'] = clues_id
             elif delegation_id:
                 query_filter['delegation_id'] = delegation_id
             elif entity_id:
-                field = f"{prev_iso}entity_id"
-                query_filter[field] = entity_id
+                first_values['entity'] = field_ent
+                query_filter[field_ent] = entity_id
+
+            if group_by == 'entity':
+                first_values['entity'] = field_ent
+            elif by_delegation:
+                first_values["delegation"] = "delegation_id"
+            elif group_by == 'component':
+                if not is_total:
+                    first_values['component'] = field_comp
 
             if is_total:
                 pass
@@ -75,12 +109,6 @@ class DrugViewSet(ListRetrieveUpdateMix):
                     if is_complex else 'component_id'
                 query_filter[field] = component_id
 
-            first_values = {
-                'iso_week': f'{prev_iso}iso_week',
-                'iso_year': f'{prev_iso}iso_year',
-            }
-            if by_delegation:
-                first_values["delegation"] = "delegation_id"
             annotates = {
                 'total': Sum('total'),
                 'delivered': Sum('delivered_total'),
