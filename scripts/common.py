@@ -14,14 +14,20 @@ def similar(a, b):
         return 0
 
 
-def text_normalizer(text):
+def text_normalizer(text, to_headers=False):
     import re
     import unidecode
-    text = text.upper().strip()
-    text = unidecode.unidecode(text)
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-    text = text.strip()
-    return text
+    final_text = text.upper().strip()
+    final_text = unidecode.unidecode(final_text)
+    if to_headers:
+        final_text = re.sub(r'\s(DE|DEL)\s', ' ', final_text)
+        final_text = re.sub(r'[^A-Z][DE|DEL][^A-Z]', ' ', final_text)
+        final_text = re.sub(r' +', ' ', final_text)
+        final_text = re.sub(r'[^A-Z]', '', final_text)
+    else:
+        final_text = re.sub(r'[^a-zA-Z0-9\s]', '', final_text)
+    final_text = final_text.strip()
+    return final_text
 
 
 # @functools.lru_cache(maxsize=None)

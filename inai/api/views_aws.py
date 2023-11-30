@@ -242,7 +242,7 @@ class DataFileViewSet(CreateRetrieveView):
 
     @action(methods=["get"], detail=True, url_path="build_columns")
     def build_columns(self, request, **kwargs):
-
+        from inai.data_file_mixins.build_headers import BuildComplexHeaders
         data_file = self.get_object()
         key_task, task_params = build_task_params(
             data_file, "build_columns", request)
@@ -255,7 +255,9 @@ class DataFileViewSet(CreateRetrieveView):
             return comprobate_status(
                 key_task, all_errors, all_tasks, want_http_response=True)
         elif data_file:
-            new_tasks, errors, data = data_file.build_complex_headers()
+            build_complex_headers = BuildComplexHeaders(data_file)
+            new_tasks, errors, data = build_complex_headers()
+            # new_tasks, errors, data = data_file.build_complex_headers()
             all_errors.extend(errors or [])
             if data:
                 return Response(data, status=status.HTTP_201_CREATED)

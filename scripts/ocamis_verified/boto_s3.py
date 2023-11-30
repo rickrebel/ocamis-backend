@@ -66,9 +66,10 @@ def obtain_names_from_s3(
 #     "data_files/nacional/issste/330017123002614/drive-download-", "330017123002614",
 #     True)
 
-obtain_names_from_s3(
-    "data_files/nacional/imss_imss-bienestar/330018022004503/", "330018022004503",
-    file_control_id=487)
+def apply_transformation_to_file():
+    obtain_names_from_s3(
+        "data_files/nacional/imss_imss-bienestar/330018022032475/octubre_2022",
+        "330018022032475", file_control_id=5)
 
 
 def delete_paths_from_aws(path):

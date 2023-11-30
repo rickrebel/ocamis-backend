@@ -65,7 +65,7 @@ class ParameterGroupSimpleSerializer(serializers.ModelSerializer):
 
 
 class TransformationSerializer(serializers.ModelSerializer):
-    #clean_function = CleanFunctionSimpleSerializer()
+    # clean_function = CleanFunctionSimpleSerializer()
 
     class Meta:
         model = Transformation
@@ -73,15 +73,30 @@ class TransformationSerializer(serializers.ModelSerializer):
 
 
 class NameColumnSerializer(serializers.ModelSerializer):
-    #data_type = DataTypeSimpleSerializer()
-    #column_type = ColumnTypeSimpleSerializer()
+    # data_type = DataTypeSimpleSerializer()
+    # column_type = ColumnTypeSimpleSerializer()
+    # final_field = FinalFieldSimpleSerializer()
     transformations = TransformationSerializer(
         many=True, source="column_transformations")
-    #final_field = FinalFieldSimpleSerializer()
 
     class Meta:
         model = NameColumn
         fields = "__all__"
+
+
+class NameColumnHeadersSerializer(serializers.ModelSerializer):
+    transformations = TransformationSerializer(
+        many=True, source="column_transformations")
+    parameter_group = serializers.IntegerField(
+        source="final_field.parameter_group_id", read_only=True)
+    entity = serializers.IntegerField(
+        source="file_control.agency.entity_id", read_only=True)
+
+    class Meta:
+        model = NameColumn
+        fields = ["name_in_data", "column_type", "final_field", "data_type",
+                  "parameter_group", "transformations", "std_name_in_data",
+                  "entity"]
 
 
 class FileControlSimpleSerializer(serializers.ModelSerializer):

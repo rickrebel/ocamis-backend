@@ -373,8 +373,12 @@ def default_params():
 
 
 class NameColumn (models.Model):
-    name_in_data = models.TextField(
-        verbose_name="Nombre de la columna real", blank=True, null=True)
+    name_in_data = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name="Nombre de la columna real")
+    std_name_in_data = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name="Nombre de la columna normalizado")
     position_in_data = models.IntegerField(
         blank=True, null=True, verbose_name="idx")
     alternative_names = JSONField(
@@ -419,6 +423,8 @@ class NameColumn (models.Model):
 
     def save(self, *args, **kwargs):
         from django.utils import timezone
+        from scripts.common import text_normalizer
+        self.std_name_in_data = text_normalizer(self.name_in_data, True)
         original = NameColumn.objects.filter(id=self.id).first()
         if original:
             if original.position_in_data is not None:

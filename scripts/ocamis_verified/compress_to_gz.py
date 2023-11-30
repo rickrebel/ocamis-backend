@@ -13,7 +13,7 @@ def csv_to_gz(csv_filepath, gz_filepath):
 
 
 base_dir = settings.BASE_DIR
-file_name = "nov_dic_2022.txt"
+file_name = "octubre_2022.txt"
 origin_path = f"{base_dir}\\fixture\\gz_files\\{file_name}"
 final_path = f"{base_dir}\\fixture\\gz_files\\{file_name}.gz"
 
