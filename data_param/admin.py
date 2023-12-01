@@ -138,12 +138,19 @@ class NameColumnInline(admin.StackedInline):
     extra = 0
 
 
+class TransformationInline(admin.StackedInline):
+    model = Transformation
+    classes = ["collapse"]
+    raw_id_fields = ["name_column", "file_control"]
+    extra = 0
+
+
 class NameColumnAdmin(admin.ModelAdmin):
     list_display = [
         "position_in_data",
         "name_in_data",
-        #"parameter_group",
-        #"final_field__collection",
+        # "parameter_group",
+        # "final_field__collection",
         "final_field",
         "column_type",
         "parent_column",
@@ -151,6 +158,7 @@ class NameColumnAdmin(admin.ModelAdmin):
     ]
     search_fields = ['name_in_data', 'final_field__name']
     raw_id_fields = ["parent_column", "child_column", "file_control"]
+    inlines = [TransformationInline]
     list_filter = [
         "final_field__collection",
         "final_field__parameter_group", "column_type"]

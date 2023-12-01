@@ -17,6 +17,8 @@ def similar(a, b):
 def text_normalizer(text, to_headers=False):
     import re
     import unidecode
+    if not text:
+        return text
     final_text = text.upper().strip()
     final_text = unidecode.unidecode(final_text)
     if to_headers:
