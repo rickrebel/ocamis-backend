@@ -68,8 +68,8 @@ def obtain_names_from_s3(
 
 def apply_transformation_to_file():
     obtain_names_from_s3(
-        "data_files/nacional/imss_imss-bienestar/330018022032475/octubre_2022",
-        "330018022032475", file_control_id=5)
+        "data_files/nacional/imss_imss-bienestar/330018023000822/Centro",
+        "330018023000822", file_control_id=1622)
 
 
 def delete_paths_from_aws(path):

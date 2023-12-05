@@ -3,9 +3,31 @@ from inai.admin import ocamis_admin_site
 from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django.contrib.admin.filters import SimpleListFilter
 
 from .models import AsyncTask, Platform, CutOff, Step, ClickHistory
 from classify_task.models import StatusTask, TaskFunction, Stage, UserProfile
+
+
+class NullFilterTask(SimpleListFilter):
+    title = "Con clicks"
+
+    parameter_name = 'has_field'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('1', 'Es derivado', ),
+            ('0', 'Es directo', ),
+        )
+
+    def queryset(self, request, queryset):
+        kwargs = {'parent_task__isnull': True}
+        # kwargs = {'%s' % self.parameter_name: None}
+        if self.value() == '0':
+            return queryset.filter(**kwargs)
+        if self.value() == '1':
+            return queryset.exclude(**kwargs)
+        return queryset
 
 
 class AsyncTaskAdmin(admin.ModelAdmin):
@@ -21,6 +43,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         "petition", "file_control", "data_file", "reply_file", "sheet_file",
         "parent_task", "user", "entity_week", "entity", "entity_month"]
     list_filter = [
+        NullFilterTask,
         "status_task", "task_function__is_queueable",
         "status_task__is_completed",
         "task_function", "user", "status_task__macro_status",

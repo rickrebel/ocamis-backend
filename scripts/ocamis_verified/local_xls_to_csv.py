@@ -10,7 +10,11 @@ def local_xls_to_csv(folder_path, file_name):
     xls_filepath = f"{folder_path}\\{file_name}"
     excel_file = pd.ExcelFile(xls_filepath)
     all_sheet_names = excel_file.sheet_names
+    print("all_sheet_names", all_sheet_names)
     for sheet_name in all_sheet_names:
+        exclude = ["Norte_1", "Norte_2", "Norte_3"]
+        if sheet_name in exclude:
+            continue
         data_excel = excel_file.parse(
             sheet_name,
             dtype='string', na_filter=False,
@@ -84,12 +88,22 @@ def execute_local_xls_to_csv(file_name):
 # ]
 # for file_name in january_files:
 #     execute_local_xls_to_csv(file_name)
+#
+# february_files = [
+#     "Febrero 2022-Chihuahua.xlsx",
+#     "Febrero 2022-Coahuila.xlsx",
+#     "Febrero 2022-Baja California Norte.xlsx",
+# ]
+#
+# for file_name in february_files:
+#     execute_local_xls_to_csv(file_name)
 
-february_files = [
-    "Febrero 2022-Chihuahua.xlsx",
-    "Febrero 2022-Coahuila.xlsx",
-    "Febrero 2022-Baja California Norte.xlsx",
+regions = [
+    'Norte.xlsx',
+    # 'Occidente.xlsx',
+    # 'Centro.xlsx',
+    # 'Sur.xlsx'
 ]
+for region in regions:
+    execute_local_xls_to_csv(region)
 
-for file_name in february_files:
-    execute_local_xls_to_csv(file_name)
