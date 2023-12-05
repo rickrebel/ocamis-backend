@@ -116,6 +116,7 @@ class PetitionFileControlAdmin(admin.ModelAdmin):
         "file_control",
     ]
     list_filter = ["petition__agency"]
+    raw_id_fields = ["petition", "file_control"]
     inlines = [DataFileInline]
 
 

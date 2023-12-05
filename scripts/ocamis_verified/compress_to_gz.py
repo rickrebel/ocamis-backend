@@ -1,9 +1,9 @@
 import gzip
 import shutil
-import os
+# import os
 from django.conf import settings
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def csv_to_gz(csv_filepath, gz_filepath):

@@ -135,6 +135,9 @@ class FileControl(models.Model):
     agency = models.ForeignKey(
         Agency, on_delete=models.CASCADE,
         verbose_name="Entidad", blank=True, null=True)
+    real_entity = models.ForeignKey(
+        Entity, on_delete=models.CASCADE,
+        verbose_name="Proveedor real", blank=True, null=True)
     format_file = models.CharField(
         max_length=5,
         choices=FORMAT_CHOICES,
@@ -166,9 +169,6 @@ class FileControl(models.Model):
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
     all_results = JSONField(blank=True, null=True)
-    real_entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE,
-        verbose_name="Proveedor real", blank=True, null=True)
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
 

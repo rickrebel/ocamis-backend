@@ -366,11 +366,16 @@ class AscertainableViewSet(CreateRetrieveView):
 
     def create(self, request, petition_file_control_id=False, **kwargs):
         from geo.models import Agency
+
         data_file = request.data
+        pfc = PetitionFileControl.objects.get(id=petition_file_control_id)
+        if pfc.file_control.real_entity:
+            data_file["entity"] = pfc.file_control.real_entity_id
+        else:
+            agency_id = request.data.get("agency_id")
+            agency = Agency.objects.get(id=agency_id)
+            data_file["entity"] = agency.entity_id
         new_data_file = DataFile()
-        agency_id = request.data.get("agency_id")
-        agency = Agency.objects.get(id=agency_id)
-        data_file["entity"] = agency.entity_id
 
         serializer_data_file = self.get_serializer_class()(
             new_data_file, data=data_file)

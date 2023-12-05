@@ -32,6 +32,7 @@ def lambda_handler(event, context):
 
 
 class MatchAws:
+    sample_count = 0
 
     def __init__(self, init_data: dict, context):
         for key, value in init_data.items():
@@ -801,6 +802,8 @@ class MatchAws:
                         some_almost_empty = True
                 if some_almost_empty or has_child:
                     pass
+                elif not duplicated_in.get("position"):
+                    error = "No se encontró la posición de la columna duplicada"
                 else:
                     duplicated_value = row[duplicated_in["position"]]
                     if duplicated_value != value:
@@ -1099,10 +1102,15 @@ class MatchAws:
         if delegation_name:
             delegation_name = text_normalizer(delegation_name)
             try:
-                delegation_id = self.delegation_cat[delegation_name]
-            except Exception:
+                delegation_id = self.delegation_cat.get(delegation_name)
+            except Exception as e:
+                # if self.sample_count < 10:
+                #     print("delegation_name", f">{delegation_name}<")
+                #     print("delegation_cat", self.delegation_cat)
+                #     print("e:", e)
+                #     self.sample_count += 1
                 delegation_error = f"No se encontró la delegación;" \
-                                   f" {delegation_name}"
+                                   f" {delegation_name}; {e}"
             if "UMAE " in delegation_name:
                 delegation_id2 = self.delegation_cat["TODAS LAS UMAES"]
             else:

@@ -81,7 +81,6 @@ class FromAws:
         if len(all_months) == 0:
             errors.append("No se encontraron meses")
         else:
-            # print("Se encontraron demasiados meses: ", all_months)
             year_months = []
             for ym in all_months:
                 month = str(ym[1]).zfill(2)
