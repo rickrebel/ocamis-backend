@@ -1,6 +1,5 @@
 import io
 import csv
-import math
 from datetime import datetime, timedelta
 import uuid as uuid_lib
 import json
@@ -33,6 +32,7 @@ def lambda_handler(event, context):
 
 class MatchAws:
     sample_count = 0
+    global_delivered = None
 
     def __init__(self, init_data: dict, context):
         for key, value in init_data.items():
@@ -48,6 +48,8 @@ class MatchAws:
         self.split_by_delegation = init_data["split_by_delegation"]
         self.global_delegation = init_data["global_delegation"]
         self.global_clues = init_data["global_clues"]
+        self.global_transformations = init_data.get(
+            "global_transformations", [])
 
         self.decode = init_data["decode"]
         self.decode_final = 'utf-8'
@@ -146,7 +148,6 @@ class MatchAws:
                          if "_amount" in field["name"] or
                          "clasif_assortment" in field["name"]]
 
-        self.global_delivered = None
         self.available_deliveries = init_data.get("available_deliveries", {})
         if len(amount_fields) == 1:
             amount_field = amount_fields[0]
@@ -235,6 +236,8 @@ class MatchAws:
         totals_by_date = {}
 
         special_cols = self.build_special_cols(all_data)
+        check_rows = "no_valid_row_data" in self.global_transformations
+        copy_invalid_rows = "copy_invalid_rows" in self.global_transformations
         required_cols = [col for col in self.existing_fields
                          if col["required_row"]]
 
@@ -253,15 +256,17 @@ class MatchAws:
 
         # print("models_to_save", self.models_to_save)
         for row in all_data[self.row_start_data - 1:]:
-            required_cols_in_null = [col for col in required_cols
-                                     if not row[col["position"]]]
-            if required_cols_in_null:
-                discarded_count += 1
-                continue
-            processed_count += 1
             # print("data_row \t", data_row)
-            self.last_missing_row = None
             # is_same_date = False
+            invalid_row = False
+            if check_rows:
+                invalid_row = any([col for col in required_cols
+                                  if not row[col["position"]]])
+                if not copy_invalid_rows and invalid_row:
+                    discarded_count += 1
+                    continue
+
+            self.last_missing_row = None
             uuid = str(uuid_lib.uuid4())
 
             available_data = {
@@ -271,20 +276,28 @@ class MatchAws:
                 "row_seq": int(row[0]),
                 "uuid": uuid,
             }
-            if "complement_drug" in self.models_to_save:
-                available_data["uuid_comp_drug"] = str(uuid_lib.uuid4())
-                available_data["drug_id"] = uuid
 
             available_data = self.special_available_data(
                 available_data, row, special_cols)
 
             available_data, some_date = self.basic_available_data(
-                available_data, row)
+                available_data, row, invalid_row)
 
+            # se vana a considerar solo
+            if invalid_row and copy_invalid_rows:
+                self.last_valid_row = available_data.copy()
+                discarded_count += 1
+                continue
+
+            if "complement_drug" in self.models_to_save:
+                available_data["uuid_comp_drug"] = str(uuid_lib.uuid4())
+                available_data["drug_id"] = uuid
+
+            processed_count += 1
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"
                 # print("row", row)
-                self.append_missing_row(row, error)
+                self.add_missing_row(row, error)
                 continue
             # if last_date != date[:10]:
             #     last_date = date[:10]
@@ -294,7 +307,7 @@ class MatchAws:
                 # print(some_date)
                 error = f"Error en fecha {some_date}; {e}"
                 # print(error)
-                self.append_missing_row(row, error)
+                self.add_missing_row(row, error)
                 continue
             iso_year = iso_date[0]
             iso_week = iso_date[1]
@@ -304,7 +317,7 @@ class MatchAws:
             iso_delegation, iso_del2, delegation_error = self.delegation_match(
                 available_data)
             if delegation_error:
-                self.append_missing_row(row, delegation_error)
+                self.add_missing_row(row, delegation_error)
                 continue
             complex_date = (iso_year, iso_week, iso_del2, year, month)
             if complex_date not in buffers_by_date:
@@ -337,11 +350,11 @@ class MatchAws:
 
             if error:
                 if "warning" in error:
-                    self.append_missing_field(
+                    self.add_missing_field(
                         row, classify_id, delivered, error=error,
                         drug_uuid=uuid)
                 else:
-                    self.append_missing_row(row, error)
+                    self.add_missing_row(row, error)
                     continue
             delivered_write = None
             if classify_id:
@@ -352,7 +365,7 @@ class MatchAws:
             folio_document = available_data.get("folio_document")
             if not folio_document:
                 error = "Folio Documento; No se encontró folio documento"
-                self.append_missing_row(row, error)
+                self.add_missing_row(row, error)
                 continue
 
             folio_ocamis = "|".join([
@@ -363,7 +376,7 @@ class MatchAws:
                 folio_document])
             if len(folio_ocamis) > 64:
                 error = "Folio Ocamis; El folio ocamis es muy largo"
-                self.append_missing_row(row, error)
+                self.add_missing_row(row, error)
                 continue
             curr_rx = all_rx.get(complex_date, {}).get(folio_ocamis)
             if curr_rx:
@@ -383,7 +396,7 @@ class MatchAws:
                 if error:
                     if "clasificación" in error:
                         value = error.split("; ")[1]
-                        self.append_missing_field(
+                        self.add_missing_field(
                             row, classify_id, value, error=delivered_final_id,
                             drug_uuid=uuid)
                 curr_rx["delivered_final_id"] = delivered_final_id
@@ -603,7 +616,7 @@ class MatchAws:
                 error = "Conteo distinto de Columnas; %s de %s" % (
                     current_count, self.columns_count)
                 row_data = [str(row_seq), row_data]
-                self.append_missing_row(row_data, error)
+                self.add_missing_row(row_data, error)
 
         return structured_data
 
@@ -724,8 +737,10 @@ class MatchAws:
 
         for global_col in special_cols["global"]:
             global_value = global_col.get("global_variable")
-            # available_data[global_col["name"]] = global_col["t_value"]
             available_data[global_col["name"]] = global_value
+
+        for ceil_col in special_cols["ceil"]:
+            available_data[ceil_col["name"]] = ceil_col["final_value"]
 
         for tab_col in special_cols["tab"]:
             available_data[tab_col["name"]] = self.sheet_name
@@ -733,20 +748,13 @@ class MatchAws:
         for file_name_col in special_cols["file_name"]:
             available_data[file_name_col["name"]] = self.file_name_simple
 
-        for ceil_col in special_cols["ceil"]:
-            available_data[ceil_col["name"]] = ceil_col["final_value"]
         return available_data
 
-    def basic_available_data(self, available_data, row):
+    def basic_available_data(self, available_data, row, invalid_row):
         import re
 
         some_date = None
         uuid = available_data.get("uuid")
-        # fields_with_name = [field for field in self.existing_fields
-        #                     if field["name"] and field["position"]]
-        # fields_with_name = [field for field in self.existing_fields
-        #                     if field["name"]]
-        # for field in fields_with_name:
         self.example_count += 1
         for field in self.existing_fields:
             error = None
@@ -815,53 +823,7 @@ class MatchAws:
                 elif copied:
                     pass
                 elif field["data_type"] == "Datetime":  # and not is_same_date:
-                    if value == self.last_date and value:
-                        value = self.last_date_formatted
-                        # print("same", value)
-                    else:
-                        # print("case")
-                        if self.string_date == "MANY":
-                            format_date = field.get("format_date").split(";")
-                            string_dates = [date.strip() for date in format_date]
-                        else:
-                            string_dates = self.string_dates
-                        is_success = False
-                        # print("value initial:", value)
-                        # print("string_dates:", string_dates)
-                        for string_format in string_dates:
-                            try:
-                                if string_format == "EXCEL":
-                                    if "." in value:
-                                        days, seconds = value.split(".")
-                                        days = int(days)
-                                        seconds = float("0." + seconds)
-                                        seconds = round(seconds)
-                                        # seconds = (float(value) - days) * 86400
-                                        # value = float(value)
-                                        # seconds = (value - 25569) * 86400.0
-                                    else:
-                                        days = int(value)
-                                        seconds = 0
-                                    value = datetime(1899, 12, 30) + timedelta(
-                                        days=days, seconds=seconds)
-                                elif string_format == "UNIX":
-                                    value = datetime.fromtimestamp(int(value))
-                                else:
-                                    value = datetime.strptime(value, string_format)
-                                self.last_date = value
-                                self.last_date_formatted = value
-                                is_success = True
-                                break
-                            except ValueError:
-                                pass
-                            except TypeError:
-                                pass
-                        if not is_success:
-                            error = "No se pudo convertir la fecha"
-                    # else:
-                    #     self.last_date = value
-                    #     value = datetime.strptime(value, self.string_date)
-                    #     self.last_date_formatted = value
+                    value, error = self.get_datetime(field, value, error)
                     if not some_date or field["name"] == "date_delivery":
                         if some_date and same_group_data:
                             pass
@@ -903,9 +865,10 @@ class MatchAws:
                 #         if value == field.get("t_value"):
                 #             value = None
             if error:
-                self.append_missing_field(
-                    row, field["name_column"], value, error=error, drug_uuid=uuid)
                 value = None
+            if error and not invalid_row:
+                self.add_missing_field(
+                    row, field["name_column"], value, error, drug_uuid=uuid)
             available_data[field["name"]] = value
         # if not some_date:
         #     print("some_date al final?", some_date)
@@ -1118,7 +1081,7 @@ class MatchAws:
 
         return delegation_id, delegation_id2, delegation_error
 
-    def append_missing_row(self, row_data, error=None, drug_id=None):
+    def add_missing_row(self, row_data, error=None, drug_id=None):
         self.last_valid_row = None
         if self.last_missing_row:
             if error:
@@ -1144,9 +1107,9 @@ class MatchAws:
         self.all_missing_rows.append(missing_data)
         return uuid
 
-    def append_missing_field(
+    def add_missing_field(
             self, row, name_column_id, original_value, error, drug_uuid=None):
-        missing_row_id = self.append_missing_row(row, drug_id=drug_uuid)
+        missing_row_id = self.add_missing_row(row, drug_id=drug_uuid)
         if type(original_value) == datetime:
             original_value = original_value.strftime("%Y-%m-%d %H:%M:%S")
         missing_field = []
@@ -1242,3 +1205,52 @@ class MatchAws:
         if not report_data.get("missing_rows"):
             report_data["general_error"] = "No se encontraron errores"
         return report_data
+
+    def get_datetime(self, field, value, error):
+        if value == self.last_date and value:
+            value = self.last_date_formatted
+            # print("same", value)
+        else:
+            # print("case")
+            if self.string_date == "MANY":
+                format_date = field.get("format_date").split(";")
+                string_dates = [date.strip() for date in format_date]
+            else:
+                string_dates = self.string_dates
+            is_success = False
+            # print("value initial:", value)
+            # print("string_dates:", string_dates)
+            for string_format in string_dates:
+                try:
+                    if string_format == "EXCEL":
+                        if "." in value:
+                            days, seconds = value.split(".")
+                            days = int(days)
+                            seconds = float("0." + seconds)
+                            seconds = round(seconds)
+                            # seconds = (float(value) - days) * 86400
+                            # value = float(value)
+                            # seconds = (value - 25569) * 86400.0
+                        else:
+                            days = int(value)
+                            seconds = 0
+                        value = datetime(1899, 12, 30) + timedelta(
+                            days=days, seconds=seconds)
+                    elif string_format == "UNIX":
+                        value = datetime.fromtimestamp(int(value))
+                    else:
+                        value = datetime.strptime(value, string_format)
+                    self.last_date = value
+                    self.last_date_formatted = value
+                    is_success = True
+                    break
+                except ValueError:
+                    pass
+                except TypeError:
+                    pass
+                except Exception as e:
+                    error = f"Error en fecha {value}; {e}"
+                    break
+            if not is_success:
+                error = "No se pudo convertir la fecha"
+        return value, error
