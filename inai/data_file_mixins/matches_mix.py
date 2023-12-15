@@ -155,6 +155,8 @@ class Match:
 
         value_null = "".encode(self.file_control.decode or "utf-8")
         hash_null = hashlib.md5(value_null).hexdigest()
+        global_transformations = self.file_control.file_transformations \
+            .values_list("clean_function__name", flat=True)
 
         def build_global_geo(global_obj):
             if not global_obj:
@@ -185,6 +187,7 @@ class Match:
             "file_name_simple": self.data_file.file.name.split(".")[0],
             "global_clues": build_global_geo(self.global_clues),
             "global_delegation": build_global_geo(self.global_delegation),
+            "global_transformations": global_transformations,
             "available_deliveries": build_available_deliveries(),
             "decode": self.file_control.decode,
             "hash_null": hash_null,
