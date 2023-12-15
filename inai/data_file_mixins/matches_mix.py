@@ -157,6 +157,7 @@ class Match:
         hash_null = hashlib.md5(value_null).hexdigest()
         global_transformations = self.file_control.file_transformations \
             .values_list("clean_function__name", flat=True)
+        global_transformations = list(global_transformations)
 
         def build_global_geo(global_obj):
             if not global_obj:
