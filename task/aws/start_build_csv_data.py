@@ -20,61 +20,78 @@ def text_normalizer(text):
 def lambda_handler(event, context):
     # if "artificial_request_id" in event:
     #     context["aws_request_id"] = event["artificial_request_id"]
-    init_data = event["init_data"]
-    init_data["s3"] = event["s3"]
-    match_aws = MatchAws(init_data, context)
+    try:
+        init_data = event["init_data"]
+        match_aws = MatchAws(init_data, context, event["s3"])
+    except Exception as e:
+        errors = [f"Hay Un error raro en la inicialización: {str(e)}"]
+        return send_simple_response(event, context, errors=errors)
 
-    file = event["file"]
+    try:
+        file = event["file"]
+        final_result = match_aws.build_csv_to_data(file)
+    except Exception as e:
+        errors = [f"Hay un error raro en la construcción: {str(e)}"]
+        return send_simple_response(event, context, errors=errors)
 
-    final_result = match_aws.build_csv_to_data(file)
     return send_simple_response(event, context, result=final_result)
 
 
 class MatchAws:
+    models_to_save = ["drug", "rx"]
+    real_complement_models = []
+    med_cat_flat_fields = {}
+    initial_data = {}
+    buffers = {}
+    csvs = {}
     sample_count = 0
-    global_delivered = None
+    months = set()
 
-    def __init__(self, init_data: dict, context):
+    entity_id = None
+    delimiter = None
+    global_delegation = None
+    global_delivered = None
+    real_models = None
+    global_clues = None
+    model_fields = None
+    existing_fields = None
+
+    special_cols = None
+    sheet_file_id = None
+    lap_sheet_id = None
+    final_path = None
+    split_by_delegation = False
+    global_transformations = []
+    decode = None
+    columns_count = None
+    row_start_data = 0
+    decode_final = 'utf-8'
+    hash_null = None
+    available_deliveries = {}
+    delegation_cat = {}
+    is_prepare = False
+    sheet_name = None
+    file_name_simple = None
+
+    def __init__(self, init_data: dict, context, s3):
         for key, value in init_data.items():
             setattr(self, key, value)
 
-        self.sheet_file_id = init_data.get("sheet_file_id")
-        self.lap_sheet_id = init_data.get("lap_sheet_id")
-        self.file_name_simple = init_data["file_name_simple"]
-        self.sheet_name = init_data["sheet_name"]
-        self.final_path = init_data["final_path"]
-
-        self.entity_id = init_data["entity_id"]
-        self.split_by_delegation = init_data["split_by_delegation"]
-        self.global_delegation = init_data["global_delegation"]
-        self.global_clues = init_data["global_clues"]
-        self.global_transformations = init_data.get(
-            "global_transformations", [])
-
-        self.decode = init_data["decode"]
-        self.decode_final = 'utf-8'
-        self.row_start_data = init_data["row_start_data"]
-        self.delimiter = init_data["delimiter"]
-
+        self.report = Report()
         self.delimit = self.delimiter or "|"
         self.sep = "\|" if self.delimit == "|" else self.delimit
         self.string_date = init_data["string_date"].strip()
         self.string_dates = [
             date.strip() for date in self.string_date.split(";")]
-        self.columns_count = init_data["columns_count"]
         # print("string_date", self.string_date)
-
         editable_models = init_data["editable_models"]
+
         self.normal_models = [model for model in editable_models
                               if model["name"] not in ["drug", "rx"]]
-        self.real_models = init_data["real_models"]
-        self.model_fields = init_data["model_fields"]
-        self.hash_null = init_data["hash_null"]
         self.med_cat_models = [cat for cat in editable_models
                                if cat.get("app") == "med_cat"]
         self.real_med_cat_models = [cat["name"] for cat in self.med_cat_models
                                     if cat["model"] in self.real_models]
-        self.real_complement_models = []
         complement_models = {
             "ComplementDrug": "complement_drug",
             "ComplementRx": "complement_rx",
@@ -83,11 +100,8 @@ class MatchAws:
             if formal_name in self.real_models:
                 self.real_complement_models.append(model_name)
         # print("real_complement_models", self.real_complement_models)
-        self.models_to_save = ["drug", "rx"]
         self.models_to_save.extend(self.real_complement_models)
 
-        self.med_cat_flat_fields = {}
-        self.initial_data = {}
         for cat_name in self.real_med_cat_models:
             is_med_unit = cat_name == "medical_unit"
             is_medicament = cat_name == "medicament"
@@ -122,17 +136,12 @@ class MatchAws:
             self.initial_data[cat_name] = {"data_values": data_values,
                                            "all_values": all_values}
         # print("med_cat_flat_fields: \n", self.med_cat_flat_fields)
-        self.delegation_cat = init_data.get("delegation_cat", {})
 
-        self.months = set()
-        self.buffers = {}
-        self.csvs = {}
         for model in self.normal_models:
             self.csvs[model["name"]] = io.StringIO()
             self.buffers[model["name"]] = csv.writer(
                 self.csvs[model["name"]], delimiter="|")
 
-        self.existing_fields = init_data["existing_fields"]
         self.positioned_fields = [field for field in self.existing_fields
                                   if field["position"] is not None]
         self.special_fields = [field for field in self.existing_fields
@@ -148,7 +157,6 @@ class MatchAws:
                          if "_amount" in field["name"] or
                          "clasif_assortment" in field["name"]]
 
-        self.available_deliveries = init_data.get("available_deliveries", {})
         if len(amount_fields) == 1:
             amount_field = amount_fields[0]
             if amount_field["name"] == "delivered_amount":
@@ -191,7 +199,6 @@ class MatchAws:
             }
             self.regex_fields += [last_block]
 
-        self.lap = init_data["lap"]
         self.cat_keys = {}
         for med_cat in self.real_med_cat_models:
             self.cat_keys[med_cat] = set()
@@ -202,13 +209,12 @@ class MatchAws:
         self.all_missing_rows = []
         self.all_missing_fields = []
 
-        self.s3_utils = BotoUtils(init_data.get("s3"))
+        self.s3_utils = BotoUtils(s3)
 
         self.context = context
         self.last_date = None
         self.last_valid_row = None
         self.last_date_formatted = None
-        self.is_prepare = init_data.get("is_prepare", False)
         self.example_count = 0
 
     def build_csv_to_data(self, file):
@@ -235,7 +241,7 @@ class MatchAws:
         buffers_by_date = {}
         totals_by_date = {}
 
-        special_cols = self.build_special_cols(all_data)
+        self.special_cols = self.build_special_cols(all_data)
         check_rows = "no_valid_row_data" in self.global_transformations
         copy_invalid_rows = "copy_invalid_rows" in self.global_transformations
         required_cols = [col for col in self.existing_fields
@@ -245,14 +251,12 @@ class MatchAws:
         # iso_date = None
         # first_iso = None
         all_rx = {}
-        success_drugs_count = 0
-        total_count = len(all_data)
-        processed_count = 0
+        self.report.add_count("total_count", len(all_data))
         classify_cols = [col for col in self.existing_fields
                          if col["name"] == "clasif_assortment_presc"]
         classify_id = classify_cols[0]["name_column"] if classify_cols else None
 
-        discarded_count = self.row_start_data - 1
+        self.report.add_count("discarded_count", self.row_start_data - 1)
 
         # print("models_to_save", self.models_to_save)
         for row in all_data[self.row_start_data - 1:]:
@@ -263,7 +267,7 @@ class MatchAws:
                 invalid_row = any([col for col in required_cols
                                   if not row[col["position"]]])
                 if not copy_invalid_rows and invalid_row:
-                    discarded_count += 1
+                    self.report.add_count("discarded_count")
                     continue
 
             self.last_missing_row = None
@@ -277,23 +281,30 @@ class MatchAws:
                 "uuid": uuid,
             }
 
-            available_data = self.special_available_data(
-                available_data, row, special_cols)
+            available_data = self.special_available_data(available_data, row)
 
-            available_data, some_date = self.basic_available_data(
-                available_data, row, invalid_row)
+            some_date = None
+            for field in self.existing_fields:
+                value, error, some_date = self.basic_available_data(
+                    available_data, row, field, some_date)
+                if error and not invalid_row:
+                    self.add_missing_field(
+                        row, field["name_column"], value, error, drug_uuid=uuid)
+                if error:
+                    value = None
+                available_data[field["name"]] = value
 
             # se vana a considerar solo
             if invalid_row and copy_invalid_rows:
                 self.last_valid_row = available_data.copy()
-                discarded_count += 1
+                self.report.add_count("discarded_count")
                 continue
 
             if "complement_drug" in self.models_to_save:
                 available_data["uuid_comp_drug"] = str(uuid_lib.uuid4())
                 available_data["drug_id"] = uuid
 
-            processed_count += 1
+            self.report.add_count("processed_count")
             if not some_date:
                 error = "Fechas; No se pudo convertir ninguna fecha"
                 # print("row", row)
@@ -301,25 +312,13 @@ class MatchAws:
                 continue
             # if last_date != date[:10]:
             #     last_date = date[:10]
-            try:
-                iso_date = some_date.isocalendar()
-            except Exception as e:
-                # print(some_date)
-                error = f"Error en fecha {some_date}; {e}"
-                # print(error)
-                self.add_missing_row(row, error)
+
+            available_data, complex_date, folio_ocamis, err = self.calculate_iso(
+                available_data, some_date)
+            if err:
+                self.add_missing_row(row, err)
                 continue
-            iso_year = iso_date[0]
-            iso_week = iso_date[1]
-            iso_day = iso_date[2]
-            year = some_date.year
-            month = some_date.month
-            iso_delegation, iso_del2, delegation_error = self.delegation_match(
-                available_data)
-            if delegation_error:
-                self.add_missing_row(row, delegation_error)
-                continue
-            complex_date = (iso_year, iso_week, iso_del2, year, month)
+
             if complex_date not in buffers_by_date:
                 all_rx[complex_date] = {}
                 totals_by_date[complex_date] = {
@@ -332,17 +331,6 @@ class MatchAws:
                     headers.extend(
                         self.build_headers(model_name, need_return=True))
                 buffers_by_date[complex_date].writerow(headers)
-
-            available_data["iso_year"] = iso_year
-            available_data["iso_week"] = iso_week
-            available_data["iso_day"] = iso_day
-            available_data["iso_delegation"] = iso_delegation
-            available_data["year"] = year
-            available_data["month"] = month
-            available_data["date_created"] = available_data.get(
-                "date_release") or available_data.get("date_visit")
-            available_data["date_closed"] = available_data.get("date_delivery")
-            self.months.add((year, month))
 
             available_data, error = self.calculate_delivered(available_data)
             delivered = available_data.get("delivered_id")
@@ -362,22 +350,6 @@ class MatchAws:
 
             available_data = self.generic_match("medicament", available_data)
 
-            folio_document = available_data.get("folio_document")
-            if not folio_document:
-                error = "Folio Documento; No se encontró folio documento"
-                self.add_missing_row(row, error)
-                continue
-
-            folio_ocamis = "|".join([
-                str(self.entity_id),
-                str(iso_year),
-                str(iso_week),
-                str(iso_delegation) or '0',
-                folio_document])
-            if len(folio_ocamis) > 64:
-                error = "Folio Ocamis; El folio ocamis es muy largo"
-                self.add_missing_row(row, error)
-                continue
             curr_rx = all_rx.get(complex_date, {}).get(folio_ocamis)
             if curr_rx:
                 available_data["rx_id"] = curr_rx["uuid_folio"]
@@ -409,7 +381,6 @@ class MatchAws:
                     available_data["uuid_comp_rx"] = str(uuid_lib.uuid4())
                 available_data["delivered_final_id"] = delivered
                 available_data["folio_ocamis"] = folio_ocamis
-                available_data["folio_document"] = folio_document
                 available_data["all_delivered"] = {delivered}
                 if delivered_write:
                     available_data["all_delivered_write"] = {delivered_write}
@@ -433,35 +404,28 @@ class MatchAws:
                         value = locals().get(field_name, None)
                     current_row_data.append(value)
             buffers_by_date[complex_date].writerow(current_row_data)
-            success_drugs_count += 1
+            self.report.add_count("drugs_count")
             totals_by_date[complex_date]["drugs_count"] += 1
             # if len(all_rx) > self.sample_size:
             #     break
-        report_errors = self.build_report()
-        rx_count = 0
+        # report_errors = self.build_report()
+        report_errors = self.report.data
         for complex_date, folios in all_rx.items():
             len_folios = len(folios)
-            rx_count += len_folios
+            self.report.add_count("rx_count", len_folios)
             totals_by_date[complex_date]["rx_count"] += len_folios
-        report_errors["rx_count"] = rx_count
-        report_errors["drugs_count"] = success_drugs_count
-        report_errors["processed_count"] = processed_count
-        report_errors["total_count"] = total_count
-        report_errors["discarded_count"] = discarded_count
         for med_cat in self.med_cat_models:
             cat_name = med_cat["name"]
-            report_errors[f"{cat_name}_count"] = len(self.cat_keys[cat_name]) \
-                if self.cat_keys.get(cat_name) else 0
-        all_months = [[year, month] for (year, month) in self.months]
+            count = len(self.cat_keys.get(cat_name, []))
+            self.report.add_count(f"{cat_name}_count", count)
         result_data = {
             "report_errors": report_errors,
-            "is_prepare": self.is_prepare,
-            "sheet_file_id": self.sheet_file_id,
-            "lap_sheet_id": self.lap_sheet_id,
-            "all_months": all_months,
+            "all_months": [[year, month] for (year, month) in self.months],
         }
+        for field in ["is_prepare", "sheet_file_id", "lap_sheet_id"]:
+            result_data[field] = getattr(self, field)
+
         if self.is_prepare:
-            # return json.dumps(result_data)
             return result_data
 
         self.buffers["missing_field"].writerows(self.all_missing_fields)
@@ -621,6 +585,8 @@ class MatchAws:
         return structured_data
 
     def build_special_cols(self, all_data):
+        if self.special_cols:
+            return self.special_cols
 
         def get_columns_by_type(column_type):
             return [col for col in self.existing_fields
@@ -706,9 +672,9 @@ class MatchAws:
             ceil_cols.append(col)
         return ceil_cols
 
-    def special_available_data(self, available_data, row, special_cols):
+    def special_available_data(self, available_data, row):
 
-        for built_col in special_cols["built"]:
+        for built_col in self.special_cols["built"]:
             origin_values = []
             for origin_col in built_col["origin_cols"]:
                 if origin_col.get("position"):
@@ -722,7 +688,7 @@ class MatchAws:
             built_value = concat_char.join(origin_values)
             available_data[built_col["name"]] = built_value
 
-        for divided_col in special_cols["divided"]:
+        for divided_col in self.special_cols["divided"]:
             # divided_char = divided_col.get("t_value")
             divided_char = divided_col.get("concatenated")
             if not divided_char:
@@ -735,144 +701,120 @@ class MatchAws:
                 destiny_col = destiny_cols[i - 1]
                 available_data[destiny_col["name"]] = divided_value
 
-        for global_col in special_cols["global"]:
+        for global_col in self.special_cols["global"]:
             global_value = global_col.get("global_variable")
             available_data[global_col["name"]] = global_value
 
-        for ceil_col in special_cols["ceil"]:
+        for ceil_col in self.special_cols["ceil"]:
             available_data[ceil_col["name"]] = ceil_col["final_value"]
 
-        for tab_col in special_cols["tab"]:
+        for tab_col in self.special_cols["tab"]:
             available_data[tab_col["name"]] = self.sheet_name
 
-        for file_name_col in special_cols["file_name"]:
+        for file_name_col in self.special_cols["file_name"]:
             available_data[file_name_col["name"]] = self.file_name_simple
 
         return available_data
 
-    def basic_available_data(self, available_data, row, invalid_row):
+    def basic_available_data(self, available_data, row, field, some_date):
         import re
 
-        some_date = None
-        uuid = available_data.get("uuid")
-        self.example_count += 1
-        for field in self.existing_fields:
-            error = None
-            if field.get("position"):
-                value = row[field["position"]]
-            else:
-                value = available_data.get(field["name"])
-            null_to_value = field.get("null_to_value")
-            if null_to_value:
-                if value is None or value == "":
+        # for field in self.existing_fields:
+        error = None
+        if field.get("position"):
+            value = row[field["position"]]
+        else:
+            value = available_data.get(field["name"])
+        null_to_value = field.get("null_to_value")
+        if null_to_value:
+            if value is None or value == "":
+                value = null_to_value
+        same_group_data = field.get("same_group_data")
+        copied = False
+        if not value and same_group_data and self.last_valid_row:
+            value = self.last_valid_row.get(field["name"])
+            copied = True
+            if field["data_type"] == "Datetime" and value:
+                some_date = value
+        if not value:
+            return value, error, some_date
+        if "almost_empty" in field:
+            value = None
+        elif "text_nulls" in field:
+            text_nulls = field["text_nulls"]
+            if not isinstance(text_nulls, str):
+                raise Exception("La transformación de NULOS no puede estar vacía")
+            text_nulls = text_nulls.split(",")
+            text_nulls = [text_null.strip() for text_null in text_nulls]
+            if value in text_nulls:
+                if null_to_value:
                     value = null_to_value
-            same_group_data = field.get("same_group_data")
-            copied = False
-            # if self.example_count < 15:
-            #     print("------------------")
-            #     print("field:", field.get("name"))
-            #     print("value:", value)
-            #     print("last_valid_row:", self.last_valid_row)
-            #     print("same_group_data:", same_group_data)
-            if not value and same_group_data and self.last_valid_row:
-                value = self.last_valid_row.get(field["name"])
-                copied = True
-                if field["data_type"] == "Datetime" and value:
-                    some_date = value
-            # if self.example_count < 15:
-            #     print("value final:", value)
-            if not value:
-                continue
-            if "almost_empty" in field:
-                value = None
-            elif "text_nulls" in field:
-                text_nulls = field["text_nulls"]
-                if not isinstance(text_nulls, str):
-                    raise Exception("La transformación de NULOS no puede estar vacía")
-                text_nulls = text_nulls.split(",")
-                text_nulls = [text_null.strip() for text_null in text_nulls]
-                if value in text_nulls:
-                    if null_to_value:
-                        value = null_to_value
-                    else:
-                        value = None
-            if field.get("duplicated_in"):
-                duplicated_in = field["duplicated_in"]
-                some_almost_empty = False
-                has_child = field.get("child")
-                # if field.get("clean_function") == "almost_empty":
-                if "almost_empty" in field:
-                    some_almost_empty = True
-                if not some_almost_empty:
-                    dupl_almost_empty = duplicated_in.get("almost_empty")
-                    # if duplicated_in.get("clean_function") == "almost_empty":
-                    if dupl_almost_empty:
-                        some_almost_empty = True
-                if some_almost_empty or has_child:
-                    pass
-                elif not duplicated_in.get("position"):
-                    error = "No se encontró la posición de la columna duplicada"
                 else:
-                    duplicated_value = row[duplicated_in["position"]]
-                    if duplicated_value != value:
-                        error = f"El valor de las columnas que apuntan a " \
-                                f"{field['name']} no coinciden"
-            try:
-                if not value:
-                    pass
-                elif copied:
-                    pass
-                elif field["data_type"] == "Datetime":  # and not is_same_date:
-                    value, error = self.get_datetime(field, value, error)
-                    if not some_date or field["name"] == "date_delivery":
-                        if some_date and same_group_data:
-                            pass
-                        else:
-                            some_date = value
-                        # print("some_date", some_date)
-                elif field["data_type"] == "Integer":
+                    value = None
+        if field.get("duplicated_in"):
+            duplicated_in = field["duplicated_in"]
+            some_almost_empty = False
+            has_child = field.get("child")
+            # if field.get("clean_function") == "almost_empty":
+            if "almost_empty" in field:
+                some_almost_empty = True
+            if not some_almost_empty:
+                dupl_almost_empty = duplicated_in.get("almost_empty")
+                # if duplicated_in.get("clean_function") == "almost_empty":
+                if dupl_almost_empty:
+                    some_almost_empty = True
+            if some_almost_empty or has_child:
+                pass
+            elif not duplicated_in.get("position"):
+                error = "No se encontró la posición de la columna duplicada"
+            else:
+                duplicated_value = row[duplicated_in["position"]]
+                if duplicated_value != value:
+                    error = f"El valor de las columnas que apuntan a " \
+                            f"{field['name']} no coinciden"
+        try:
+            if not value:
+                pass
+            elif copied:
+                pass
+            elif field["data_type"] == "Datetime":  # and not is_same_date:
+                value, error = self.get_datetime(field, value, error)
+                if not some_date or field["name"] == "date_delivery":
+                    if some_date and same_group_data:
+                        pass
+                    else:
+                        some_date = value
+                    # print("some_date", some_date)
+            elif field["data_type"] == "Integer":
+                try:
+                    value = int(value)
+                except ValueError:
                     try:
-                        value = int(value)
-                    except ValueError:
-                        try:
-                            value = int(float(value))
-                        except Exception:
-                            error = "No se pudo convertir a número entero"
+                        value = int(float(value))
                     except Exception:
                         error = "No se pudo convertir a número entero"
-                    if not error and value < 0:
-                        error = "El valor no puede ser negativo"
-                elif field["data_type"] == "Float":
-                    value = float(value)
-                else:
-                    value = str(value)
-            except ValueError:
-                error = "No se pudo convertir a %s" % field["data_type"]
-            if value and not error:
-                regex_format = field.get("regex_format")
-                has_own_key = field.get("has_own_key")
-                if regex_format and not has_own_key:
-                    if not re.match(regex_format, value):
-                        error = "No se validó con el formato de %s" % field["name"]
-                elif field.get("max_length"):
-                    if len(value) > field["max_length"]:
-                        error = "El valor tiene más de los caracteres permitidos"
-                # clean_function = field.get("clean_function")
-                # if clean_function:
-                #     if clean_function == "almost_empty":
-                #         value = None
-                #     elif clean_function == "text_nulls":
-                #         if value == field.get("t_value"):
-                #             value = None
-            if error:
-                value = None
-            if error and not invalid_row:
-                self.add_missing_field(
-                    row, field["name_column"], value, error, drug_uuid=uuid)
-            available_data[field["name"]] = value
+                except Exception:
+                    error = "No se pudo convertir a número entero"
+                if not error and value < 0:
+                    error = "El valor no puede ser negativo"
+            elif field["data_type"] == "Float":
+                value = float(value)
+            else:
+                value = str(value)
+        except ValueError:
+            error = "No se pudo convertir a %s" % field["data_type"]
+        if value and not error:
+            regex_format = field.get("regex_format")
+            has_own_key = field.get("has_own_key")
+            if regex_format and not has_own_key:
+                if not re.match(regex_format, value):
+                    error = "No se validó con el formato de %s" % field["name"]
+            elif field.get("max_length"):
+                if len(value) > field["max_length"]:
+                    error = "El valor tiene más de los caracteres permitidos"
         # if not some_date:
         #     print("some_date al final?", some_date)
-        return available_data, some_date
+        return value, error, some_date
 
     def build_headers(self, cat_name, need_return=False):
         fields = self.model_fields[cat_name]
@@ -958,7 +900,13 @@ class MatchAws:
         if errors:
             return available_data, errors[0]
         is_cancelled = final_class == "CANCELADA"
-        prescribed_amount = available_data.get("prescribed_amount")
+        prescribed_amount = available_data.get("prescribed_amount", 0)
+        if prescribed_amount:
+            try:
+                prescribed_amount = int(prescribed_amount)
+            except ValueError:
+                error = "No se pudo convertir la cantidad prescrita"
+                return available_data, error
 
         def identify_errors(av_data, amount, err_text):
             err = None
@@ -1015,7 +963,7 @@ class MatchAws:
         delivered_amount = available_data.get("delivered_amount")
 
         if delivered_amount is None:
-            not_delivered_amount = available_data.pop("not_delivered_amount", None)
+            not_delivered_amount = available_data.get("not_delivered_amount", None)
             if not_delivered_amount is not None:
                 delivered_amount = prescribed_amount - not_delivered_amount
                 available_data["delivered_amount"] = delivered_amount
@@ -1093,9 +1041,11 @@ class MatchAws:
         last_revised = self.last_revised
         inserted = not bool(error)
         inserted = False
+
         # row_seq = int(row_data[0])
         # original_data = row_data[1:]
         original_data = json.dumps(row_data)
+        self.report.append_missing_row(original_data, error)
         missing_data = []
         uuid = str(uuid_lib.uuid4())
         sheet_file_id = self.sheet_file_id
@@ -1110,7 +1060,8 @@ class MatchAws:
     def add_missing_field(
             self, row, name_column_id, original_value, error, drug_uuid=None):
         missing_row_id = self.add_missing_row(row, drug_id=drug_uuid)
-        if type(original_value) == datetime:
+        print("original_value", original_value)
+        if isinstance(original_value, datetime):
             original_value = original_value.strftime("%Y-%m-%d %H:%M:%S")
         missing_field = []
         uuid = str(uuid_lib.uuid4())
@@ -1118,93 +1069,55 @@ class MatchAws:
         last_revised = self.last_revised
         # if name_column:
         #     name_column = name_column.id
+        self.report.append_missing_field(
+            name_column_id, original_value, error)
         for field in self.model_fields["missing_field"]:
             value = locals().get(field["name"])
             missing_field.append(value)
         self.all_missing_fields.append(missing_field)
 
-    def build_report(self):
-        report_data = {"general_error": ""}
-        real_missing_rows = [row for row in self.all_missing_rows if row[-1]]
-        report_data["missing_rows"] = len(self.all_missing_rows)
-        if real_missing_rows:
-            report_data["real_missing_rows"] = len(real_missing_rows)
-            row_errors = {}
-            error_types_count = 0
-            for missing_row in real_missing_rows:
-                error = missing_row[-1]
-                if not error:
-                    continue
-                try:
-                    [error_type, error_detail] = error.split(";", 1)
-                except Exception:
-                    # print("error report:", e)
-                    [error_type, error_detail] = [error, "GENERAL"]
-                if error_type in row_errors:
-                    row_errors[error_type]["count"] += 1
-                    if error_detail in row_errors[error_type]:
-                        row_errors[error_type][error_detail]["count"] += 1
-                        example_count = len(
-                            row_errors[error_type][error_detail]["examples"])
-                        if example_count < 4:
-                            row_errors[error_type][error_detail]["examples"].append(
-                                missing_row[-3])
-                    elif len(row_errors[error_type]) < 20:
-                        row_errors[error_type][error_detail] = {
-                            "count": 1, "examples": [missing_row[-3]]}
-                elif error_types_count < 40:
-                    row_errors[error_type] = {
-                        "count": 1,
-                        error_detail: {
-                            "count": 1, "examples": [missing_row[-3]]}
-                    }
-                    error_types_count += 1
-            report_data["row_errors"] = row_errors
-            if len(row_errors) > 50:
-                report_data["general_error"] += \
-                    "Se encontraron más de 50 tipos de errores en las filas"
-        else:
-            report_data["real_missing_rows"] = 0
-            report_data["row_errors"] = {}
+    def calculate_iso(self, available_data, some_date):
 
-        if self.all_missing_fields:
-            report_data["missing_fields"] = len(self.all_missing_fields)
-            field_errors = {}
-            error_types_count = 0
-            for missing_field in self.all_missing_fields:
-                error = missing_field[-1]
-                name_column = missing_field[2]
-                original_value = missing_field[3]
-                if error in field_errors:
-                    field_errors[error]["count"] += 1
-                    if name_column in field_errors[error]:
-                        field_errors[error][name_column]["count"] += 1
-                        examples = field_errors[error][name_column]["examples"]
-                        if len(examples) < 6 and original_value not in examples:
-                            field_errors[error][name_column]["examples"].append(
-                                original_value)
-                    else:
-                        field_errors[error][name_column] = {
-                            "count": 1,
-                            "examples": [original_value]
-                        }
-                elif error_types_count < 40:
-                    error_types_count += 1
-                    field_errors[error] = {
-                        "count": 1,
-                        name_column: {
-                            "count": 1,
-                            "examples": [original_value]
-                        }
-                    }
-            report_data["field_errors"] = field_errors
-        else:
-            report_data["missing_fields"] = 0
-            report_data["field_errors"] = {}
+        def send_error(final_error):
+            return available_data, None, None, final_error
 
-        if not report_data.get("missing_rows"):
-            report_data["general_error"] = "No se encontraron errores"
-        return report_data
+        try:
+            iso_date = some_date.isocalendar()
+        except Exception as e:
+            return send_error(f"Error en fecha {some_date}; {e}")
+
+        iso_year = iso_date[0]
+        iso_week = iso_date[1]
+        iso_day = iso_date[2]
+        year = some_date.year
+        month = some_date.month
+        iso_delegation, iso_del2, delegation_error = self.delegation_match(
+            available_data)
+        if delegation_error:
+            return send_error(delegation_error)
+        complex_date = (iso_year, iso_week, iso_del2, year, month)
+
+        variables = ["iso_year", "iso_week", "iso_day", "iso_delegation",
+                     "year", "month"]
+        for variable in variables:
+            available_data[variable] = locals().get(variable)
+        available_data["date_created"] = available_data.get(
+            "date_release") or available_data.get("date_visit")
+        available_data["date_closed"] = available_data.get("date_delivery")
+
+        if folio_document := available_data.get("folio_document"):
+            folio_ocamis = "|".join([
+                str(self.entity_id),
+                str(iso_year),
+                str(iso_week),
+                str(iso_delegation) or '0',
+                folio_document])
+            if len(folio_ocamis) > 64:
+                return send_error("Folio Ocamis; El folio ocamis es muy largo")
+            self.months.add((year, month))
+            return available_data, complex_date, folio_ocamis, None
+        else:
+            return send_error("Folio Documento; No se encontró folio documento")
 
     def get_datetime(self, field, value, error):
         if value == self.last_date and value:
@@ -1254,3 +1167,55 @@ class MatchAws:
             if not is_success:
                 error = "No se pudo convertir la fecha"
         return value, error
+
+
+class Report:
+
+    def __init__(self):
+        self.data = {
+            "missing_rows": 0,
+            "real_missing_rows": 0,
+            "missing_fields": 0,
+            "field_errors": {},
+            "row_errors": {},
+            "rx_count": 0,
+            "drugs_count": 0,
+        }
+
+    def add_count(self, field, count=1):
+        if field not in self.data:
+            self.data[field] = count
+        else:
+            self.data[field] += count
+
+    def append_missing_row(self, original_data, error=None):
+        self.data["missing_rows"] += 1
+        if error:
+            self.data["real_missing_rows"] += 1
+            try:
+                [error_type, error_detail] = error.split(";", 1)
+            except Exception:
+                [error_type, error_detail] = [error, "GENERAL"]
+            self.add_error("row", error_type, error_detail, original_data)
+
+    def append_missing_field(self, name_column_id, original_value, error):
+        self.data["missing_fields"] += 1
+        self.add_error("field", name_column_id, error, original_value)
+
+    def add_error(self, field, err_type, error, original_data):
+        elem = self.data[f"{field}_errors"]
+        if err_type not in elem:
+            elem[err_type] = {
+                "count": 0,
+                error: {"count": 0, "examples": [], "ex_count": 0}
+            }
+        elem[err_type]["count"] += 1
+        if error not in elem[err_type]:
+            elem[err_type][error] = {"count": 0, "examples": [], "ex_count": 0}
+        elem[err_type][error]["count"] += 1
+
+        examples_count = elem[err_type][error]["ex_count"]
+        if examples_count < 6:
+            print("original_data", original_data)
+            elem[err_type][error]["examples"].append(original_data)
+            elem[err_type][error]["ex_count"] += 1

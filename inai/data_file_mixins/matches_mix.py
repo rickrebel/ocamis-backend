@@ -308,18 +308,18 @@ class Match:
             valid_transformation = column.column_transformations.all() \
                 .exclude(clean_function__ready_code="not_ready")
             # .filter(clean_function__name__in=functions_alone)
-            ready_codes = valid_transformation.values_list(
-                "clean_function__ready_code", flat=True)
-            unique_codes = set(ready_codes)
-            if len(unique_codes) != len(ready_codes):
-                name_in_data2 = get_name_in_data(column)
-                clean_functions = valid_transformation.values_list(
-                    "clean_function__name", flat=True)
-                err = f"La columna {name_in_data2} tiene más de una " \
-                      f"transformación especial que no se pueden aplicar a " \
-                      f"la vez: {clean_functions}"
-                all_errors.append(err)
-            elif valid_transformation.exists():
+            # ready_codes = valid_transformation.values_list(
+            #     "clean_function__ready_code", flat=True)
+            # unique_codes = set(ready_codes)
+            # if len(unique_codes) != len(ready_codes):
+            #     name_in_data2 = get_name_in_data(column)
+            #     clean_functions = valid_transformation.values_list(
+            #         "clean_function__name", flat=True)
+            #     err = f"La columna {name_in_data2} tiene más de una " \
+            #           f"transformación especial que no se pueden aplicar a " \
+            #           f"la vez: {clean_functions}"
+            #     all_errors.append(err)
+            if valid_transformation.exists():
                 # first_t = valid_transformation.first()
                 # new_column["clean_function"] = first_t.clean_function.name
                 # new_column["t_value"] = first_t.addl_params.get("value")

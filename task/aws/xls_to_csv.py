@@ -14,6 +14,7 @@ def lambda_handler(event, context):
     final_path = event["final_path"]
     only_name = event["only_name"]
     s3_utils = BotoUtils(event.get("s3"))
+    # print("final_path", final_path)
     excel_file = pd.ExcelFile(final_path)
     all_sheet_names = excel_file.sheet_names
     many_sheets = len(all_sheet_names) > 10

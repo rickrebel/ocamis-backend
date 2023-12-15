@@ -66,7 +66,8 @@ def send_simple_response(event, context, errors=None, result=None):
     if not result:
         result = {}
     else:
-        print("result:", result)
+        pass
+        # print("result:", result)
     #     try:
     #         json.dumps(result)
     #         print("serializable result ok")
