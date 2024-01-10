@@ -64,7 +64,7 @@ class PresentationAdmin(admin.ModelAdmin):
         "component",
         "presentation_type",
     ]
-    list_filter = ["origen_cvmei"]
+    list_filter = ["origen_cvmei", "group", "presentation_type"]
     raw_id_fields = ["component"]
     search_fields = [
         "description",

@@ -58,7 +58,7 @@ class FromAws:
                 data_file.petition_file_control.file_control.save()
 
         error_fields = ["missing_rows", "missing_fields"]
-        errors_count = sum([report_errors[field] for field in error_fields])
+        errors_count = sum([report_errors.get(field, 0) for field in error_fields])
         total_rows = report_errors["total_count"] - report_errors["discarded_count"]
         errors = []
         if not total_rows:

@@ -18,6 +18,8 @@ def text_normalizer(text):
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
 def lambda_handler(event, context):
+    import traceback
+    import sys
     # if "artificial_request_id" in event:
     #     context["aws_request_id"] = event["artificial_request_id"]
     try:
@@ -31,7 +33,8 @@ def lambda_handler(event, context):
         file = event["file"]
         final_result = match_aws.build_csv_to_data(file)
     except Exception as e:
-        errors = [f"Hay un error raro en la construcción: {str(e)}"]
+        error_ = traceback.format_exc()
+        errors = [f"Hay un error raro en la construcción: \n{str(e)}\n{error_}"]
         return send_simple_response(event, context, errors=errors)
 
     return send_simple_response(event, context, result=final_result)
@@ -46,6 +49,7 @@ class MatchAws:
     csvs = {}
     sample_count = 0
     months = set()
+    last_revised = datetime.now()
 
     entity_id = None
     delimiter = None
@@ -55,6 +59,7 @@ class MatchAws:
     global_clues = None
     model_fields = None
     existing_fields = None
+    cat_keys = {}
 
     special_cols = None
     sheet_file_id = None
@@ -72,6 +77,12 @@ class MatchAws:
     is_prepare = False
     sheet_name = None
     file_name_simple = None
+    last_missing_row = None
+    all_missing_rows = []
+    all_missing_fields = []
+    last_date = None
+    last_valid_row = None
+    last_date_formatted = None
 
     def __init__(self, init_data: dict, context, s3):
         for key, value in init_data.items():
@@ -199,23 +210,12 @@ class MatchAws:
             }
             self.regex_fields += [last_block]
 
-        self.cat_keys = {}
         for med_cat in self.real_med_cat_models:
             self.cat_keys[med_cat] = set()
-
-        self.last_revised = datetime.now()
-
-        self.last_missing_row = None
-        self.all_missing_rows = []
-        self.all_missing_fields = []
 
         self.s3_utils = BotoUtils(s3)
 
         self.context = context
-        self.last_date = None
-        self.last_valid_row = None
-        self.last_date_formatted = None
-        self.example_count = 0
 
     def build_csv_to_data(self, file):
 
@@ -927,19 +927,11 @@ class MatchAws:
                     elif real_class == 'complete':
                         value = prescribed_amount
                     elif real_class == 'partial':
-                        # print("final_class", final_class)
-                        # print("real_class", real_class)
-                        # print("prescribed_amount", prescribed_amount)
-                        # print("class_med", class_med)
-                        # print("class_presc", class_presc)
                         if class_med:
                             value = int(math.floor(prescribed_amount / 2))
                         else:
                             value = prescribed_amount
                             real_class = 'forced_partial'
-                        # print("value", value)
-                        # print("real_class", real_class)
-                        # print("------")
                     if value is not None:
                         av_data["delivered_amount"] = value
                         av_data["delivered_id"] = real_class
@@ -967,6 +959,13 @@ class MatchAws:
             if not_delivered_amount is not None:
                 delivered_amount = prescribed_amount - not_delivered_amount
                 available_data["delivered_amount"] = delivered_amount
+        else:
+            try:
+                delivered_amount = int(delivered_amount)
+            except ValueError:
+                error = (f"No se pudo convertir la cantidad entregada; "
+                         f"{delivered_amount}")
+                return available_data, error
 
         available_data, error = identify_errors(
             available_data, delivered_amount, "entregada")
@@ -1015,11 +1014,6 @@ class MatchAws:
             try:
                 delegation_id = self.delegation_cat.get(delegation_name)
             except Exception as e:
-                # if self.sample_count < 10:
-                #     print("delegation_name", f">{delegation_name}<")
-                #     print("delegation_cat", self.delegation_cat)
-                #     print("e:", e)
-                #     self.sample_count += 1
                 delegation_error = f"No se encontró la delegación;" \
                                    f" {delegation_name}; {e}"
             if "UMAE " in delegation_name:
@@ -1060,7 +1054,6 @@ class MatchAws:
     def add_missing_field(
             self, row, name_column_id, original_value, error, drug_uuid=None):
         missing_row_id = self.add_missing_row(row, drug_id=drug_uuid)
-        print("original_value", original_value)
         if isinstance(original_value, datetime):
             original_value = original_value.strftime("%Y-%m-%d %H:%M:%S")
         missing_field = []
@@ -1082,13 +1075,9 @@ class MatchAws:
             return available_data, None, None, final_error
 
         try:
-            iso_date = some_date.isocalendar()
+            iso_year, iso_week, iso_day = some_date.isocalendar()
         except Exception as e:
             return send_error(f"Error en fecha {some_date}; {e}")
-
-        iso_year = iso_date[0]
-        iso_week = iso_date[1]
-        iso_day = iso_date[2]
         year = some_date.year
         month = some_date.month
         iso_delegation, iso_del2, delegation_error = self.delegation_match(
@@ -1108,10 +1097,8 @@ class MatchAws:
         if folio_document := available_data.get("folio_document"):
             folio_ocamis = "|".join([
                 str(self.entity_id),
-                str(iso_year),
-                str(iso_week),
-                str(iso_delegation) or '0',
-                folio_document])
+                str(iso_year), str(iso_week),
+                str(iso_delegation) or '0', folio_document])
             if len(folio_ocamis) > 64:
                 return send_error("Folio Ocamis; El folio ocamis es muy largo")
             self.months.add((year, month))
@@ -1172,15 +1159,7 @@ class MatchAws:
 class Report:
 
     def __init__(self):
-        self.data = {
-            "missing_rows": 0,
-            "real_missing_rows": 0,
-            "missing_fields": 0,
-            "field_errors": {},
-            "row_errors": {},
-            "rx_count": 0,
-            "drugs_count": 0,
-        }
+        self.data = {"field_errors": {}, "row_errors": {}}
 
     def add_count(self, field, count=1):
         if field not in self.data:
@@ -1189,9 +1168,9 @@ class Report:
             self.data[field] += count
 
     def append_missing_row(self, original_data, error=None):
-        self.data["missing_rows"] += 1
+        self.add_count("missing_rows")
         if error:
-            self.data["real_missing_rows"] += 1
+            self.add_count("real_missing_rows")
             try:
                 [error_type, error_detail] = error.split(";", 1)
             except Exception:
@@ -1199,23 +1178,16 @@ class Report:
             self.add_error("row", error_type, error_detail, original_data)
 
     def append_missing_field(self, name_column_id, original_value, error):
-        self.data["missing_fields"] += 1
+        self.add_count("missing_fields")
         self.add_error("field", name_column_id, error, original_value)
 
     def add_error(self, field, err_type, error, original_data):
         elem = self.data[f"{field}_errors"]
-        if err_type not in elem:
-            elem[err_type] = {
-                "count": 0,
-                error: {"count": 0, "examples": [], "ex_count": 0}
-            }
+        elem.setdefault(err_type, {"count": 0})
         elem[err_type]["count"] += 1
-        if error not in elem[err_type]:
-            elem[err_type][error] = {"count": 0, "examples": [], "ex_count": 0}
+        elem[err_type].setdefault(error, {"count": 0, "examples": []})
         elem[err_type][error]["count"] += 1
 
-        examples_count = elem[err_type][error]["ex_count"]
-        if examples_count < 6:
-            print("original_data", original_data)
+        examples = elem[err_type][error]["examples"]
+        if len(examples) < 6:
             elem[err_type][error]["examples"].append(original_data)
-            elem[err_type][error]["ex_count"] += 1

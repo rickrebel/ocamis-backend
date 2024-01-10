@@ -20,8 +20,7 @@ class Group(models.Model):
 class Component(models.Model):
     name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=255, blank=True, null=True)
-    medicine_type = models.CharField(
-        max_length=255, blank=True, null=True)
+    medicine_type = models.CharField(max_length=255, blank=True, null=True)
     alias = models.CharField(
         max_length=255,
         verbose_name="Nombres alternativos y comerciales",
