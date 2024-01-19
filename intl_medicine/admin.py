@@ -14,6 +14,7 @@ class PrioritizedComponentAdmin(admin.ModelAdmin):
         'group_answer__group',
         'group_answer__respondent',
     )
+    search_fields = ('component__name',)
     raw_id_fields = ('component', 'group_answer')
 
 

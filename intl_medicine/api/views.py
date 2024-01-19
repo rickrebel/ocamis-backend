@@ -124,8 +124,7 @@ class GroupAnswerViewSet(ListCreateRetrieveUpdateView):
         # if user:
         #     is_admin = user.is_superuser or user.is_staff
         group_data["date_finished"] = timezone.now()
-        serializer = self.get_serializer_class()(
-            group_answer, data=group_data)
+        serializer = self.get_serializer_class()(group_answer, data=group_data)
         if not serializer.is_valid():
             return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
@@ -133,6 +132,7 @@ class GroupAnswerViewSet(ListCreateRetrieveUpdateView):
         serializer.save()
         for comp in components:
             pc_id = comp.pop("id", None)
+            # print("comp", comp)
             if pc_id:
                 new_prioritized = PrioritizedComponent.objects.get(id=pc_id)
             else:

@@ -28,6 +28,7 @@ def text_normalizer(text, to_headers=False):
         final_text = re.sub(r'[^A-Z]', '', final_text)
     else:
         final_text = re.sub(r'[^a-zA-Z0-9\s]', '', final_text)
+        final_text = re.sub(r' +', ' ', final_text)
     final_text = final_text.strip()
     return final_text
 
