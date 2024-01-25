@@ -21,6 +21,7 @@ def text_normalizer(text, to_headers=False):
         return text
     final_text = text.upper().strip()
     final_text = unidecode.unidecode(final_text)
+    final_text = final_text.replace('Ü', 'U')
     if to_headers:
         final_text = re.sub(r'\s(DE|DEL)\s', ' ', final_text)
         final_text = re.sub(r'[^A-Z][DE|DEL][^A-Z]', ' ', final_text)

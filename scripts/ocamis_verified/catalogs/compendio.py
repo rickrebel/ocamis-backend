@@ -1,26 +1,32 @@
 import pdfplumber
 import re
 from scripts.ocamis_verified.catalogs.standard import (
-    calculate_standard, some_is_standard, AssignKeys, is_content_title)
+    calculate_standard, some_is_standard, AssignKeys, is_content_title,
+    count_content_titles)
 
 
 def join_words(words):
     all_texts = []
     for elem in words:
         if isinstance(elem, str):
-            all_texts.append(elem)
+            all_texts.append(elem.strip())
         else:
-            all_texts.append(elem["text"])
+            all_texts.append(elem["text"].strip())
     return " ".join(all_texts)
 
 
 def is_every_upper(text):
     if len(text) > 4:
         text = text.replace(" o ", " O ")
+    text = re.sub(r"\(.*?\)", "", text)
     alpha_chars = [char for char in text if char.isalpha()]
+    alpha_text = "".join(alpha_chars)
+    if alpha_text == "Y":
+        return True
     if len(alpha_chars) < 2:
         return False
-    alpha_text = "".join(alpha_chars)
+    if alpha_text in ["ADNr"]:
+        return True
     if alpha_text in [
         "ADN", "UI", "GLP", "IX", "VII", "II", "XIII", "UIK", "KIU", "PEU",
         "FSHUI", "HTBZ", "KD", "ML", "CYPA", "HT", "DL", "UD", "CRM", "BFVF",
@@ -57,12 +63,27 @@ class ProcessPDF:
         "aplicación intra-articular.",
         "POLVO (Fórmula de Osmolaridad",
         "Baja)",
+        "Solución incolora libre de partículas, con pH de",
+        "6.9-7.1, viscosidad de 9-15 cps y osmolaridad de",
+        "275-300mOsm",
+        "SOLUCIÓN INYECTABLE Inmunización activa",
         "ANTIALACRÁN o",
-        "Solución que se utiliza para repone",
+        "Solución que se utiliza para reponer",
         "temporalmente la capa deteriorada de",
         "Glicosaminoglicano (GAG) del epitelio",
         "de la vejiga. Solución estéril y libre de",
         "pirógenos.",
+    ]
+    spacial_previous = [
+        "de la biotransformación de fenitoína",
+        "Ninguna con la aplicación conjunta con otras vacunas"
+    ]
+    bad_align = [
+        "VANDETANIB",
+        "VACUNA",
+        "FACTOR",
+        "OCTOCOG",
+        "GOTAS LUBRICANTES OCULARES",
     ]
 
     def __init__(self, path_file):
@@ -72,6 +93,7 @@ class ProcessPDF:
         self.last_place = "headers"
         self.last_group = "UNKNOWN"
         self.first_page = None
+        self.cut_dosis = None
 
     def __call__(self, pages=1, pages_range=None):
         # if not pages:
@@ -83,7 +105,10 @@ class ProcessPDF:
         with (pdfplumber.open(self.path_file) as pdf):
             component = None
             last_is_title = False
-            for page in pdf.pages[first_p:last_p]:
+            next_is_left = False
+            is_group = False
+            # for page in pdf.pages[first_p:last_p]:
+            for (page_number, page) in enumerate(pdf.pages):
                 words = page.extract_words(
                     x_tolerance=1, y_tolerance=3, keep_blank_chars=True)
                 if not self.first_page:
@@ -91,34 +116,48 @@ class ProcessPDF:
 
                 for word in words:
                     text = word["text"].strip()
+                    word["page"] = page_number
                     if not text:
                         continue
                     # is_key = self.format_key.match(text)
+
                     is_left = word["x0"] < 90
-                    is_group = False
-                    if is_left:
+                    if self.some_special(text, is_left):
+                        next_is_left = True
+
+                    if next_is_left:
+                        if "Clave" in text or "vía de administración" in text.lower():
+                            next_is_left = False
+                        else:
+                            is_left = True
+                    if is_left and not is_group:
                         is_group = "Grupo Nº" in text
 
-                    if is_group:
-                        self.last_group = text.split(": ")[1]
+                    is_upper = is_every_upper(text)
+
+                    if is_group and not is_upper:
+                        if ": " in text:
+                            self.last_group = text.split(": ")[1]
+                        else:
+                            self.last_group += f" {text}"
+                            self.last_group = self.last_group.strip()
                         if component:
                             self.add_component(component)
                             component = None
                         last_is_title = False
                         continue
                     elif is_left:
-                        is_upper = is_every_upper(text)
-                        if is_upper:
-                            height = word["bottom"] - word["top"]
-                            if height > 6.8:
-                                if last_is_title:
-                                    component["titles"].append(text)
-                                else:
-                                    if component:
-                                        self.add_component(component)
-                                    component = self.create_component(text)
-                                last_is_title = True
-                                continue
+                        is_group = False
+                        height = word["bottom"] - word["top"]
+                        if is_upper or (height > 6.8 and last_is_title):
+                            if last_is_title:
+                                component["titles"].append(text)
+                            else:
+                                if component:
+                                    self.add_component(component)
+                                component = self.create_component(text)
+                            last_is_title = True
+                            continue
                     if not component:
                         print("No component ----------")
                         print("text:", text)
@@ -151,16 +190,22 @@ class ProcessPDF:
         lower = lower.replace("vías", "vía")
         if text in self.headers_values:
             return self.headers_inverse[text]
-        elif text in ["Indicaciónes"]:
-            return "ind"
-        if self.last_place == "ind":
+        elif self.last_place == "desc":
+            if "indic" in lower:
+                return "ind"
+        if self.last_place == "ind" or self.last_place == "interacciones":
             if len(text) > 15 and lower == self.way_lower:
                 print("$$$$$$$ Forced way")
                 return "way"
             elif "vía de administración" in lower:
-                print("$$$$$$$ Forced way 2")
+                self.cut_dosis = self.way_lower.replace(lower, "").strip()
+                print("$$$$$$$ Forced way 2", self.cut_dosis)
+                return "way"
+            elif self.cut_dosis and lower in self.cut_dosis:
+                print("$$$$$$$ Forced way 3")
                 return "way"
         elif lower in self.body:
+            self.cut_dosis = None
             return lower
         return self.last_place
 
@@ -169,12 +214,13 @@ class ProcessPDF:
             print("Empty component ###################")
             return
         component_name = join_words(component["titles"])
-        print("-- component_name", component_name)
+
         new_table = {"keys": [], "values": [], "descriptions": [],
                      "indications": [], "ways": []}
         presentations = []
         if not component["desc"]:
             print("No desc ###################")
+            print("-- component_name", component_name)
             print("component", component)
             return
         descr = component["desc"][0]
@@ -199,7 +245,8 @@ class ProcessPDF:
                 new_table["values"].append(word)
         # print("desc", descr)
         if not inits:
-            print("No inits ###################")
+            print("Sin texto después de clave ###################")
+            print("-- component_name", component_name)
             print("component", component)
             return
         defs = {"center": descr["x0"] + (descr["x1"] - descr["x0"]) / 2,
@@ -214,58 +261,98 @@ class ProcessPDF:
         last_is_upper = False
         new_title = False
         for word in new_table["values"]:
-            text = word["text"]
             if word["x0"] < defs["right"]:
-                every_upper = is_every_upper(text)
-                if not every_upper:
-                    every_upper = text in [
-                        "Solución inyectable.", "Pirfenidona Gel.",
-                        "Granulado Oral", "Solución inyectable:"]
-                if not every_upper:
-                    if last_is_upper and text in ["O"]:
-                        every_upper = True
-                    if not last_is_upper and not presentations:
-                        if text in self.init_extrange:
-                            every_upper = True
-                if not every_upper:
-                    if component_name == "EVEROLIMUS":
-                        if text in self.init_extrange:
-                            every_upper = True
-                    if text in self.sure_inits:
-                        every_upper = True
-                # print("text:", every_upper, text)
-                if every_upper:
-                    # print("every_upper", last_is_upper, text)
-                    new_title = True
-                    if last_is_upper:
-                        presentations[-1]["names"].append(text)
-                    else:
-                        pres = word.copy()
-                        pres.update({
-                            "keys": [], "descriptions": [], "names": [text],
-                            "words": [], "content_titles": []})
-                        presentations.append(pres)
-                else:
-                    try:
-                        if new_title:
-                            presentations[-1]["content_titles"].append(word)
-                            new_title = is_content_title(text)
-                        else:
-                            presentations[-1]["words"].append(word)
-                    except IndexError:
-                        print("Error in word ###################")
-                        print("text:", every_upper, text)
-                        print("word", word)
-                        print("presentations", presentations)
-
-                last_is_upper = every_upper
+                new_table["descriptions"].append(word)
             elif word["x0"] < indications["right"]:
                 new_table["indications"].append(word)
             else:
                 new_table["ways"].append(word)
 
+        desc_lines = []
+        last_doctop = None
+        for word in new_table["descriptions"]:
+            if word["doctop"] == last_doctop:
+                desc_lines[-1]["text"] += " " + word["text"]
+            else:
+                desc_lines.append(word)
+            last_doctop = word["doctop"]
+
+        content_title_count = count_content_titles(desc_lines, strict=True)
+        available_without_title = content_title_count <= len(new_table["keys"])
+        excluded = ["GUSELKUMAB", "PACLITAXEL",
+                    "TOXOIDES TETÁNICO Y DIFTÉRICO(Td)"]
+        if available_without_title and component_name in excluded:
+            available_without_title = False
+
+        for word in desc_lines:
+            text = word["text"]
+            every_upper = is_every_upper(text)
+            if not every_upper:
+                every_upper = text in [
+                    "Solución inyectable.", "Pirfenidona Gel.",
+                    "Granulado Oral", "Solución inyectable:"]
+            if not every_upper:
+                if last_is_upper and text in ["O"]:
+                    every_upper = True
+                if not last_is_upper and not presentations:
+                    if text in self.init_extrange:
+                        every_upper = True
+            if not every_upper:
+                if component_name == "EVEROLIMUS":
+                    if text in self.init_extrange:
+                        every_upper = True
+                if text in self.sure_inits:
+                    every_upper = True
+            # print("text:", every_upper, text)
+            if every_upper:
+                # print("every_upper", last_is_upper, text)
+                new_title = True
+                if last_is_upper:
+                    presentations[-1]["names"].append(text)
+                else:
+                    pres = word.copy()
+                    pres.update({
+                        "keys": [], "descriptions": [], "names": [text],
+                        "words": [], "content_titles": []})
+                    presentations.append(pres)
+            else:
+
+                without_pres_title = None
+                if available_without_title:
+                    if len(presentations) > 0 and not last_is_upper:
+                        is_cont_title = is_content_title(text, strict=True)
+                        if is_cont_title:
+                            last_pres = presentations[-1]
+                            has_keys = len(last_pres.get("words", [])) > 0
+                            if has_keys:
+                                without_pres_title = last_pres
+                    if without_pres_title:
+                        same_pres = word.copy()
+                        same_pres.update({
+                            "keys": [], "descriptions": [], "words": [],
+                            "content_titles": [],
+                            "names": without_pres_title["names"]
+                        })
+                        presentations.append(same_pres)
+                        new_title = True
+                try:
+                    if new_title:
+                        presentations[-1]["content_titles"].append(word)
+                        new_title = not is_content_title(text)
+                    else:
+                        presentations[-1]["words"].append(word)
+                except IndexError:
+                    print("Error in word ###################")
+                    print("-- component_name", component_name)
+                    print("text:", every_upper, text)
+                    print("word", word)
+                    print("presentations", presentations)
+
+            last_is_upper = every_upper
+
         if not presentations:
             print("No presentations ###################")
+            print("-- component_name", component_name)
             print("component", component)
             return
 
@@ -290,10 +377,14 @@ class ProcessPDF:
         # print("assign_keys.presentations", assign_keys.presentations)
 
         for pres in assign_keys.presentations:
+            content_title = join_words(pres["content_titles"])
+            content = join_words(pres["descriptions"])
+            description = f"{content_title} {content}".strip()
             final_pres = {
                 "name": join_words(pres["names"]),
-                "content_title": join_words(pres["content_titles"]),
-                "content": join_words(pres["descriptions"]),
+                "content_title": content_title,
+                "content": content,
+                "description": description,
                 "keys": []
             }
             for key in pres["keys"]:
@@ -311,3 +402,14 @@ class ProcessPDF:
         del component["table"]
 
         self.all_components.append(component)
+
+    def some_special(self, text, is_left):
+        for elem in self.spacial_previous:
+            if elem in text:
+                return True
+        if is_left and ("SISTEMA" in text or "VACUNA" in text):
+            return True
+        for elem in self.bad_align:
+            if elem in text:
+                return True
+        return False

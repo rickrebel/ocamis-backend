@@ -43,12 +43,36 @@ def some_is_standard(descriptions):
     return False
 
 
-def is_content_title(text):
-    if ":" in text:
-        return False
-    if " contiene" in text.lower():
-        return False
-    return True
+def count_standards(words):
+    descriptions = [word["text"].strip() for word in words]
+    count = 0
+    for description in descriptions:
+        if calculate_standard(description):
+            count += 1
+    return count
+
+
+def is_content_title(text, strict=False):
+    if strict:
+        lower = text.lower()
+        if lower.endswith(" contiene"):
+            return True
+        if lower.endswith(":") and "contiene" in lower:
+            return True
+    else:
+        if text.endswith(":"):
+            return True
+        if " contiene" in text.lower():
+            return True
+    return False
+
+
+def count_content_titles(words, strict=False):
+    count = 0
+    for word in words:
+        if is_content_title(word["text"], strict):
+            count += 1
+    return count
 
 
 class AssignKeys:
@@ -60,25 +84,47 @@ class AssignKeys:
         # self.keys_started = False
         # self.current_key = 0
 
-    def print_errors(self, presentation):
-        print("No keys ###################")
-        print("component_name", self.component_name)
-        print("pres", presentation)
-        for pres_elem in self.presentations:
-            print("pres[names]", pres_elem["names"])
-        # print("all_presentations:\n", presentations)
-        print("new_table[keys]", self.new_table["keys"])
-
-    # def add_count(self):
-    #     if self.keys_started:
-    #         self.current_key += 1
-    #     self.keys_started = True
+    def __call__(self):
+        same_count = len(self.presentations) == len(self.new_table["keys"])
+        for pres in self.presentations:
+            keys = pres["keys"]
+            if not keys:
+                if same_count:
+                    try:
+                        last_line = pres["words"].pop()
+                        last_line["descriptions"] = []
+                        pres["keys"].append(last_line)
+                    except IndexError:
+                        print("Caso especial ###################")
+                        self.print_errors(pres)
+                        continue
+                else:
+                    self.print_errors(pres)
+                    continue
+            if not pres["descriptions"] and pres["content_titles"]:
+                pres["descriptions"] = pres["content_titles"]
+                pres["content_titles"] = []
+            self.assign_keys(pres)
 
     def assign_keys(self, pres):
         keys = pres["keys"]
         current_key = 0
         first_key_top = keys[0]["doctop"]
+
+        standard_count = count_standards(pres["words"])
+        is_simple = standard_count == len(keys)
+        keys_reached = -1
+
         for (i, word) in enumerate(pres["words"]):
+            if is_simple:
+                is_standard = calculate_standard(word["text"])
+                keys_reached += 1 if is_standard else 0
+                if keys_reached == -1:
+                    pres["descriptions"].append(word)
+                else:
+                    pres["keys"][keys_reached]["descriptions"].append(word)
+                continue
+
             if word["doctop"] + 2 < first_key_top:
                 pres["descriptions"].append(word)
                 continue
@@ -117,13 +163,11 @@ class AssignKeys:
             # else:
             pres["keys"][current_key]["descriptions"].append(word)
 
-    def __call__(self):
-        for pres in self.presentations:
-            keys = pres["keys"]
-            if not keys:
-                self.print_errors(pres)
-                continue
-            if not pres["words"] and pres["content_titles"]:
-                pres["words"] = pres["content_titles"]
-                pres["content_titles"] = []
-            self.assign_keys(pres)
+    def print_errors(self, presentation):
+        print("No keys ###################")
+        print("component_name", self.component_name)
+        print("pres", presentation)
+        for pres_elem in self.presentations:
+            print("pres[names]", pres_elem["names"])
+        # print("all_presentations:\n", presentations)
+        print("new_table[keys]", self.new_table["keys"])

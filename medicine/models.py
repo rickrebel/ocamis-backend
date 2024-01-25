@@ -4,6 +4,21 @@ from __future__ import unicode_literals
 from django.db import models
 
 
+class Source(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    year = models.IntegerField(blank=True, null=True)
+    is_current = models.BooleanField(default=False)
+    institution = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Fuente de catálogo"
+        verbose_name_plural = "Fuentes de catálogo"
+
+
 class Group(models.Model):
     name = models.CharField(max_length=255)
     number = models.IntegerField(blank=True, null=True)
@@ -25,6 +40,8 @@ class Component(models.Model):
         max_length=255,
         verbose_name="Nombres alternativos y comerciales",
         blank=True, null=True)
+    alternative_names = models.JSONField(
+        default=list, blank=True, null=True, verbose_name="Otros nombres")
     presentation_count = models.IntegerField(default=1)
     frequency = models.IntegerField(default=0, blank=True, null=True)
 
@@ -36,8 +53,24 @@ class Component(models.Model):
     is_relevant = models.BooleanField(default=True)
     priority = models.IntegerField(default=10)
     description = models.TextField(blank=True, null=True)
+    # Datos del compendio:
+    generalities = models.TextField(
+        blank=True, null=True, verbose_name="Generalidades")
+    pregnancy_risks = models.TextField(
+        blank=True, null=True, verbose_name="Riesgos en el embarazo")
+    adverse_effects = models.TextField(
+        blank=True, null=True, verbose_name="Efectos adversos")
+    contraindications = models.TextField(
+        blank=True, null=True,
+        verbose_name="Contraindicaciones y precauciones")
+    interactions = models.TextField(
+        blank=True, null=True, verbose_name="Interacciones")
 
     is_vaccine = models.BooleanField(default=False)
+
+    @property
+    def containers(self):
+        return Container.objects.filter(presentation__component=self)
 
     @property
     def len_short_name(self):
@@ -94,9 +127,14 @@ class Presentation(models.Model):
         Component, related_name="presentations", on_delete=models.CASCADE)
     presentation_type = models.ForeignKey(
         PresentationType, blank=True, null=True, on_delete=models.CASCADE)
+    content_title = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     presentation_type_raw = models.CharField(
         max_length=255, blank=True, null=True)
+    indications = models.TextField(
+        blank=True, null=True, verbose_name="Indicaciones")
+    way = models.TextField(
+        blank=True, null=True, verbose_name="Vía de administración")
     # Según yo se tendría que borrar...
     clave = models.CharField(max_length=20, blank=True, null=True)
     official_name = models.TextField(blank=True, null=True)
@@ -123,16 +161,16 @@ class Container(models.Model):
     presentation = models.ForeignKey(
         Presentation, related_name="containers", blank=True, null=True,
         on_delete=models.CASCADE)
-    name = models.TextField()
+    name = models.TextField(blank=True, null=True)
     key = models.CharField(verbose_name="Clave", max_length=20)
     key2 = models.CharField(
         max_length=20, verbose_name="Clave sin puntos",
-        blank=True, null=True,
-    )
+        blank=True, null=True,)
     is_current = models.BooleanField(default=True)
     short_name = models.TextField(blank=True, null=True)
 
     origen_cvmei = models.BooleanField(default=False)
+    sources = models.ManyToManyField(Source, blank=True)
 
     def __str__(self):
         return "%s - %s - %s" % (

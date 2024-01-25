@@ -87,7 +87,10 @@ class ContainerAdmin(admin.ModelAdmin):
     ]
     list_filter = ["is_current", "origen_cvmei"]
     raw_id_fields = ["presentation"]
-    search_fields = ["name", "key", "short_name", "key2"]
+    search_fields = [
+        "name", "key", "short_name", "key2",
+        "presentation__component__name",
+        "presentation__description"]
 
 
 admin.site.register(PresentationType, PresentationTypeAdmin)
