@@ -38,7 +38,7 @@ class GroupAdmin(admin.ModelAdmin):
 
 class ComponentAdmin(admin.ModelAdmin):
     list_display = [
-        "short_name", "alias", "frequency", "is_vaccine",
+        "name", "interactions", "alias", "frequency", "is_vaccine",
         "len_short_name_display"]
     inlines = [
         PresentationInline

@@ -53,6 +53,8 @@ def count_standards(words):
 
 
 def is_content_title(text, strict=False):
+    if "contiene Abemaciclib" in text:
+        return True
     if strict:
         lower = text.lower()
         if lower.endswith(" contiene"):

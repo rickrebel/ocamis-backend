@@ -1,5 +1,6 @@
 import pdfplumber
 import re
+import json
 from scripts.ocamis_verified.catalogs.standard import (
     calculate_standard, some_is_standard, AssignKeys, is_content_title,
     count_content_titles)
@@ -81,19 +82,30 @@ class ProcessPDF:
     bad_align = [
         "VANDETANIB",
         "VACUNA",
+        "ALIMENTO",
+        "FÓRMULA",
         "FACTOR",
         "OCTOCOG",
         "GOTAS LUBRICANTES OCULARES",
     ]
 
-    def __init__(self, path_file):
+    def __init__(self, path_file, **kwargs):
         self.format_key = re.compile(r"\d{3}\.\d{3}\.\d{4}\.\d{2}")
         self.path_file = path_file
         self.all_components = []
+        self.json_path = kwargs.get("json_path")
+        self.is_nutrition = kwargs.get("is_nutrition", False)
+        if self.json_path:
+            try:
+                with open(self.json_path, "r", encoding="utf-8") as file:
+                    self.all_components = json.load(file)
+            except Exception as e:
+                print("Error in load_json:", e)
         self.last_place = "headers"
-        self.last_group = "UNKNOWN"
+        self.last_group = "VI. Nutriología" if self.is_nutrition else "UNKNOWN"
         self.first_page = None
         self.cut_dosis = None
+        self.component_names = []
 
     def __call__(self, pages=1, pages_range=None):
         # if not pages:
@@ -102,13 +114,15 @@ class ProcessPDF:
         last_p = pages
         if pages_range:
             first_p, last_p = pages_range
+        left_limit = 92.3 if self.is_nutrition else 90
         with (pdfplumber.open(self.path_file) as pdf):
             component = None
             last_is_title = False
             next_is_left = False
             is_group = False
+            # for (page_number, page) in enumerate(pdf.pages):
             # for page in pdf.pages[first_p:last_p]:
-            for (page_number, page) in enumerate(pdf.pages):
+            for (page_number, page) in enumerate(pdf.pages[first_p:last_p]):
                 words = page.extract_words(
                     x_tolerance=1, y_tolerance=3, keep_blank_chars=True)
                 if not self.first_page:
@@ -121,7 +135,7 @@ class ProcessPDF:
                         continue
                     # is_key = self.format_key.match(text)
 
-                    is_left = word["x0"] < 90
+                    is_left = word["x0"] < left_limit
                     if self.some_special(text, is_left):
                         next_is_left = True
 
@@ -201,6 +215,10 @@ class ProcessPDF:
                 self.cut_dosis = self.way_lower.replace(lower, "").strip()
                 print("$$$$$$$ Forced way 2", self.cut_dosis)
                 return "way"
+            elif "Vía de" in text:
+                self.cut_dosis = self.way_lower.replace("vía de", "").strip()
+                print("$$$$$$$ Forced way 2", self.cut_dosis)
+                return "way"
             elif self.cut_dosis and lower in self.cut_dosis:
                 print("$$$$$$$ Forced way 3")
                 return "way"
@@ -214,6 +232,7 @@ class ProcessPDF:
             print("Empty component ###################")
             return
         component_name = join_words(component["titles"])
+        self.component_names.append(component_name)
 
         new_table = {"keys": [], "values": [], "descriptions": [],
                      "indications": [], "ways": []}
@@ -402,6 +421,14 @@ class ProcessPDF:
         del component["table"]
 
         self.all_components.append(component)
+
+    def save_json(self, path=None, encoding="utf-8"):
+        final_path = path or self.json_path
+        if not final_path:
+            print("No json_path")
+            return
+        with open(final_path, "w", encoding=encoding) as file:
+            json.dump(self.all_components, file, indent=4)
 
     def some_special(self, text, is_left):
         for elem in self.spacial_previous:

@@ -47,8 +47,8 @@ class GroupAnswer(models.Model):
         return "%s - %s" % (self.group, self.respondent or "General")
 
     class Meta:
-        verbose_name = "Respuesta de grupo"
-        verbose_name_plural = "Respuestas de grupos"
+        verbose_name = "Grupo de respuestas"
+        verbose_name_plural = "Grupos de respuestas"
 
 
 class PrioritizedComponent(models.Model):
