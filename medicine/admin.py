@@ -31,18 +31,18 @@ class ComponentInline(admin.StackedInline):
 
 
 class GroupAdmin(admin.ModelAdmin):
-    # list_display = ["name", "alias", "is_vaccine"]
+    list_display = ["number", "name", "need_survey"]
     inlines = [ComponentInline]
     search_fields = ["name", "alias"]
 
 
 class ComponentAdmin(admin.ModelAdmin):
     list_display = [
-        "name", "interactions", "alias", "frequency", "is_vaccine",
-        "len_short_name_display"]
+        "name", "interactions", "priority", "groups_count", "groups_pc_count",
+        "presentations_count", "containers_count", "frequency"]
     inlines = [PresentationInline]
     search_fields = ["name", "alias", "short_name"]
-    list_filter = ["origen_cvmei", "is_vaccine"]
+    list_filter = ["origen_cvmei", "is_vaccine", "priority"]
 
     def len_short_name_display(self, obj):
         return obj.len_short_name

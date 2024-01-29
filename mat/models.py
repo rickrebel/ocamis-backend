@@ -65,35 +65,35 @@ class MotherDrug(models.Model):
             self.entity_week, self.delivered, self.container, self.key)
 
 
-class MotherDrugExtended(models.Model):
-    from geo.models import Delegation, Entity
-    from inai.models import EntityWeek
-    from medicine.models import Component, Presentation, Container
-    delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE, db_column="delegation_id")
-    iso_year = models.PositiveSmallIntegerField(db_column="iso_year")
-    iso_week = models.PositiveSmallIntegerField(db_column="iso_week")
-    entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, db_column="entity_id")
-    component = models.ForeignKey(
-        Component, on_delete=models.CASCADE, db_column="component_id")
-    presentation = models.ForeignKey(
-        Presentation, on_delete=models.CASCADE, db_column="presentation_id")
-    container = models.ForeignKey(
-        Container, on_delete=models.CASCADE, db_column="container_id")
-    prescribed_total = models.IntegerField(db_column="prescribed")
-    delivered_total = models.IntegerField(db_column="delivered")
-    total = models.IntegerField(db_column="total", primary_key=True)
-
-    class Meta:
-        managed = False
-        db_table = 'mother_drug_extended'
-        verbose_name = "Dato Extendido"
-        verbose_name_plural = "Datos Extendidos"
-
-    def __str__(self):
-        return "%s -- %s -- %s -- %s" % (
-            self.iso_year, self.iso_week, self.entity, self.component)
+# class MotherDrugExtended(models.Model):
+#     from geo.models import Delegation, Entity
+#     from inai.models import EntityWeek
+#     from medicine.models import Component, Presentation, Container
+#     delegation = models.ForeignKey(
+#         Delegation, on_delete=models.CASCADE, db_column="delegation_id")
+#     iso_year = models.PositiveSmallIntegerField(db_column="iso_year")
+#     iso_week = models.PositiveSmallIntegerField(db_column="iso_week")
+#     entity = models.ForeignKey(
+#         Entity, on_delete=models.CASCADE, db_column="entity_id")
+#     component = models.ForeignKey(
+#         Component, on_delete=models.CASCADE, db_column="component_id")
+#     presentation = models.ForeignKey(
+#         Presentation, on_delete=models.CASCADE, db_column="presentation_id")
+#     container = models.ForeignKey(
+#         Container, on_delete=models.CASCADE, db_column="container_id")
+#     prescribed_total = models.IntegerField(db_column="prescribed")
+#     delivered_total = models.IntegerField(db_column="delivered")
+#     total = models.IntegerField(db_column="total", primary_key=True)
+#
+#     class Meta:
+#         managed = False
+#         db_table = 'mother_drug_extended'
+#         verbose_name = "Dato Extendido"
+#         verbose_name_plural = "Datos Extendidos"
+#
+#     def __str__(self):
+#         return "%s -- %s -- %s -- %s" % (
+#             self.iso_year, self.iso_week, self.entity, self.component)
 
 
 class MotherDrugTotals(models.Model):

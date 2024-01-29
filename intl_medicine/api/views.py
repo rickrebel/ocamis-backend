@@ -81,7 +81,7 @@ class RespondentViewSet(ListCreateRetrieveUpdateView):
 
 
 class GroupAnswerViewSet(ListCreateRetrieveUpdateView):
-    queryset = GroupAnswer.objects.all()
+    queryset = GroupAnswer.objects.all().order_by("group__number")
     serializer_class = serializers.GroupAnswerSimpleSerializer
     permission_classes = [permissions.AllowAny]
     action_serializers = {

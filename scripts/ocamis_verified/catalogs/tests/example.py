@@ -8,7 +8,7 @@ from intl_medicine.models import GroupAnswer, Respondent
 
 # get_pdf_data()
 
-table = BuildNewTable()
+table = BuildNewTable(is_explore=False)
 table()
 
 table.analyze_components()
@@ -36,13 +36,46 @@ for component_name in nutri_pdf.component_names:
     print(component_name)
 
 
+def count_components():
+    from medicine.models import Component
+    for comp in Component.objects.all():
+        comp.count()
+
+
+def delete_new_components():
+    from medicine.models import Component
+    comps = Component.objects.filter(
+        prioritizedcomponent__isnull=False,
+        presentations__isnull=True)
+    print("comps:", comps.distinct().count())
+    comps.delete()
+
+
+def propagate_prioritized(value=True, update=False):
+    from medicine.models import Component
+    from intl_medicine.models import PrioritizedComponent
+    components = Component.objects.filter(
+        prioritizedcomponent__is_prioritized=value,
+        prioritizedcomponent__group_answer__respondent__isnull=True)
+    print("components:", len(components))
+    for component in components:
+        pcs = PrioritizedComponent.objects.filter(
+            component=component, group_answer__respondent__isnull=True)\
+            .exclude(is_prioritized=value)
+        if pcs.exists():
+            print("component:", component.id, component.name)
+            print("pcs:", pcs.count(), [pc.id for pc in pcs])
+            if update:
+                pcs.update(is_prioritized=value)
+
+
 def anonymize_responses():
-    other_responder = Respondent.objects.get_or_create(
+    original_resp = Respondent.objects.get_or_create(
         email="original@original.com", first_name="Original", last_name="Original",
         token="original", institution="Original", position="Original")[0]
-    GroupAnswer.objects.filter(respondent=None).update(respondent=other_responder)
+    GroupAnswer.objects.filter(respondent=None).update(respondent=original_resp)
     GroupAnswer.objects\
-        .filter(respondent__email="general@general.com")\
+        .filter(respondent__email="nuevo@nuevo.com")\
         .update(respondent=None)
 
 

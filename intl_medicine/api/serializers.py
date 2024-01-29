@@ -3,7 +3,7 @@ from rest_framework import serializers
 from intl_medicine.models import Respondent, PrioritizedComponent, GroupAnswer
 
 from medicine.api.serializers import GroupSerializer
-from medicine.models import Group
+from medicine.models import Component
 
 
 class ResponsesSerializer(serializers.ModelSerializer):
@@ -63,6 +63,18 @@ class GroupAnswerSerializer(serializers.ModelSerializer):
             }
             all_components[comp_id]["presentations"].append(
                 current_presentation)
+
+        direct_components = Component.objects\
+            .filter(prioritizedcomponent__group_answer=obj)\
+            .exclude(id__in=all_components.keys())\
+
+        for component in direct_components:
+            all_components.setdefault(
+                component.id, {
+                    "name": component.name,
+                    "component": component.id,
+                    "presentations": []
+                })
 
         return list(all_components.values())
 

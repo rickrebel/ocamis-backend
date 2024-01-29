@@ -45,6 +45,10 @@ def delete_non_upper_parenthesis(text):
         is_upper = is_every_upper(chain)
         if not is_upper:
             text = text.replace(f"({chain})", "")
+    text = text.replace("/", " / ")
+    text = text.replace(",", " , ")
+    text = re.sub(r' +', ' ', text)
+    text = text.replace(" ,", ",")
     return text.strip()
 
 
@@ -135,6 +139,7 @@ def small_cleans():
     cleans = [
         # ("BUSULFANO", "BUSULFAN"),
         ("LEUPROLIDA", "LEUPRORELINA"),
+        ('SUBSALICILATO DE BISMUTO', 'BISMUTO'),
         # ("LEVOTIROXINA SODICA", "LEVOTIROXINA"),
         # ("TIOTROPIO BROMURO", "BROMURO DE TIOTROPIO")
     ]
@@ -219,7 +224,7 @@ def get_symbols(saved, pdf, web, original_symbol=None, special=False):
             symbol = "❇️"
         else:
             symbol = "✅"
-        final_value = web or real_values[0]
+        final_value = web or pdf or saved
         for v in ordered_values:
             second_symbols.append("✅" if v else "⭕")
     elif len(uniques) == 2 and real_len == 3:
@@ -425,10 +430,8 @@ class BuildNewTable:
             groups = []
 
         for group_name in groups:
-            if final_value:
-                final_value = delete_non_upper_parenthesis(final_value)
             if comp_id:
-                print("comp_id:", comp_id)
+                # print("comp_id:", comp_id)
                 component_obj = Component.objects.get(id=comp_id)
                 is_new = False
             else:
@@ -437,7 +440,17 @@ class BuildNewTable:
                 if is_new:
                     self.new_componentes.append(component_obj)
             if not is_new and final_value and component_obj.name != final_value:
-                component_obj.interactions = component_obj.name
+                all_names = component_obj.alternative_names or []
+                if component_obj.interactions:
+                    all_names.append(component_obj.interactions)
+                if component_obj.short_name:
+                    all_names.append(component_obj.short_name)
+                all_names.append(component_obj.name)
+                all_names = set(all_names)
+                if len(all_names) > 1:
+                    component_obj.alternative_names = list(all_names)
+                component_obj.interactions = (
+                    component_obj.interactions or component_obj.name)
                 component_obj.name = final_value
                 component_obj.save()
             group_id = self.saved_groups.get(group_name)

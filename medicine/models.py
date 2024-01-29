@@ -22,6 +22,7 @@ class Source(models.Model):
 class Group(models.Model):
     name = models.CharField(max_length=255)
     number = models.IntegerField(blank=True, null=True)
+    need_survey = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name.strip() or str(self.number)
@@ -29,6 +30,7 @@ class Group(models.Model):
     class Meta:
         verbose_name = "Grupo Terapeútico"
         verbose_name_plural = "1. Grupos Terapeúticos"
+        ordering = ["number"]
         db_table = 'medicine_group'
 
 
@@ -65,6 +67,14 @@ class Component(models.Model):
         verbose_name="Contraindicaciones y precauciones")
     interactions = models.TextField(
         blank=True, null=True, verbose_name="Interacciones")
+    groups_count = models.IntegerField(
+        default=0, verbose_name="Gpos")
+    groups_pc_count = models.IntegerField(
+        default=0, verbose_name="Gpos. priori")
+    presentations_count = models.IntegerField(
+        default=0, verbose_name="Pres.")
+    containers_count = models.IntegerField(
+        default=0, verbose_name="Cont.")
 
     is_vaccine = models.BooleanField(default=False)
 
@@ -77,6 +87,18 @@ class Component(models.Model):
         if not self.short_name:
             return 0
         return len(self.short_name)
+
+    def count(self):
+        from intl_medicine.models import PrioritizedComponent
+        pcs = PrioritizedComponent.objects.filter(
+            component=self, group_answer__respondent__isnull=True)
+        self.groups_pc_count = pcs.count()
+        presentations = self.presentations.all()
+        self.presentations_count = presentations.count()
+        groups = Group.objects.filter(presentations__in=presentations)
+        self.groups_count = groups.count()
+        self.containers_count = self.containers.count()
+        self.save()
 
     def save(self, *args, **kwargs):
         if not self.short_name:
