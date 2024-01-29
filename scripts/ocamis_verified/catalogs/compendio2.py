@@ -78,7 +78,8 @@ def move_components():
         ('AMINOACIDOS CRISTALINOS', 'AMINOÁCIDOS CRISTALINOS'),
         ('AMOXICILINA-ACIDO CLAVULANICO', 'AMOXICILINA/ÁCIDO CLAVULÁNICO'),
         # ('BROMURO DE TIOTROPIO', ),
-        ('BUSULFAN', 'BUSULFÁN'),
+        ("TIOTROPIO BROMURO", "BROMURO DE TIOTROPIO"),
+        ('BUSULFANO', 'BUSULFÁN'),
         ('IRBESARTAN, AMLODIPINO', 'IRBESARTÁN/AMLODIPINO'),
         ('IRBESARTAN-HIDROCLOROTIAZIDA', 'IRBESARTÁN/HIDROCLOROTIAZIDA'),
         ('LIDOCAINA', 'LIDOCAÍNA'),
@@ -90,6 +91,13 @@ def move_components():
             all_names = {bad_comp.name, good_comp.name, bad_comp.short_name,
                          good_comp.short_name}
             all_names = [n.strip() for n in all_names if n]
+            good_alias = good_comp.alias.split(",") if good_comp.alias else []
+            good_alias = set([n.strip() for n in good_alias])
+            bad_alias = bad_comp.alias.split(",") if bad_comp.alias else []
+            bad_alias = set([n.strip() for n in bad_alias])
+            all_alias = good_alias | bad_alias
+            if all_alias:
+                good_comp.alias = ", ".join(all_alias)
             if len(all_names) > 1:
                 good_comp.alternative_names = list(all_names)
                 good_comp.save()
@@ -97,7 +105,12 @@ def move_components():
                 .update(component=good_comp)
             Supply.objects.filter(component=bad_comp) \
                 .update(component=good_comp)
-            PrioritizedComponent.objects.filter(component=bad_comp).delete()
+            bad_pc = PrioritizedComponent.objects.filter(
+                component=bad_comp).first()
+            if bad_pc and bad_pc.is_prioritized:
+                PrioritizedComponent.objects.filter(component=good_comp) \
+                    .update(is_prioritized=True)
+            bad_pc.delete()
             bad_comp.name = 'BORRADO'
             bad_comp.short_name = None
             bad_comp.group = None
@@ -109,10 +122,10 @@ def move_components():
 def small_cleans():
     move_components()
     cleans = [
-        ("BUSULFANO", "BUSULFAN"),
+        # ("BUSULFANO", "BUSULFAN"),
         ("LEUPROLIDA", "LEUPRORELINA"),
         # ("LEVOTIROXINA SODICA", "LEVOTIROXINA"),
-        ("TIOTROPIO BROMURO", "BROMURO DE TIOTROPIO")
+        # ("TIOTROPIO BROMURO", "BROMURO DE TIOTROPIO")
     ]
     for clean in cleans:
         models.Component.objects.filter(name=clean[0]).update(name=clean[1])
