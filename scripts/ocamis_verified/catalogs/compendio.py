@@ -41,8 +41,10 @@ class ProcessPDF:
     headers = {
         "key": "Clave", "desc": "Descripción",
         "ind": "Indicaciones", "way": "Vía de administración y Dosis"}
+    nutri_headers = ["administración", "vía de", "descripción",
+                     "indicaciones", "clave"]
     way_lower = headers["way"].lower()
-    print("way_lower", way_lower)
+    # print("way_lower", way_lower)
     headers_inverse = {v: k for k, v in headers.items()}
     headers_values = list(headers.values())
     body = [
@@ -84,6 +86,8 @@ class ProcessPDF:
         "VACUNA",
         "ALIMENTO",
         "FÓRMULA",
+        "FORMULA",
+        "VITAMINAS",
         "FACTOR",
         "OCTOCOG",
         "GOTAS LUBRICANTES OCULARES",
@@ -106,6 +110,7 @@ class ProcessPDF:
         self.first_page = None
         self.cut_dosis = None
         self.component_names = []
+        self.errors = []
 
     def __call__(self, pages=1, pages_range=None):
         # if not pages:
@@ -140,7 +145,7 @@ class ProcessPDF:
                         next_is_left = True
 
                     if next_is_left:
-                        if "Clave" in text or "vía de administración" in text.lower():
+                        if self.some_header_table(text):
                             next_is_left = False
                         else:
                             is_left = True
@@ -232,6 +237,7 @@ class ProcessPDF:
             print("Empty component ###################")
             return
         component_name = join_words(component["titles"])
+        component_name = component_name.split(" P á g i n a")[0]
         self.component_names.append(component_name)
 
         new_table = {"keys": [], "values": [], "descriptions": [],
@@ -240,7 +246,12 @@ class ProcessPDF:
         if not component["desc"]:
             print("No desc ###################")
             print("-- component_name", component_name)
-            print("component", component)
+            self.errors.append({
+                "component_name": component_name,
+                "error_type": "No desc",
+                "component": component
+            })
+            # print("component", component)
             return
         descr = component["desc"][0]
 
@@ -266,7 +277,11 @@ class ProcessPDF:
         if not inits:
             print("Sin texto después de clave ###################")
             print("-- component_name", component_name)
-            print("component", component)
+            self.errors.append({
+                "component_name": component_name,
+                "error_type": "Sin texto después de clave",
+                "component": component
+            })
             return
         defs = {"center": descr["x0"] + (descr["x1"] - descr["x0"]) / 2,
                 "left": min(inits)}
@@ -363,16 +378,24 @@ class ProcessPDF:
                 except IndexError:
                     print("Error in word ###################")
                     print("-- component_name", component_name)
-                    print("text:", every_upper, text)
-                    print("word", word)
-                    print("presentations", presentations)
+                    self.errors.append({
+                        "component_name": component_name,
+                        "error_type": "Error in word",
+                        "text": text,
+                        "word": word,
+                        "presentations": presentations,
+                    })
 
             last_is_upper = every_upper
 
         if not presentations:
             print("No presentations ###################")
             print("-- component_name", component_name)
-            print("component", component)
+            self.errors.append({
+                "component_name": component_name,
+                "error_type": "No desc",
+                "component": component
+            })
             return
 
         def add_key(index, key_data):
@@ -390,7 +413,9 @@ class ProcessPDF:
             add_key(current_pres, key)
 
         assign_keys = AssignKeys(presentations, component_name, new_table)
+        assign_keys.show_errors = False
         assign_keys()
+        self.errors.extend(assign_keys.all_errors)
 
         final_presentations = []
         # print("assign_keys.presentations", assign_keys.presentations)
@@ -429,6 +454,16 @@ class ProcessPDF:
             return
         with open(final_path, "w", encoding=encoding) as file:
             json.dump(self.all_components, file, indent=4)
+
+    def some_header_table(self, text):
+        if "Clave" in text:
+            return True
+        if self.is_nutrition:
+            lower = text.lower()
+            for header in self.nutri_headers:
+                if header in lower:
+                    return True
+        return False
 
     def some_special(self, text, is_left):
         for elem in self.spacial_previous:

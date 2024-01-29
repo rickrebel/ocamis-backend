@@ -60,6 +60,7 @@ def special_normalizer(text, delete_parenthesis=True):
         text = delete_non_upper_parenthesis(text)
     text = text.replace("/", " ")
     text = text.replace("-", " ")
+    text = text.replace(",", " ")
     text = text_normalizer(text)
     text = text.replace("METFORMINA LINAGLIPTINA", "LINAGLIPTINA METFORMINA")
     text = text.replace("LEVOTIROXINA SODICA", "LEVOTIROXINA")
@@ -74,13 +75,6 @@ def get_pdf_data():
     process.save_json(main_files["json"])
 
 
-def get_pdf_nutrition():
-    process = ProcessPDF(
-        nutri_files["pdf"], json_path=nutri_files["json"], is_nutrition=True)
-    process(150)
-    process.save_json()
-
-
 def move_components():
     from report.models import Supply
     from medicine.models import Presentation, Component
@@ -91,6 +85,8 @@ def move_components():
         ('AMOXICILINA-ACIDO CLAVULANICO', 'AMOXICILINA/ÁCIDO CLAVULÁNICO'),
         # ('BROMURO DE TIOTROPIO', ),
         ("TIOTROPIO BROMURO", "BROMURO DE TIOTROPIO"),
+        ("HIDROXOCOBALAMINA", "HIDROXOCOBALAMINA"),
+        ("ALVERINA, SIMETICONA", "ALVERINA / SIMETICONA"),
         ("SEVELAMERO", "SEVELÁMERO"),
         ("SOLUCIÓN PARA DIALISIS PERITONEAL", "SOLUCIÓN PARA DIÁLISIS PERITONEAL"),
         ('BUSULFANO', 'BUSULFÁN'),
@@ -99,8 +95,10 @@ def move_components():
         ('LIDOCAINA', 'LIDOCAÍNA'),
     ]
     for comp in comps:
-        bad_comp = Component.objects.filter(name=comp[0]).first()
-        good_comp = Component.objects.filter(name=comp[1]).first()
+        base_comps = Component.objects.all()\
+            .order_by("containers_count", "presentations_count")
+        bad_comp = base_comps.filter(name=comp[0]).first()
+        good_comp = base_comps.filter(name=comp[1]).last()
         if bad_comp and good_comp:
             all_names = {bad_comp.name, good_comp.name, bad_comp.short_name,
                          good_comp.short_name}
@@ -169,6 +167,17 @@ def get_containers(component, source='pdf'):
             for container in comp['keys']:
                 containers.append(container)
     return containers
+
+
+def anonymize_responses():
+    from intl_medicine.models import Respondent, GroupAnswer
+    original_resp = Respondent.objects.get_or_create(
+        email="original@original.com", first_name="Original", last_name="Original",
+        token="original", institution="Original", position="Original")[0]
+    GroupAnswer.objects.filter(respondent=None).update(respondent=original_resp)
+    GroupAnswer.objects\
+        .filter(respondent__email="nuevo@nuevo.com")\
+        .update(respondent=None)
 
 
 def get_component_keys(component, source='pdf'):

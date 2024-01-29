@@ -83,6 +83,8 @@ class AssignKeys:
         self.presentations = presentations
         self.component_name = component_name
         self.new_table = new_table
+        self.show_errors = True
+        self.all_errors = []
         # self.keys_started = False
         # self.current_key = 0
 
@@ -168,8 +170,15 @@ class AssignKeys:
     def print_errors(self, presentation):
         print("No keys ###################")
         print("component_name", self.component_name)
-        print("pres", presentation)
-        for pres_elem in self.presentations:
-            print("pres[names]", pres_elem["names"])
+        self.all_errors.append({
+            "component_name": self.component_name,
+            "presentation": presentation,
+            "presentations": self.presentations,
+            "new_table_keys": self.new_table["keys"]
+        })
+        if self.show_errors:
+            print("pres", presentation)
+            for pres_elem in self.presentations:
+                print("pres[names]", pres_elem["names"])
+            print("new_table[keys]", self.new_table["keys"])
         # print("all_presentations:\n", presentations)
-        print("new_table[keys]", self.new_table["keys"])

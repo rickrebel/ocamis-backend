@@ -32,7 +32,7 @@ class ComponentInline(admin.StackedInline):
 
 class GroupAdmin(admin.ModelAdmin):
     list_display = ["number", "name", "need_survey"]
-    inlines = [ComponentInline]
+    # inlines = [ComponentInline]
     search_fields = ["name", "alias"]
 
 

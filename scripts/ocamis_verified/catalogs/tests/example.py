@@ -1,7 +1,8 @@
 
 from scripts.ocamis_verified.catalogs.compendio import ProcessPDF
+from scripts.ocamis_verified.catalogs.nutri import ProcessNutri
 from scripts.ocamis_verified.catalogs.compendio2 import (
-    BuildNewTable, get_pdf_data, main_files, nutri_files, get_pdf_nutrition,
+    BuildNewTable, get_pdf_data, main_files, nutri_files, anonymize_responses,
     common_path)
 from intl_medicine.models import GroupAnswer, Respondent
 
@@ -27,13 +28,9 @@ pdf(pages_range=[671, 673])
 print(pdf.first_page)
 
 
-nutri_pdf = ProcessPDF(nutri_files["pdf"], is_nutrition=True)
-# nutri_pdf(pages_range=[1, 2])
-# nutri_pdf(pages_range=[1, 10])
-# nutri_pdf.first_page
-nutri_pdf(150)
-for component_name in nutri_pdf.component_names:
-    print(component_name)
+nutri = ProcessNutri()
+nutri.process_pdf()
+nutri()
 
 
 def count_components():
@@ -69,14 +66,36 @@ def propagate_prioritized(value=True, update=False):
                 pcs.update(is_prioritized=value)
 
 
-def anonymize_responses():
-    original_resp = Respondent.objects.get_or_create(
-        email="original@original.com", first_name="Original", last_name="Original",
-        token="original", institution="Original", position="Original")[0]
-    GroupAnswer.objects.filter(respondent=None).update(respondent=original_resp)
-    GroupAnswer.objects\
-        .filter(respondent__email="nuevo@nuevo.com")\
-        .update(respondent=None)
+def identify_duplicates_names():
+    from medicine.models import Component
+    from django.db.models import Count, F
+    components = Component.objects.values("name")\
+        .annotate(count=Count("id")).filter(count__gt=1)
+    for comp in components:
+        print("comp:", comp["name"], comp["count"])
+        # Component.objects.filter(name=comp["name"]).update(
+        #     name=F("name") + " (duplicado)"
+
+
+
+def propagate_low_priority(update=False):
+    from medicine.models import Component
+    from intl_medicine.models import PrioritizedComponent, Respondent
+    original_resp = Respondent.objects.get(email="original@original.com")
+    components = Component.objects.filter(
+        prioritizedcomponent__is_prioritized=False,
+        prioritizedcomponent__is_low_priority=True,
+        prioritizedcomponent__group_answer__respondent=original_resp)
+    print("components:", len(components))
+    for component in components:
+        pcs = PrioritizedComponent.objects.filter(
+            component=component, group_answer__respondent__isnull=True)\
+            .exclude(is_prioritized=True)
+        if pcs.exists():
+            print("component:", component.id, component.name)
+            print("pcs:", pcs.count(), [pc.id for pc in pcs])
+            if update:
+                pcs.update(is_low_priority=True)
 
 
 # 010.000.6282.00
