@@ -40,9 +40,7 @@ class ComponentAdmin(admin.ModelAdmin):
     list_display = [
         "name", "interactions", "alias", "frequency", "is_vaccine",
         "len_short_name_display"]
-    inlines = [
-        PresentationInline
-    ]
+    inlines = [PresentationInline]
     search_fields = ["name", "alias", "short_name"]
     list_filter = ["origen_cvmei", "is_vaccine"]
 

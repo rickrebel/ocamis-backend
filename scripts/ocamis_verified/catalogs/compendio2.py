@@ -1,4 +1,5 @@
-from scripts.ocamis_verified.catalogs.compendio import ProcessPDF
+from scripts.ocamis_verified.catalogs.compendio import (
+    ProcessPDF, is_every_upper)
 from scripts.ocamis_verified.catalogs.scrapper.start import Scrapper
 # from scripts.ocamis_verified.catalogs.standard import (
 #     calculate_standard, some_is_standard)
@@ -39,7 +40,11 @@ def delete_non_upper_parenthesis(text):
     import re
     if not text:
         return text
-    text = re.sub(r"\([^A-Z]+?\)", "", text)
+    chains_between_parenthesis = re.findall(r"\((.*?)\)", text)
+    for chain in chains_between_parenthesis:
+        is_upper = is_every_upper(chain)
+        if not is_upper:
+            text = text.replace(f"({chain})", "")
     return text.strip()
 
 
@@ -78,9 +83,12 @@ def move_components():
     from intl_medicine.models import PrioritizedComponent
     comps = [
         ('AMINOACIDOS CRISTALINOS', 'AMINOÁCIDOS CRISTALINOS'),
+        ('METFORMINA/ GLIMEPIRIDA', 'METFORMINA/GLIMEPIRIDA'),
         ('AMOXICILINA-ACIDO CLAVULANICO', 'AMOXICILINA/ÁCIDO CLAVULÁNICO'),
         # ('BROMURO DE TIOTROPIO', ),
         ("TIOTROPIO BROMURO", "BROMURO DE TIOTROPIO"),
+        ("SEVELAMERO", "SEVELÁMERO"),
+        ("SOLUCIÓN PARA DIALISIS PERITONEAL", "SOLUCIÓN PARA DIÁLISIS PERITONEAL"),
         ('BUSULFANO', 'BUSULFÁN'),
         ('IRBESARTAN, AMLODIPINO', 'IRBESARTÁN/AMLODIPINO'),
         ('IRBESARTAN-HIDROCLOROTIAZIDA', 'IRBESARTÁN/HIDROCLOROTIAZIDA'),
@@ -109,10 +117,11 @@ def move_components():
                 .update(component=good_comp)
             bad_pc = PrioritizedComponent.objects.filter(
                 component=bad_comp).first()
-            if bad_pc and bad_pc.is_prioritized:
-                PrioritizedComponent.objects.filter(component=good_comp) \
-                    .update(is_prioritized=True)
-            bad_pc.delete()
+            if bad_pc:
+                if bad_pc.is_prioritized:
+                    PrioritizedComponent.objects.filter(component=good_comp) \
+                        .update(is_prioritized=True)
+                bad_pc.delete()
             bad_comp.name = 'BORRADO'
             bad_comp.short_name = None
             bad_comp.group = None
@@ -295,7 +304,7 @@ class BuildNewTable:
     def build_first_objects(self):
         # 010.000.0101.00
         for comp in self.all_components:
-            comp_name = special_normalizer(comp['name'])
+            comp_name = special_normalizer(comp['name'], True)
             self.unique_components.add(comp_name)
             self.pdf_components.setdefault(comp_name, [])
             self.pdf_components[comp_name].append(comp)
@@ -311,12 +320,12 @@ class BuildNewTable:
             .filter(presentations__containers__key__isnull=False)\
             .prefetch_related("presentations__containers")
         for comp in components_saved:
-            name = special_normalizer(comp.name)
+            name = special_normalizer(comp.name, True)
             self.unique_components.add(name)
             self.saved_components.setdefault(name, [])
             self.saved_components[name].append(comp)
         for comp in self.scrapper.all_components:
-            name = special_normalizer(comp['name'])
+            name = special_normalizer(comp['name'], True)
             # self.unique_components.add(name)
             self.web_components.setdefault(name, [])
             self.web_components[name].append(comp)
@@ -489,7 +498,7 @@ class BuildNewTable:
                         values.append(special_normalizer(group))
                     else:
                         value = presentation[fields[0]]
-                        values.append(value)
+                        values.append(value.strip())
                 if is_group:
                     groups = sorted(values)
                     pdf_value = ", ".join(groups)
@@ -599,7 +608,7 @@ class BuildNewTable:
         else:
             origin = self.pdf_components
             destination = self.saved_components
-        comp_name = special_normalizer(comp_name)
+        comp_name = special_normalizer(comp_name, delete_parenthesis=True)
         destination_comp = destination.get(comp_name)
         if destination_comp:
             origin_comp = origin.get(comp_name)
@@ -629,7 +638,7 @@ class BuildNewTable:
             real_names = {delete_non_upper_parenthesis(p['name']) for p in comp}
             elem_id = None
 
-        cleaned_names = {special_normalizer(n) for n in real_names}
+        cleaned_names = {special_normalizer(n, True) for n in real_names}
         if len(cleaned_names) > 1:
             print("ERROR en MANY: saved; names: ", real_names)
             self.warnings['many'].append(f"{source}; {real_names}")

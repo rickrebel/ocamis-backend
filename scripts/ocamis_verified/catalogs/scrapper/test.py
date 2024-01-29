@@ -107,8 +107,8 @@ def special_assign():
             continue
         real_idx += 1
         saved_component = scrapper.all_components[real_idx]
-        saved_name = special_normalizer(saved_component["name"])
-        parent_name = special_normalizer(parent_component["name"])
+        saved_name = special_normalizer(saved_component["name"], True)
+        parent_name = special_normalizer(parent_component["name"], True)
         # same_name = saved_name == parent_name
         scrapper.all_components[real_idx]["parent_name"] = parent_name
         scrapper.all_components[real_idx]["url"] = parent_component["url"]
