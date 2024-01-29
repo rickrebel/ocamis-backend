@@ -1,6 +1,5 @@
 from scripts.ocamis_verified.catalogs.scrapper.start import Scrapper
 from scripts.ocamis_verified.catalogs.compendio2 import special_normalizer
-import json
 
 
 scrapper = Scrapper()

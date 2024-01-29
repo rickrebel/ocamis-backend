@@ -37,6 +37,8 @@ nutri_files = {
 
 def delete_non_upper_parenthesis(text):
     import re
+    if not text:
+        return text
     text = re.sub(r"\([^A-Z]+?\)", "", text)
     return text.strip()
 

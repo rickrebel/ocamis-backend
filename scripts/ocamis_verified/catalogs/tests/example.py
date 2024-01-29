@@ -15,7 +15,6 @@ table.analyze_components()
 # table.analyze_groups()
 
 
-
 # csv_groups_path = f"{common_path}/groups.csv"
 # table.save_csv(csv_groups_path)
 table.save_mini_csv()
