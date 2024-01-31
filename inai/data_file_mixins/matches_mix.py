@@ -293,6 +293,7 @@ class Match:
                 "position": column.position_in_data,
                 "required_row": column.required_row,
                 "name_field": column.final_field.name,
+                "public_name": column.final_field.verbose_name,
                 "final_field_id": column.final_field.id,
                 "collection": column.final_field.collection.model_name,
                 "is_unique": column.final_field.is_unique,

@@ -751,18 +751,15 @@ class MatchAws:
                     value = null_to_value
                 else:
                     value = None
-        if field.get("duplicated_in"):
-            duplicated_in = field["duplicated_in"]
+        if duplicated_in := field.get("duplicated_in"):
             some_almost_empty = False
             has_child = field.get("child")
             # if field.get("clean_function") == "almost_empty":
             if "almost_empty" in field:
                 some_almost_empty = True
-            if not some_almost_empty:
-                dupl_almost_empty = duplicated_in.get("almost_empty")
-                # if duplicated_in.get("clean_function") == "almost_empty":
-                if dupl_almost_empty:
-                    some_almost_empty = True
+            if not some_almost_empty and duplicated_in.get("almost_empty"):
+                some_almost_empty = True
+
             if some_almost_empty or has_child:
                 pass
             elif not duplicated_in.get("position"):
@@ -770,8 +767,11 @@ class MatchAws:
             else:
                 duplicated_value = row[duplicated_in["position"]]
                 if duplicated_value != value:
-                    error = f"El valor de las columnas que apuntan a " \
-                            f"{field['name']} no coinciden"
+                    error = (f"Has clasificado 2 columnas "
+                             f"({field['name_in_data']} y "
+                             f"{duplicated_in['name_in_data']}) con la misma "
+                             f"variable final '{field['public_name']}',"
+                             f"sin embargo sus valores no coinciden")
         try:
             if not value:
                 pass

@@ -22,7 +22,10 @@ class Respondent(models.Model):
 
     def get_next_group(self):
         group_ids = self.responses.values_list("group_id", flat=True)
-        return Group.objects.exclude(id__in=group_ids).order_by("?").first()
+        return Group.objects\
+            .filter(need_survey=True)\
+            .exclude(id__in=group_ids)\
+            .order_by("?").first()
 
     def __str__(self):
         full_name = f"{self.first_name} {self.last_name}"

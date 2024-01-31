@@ -33,7 +33,7 @@ class GroupAnswerAdmin(admin.ModelAdmin):
         'date_started',
         'date_finished',
     )
-    list_filter = ('group', 'respondent')
+    list_filter = ('group', 'respondent', 'group__need_survey')
     raw_id_fields = ('group', 'respondent')
     inlines = [PrioritizedComponentInline]
 
