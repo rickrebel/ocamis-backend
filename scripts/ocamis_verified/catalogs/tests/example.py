@@ -106,3 +106,13 @@ def propagate_low_priority(update=False):
 
 
 # VACUNA TRIPLE VIRAL (SRP ) CONTRA SARAMPIÓN, RUBÉOLA Y PAROTIDITIS
+
+def null_to_false():
+    from intl_medicine.models import PrioritizedComponent
+    PrioritizedComponent.objects\
+        .filter(is_low_priority__isnull=True)\
+        .update(is_low_priority=False)
+    PrioritizedComponent.objects\
+        .filter(is_prioritized__isnull=True)\
+        .update(is_prioritized=False)
+

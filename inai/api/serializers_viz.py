@@ -71,7 +71,7 @@ class AgencyViz2Serializer(serializers.RelatedField):
 
 
 class FileControlViz2Serializer(serializers.ModelSerializer):
-    #data_group = DataGroupSimpleSerializer(read_only=True)
+    # data_group = DataGroupSimpleSerializer(read_only=True)
     columns = NameColumnVizSerializer(many=True, read_only=True,)
     anomalies = AnomaliesVizSerializer(many=True, read_only=True)
     petition_file_control = AgencyCLUESVizSerializer(many=True, read_only=True)

@@ -214,17 +214,16 @@ class AgencyViewSet(ListRetrieveUpdateMix):
             fetch_agencies, build_quality_simple)
         from transparency.models import TransparencyLevel
         from transparency.models import TransparencyIndex
-        from category.api.serializers import (
-            TransparencyIndexSerializer, TransparencyLevelSimpleSerializer)
+        from category.api.serializers import TransparencyLevelSimpleSerializer
         from data_param.models import FileControl
         from inai.api.serializers_viz import (
             FileControlViz2Serializer)
         indices_query = TransparencyIndex.objects.all()\
             .prefetch_related(
                 "levels", "levels__anomalies", "levels__file_formats")
-        indices = TransparencyIndexSerializer(indices_query, many=True).data
-        #operability = indices_query.filter(short_name="operability").first()
-        #operability_levels = operability.levels.all()
+        # indices = TransparencyIndexSerializer(indices_query, many=True).data
+        # operability = indices_query.filter(short_name="operability").first()
+        # operability_levels = operability.levels.all()
         operb_levels_query = TransparencyLevel.objects\
             .filter(transparency_index__short_name="operability")\
             .prefetch_related("anomalies", "file_formats")\
@@ -268,7 +267,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
                     final_operatib = level["short_name"]
                 if not set(level["anomalies"]).isdisjoint(anomalies):
                     final_operatib = level["short_name"]
-                #for other_cond in level["other_conditions"]:
+                # for other_cond in level["other_conditions"]:
                 #    if locals()[other_cond]:
                 #        final_operatib = leved["short_name"]
             file_ctrl["operability_name"] = final_operatib
@@ -277,7 +276,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
                     file_ctrl["petition_file_control"][0])
             except:
                 file_ctrl["has_ent_clues"] = False
-            #clues, formula, drug = build_quality_simple(file_ctrl)
+            # clues, formula, drug = build_quality_simple(file_ctrl)
             file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
             file_ctrl["agency"] = file_ctrl["agencies"][0]
             # file_ctrl["quality_names"] = {}

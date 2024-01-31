@@ -45,7 +45,7 @@ def fetch_agencies(include_groups):
             "petitions__entity_months",
             "petitions__negative_reasons",
             # "petitions__petition_months__month_agency",
-            #prefetch_file_control,
+            # prefetch_file_control,
             "petitions__file_controls__file_control",
             "petitions__file_controls__file_control__data_group",
             prefetch_columns,
@@ -95,15 +95,19 @@ def build_quality_simple(file_ctrl):
     official_key = has_field("Medicament:key2")
     prescrita = has_field("Drug:prescribed_amount")
     entregada = has_field("Drug:delivered_amount")
+    returned = has_field("Drug:return_amount")
     no_entregada = has_field("Drug:not_delivered_amount")
     assortment = has_field("Drug:clasif_assortment")
+    assortment_prescribed = has_field("Delivered:clasif_assortment_presc")
+    some_assortment = assortment or assortment_prescribed
+
     own_key = has_field("Medicament:own_key2")
     other_names = (
         has_field("Medicament:component_name") or
         has_field("Medicament:presentation_description") or
         has_field("Medicament:container_name"))
-    if prescrita and (entregada or assortment or no_entregada):
-        if official_key and (entregada or no_entregada):
+    if prescrita and (entregada or some_assortment or no_entregada):
+        if official_key and (entregada or no_entregada or returned):
             drug = "enough"
         elif official_key or other_names or own_key:
             drug = "almost_enough"
