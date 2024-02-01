@@ -65,8 +65,9 @@ class GroupAnswerSerializer(serializers.ModelSerializer):
                 current_presentation)
 
         direct_components = Component.objects\
-            .filter(prioritizedcomponent__group_answer=obj)\
-            .exclude(id__in=all_components.keys())\
+            .filter(prioritizedcomponent__group_answer__respondent__isnull=True,
+                    prioritizedcomponent__group_answer__group=obj.group)\
+            .exclude(id__in=all_components.keys())
 
         for component in direct_components:
             all_components.setdefault(
