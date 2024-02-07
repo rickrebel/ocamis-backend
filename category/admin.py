@@ -28,7 +28,8 @@ ocamis_admin_site.register(FileType, FileTypeAdmin)
 
 
 class FileFormatAdmin(admin.ModelAdmin):
-    list_display = ["short_name", "public_name", "suffixes", "readable"]
+    list_display = [
+        "short_name", "public_name", "suffixes", "readable", "order"]
 
 
 ocamis_admin_site.register(FileFormat, FileFormatAdmin)

@@ -164,9 +164,9 @@ class ExploreMix:
     def find_coincidences(
             self, saved=False, petition=None, file_ctrl=None,
             task_params=None, **kwargs):
+        from scripts.common import similar, text_normalizer
         from inai.models import PetitionFileControl, DataFile
         from data_param.models import NameColumn
-        from scripts.common import similar
         data_file = self
         already_cluster = not bool(file_ctrl)
         data, errors, new_task = data_file.transform_file_in_data(
@@ -226,17 +226,18 @@ class ExploreMix:
                     continue
             else:
                 name_columns = name_columns_simple \
-                    .values_list("name_in_data", flat=True)
+                    .values_list("std_name_in_data", flat=True)
+                name_columns = list(name_columns)
                 headers = structured_data[sheet_name]["headers"]
-                headers = [head.strip().upper() for head in headers]
+                headers = [text_normalizer(head) for head in headers]
+                final_headers = headers
                 if only_cols_with_headers:
-                    headers = [head for head in headers if head]
-                name_columns_list = [
-                    name.strip().upper() for name in list(name_columns)]
-                print("name_columns_list", name_columns_list)
-                print("headers", headers, "\n")
-                same_headers = name_columns_list == headers
-                print("same_headers", same_headers)
+                    final_headers = [head for head in headers if head]
+                    name_columns = [head for head in name_columns if head]
+                # print("name_columns_list", name_columns_list)
+                # print("headers", headers, "\n")
+                same_headers = name_columns == final_headers
+                # print("same_headers", same_headers)
                 if not same_headers:
                     total_cols = len(structured_data[sheet_name]["all_data"][0])
                     if total_cols != len(name_columns_simple):
@@ -244,22 +245,23 @@ class ExploreMix:
                     coincidences = 0
                     need_save = []
                     for (idx, name_col) in enumerate(name_columns_simple):
-                        name_upper = name_col.name_in_data.strip().upper()
-                        if name_upper == headers[idx]:
+                        st_name = name_col.std_name_in_data
+                        header = headers[idx]
+                        if st_name == header:
                             coincidences += 1
                             continue
                         if name_col.alternative_names:
-                            if headers[idx] in name_col.alternative_names:
+                            if header in name_col.alternative_names:
                                 coincidences += 1
                                 continue
                         if not already_cluster:
                             continue
-                        if not name_upper or not name_upper:
+                        if not st_name or not header:
                             coincidences += 1
                             continue
-                        if similar(name_upper, headers[idx]) > 0.8:
+                        if similar(st_name, header) > 0.8:
                             alt_names = name_col.alternative_names or []
-                            name_col.alternative_names = alt_names + [headers[idx]]
+                            name_col.alternative_names = alt_names + [header]
                             need_save.append(name_col)
                             coincidences += 1
                     if coincidences + 1 >= len(name_columns_simple):

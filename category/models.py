@@ -83,6 +83,7 @@ class FileFormat(models.Model):
         return self.public_name
 
     class Meta:
+        ordering = ["order"]
         verbose_name = "Formato de archivos"
         verbose_name_plural = "Formatos de archivos"
 

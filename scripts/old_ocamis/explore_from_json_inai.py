@@ -194,7 +194,6 @@ for pet in data["solicitudes"]:
 #print(all_complains)
 
 
-
 def get_columns(collection):
     all_keys = {}
     for pet in collection:
@@ -203,6 +202,7 @@ def get_columns(collection):
             if my_key not in all_keys:
                 all_keys[my_key] = pet[my_key]
     return all_keys
+
 
 def print_columns():
     print(get_columns(data["solicitudes"]))

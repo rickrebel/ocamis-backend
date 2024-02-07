@@ -1,22 +1,22 @@
+from scripts.common import text_normalizer
+
+
 class BuildComplexHeaders:
     from inai.models import DataFile
 
     def __init__(self, data_file: DataFile):
         self.data_file = data_file
+        self.complex_headers = []
+        self.entity_uniques = {}
+        self.unique_std_names = {}
 
     def __call__(self, *args, **kwargs):
-        from statistics import mode
         from data_param.models import NameColumn
-        from scripts.common import text_normalizer
-        from data_param.api.serializers import NameColumnHeadersSerializer
 
-        all_errors = []
         data, errors, new_task = self.data_file\
             .transform_file_in_data('auto_explore')
         if errors:
-            all_errors.extend(errors)
-            self.data_file.save_errors(all_errors, "explore|with_errors")
-            return None, errors, None
+            return self.send_errors(errors, "explore|with_errors")
 
         # valid_fields = [
         #     "name_in_data", "column_type", "final_field",
@@ -26,27 +26,24 @@ class BuildComplexHeaders:
         first_valid_sheet = None
         for sheet_name in current_sheets:
             sheet_data = validated_data[sheet_name]
+            # if getattr(sheet_data, "headers"):
             if "headers" in sheet_data and sheet_data["headers"]:
                 first_valid_sheet = sheet_data
                 break
         if not first_valid_sheet:
             first_valid_sheet = validated_data[current_sheets[0]]
             if not first_valid_sheet:
-                errors = ["WARNING: No se encontró algo que coincidiera"]
-                return None, errors, None
+                return self.send_errors(
+                    ["WARNING: No se encontró algo que coincidiera"])
             else:
-                prov_headers = first_valid_sheet["all_data"][0]
-                first_valid_sheet["complex_headers"] = [
-                    {"position_in_data": posit}
-                    for posit, head in enumerate(prov_headers, start=1)]
-                return None, None, first_valid_sheet
+                return self.build_first_headers(first_valid_sheet)
         try:
-            headers = first_valid_sheet["headers"]
-            complex_headers = []
+            df_headers = first_valid_sheet["headers"]
             file_control = self.data_file.petition_file_control.file_control
             data_groups = [file_control.data_group.name, 'catalogs']
             # print(data_groups)
-            std_names_headers = [text_normalizer(head, True) for head in headers]
+            std_names_headers = [
+                text_normalizer(head, True) for head in df_headers]
             worked_name_columns = NameColumn.objects.filter(
                 final_field__isnull=False,
                 name_in_data__isnull=False,
@@ -55,60 +52,71 @@ class BuildComplexHeaders:
             ).prefetch_related(
                 'final_field__parameter_group', 'column_transformations',
                 'file_control__agency')
-            # ).values(*valid_fields)
-            all_name_columns = NameColumnHeadersSerializer(
-                worked_name_columns, many=True).data
             entity_id = file_control.agency.entity_id
-            # unique_std_names = {std_name: {"uniques":[]}
-            #                     for std_name in std_names_headers}
-            unique_std_names = {}
-            entity_uniques = {}
-            for name_col in all_name_columns:
-                std_name = name_col["std_name_in_data"]
-                unique_name = (
-                    f'{std_name}-{name_col["final_field"]}-'
-                    f'{name_col["parameter_group"]}')
-                # base_new = {"data": name_col, "uniques": []}
-                if not unique_std_names.get(std_name):
-                    unique_std_names[std_name] = []
-                unique_std_names[std_name].append((unique_name, name_col))
-                # unique_std_names[std_name_in_data][unique_name] = name_col
-                if name_col["entity"] == entity_id:
-                    if not entity_uniques.get(std_name):
-                        entity_uniques[std_name] = []
-                    entity_uniques[std_name].append((unique_name, name_col))
+            self.build_unique_dicts(worked_name_columns, entity_id)
+            self.find_header_values(df_headers)
+            return self.send_results(first_valid_sheet)
 
-            for (position, header) in enumerate(headers, start=1):
-                std_header = text_normalizer(header, True)
+        except Exception as e:
+            return self.send_errors([str(e)])
+
+    def send_results(self, valid_sheet):
+        valid_sheet["complex_headers"] = self.complex_headers
+        return None, None, valid_sheet
+
+    def build_first_headers(self, first_valid_sheet):
+        real_headers = first_valid_sheet["all_data"][0]
+        self.complex_headers = [
+            {"position_in_data": posit}
+            for posit, head in enumerate(real_headers, start=1)]
+        return self.send_results(first_valid_sheet)
+
+    def build_unique_dicts(self, worked_name_columns, entity_id):
+        from data_param.api.serializers import NameColumnHeadersSerializer
+        saved_name_columns = NameColumnHeadersSerializer(
+            worked_name_columns, many=True).data
+
+        for name_col in saved_name_columns:
+            std_name = name_col["std_name_in_data"]
+            unique_name = ((
+                f'{std_name}-{name_col["final_field"]}-'
+                f'{name_col["parameter_group"]}'), name_col)
+            self.unique_std_names.setdefault(std_name, [])
+            self.unique_std_names[std_name].append(unique_name)
+            if name_col["entity"] == entity_id:
+                self.entity_uniques.setdefault(std_name, [])
+                self.entity_uniques[std_name].append(unique_name)
+
+    def find_header_values(self, df_headers):
+        for (position, header) in enumerate(df_headers, start=1):
+            std_header = text_normalizer(header, True)
+            found_match = self.find_match(std_header)
+            if found_match:
                 base_dict = {
                     "position_in_data": position, "name_in_data": header}
+                base_dict.update(found_match)
+                self.complex_headers.append(base_dict)
 
-                def build_dict(vals: list):
-                    count_vals = len(vals)
-                    if count_vals == 1:
-                        return vals[0][1]
-                    else:
-                        keys = [val[0] for val in vals]
-                        mode_key = mode(keys)
-                        proportion = keys.count(mode_key) / count_vals
-                        if proportion >= 0.5:
-                            first_match = [
-                                val for val in vals if val[0] == mode_key]
-                            return first_match[0][1]
+    def find_match(self, std_header):
+        from statistics import mode
+        dicts = [self.entity_uniques, self.unique_std_names]
+        for uniques_dict in dicts:
+            if vals_matched := uniques_dict.get(std_header, False):
+                count_vals = len(vals_matched)
+                if count_vals == 1:
+                    return vals_matched[0][1]
+                else:
+                    keys = [val[0] for val in vals_matched]
+                    mode_key = mode(keys)
+                    proportion = keys.count(mode_key) / count_vals
+                    if proportion >= 0.5:
+                        first_match = [
+                            val for val in vals_matched if val[0] == mode_key]
+                        return first_match[0][1]
+        return None
 
-                found_values = None
-                if vals_matched := entity_uniques.get(std_header, False):
-                    found_values = build_dict(vals_matched)
-                if not found_values:
-                    if vals_matched2 := unique_std_names.get(std_header, False):
-                        found_values = build_dict(vals_matched2)
-                if found_values:
-                    base_dict.update(found_values)
-                complex_headers.append(base_dict)
-
-            first_valid_sheet["complex_headers"] = complex_headers
-        except Exception as e:
-            print("HUBO UN ERRORZASO")
-            print(e)
-        # print(data["structured_data"][:6])
-        return None, None, first_valid_sheet
+    def send_errors(self, errors, error_text: str = None) -> tuple:
+        print("ERRORS", errors)
+        if error_text:
+            self.data_file.save_errors(errors, error_text)
+        return None, errors, None

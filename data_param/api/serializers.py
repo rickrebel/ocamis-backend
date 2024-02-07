@@ -94,9 +94,8 @@ class NameColumnHeadersSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NameColumn
-        fields = ["name_in_data", "column_type", "final_field", "data_type",
-                  "parameter_group", "transformations", "std_name_in_data",
-                  "entity"]
+        fields = ["column_type", "final_field", "data_type", "parameter_group",
+                  "transformations", "std_name_in_data", "entity"]
 
 
 class FileControlSimpleSerializer(serializers.ModelSerializer):
