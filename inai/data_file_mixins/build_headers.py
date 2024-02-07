@@ -91,11 +91,10 @@ class BuildComplexHeaders:
         for (position, header) in enumerate(df_headers, start=1):
             std_header = text_normalizer(header, True)
             found_match = self.find_match(std_header)
-            if found_match:
-                base_dict = {
-                    "position_in_data": position, "name_in_data": header}
-                base_dict.update(found_match)
-                self.complex_headers.append(base_dict)
+            base_dict = {
+                "position_in_data": position, "name_in_data": header}
+            base_dict.update(found_match)
+            self.complex_headers.append(base_dict)
 
     def find_match(self, std_header):
         from statistics import mode
@@ -113,7 +112,7 @@ class BuildComplexHeaders:
                         first_match = [
                             val for val in vals_matched if val[0] == mode_key]
                         return first_match[0][1]
-        return None
+        return {}
 
     def send_errors(self, errors, error_text: str = None) -> tuple:
         print("ERRORS", errors)
