@@ -1,7 +1,8 @@
 from rest_framework import serializers
 
-from task.models import AsyncTask, CutOff, Step
+from task.models import AsyncTask, CutOff, Step, ClickHistory, OfflineTask
 from classify_task.models import StatusTask, TaskFunction, Stage
+from datetime import timedelta
 
 
 class StatusTaskSimpleSerializer(serializers.ModelSerializer):
@@ -113,3 +114,85 @@ class CutOffSerializer(serializers.ModelSerializer):
     class Meta:
         model = CutOff
         fields = "__all__"
+
+
+mandatory_fields = [
+    "real_start", "real_end", "date_start", "activity_type", "date_end"]
+
+
+class ActivitySerializer(serializers.ModelSerializer):
+    real_start = serializers.SerializerMethodField()
+    real_end = serializers.SerializerMethodField()
+    date_end = serializers.SerializerMethodField()
+    activity_type = serializers.SerializerMethodField()
+    reals = (5, 8)
+    start_field = "date_start"
+
+    # def get_start_field(self, obj):
+    #     self.start_field = "date_start"
+
+    # def get_start_field(self, obj):
+    #     if hasattr(obj, "date_start"):
+    #         return "date_start"
+    #     return "date"
+
+    def get_real_start(self, obj):
+        start = getattr(obj, self.start_field)
+        return start - timedelta(minutes=self.reals[0])
+
+    def get_real_end(self, obj):
+        end = self.get_date_end(obj)
+        return end + timedelta(minutes=self.reals[1])
+
+    def get_date_end(self, obj):
+        end = None
+        if hasattr(obj, "date_end"):
+            end = getattr(obj, "date_end")
+        if not end:
+            end = getattr(obj, self.start_field)
+            end += timedelta(seconds=5)
+        return end
+
+
+class AsyncTaskActivitySerializer(ActivitySerializer):
+    model_name = serializers.CharField(source="task_function.model_name")
+    start_field = "date_start"
+
+    def get_activity_type(self, obj):
+        return "task"
+
+    class Meta:
+        model = AsyncTask
+        fields = mandatory_fields + ["model_name"]
+
+
+class ClickHistoryActivitySerializer(ActivitySerializer):
+    reals = (3, 6)
+    date_start = serializers.DateTimeField(source="date", read_only=True)
+    model = serializers.SerializerMethodField()
+    start_field = "date"
+
+    def get_model(self, obj):
+        models = ["file_control", "entity_month", "petition"]
+        for model in models:
+            if getattr(obj, model, None) is not None:
+                return model
+
+    def get_activity_type(self, obj):
+        return "click"
+
+    class Meta:
+        model = ClickHistory
+        fields = mandatory_fields + ["model"]
+
+
+class OfflineTaskActivitySerializer(ActivitySerializer):
+    reals = (10, 10)
+    start_field = "date_start"
+
+    def get_activity_type(self, obj):
+        return "offline"
+
+    class Meta:
+        model = OfflineTask
+        fields = mandatory_fields + ["name", "activity_type"]

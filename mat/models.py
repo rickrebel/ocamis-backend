@@ -10,16 +10,16 @@ class MotherDrugPriority(models.Model):
     from inai.models import EntityWeek
     from medicine.models import Container
     delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE, db_column="delegation_id")
+        Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
     clues = models.ForeignKey(
-        CLUES, on_delete=models.CASCADE, db_column="clues_id")
+        CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
     entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE, db_column="entity_week_id")
+        EntityWeek, on_delete=models.DO_NOTHING, db_column="entity_week_id")
     delivered = models.ForeignKey(
-        Delivered, on_delete=models.CASCADE, db_column="delivered_id")
+        Delivered, on_delete=models.DO_NOTHING, db_column="delivered_id")
     key = models.CharField(max_length=255, primary_key=True, db_column="key")
     container = models.ForeignKey(
-        Container, on_delete=models.CASCADE, db_column="container_id")
+        Container, on_delete=models.DO_NOTHING, db_column="container_id")
     prescribed_total = models.IntegerField(db_column="prescribed")
     delivered_total = models.IntegerField(db_column="delivered")
     total = models.IntegerField(db_column="total")
@@ -41,15 +41,15 @@ class MotherDrug(models.Model):
     from medicine.models import Container
     key = models.CharField(max_length=255, primary_key=True, db_column="key")
     clues = models.ForeignKey(
-        CLUES, on_delete=models.CASCADE, db_column="clues_id")
+        CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
     delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE, db_column="delegation_id")
+        Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
     entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE, db_column="entity_week_id")
+        EntityWeek, on_delete=models.DO_NOTHING, db_column="entity_week_id")
     delivered = models.ForeignKey(
-        Delivered, on_delete=models.CASCADE, db_column="delivered_id")
+        Delivered, on_delete=models.DO_NOTHING, db_column="delivered_id")
     container = models.ForeignKey(
-        Container, on_delete=models.CASCADE, db_column="container_id")
+        Container, on_delete=models.DO_NOTHING, db_column="container_id")
     prescribed_total = models.IntegerField(db_column="prescribed")
     delivered_total = models.IntegerField(db_column="delivered")
     total = models.IntegerField(db_column="total")
@@ -70,17 +70,17 @@ class MotherDrug(models.Model):
 #     from inai.models import EntityWeek
 #     from medicine.models import Component, Presentation, Container
 #     delegation = models.ForeignKey(
-#         Delegation, on_delete=models.CASCADE, db_column="delegation_id")
+#         Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
 #     iso_year = models.PositiveSmallIntegerField(db_column="iso_year")
 #     iso_week = models.PositiveSmallIntegerField(db_column="iso_week")
 #     entity = models.ForeignKey(
-#         Entity, on_delete=models.CASCADE, db_column="entity_id")
+#         Entity, on_delete=models.DO_NOTHING, db_column="entity_id")
 #     component = models.ForeignKey(
-#         Component, on_delete=models.CASCADE, db_column="component_id")
+#         Component, on_delete=models.DO_NOTHING, db_column="component_id")
 #     presentation = models.ForeignKey(
-#         Presentation, on_delete=models.CASCADE, db_column="presentation_id")
+#         Presentation, on_delete=models.DO_NOTHING, db_column="presentation_id")
 #     container = models.ForeignKey(
-#         Container, on_delete=models.CASCADE, db_column="container_id")
+#         Container, on_delete=models.DO_NOTHING, db_column="container_id")
 #     prescribed_total = models.IntegerField(db_column="prescribed")
 #     delivered_total = models.IntegerField(db_column="delivered")
 #     total = models.IntegerField(db_column="total", primary_key=True)
@@ -100,13 +100,13 @@ class MotherDrugTotals(models.Model):
     from geo.models import CLUES, Delegation, Entity
     from inai.models import EntityWeek
     clues = models.ForeignKey(
-        CLUES, on_delete=models.CASCADE, db_column="clues_id")
+        CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
     delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE, db_column="delegation_id")
+        Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
     entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE, db_column="entity_week_id")
+        EntityWeek, on_delete=models.DO_NOTHING, db_column="entity_week_id")
     delivered = models.ForeignKey(
-        Delivered, on_delete=models.CASCADE, db_column="delivered_id")
+        Delivered, on_delete=models.DO_NOTHING, db_column="delivered_id")
     prescribed_total = models.IntegerField(db_column="prescribed")
     delivered_total = models.IntegerField(db_column="delivered")
     total = models.IntegerField(db_column="total", primary_key=True)

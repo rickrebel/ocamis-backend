@@ -5,7 +5,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.contrib.admin.filters import SimpleListFilter
 
-from .models import AsyncTask, Platform, CutOff, Step, ClickHistory
+from .models import (
+    AsyncTask, Platform, CutOff, Step, ClickHistory, OfflineTask)
 from classify_task.models import StatusTask, TaskFunction, Stage, UserProfile
 
 
@@ -248,6 +249,17 @@ class ClickHistoryAdmin(admin.ModelAdmin):
     list_display = ["user", "date", "petition", "file_control", "entity_month"]
     raw_id_fields = ["user", "petition", "file_control", "entity_month"]
     list_filter = ["user"]
+
+
+class OfflineTaskAdmin(admin.ModelAdmin):
+    list_display = [
+        "users",
+        "date_start",
+        "date_end",
+        "task_function",
+    ]
+    raw_id_fields = ["user"]
+    list_filter = ["user", "status", "task_function"]
 
 
 # admin.site.unregister(User)

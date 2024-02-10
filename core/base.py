@@ -7,7 +7,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE_PATH = os.path.join(BASE_DIR, 'templates')
 STATIC_PATH = os.path.join(BASE_DIR, 'static')
 MEDIA_PATH = os.path.join(BASE_DIR, 'media')
-#FILES_PATH = os.path.join(BASE_DIR, 'data_files')
+# FILES_PATH = os.path.join(BASE_DIR, 'data_files')
 
 LOCALE_PATHS = (
     os.path.join(BASE_DIR, '../locale'),

@@ -1,127 +1,136 @@
-
-def generate_months():
-    from inai.models import EntityMonth
-    from geo.models import Entity
-    # for agency in Agency.objects.all():
-    for entity in Entity.objects.all():
-        for sum_year in range(6):
-            year = sum_year + 2017
-            for month in range(12):
-                month += 1
-                ye_mo = f"{year}-{month:02d}"
-                EntityMonth.objects.get_or_create(
-                    entity=entity,
-                    year_month=ye_mo,
-                    year=year,
-                    month=month)
-                # print("%s-%s" % (agency.id, ye_mo))
+from inai.models import EntityMonth, EntityWeek
+from geo.models import Entity
 
 
-def generate_weeks():
-    from inai.models import EntityMonth, EntityWeek
-    from geo.models import Entity
-    from datetime import timedelta, date
-    # for agency in Agency.objects.all():
-    for entity in Entity.objects.all():
-        if entity.split_by_delegation:
-            all_delegation_ids = entity.delegations.values_list(
-                'id', flat=True)
-        else:
-            all_delegation_ids = [None]
-            # continue
-        new_weeks = []
-        already_weeks = EntityWeek.objects.filter(entity=entity)\
-            .values('year_week', 'entity', 'year_month', 'iso_delegation')
-        # space
-        def add_new_weeks(
-                init_week, last_week, year_int, ent_month, iso_delegation):
-            ye_mo = ent_month.year_month
-            year_by_ym, month_by_ym = ye_mo.split('-')
-            for week in range(init_week, last_week + 1):
-                year_week = f"{year_int}-{week:02d}"
-                if not any(
-                        d['year_week'] == year_week
-                        and d['entity'] == entity.id
-                        and d['year_month'] == ye_mo
-                        and d['iso_delegation'] == iso_delegation
-                        for d in already_weeks):
-                    new_weeks.append(EntityWeek(
-                        entity=entity,
-                        entity_month=ent_month,
-                        year_week=year_week,
-                        iso_year=year_int,
-                        iso_week=week,
-                        year_month=ent_month.year_month,
-                        year=int(year_by_ym),
-                        month=int(month_by_ym),
-                        iso_delegation=iso_delegation))
-        for year in range(2017, 2024):
-            for month in range(1, 13):
-                year_month = f"{year}-{month:02d}"
-                entity_month, created = EntityMonth.objects.get_or_create(
-                    entity=entity, year_month=year_month)
-                # space
-                start_date = date(year, month, 1)
-                start_week = start_date.isocalendar()[1]
-                start_year = start_date.isocalendar()[0]
-                # space
-                is_december = month == 12
-                next_month = 1 if is_december else month + 1
-                next_year = year + (1 if is_december else 0)
-                end_date = date(next_year, next_month, 1) - timedelta(days=1)
-                end_week = end_date.isocalendar()[1]
-                end_year = end_date.isocalendar()[0]
-                # space
-                same_year = start_year == end_year
-                for delegation_id in all_delegation_ids:
-                    if same_year:
-                        add_new_weeks(
-                            start_week, end_week, start_year,
-                            entity_month, delegation_id)
-                    else:
-                        last_day = date(start_year, 12, 28)
-                        add_new_weeks(
-                            start_week, last_day.isocalendar()[1], start_year,
-                            entity_month, delegation_id)
-                        first_day = date(end_year, 1, 4)
-                        add_new_weeks(
-                            first_day.isocalendar()[1], end_week, end_year,
-                            entity_month, delegation_id)
-        # space
-        EntityWeek.objects.bulk_create(new_weeks)
+class WeeksGenerator:
+
+    def __init__(self, year: int = None, entity: Entity = None):
+        from datetime import datetime
+        current_year = datetime.now().year
+        self.years = [year] if year else range(2017, current_year + 1)
+        self.entity = entity
+        self.all_months = []
+
+        self.entities = Entity.objects.all()
+        self.entity_months = EntityMonth.objects.all()
+        self.entity_weeks = EntityWeek.objects.all()
+        if entity:
+            self.entities = self.entities.filter(id=entity.id)
+            self.entity_weeks = self.entity_weeks.filter(entity=entity)
+        if year:
+            self.entity_months = self.entity_months.filter(year=year)
+            self.entity_weeks = self.entity_weeks.filter(year=year)
+        self.already_months = {}
+        self.generic_weeks = []
+
+    def get_all_months(self):
+        if not self.all_months:
+            for year in self.years:
+                for month in range(1, 13):
+                    current_month = {
+                        "year": year,
+                        "month": month,
+                        "year_month": f"{year}-{month:02d}"
+                    }
+                    self.all_months.append(current_month)
+        return self.all_months
+
+    def get_all_weeks(self, entity: Entity = None) -> list:
+        if not entity:
+            return self.generic_weeks
+        if not entity.split_by_delegation:
+            return self.generic_weeks
+        all_delegation_ids = list(entity.delegations.values_list(
+            'id', flat=True))
+        if not all_delegation_ids:
+            return self.generic_weeks
+        all_weeks = []
+        for week in self.generic_weeks:
+            for delegation_id in all_delegation_ids:
+                current_week = week.copy()
+                current_week.update({"iso_delegation_id": delegation_id})
+                all_weeks.append(current_week)
+        return all_weeks
+
+    def build_generic_weeks(self):
+        from datetime import date
+        if self.generic_weeks:
+            return
+        all_months = self.get_all_months()
+        for month_data in all_months:
+            year = month_data["year"]
+            month = month_data["month"]
+            every_week = set()
+            for day in range(1, 32):
+                try:
+                    current_date = date(year, month, day)
+                except ValueError:
+                    break
+                iso_year, iso_week, _ = current_date.isocalendar()
+                year_week = f"{iso_year}-{iso_week:02d}"
+                if year_week in every_week:
+                    continue
+                every_week.add(year_week)
+                current_week = {
+                    "iso_week": iso_week,
+                    "iso_year": iso_year,
+                    "year_week": year_week,
+                    "year": year,
+                    "month": month,
+                    "year_month": month_data["year_month"],
+                    "iso_delegation": None
+                }
+                self.generic_weeks.append(current_week)
+
+    def generate_months(self):
+        already_months = self.entity_months.values_list('entity', 'year_month')
+        bulk_months = []
+        for entity in self.entities:
+            all_months = self.get_all_months()
+            for month_data in all_months:
+                if (entity.id, month_data["year_month"]) in already_months:
+                    continue
+                month_data.update({"entity": entity})
+                bulk_months.append(EntityMonth(**month_data))
+        EntityMonth.objects.bulk_create(bulk_months)
+        self.entity_months = EntityMonth.objects.all()
+
+    def build_already_months(self):
+        entity_months = self.entity_months.values('id', 'entity', 'year_month')
+        for month in entity_months:
+            entity = month["entity"]
+            self.already_months.setdefault(entity, {})
+            self.already_months[entity][month["year_month"]] = month["id"]
+
+    def generate_weeks(self):
+        already_weeks = self.entity_weeks.values_list(
+            'year_week', 'entity', 'year_month', 'iso_delegation')
+
+        self.build_already_months()
+        self.build_generic_weeks()
+        bulk_weeks = []
+        for entity in self.entities:
+            final_weeks = self.get_all_weeks(entity)
+            for week_data in final_weeks:
+                current_week = (
+                    week_data["year_week"], entity.id,
+                    week_data["year_month"], week_data["iso_delegation"])
+                if current_week in already_weeks:
+                    continue
+                entity_month_id = self.already_months[entity.id][week_data["year_month"]]
+                week_data.update({"entity_id": entity.id, "entity_month_id": entity_month_id})
+                bulk_weeks.append(EntityWeek(**week_data))
+        EntityWeek.objects.bulk_create(bulk_weeks)
+        self.entity_weeks = EntityWeek.objects.all()
 
 
-def generate_months_one_year(year):
-    from inai.models import EntityMonth
-    from geo.models import Entity
-    for agency in Entity.objects.all():
-        for month in range(12):
-            month += 1
-            ye_mo = f"{year}-{month:02d}"
-            EntityMonth.objects.get_or_create(
-                year_month=ye_mo,
-                entity=agency.entity)
-            #print("%s-%s" % (agency.id, ye_mo))
+def create_year():
+    # from scripts.ocamis_verified.initial_fields import WeeksGenerator
+    weeks_gen = WeeksGenerator(year=2024)
+    weeks_gen.generate_months()
+    weeks_gen.generate_weeks()
 
 
-def generate_months_agency(acronym):
-    from inai.models import EntityMonth
-    from geo.models import Entity
-    for entity in Entity.objects.filter(acronym=acronym):
-        for sum_year in range(6):
-            year = sum_year + 2017
-            for month in range(12):
-                month += 1
-                ye_mo = f"{year}-{month:02d}"
-                EntityMonth.objects.get_or_create(
-                    entity=entity, year_month=ye_mo)
-                #print("%s-%s" % (agency.id, ye_mo))
-
-# generate_months_agency("SSEDOMEX")
-# generate_months_agency("CRAE")
-# generate_months_agency("SSPCDMX")
-
-        
 def insert_populations():
     from geo.models import Agency
     pob_states2 = [

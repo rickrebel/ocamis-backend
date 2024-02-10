@@ -6,7 +6,8 @@ import json
 import unidecode
 import re
 from task.aws.common import (
-    obtain_decode, calculate_delivered_final, send_simple_response, BotoUtils)
+    obtain_decode, calculate_delivered_final, send_simple_response,
+    BotoUtils, convert_to_str)
 
 
 def text_normalizer(text):
@@ -84,6 +85,8 @@ class MatchAws:
     last_valid_row = None
     last_date_formatted = None
 
+    errors_count = 0
+
     def __init__(self, init_data: dict, context, s3):
         for key, value in init_data.items():
             setattr(self, key, value)
@@ -96,6 +99,7 @@ class MatchAws:
             date.strip() for date in self.string_date.split(";")]
         # print("string_date", self.string_date)
         editable_models = init_data["editable_models"]
+        self.not_unicode = "not_unicode" in self.global_transformations
 
         self.normal_models = [model for model in editable_models
                               if model["name"] not in ["drug", "rx"]]
@@ -725,10 +729,15 @@ class MatchAws:
             value = row[field["position"]]
         else:
             value = available_data.get(field["name"])
+        if self.not_unicode:
+            value = convert_to_str(value)
         null_to_value = field.get("null_to_value")
         if null_to_value:
             if value is None or value == "":
                 value = null_to_value
+        delete_text = field.get("delete_text")
+        if delete_text:
+            value = re.sub(delete_text, "", value)
         same_group_data = field.get("same_group_data")
         copied = False
         if not value and same_group_data and self.last_valid_row:
@@ -801,6 +810,8 @@ class MatchAws:
                 value = float(value)
             else:
                 value = str(value)
+                if self.not_unicode:
+                    value = convert_to_str(value)
         except ValueError:
             error = "No se pudo convertir a %s" % field["data_type"]
         if value and not error:
@@ -900,8 +911,8 @@ class MatchAws:
         if errors:
             return available_data, errors[0]
         is_cancelled = final_class == "CANCELADA"
-        prescribed_amount = available_data.get("prescribed_amount", 0)
-        if prescribed_amount:
+        prescribed_amount = available_data.get("prescribed_amount")
+        if prescribed_amount is not None:
             try:
                 prescribed_amount = int(prescribed_amount)
             except ValueError:
@@ -949,6 +960,7 @@ class MatchAws:
 
         available_data, error = identify_errors(
             available_data, prescribed_amount, "prescrita")
+
         if error or available_data.get("delivered_id"):
             return available_data, error
 
@@ -957,6 +969,12 @@ class MatchAws:
         if delivered_amount is None:
             not_delivered_amount = available_data.get("not_delivered_amount", None)
             if not_delivered_amount is not None:
+                try:
+                    not_delivered_amount = int(not_delivered_amount)
+                except ValueError:
+                    error = (f"No se pudo convertir la cantidad no entregada; "
+                             f"{not_delivered_amount}")
+                    return available_data, error
                 delivered_amount = prescribed_amount - not_delivered_amount
                 available_data["delivered_amount"] = delivered_amount
         else:

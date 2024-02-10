@@ -1,4 +1,4 @@
-from rest_framework import permissions, status
+from rest_framework import permissions, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from api.mixins import (
@@ -171,3 +171,43 @@ class StepViewSet(ListRetrieveUpdateView):
         else:
             return Response(
                 serializer_step.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ActivityView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from task.api.activity import BuildSpendGroups
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.contrib.auth.models import User
+        days_ago = request.query_params.get("days_ago", 60)
+        user = request.user
+        if not user:
+            user_id = request.query_params.get("user_id", None)
+            user = User.objects.get(id=user_id)
+        if not user:
+            return Response(
+                {"message": "User not found"},
+                status=status.HTTP_400_BAD_REQUEST)
+        now = timezone.now()
+        last_days = now - timedelta(days=int(days_ago))
+        tasks = user.async_tasks\
+            .filter(date_start__gte=last_days, parent_task__isnull=True)\
+            .prefetch_related("task_function")
+        tasks_data = serializers.AsyncTaskActivitySerializer(
+            tasks, many=True).data
+        clicks = user.clicks.filter(date__gte=last_days)
+        clicks_data = serializers.ClickHistoryActivitySerializer(
+            clicks, many=True).data
+        offline = user.offline_tasks.filter(date_start__gte=last_days)
+        offline_data = serializers.OfflineTaskActivitySerializer(
+            offline, many=True).data
+        activities = tasks_data + clicks_data + offline_data
+        activities.sort(key=lambda x: x["real_start"], reverse=False)
+        all_activities, spend_groups = BuildSpendGroups(activities).build_spend_groups()
+        data = {
+            "activities": activities,
+            "spend_groups": spend_groups,
+        }
+        return Response(data, status=status.HTTP_200_OK)

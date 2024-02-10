@@ -61,7 +61,6 @@ class DrugViewSet(ListRetrieveUpdateMix):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-
         def build_query(is_total=False):
             # is_complex = is_total or bool(clues_id)
             is_complex = True
@@ -74,7 +73,6 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 'iso_week': f'{prev_iso}iso_week',
                 'iso_year': f'{prev_iso}iso_year',
             }
-
             field_ent = f"{prev_iso}entity_id"
             field_comp = 'container__presentation__component_id' \
                 if is_complex else 'component_id'
@@ -124,11 +122,13 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 order_values.insert(0, "delegation")
 
             prev_model = "Mother" if is_big_active else "Mat"
-            if is_total:
-                model_name = f"{prev_model}DrugTotals"
-            else:
-                # model_name = "MotherDrug" if is_complex else "MotherDrugExtended"
-                model_name = f"{prev_model}DrugPriority"
+            model = "Totals" if is_total else "Priority"
+            model_name = f"{prev_model}Drug{model}"
+            # if is_total:
+            #     model_name = f"{prev_model}DrugTotals"
+            # else:
+            #     # model_name = "MotherDrug" if is_complex else "MotherDrugExtended"
+            #     model_name = f"{prev_model}DrugPriority"
             print("model_name: ", model_name)
             app_label = "mat" if is_big_active else "formula"
             mother_model = apps.get_model(app_label, model_name)

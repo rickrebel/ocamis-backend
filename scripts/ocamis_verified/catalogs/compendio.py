@@ -2,8 +2,7 @@ import pdfplumber
 import re
 import json
 from scripts.ocamis_verified.catalogs.standard import (
-    calculate_standard, some_is_standard, AssignKeys, is_content_title,
-    count_content_titles)
+    AssignKeys, is_content_title, count_content_titles)
 
 
 def join_words(words):

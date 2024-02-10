@@ -66,7 +66,8 @@ class AsyncTask(models.Model):
     params_after = JSONField(
         blank=True, null=True, verbose_name="Parámetros de la función after")
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, blank=True, null=True)
+        User, on_delete=models.CASCADE, blank=True, null=True,
+        related_name="async_tasks")
     result = JSONField(blank=True, null=True)
     errors = JSONField(blank=True, null=True)
     is_current = models.BooleanField(
@@ -245,7 +246,7 @@ class Step(models.Model):
 class ClickHistory(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        verbose_name="Usuario", related_name="click_histories")
+        verbose_name="Usuario", related_name="clicks")
     entity_month = models.ForeignKey(
         EntityMonth, on_delete=models.CASCADE,
         verbose_name="Mes", blank=True, null=True)
@@ -265,3 +266,33 @@ class ClickHistory(models.Model):
         verbose_name = "Historial"
         verbose_name_plural = "Historial"
         ordering = ["-date"]
+
+
+OFFLINE_TYPES = (
+    ('weekly_meeting', 'Reunión semanal'),
+    ('meeting', 'Reunión'),
+    ('training', 'Capacitación'),
+    ('pnt', 'PNT'),
+    ('other', 'Otro'),
+)
+
+
+class OfflineTask(models.Model):
+    users = models.ManyToManyField(User, related_name="offline_tasks")
+    date_start = models.DateTimeField(verbose_name="Inicio")
+    date_end = models.DateTimeField(verbose_name="Fin")
+    activity_type = models.CharField(
+        max_length=100, choices=OFFLINE_TYPES, verbose_name="Tipo")
+    name = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="Actividad")
+    user_added = models.ForeignKey(
+        User, blank=True, null=True,
+        on_delete=models.DO_NOTHING, related_name="offline_tasks_added")
+
+    def __str__(self):
+        return "%s - %s" % (self.date_start, self.date_end)
+
+    class Meta:
+        verbose_name = "Tarea offline"
+        verbose_name_plural = "Tareas offline"
+        ordering = ["-date_start"]

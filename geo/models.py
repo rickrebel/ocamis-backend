@@ -158,6 +158,17 @@ class Entity(models.Model):
             raise Exception("No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
+    def save(self, *args, **kwargs):
+        from inai.models import EntityMonth
+        from scripts.ocamis_verified.initial_fields import WeeksGenerator
+        self_created = True if self.pk is None else False
+        super(Entity, self).save(*args, **kwargs)
+        if self_created:
+            weeks_gen = WeeksGenerator(entity=self)
+            weeks_gen.generate_months()
+            weeks_gen.generate_weeks()
+
+
     def __str__(self):
         return self.name
 
@@ -165,6 +176,7 @@ class Entity(models.Model):
         ordering = ["state__name"]
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores (Entities)"
+
 
 class CLUES(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
@@ -439,19 +451,6 @@ class Agency(models.Model):
 
     population = models.IntegerField(
         verbose_name="Derechohabientes", blank=True, null=True)
-
-    def save(self, *args, **kwargs):
-        from inai.models import EntityMonth
-        self_created = True if self.pk is None else False
-        super(Agency, self).save(*args, **kwargs)
-        if self_created:
-            for sum_year in range(8):
-                year = sum_year + 2017
-                for month in range(12):
-                    month += 1
-                    ye_mo = f"{year}-{month:02d}"
-                    EntityMonth.objects.get_or_create(
-                        entity=self.entity, year_month=ye_mo)
 
     def delete(self, *args, **kwargs):
         from inai.models import LapSheet
