@@ -182,10 +182,12 @@ class ActivityView(views.APIView):
         from datetime import timedelta
         from django.contrib.auth.models import User
         days_ago = request.query_params.get("days_ago", 60)
-        user = request.user
-        if not user:
-            user_id = request.query_params.get("user_id", None)
+        user_id = request.query_params.get("user_id", None)
+        user = None
+        if user_id:
             user = User.objects.get(id=user_id)
+        if not user:
+            user = request.user
         if not user:
             return Response(
                 {"message": "User not found"},
