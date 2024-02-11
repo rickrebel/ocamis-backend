@@ -59,7 +59,8 @@ class AsyncTaskViewSet(ListRetrieveView):
             .filter(date_end__gte=last_hours)\
             .prefetch_related(*prefetch_async)
         all_tasks = task_by_start | task_by_end
-        staff_users = User.objects.filter(is_staff=True, is_active=True, profile__isnull=False)
+        staff_users = User.objects.filter(
+            is_staff=True, is_active=True, profile__isnull=False)
         staff_data = UserProfileSerializer(staff_users, many=True).data
         data = {
             "tasks": serializers.AsyncTaskSerializer(all_tasks, many=True).data,

@@ -262,9 +262,9 @@ class OfflineTaskAdmin(admin.ModelAdmin):
     list_filter = ["user", "status", "task_function"]
 
 
-# admin.site.unregister(User)
+admin.site.unregister(User)
 # admin.site.unregister(Token)
-# ocamis_admin_site.register(User, CustomUserAdmin)
+ocamis_admin_site.register(User, CustomUserAdmin)
 
 ocamis_admin_site.register(AsyncTask, AsyncTaskAdmin)
 ocamis_admin_site.register(StatusTask, StatusTaskAdmin)
