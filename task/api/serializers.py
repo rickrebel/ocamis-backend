@@ -116,6 +116,13 @@ class CutOffSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class OfflineTaskSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OfflineTask
+        fields = "__all__"
+
+
 mandatory_fields = [
     "real_start", "real_end", "date_start", "activity_type", "date_end"]
 
@@ -125,7 +132,7 @@ class ActivitySerializer(serializers.ModelSerializer):
     real_end = serializers.SerializerMethodField()
     date_end = serializers.SerializerMethodField()
     activity_type = serializers.SerializerMethodField()
-    reals = (5, 8)
+    reals = (5, 10)
     start_field = "date_start"
 
     # def get_start_field(self, obj):
@@ -167,7 +174,7 @@ class AsyncTaskActivitySerializer(ActivitySerializer):
 
 
 class ClickHistoryActivitySerializer(ActivitySerializer):
-    reals = (3, 6)
+    reals = (3, 8)
     date_start = serializers.DateTimeField(source="date", read_only=True)
     model = serializers.SerializerMethodField()
     start_field = "date"
@@ -187,12 +194,13 @@ class ClickHistoryActivitySerializer(ActivitySerializer):
 
 
 class OfflineTaskActivitySerializer(ActivitySerializer):
-    reals = (10, 10)
+    reals = (8, 12)
     start_field = "date_start"
+    offline_type = serializers.CharField(source="activity_type")
 
     def get_activity_type(self, obj):
         return "offline"
 
     class Meta:
         model = OfflineTask
-        fields = mandatory_fields + ["name", "activity_type"]
+        fields = mandatory_fields + ["name", "offline_type"]

@@ -253,13 +253,11 @@ class ClickHistoryAdmin(admin.ModelAdmin):
 
 class OfflineTaskAdmin(admin.ModelAdmin):
     list_display = [
-        "users",
+        "activity_type",
+        "name",
         "date_start",
         "date_end",
-        "task_function",
     ]
-    raw_id_fields = ["user"]
-    list_filter = ["user", "status", "task_function"]
 
 
 admin.site.unregister(User)
@@ -274,3 +272,4 @@ ocamis_admin_site.register(Stage, StageAdmin)
 ocamis_admin_site.register(Platform)
 ocamis_admin_site.register(CutOff, CutOffAdmin)
 ocamis_admin_site.register(ClickHistory, ClickHistoryAdmin)
+ocamis_admin_site.register(OfflineTask, OfflineTaskAdmin)

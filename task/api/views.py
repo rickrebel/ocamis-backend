@@ -3,7 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from api.mixins import (
     MultiSerializerListRetrieveMix as ListRetrieveView,
-    MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateView)
+    MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateView,
+    CreateMix)
 
 
 from task.api import serializers
@@ -172,6 +173,23 @@ class StepViewSet(ListRetrieveUpdateView):
         else:
             return Response(
                 serializer_step.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OfflineTaskViewSet(CreateMix):
+    queryset = AsyncTask.objects.filter(parent_task__isnull=True)
+    serializer_class = serializers.OfflineTaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        data["user_added"] = request.user.id
+        serializer = serializers.OfflineTaskSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ActivityView(views.APIView):

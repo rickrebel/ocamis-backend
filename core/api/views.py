@@ -38,6 +38,7 @@ class CatalogView(views.APIView):
     permission_classes = (permissions.AllowAny, )
 
     def get(self, request):
+        from task.models import OFFLINE_TYPES
         # data = {}
         agencies_query = Agency.objects.filter().prefetch_related(
             "institution", "state", "clues")
@@ -89,6 +90,7 @@ class CatalogView(views.APIView):
                 FileFormat.objects.all(), many=True).data,
             "date_breaks": DateBreakSimpleSerializer(
                 DateBreak.objects.all(), many=True).data,
+            "offline_types": {k: v for k, v in OFFLINE_TYPES},
         }
         return Response(data)
 
@@ -97,24 +99,24 @@ class CatalogViz(views.APIView):
     permission_classes = (permissions.AllowAny, )
 
     def get(self, request):
-        #data = {}
+        # data = {}
         final_fields_query = FinalField.objects.filter(need_for_viz=True)
         indices_query = TransparencyIndex.objects.all()\
             .prefetch_related(
                 "levels", "levels__anomalies", "levels__file_formats")
 
         data = {
-            ## CATÁLOGOS DE PARÁMETROS:
+            # CATÁLOGOS DE PARÁMETROS:
             "parameter_groups": ParameterGroupSimpleSerializer(
                 ParameterGroup.objects.all(), many=True).data,
             "final_fields": FinalFieldSimpleSerializer(
                 final_fields_query, many=True).data,
-            ## CATÁLOGOS DE TRANSPARENCIA:
+            # CATÁLOGOS DE TRANSPARENCIA:
             "indices": TransparencyIndexSerializer(
                 indices_query, many=True).data,
-            #"levels": TransparencyLevelSimpleSerializer(
+            # "levels": TransparencyLevelSimpleSerializer(
             #    TransparencyLevel.objects.all(), many=True).data,
-            ## CATÁLOGOS GENERALES:
+            # CATÁLOGOS GENERALES:
             "negative_reasons": NegativeReasonSimpleSerializer(
                 NegativeReason.objects.all(), many=True).data,
             "invalid_reasons": InvalidReasonSimpleSerializer(
