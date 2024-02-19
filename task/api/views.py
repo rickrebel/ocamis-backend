@@ -200,28 +200,24 @@ class ActivityView(views.APIView):
         from django.utils import timezone
         from datetime import timedelta
         from django.contrib.auth.models import User
+
         days_ago = request.query_params.get("days_ago", 60)
         user_id = request.query_params.get("user_id", None)
-        user = None
-        if user_id:
-            user = User.objects.get(id=user_id)
-        if not user:
-            user = request.user
-        if not user:
-            return Response(
-                {"message": "User not found"},
-                status=status.HTTP_400_BAD_REQUEST)
+        worker_user = request.user
+
+        if user_id and worker_user.profile.is_manager:
+            worker_user = User.objects.get(id=user_id)
         now = timezone.now()
         last_days = now - timedelta(days=int(days_ago))
-        tasks = user.async_tasks\
+        tasks = worker_user.async_tasks\
             .filter(date_start__gte=last_days, parent_task__isnull=True)\
             .prefetch_related("task_function")
         tasks_data = serializers.AsyncTaskActivitySerializer(
             tasks, many=True).data
-        clicks = user.clicks.filter(date__gte=last_days)
+        clicks = worker_user.clicks.filter(date__gte=last_days)
         clicks_data = serializers.ClickHistoryActivitySerializer(
             clicks, many=True).data
-        offline = user.offline_tasks.filter(date_start__gte=last_days)
+        offline = worker_user.offline_tasks.filter(date_start__gte=last_days)
         offline_data = serializers.OfflineTaskActivitySerializer(
             offline, many=True).data
         activities = tasks_data + clicks_data + offline_data

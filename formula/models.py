@@ -105,8 +105,7 @@ class Drug(models.Model):
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     rx = models.ForeignKey(
-        Rx, on_delete=models.CASCADE,
-        related_name='drugs')
+        Rx, on_delete=models.CASCADE, related_name='drugs')
     # sheet_file = models.ForeignKey(
     #     SheetFile, on_delete=models.CASCADE)
     sheet_file_id = models.IntegerField()

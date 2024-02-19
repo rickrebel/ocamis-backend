@@ -52,7 +52,7 @@ class UserLoginAPIView(views.APIView):
     def post(self, request):
         from rest_framework.exceptions import ParseError
         from rest_framework.authtoken.models import Token
-        #from circles.views import activate_invitation, invitation_search
+        # from circles.views import activate_invitation, invitation_search
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
             return Response({"errors": serializer.errors},
@@ -61,7 +61,7 @@ class UserLoginAPIView(views.APIView):
         email = serializer.data.get('email', None)
         username = serializer.data.get('username', None)
         password = serializer.data.get('password', None)
-        #invitation_key = serializer.data.get('key', False)
+        # invitation_key = serializer.data.get('key', False)
 
         if email:
             user_query = User.objects.filter(email=email)
@@ -89,9 +89,9 @@ class UserLoginAPIView(views.APIView):
             user_obj, context={"request": request})
 
         return Response(user_serializer.data, status=status.HTTP_200_OK)
-        #get_serializer = serializers.UserDataSerializer
-        #data = get_serializer(user_obj, context={'request': request}).data
-        #return Response(data, status=status.HTTP_200_OK)
+        # get_serializer = serializers.UserDataSerializer
+        # data = get_serializer(user_obj, context={'request': request}).data
+        # return Response(data, status=status.HTTP_200_OK)
 
     def get(self, request):
         user = request.user

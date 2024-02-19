@@ -138,6 +138,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="profile")
     has_tasks = models.BooleanField(default=False)
+    is_manager = models.BooleanField(default=False)
     image = models.ImageField(
         upload_to="profile_images", blank=True, null=True)
 

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework.validators import UniqueValidator
+from classify_task.models import UserProfile
 
 
 class UserRegistrationSerializer(serializers.Serializer):
@@ -27,19 +28,23 @@ class UserLoginSerializer(serializers.Serializer):
     key = serializers.CharField(required=False)
 
 
+class UserExtendSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserProfile
+        fields = "__all__"
+
+
 class UserDataSerializer(serializers.ModelSerializer):
     fullname = serializers.ReadOnlyField(source="full_name")
     token = serializers.ReadOnlyField(source="auth_token.key")
-    # user_type = serializers.ReadOnlyField(default='normal')
-    # slug = serializers.ReadOnlyField(source="profile.slug")
-    # profile_image = serializers.ReadOnlyField(
-    #    source="profile.profile_image_url")
-    # cover_image = serializers.ReadOnlyField(source="profile.get_cover_image")
+    profile = UserExtendSerializer(read_only=True)
 
     class Meta(object):
         model = User
         fields = [
-            "id", 'email', 'username', "first_name", "last_name", "token", "fullname"]
+            "id", 'email', 'username', "first_name", "last_name",
+            "token", "fullname", "profile"]
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
