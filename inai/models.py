@@ -137,6 +137,25 @@ class Petition(models.Model, PetitionTransformsMix):
             return self.entity_months.latest().year_month
         return None
 
+    @property
+    def orphan_pet_control(self):
+        orphan_group = DataGroup.objects.get(name="orphan")
+        orphan = self.file_controls\
+            .filter(file_control__data_group=orphan_group)\
+            .first()
+        if not orphan:
+            name_control = "Archivos por agrupar. Solicitud %s" % (
+                self.folio_petition)
+            file_control, created = FileControl.objects.get_or_create(
+                name=name_control,
+                data_group=orphan_group,
+                final_data=False,
+                agency=self.agency,
+            )
+            orphan, _ = PetitionFileControl.objects.get_or_create(
+                petition=self, file_control=file_control)
+        return orphan
+
     def months(self):
         html_list = ''
         # start = self.petition_months.earliest().entity_month.human_name

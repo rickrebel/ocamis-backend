@@ -7,6 +7,7 @@ class ExtractorsMix:
 
     def transform_file_in_data(
             self, type_explor, file_control=None, task_params=None):
+        print("transform_file_in_data", type_explor)
         from category.models import FileFormat
         is_explore = bool(type_explor)
         data_file = self
@@ -83,44 +84,35 @@ class ExtractorsMix:
                 headers = []
                 if row_headers and len(all_data) > row_headers - 1:
                     headers = all_data[row_headers - 1]
-                    # nulls = [header for header in headers[1:] if not header]
                     not_null_aislated = calculate_aislated(headers)
                     few_nulls = len(not_null_aislated) < 4
-                    # if not few_nulls and len(all_data) > row_headers:
-                    #     plus_rows = 1
-                    #     headers = all_data[row_headers]
-                    #     not_null_aislated = calculate_aislated(headers)
-                    #     # if nulls:
-                    #     #    continue
-                    # few_nulls = len(not_null_aislated) < 2
                 if (few_nulls and headers) or not row_headers:
-                    # plus_cols = 0 if headers[0] else 1
-                    # validated_data[sheet_name]["plus_columns"] = plus_cols
                     start_data = file_control.row_start_data - 1 + plus_rows
                     curr_sheet["plus_rows"] = plus_rows
                     data_rows = all_data[start_data:][:200]
                     curr_sheet["data_rows"] = data_rows
-                    # curr_sheet["headers"] = headers[plus_cols:]
                     curr_sheet["headers"] = headers
                 else:
                     print("No pasó las pruebas básicas -", sheet_name)
                     curr_sheet["headers"] = headers
                     curr_sheet["data_rows"] = all_data
-                    # pendiente_hasta_aca = 0
             new_validated_data[sheet_name] = curr_sheet
 
-        # if not is_explore:
-        #     matched_rows = []
-        #     for row in validated_rows:
-        #         row = execute_matches(row, self)
-        #         matched_rows.append(row)
-        #     return matched_rows
         print("current_sheets", current_sheets)
         result = {
             "structured_data": new_validated_data,
             "current_sheets": current_sheets,
         }
         return result, [], None
+
+    def split_intermediary_file(self, task_params=None):
+        params = {
+            "file": self.file.name,
+            "final_path": self.final_path,
+        }
+
+        return []
+
 
     def decompress_file_gz(self, task_params=None):
         from task.serverless import async_in_lambda
@@ -134,7 +126,7 @@ class ExtractorsMix:
             "file": self.file.name,
             "directory": directory,
         }
-        task_params = task_params or { }
+        task_params = task_params or {}
         # task_params[]
         print("task_params", task_params)
         task_params["models"] = [self]

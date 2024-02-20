@@ -141,7 +141,6 @@ class BotoUtils:
         # if file_type == "json":
         # if file.endswith(".csv") or file_type == "csv"
         if file_type == "csv":
-
             # object_final = io.BytesIO(streaming_body_1.read())
             object_final = object_final.decode("utf-8")
             csv_content = csv.reader(

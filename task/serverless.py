@@ -2,6 +2,7 @@ import json
 from django.conf import settings
 from datetime import datetime
 from task.aws.start_build_csv_data import lambda_handler as start_build_csv_data
+from task.aws.split_horizontal import lambda_handler as split_horizontal
 from task.aws.start_build_csv_data import lambda_handler as prepare_files
 from task.aws.save_csv_in_db import lambda_handler as save_csv_in_db
 from task.aws.insert_temp_tables import lambda_handler as insert_temp_tables

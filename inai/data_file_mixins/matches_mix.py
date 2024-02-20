@@ -2,18 +2,8 @@ from data_param.models import Transformation
 from scripts.common import start_session, create_file
 import json
 from task.serverless import camel_to_snake
-from classify_task.models import Stage, StatusTask
 from inai.models import DataFile, LapSheet
-
-
-def sheet_name_to_file_name(sheet_name):
-    import re
-    valid_characters = re.sub(r'[\\/:*?"<>|]', '_', sheet_name)
-    valid_characters = valid_characters.strip()
-    valid_characters = re.sub(r'\s+', ' ', valid_characters)
-    valid_characters = valid_characters.replace(' ', '_')
-
-    return valid_characters
+from inai.data_file_mixins.base_transform import BaseTransform
 
 
 def get_models_of_app(app_label):
@@ -72,16 +62,40 @@ def field_of_models(model_data):
     return fields
 
 
-class Match:
+def build_global_geo(global_obj):
+    if not global_obj:
+        return None
+    is_clues = global_obj.__class__.__name__ == "CLUES"
+    final_dict = { "id": global_obj.id }
+    if is_clues:
+        # is_tuple = isinstance(global_obj.clues, tuple)
+        final_dict["clues_key"] = global_obj.clues
+    else:
+        final_dict["name"] = global_obj.name,
+    return final_dict
+
+
+def build_available_deliveries():
+    from med_cat.models import Delivered
+    all_deliveries = Delivered.objects.filter(
+        alternative_names__isnull=False)
+    deliveries = {}
+    for delivery in all_deliveries:
+        current_deliveries = delivery.alternative_names.split(",")
+        for current_delivery in current_deliveries:
+            delivered_name = current_delivery.strip().upper()
+            deliveries[delivered_name] = delivery.hex_hash
+    return deliveries
+
+
+class Match(BaseTransform):
 
     def __init__(self, data_file: DataFile, task_params=None):
+        super().__init__(data_file, task_params)
         from inai.models import set_upload_path
         from data_param.models import NameColumn
-
-        self.data_file = data_file
         self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
-        self.file_control = data_file.petition_file_control.file_control
         self.agency = petition.agency
         entity = self.agency.entity
         self.institution = entity.institution
@@ -90,10 +104,8 @@ class Match:
         self.global_delegation = self.global_clues.delegation \
             if self.global_clues else None
         # print("global_delegation", self.global_delegation)
-        file_name = data_file.file.name.rsplit('/', 1)[-1]
-        file_name = file_name.replace(".", "_")
         # only_name = f"NEW_ELEM_NAME/{self.data_file.id}_SHEET_NAME_lap{self.lap}.csv"
-        only_name = f"NEW_ELEM_NAME/{file_name}_SHEET_NAME_NEW_ELEM_NAME" \
+        only_name = f"NEW_ELEM_NAME/{self.file_name}_SHEET_NAME_NEW_ELEM_NAME" \
                     f"_lap{self.lap}.csv"
         self.final_path = set_upload_path(self.data_file, only_name)
         self.name_columns = NameColumn.objects \
@@ -125,10 +137,44 @@ class Match:
         s3_client, dev_resource = start_session()
         self.s3_client = s3_client
 
-    def build_csv_converted(self, is_prepare=False):
-        from task.serverless import async_in_lambda
+    def build_init_data(self, final_lap, string_date):
         from geo.views import build_catalog_delegation_by_id
         import hashlib
+
+        value_null = "".encode(self.file_control.decode or "utf-8")
+        hash_null = hashlib.md5(value_null).hexdigest()
+        global_transformations = self.file_control.file_transformations \
+            .values_list("clean_function__name", flat=True)
+        global_transformations = list(global_transformations)
+
+        init_data = {
+            "file_name_simple": self.data_file.file.name.split(".")[0],
+            "global_clues": build_global_geo(self.global_clues),
+            "global_delegation": build_global_geo(self.global_delegation),
+            "global_transformations": global_transformations,
+            "available_deliveries": build_available_deliveries(),
+            "decode": self.file_control.decode,
+            "hash_null": hash_null,
+            "delimiter": self.delimiter,
+            "row_start_data": self.file_control.row_start_data,
+            "entity_id": self.agency.entity_id,
+            "split_by_delegation": self.agency.entity.split_by_delegation,
+            "columns_count": self.columns_count,
+            "editable_models": self.editable_models,
+            "real_models": self.real_models,
+            "model_fields": self.model_fields,
+            "existing_fields": self.existing_fields,
+            "is_prepare": self.is_prepare,
+            "lap": final_lap,
+            "string_date": string_date,
+        }
+        if init_data["split_by_delegation"]:
+            init_data["delegation_cat"] = build_catalog_delegation_by_id(
+                self.institution, key_field="name")
+        self.init_data = init_data
+
+    def build_csv_converted(self, is_prepare=False):
+        self.is_prepare = is_prepare
 
         missing_criteria = self.calculate_minimals_criteria()
         string_date, date_error = self.get_date_format()
@@ -152,101 +198,19 @@ class Match:
             return [], [error], self.data_file
 
         # self.build_existing_fields()
+        final_lap = -1 if self.is_prepare else self.lap
+        self.build_init_data(final_lap, string_date)
 
-        value_null = "".encode(self.file_control.decode or "utf-8")
-        hash_null = hashlib.md5(value_null).hexdigest()
-        global_transformations = self.file_control.file_transformations \
-            .values_list("clean_function__name", flat=True)
-        global_transformations = list(global_transformations)
-
-        def build_global_geo(global_obj):
-            if not global_obj:
-                return None
-            is_clues = global_obj.__class__.__name__ == "CLUES"
-            final_dict = {"id": global_obj.id}
-            if is_clues:
-                is_tuple = isinstance(global_obj.clues, tuple)
-                final_dict["clues_key"] = global_obj.clues
-            else:
-                final_dict["name"] = global_obj.name,
-            return final_dict
-
-        def build_available_deliveries():
-            from med_cat.models import Delivered
-            all_deliveries = Delivered.objects.filter(
-                alternative_names__isnull=False)
-            deliveries = {}
-            for delivery in all_deliveries:
-                current_deliveries = delivery.alternative_names.split(",")
-                for current_delivery in current_deliveries:
-                    delivered_name = current_delivery.strip().upper()
-                    deliveries[delivered_name] = delivery.hex_hash
-            return deliveries
-
-        final_lap = -1 if is_prepare else self.lap
-        init_data = {
-            "file_name_simple": self.data_file.file.name.split(".")[0],
-            "global_clues": build_global_geo(self.global_clues),
-            "global_delegation": build_global_geo(self.global_delegation),
-            "global_transformations": global_transformations,
-            "available_deliveries": build_available_deliveries(),
-            "decode": self.file_control.decode,
-            "hash_null": hash_null,
-            "delimiter": self.delimiter,
-            "row_start_data": self.file_control.row_start_data,
-            "entity_id": self.agency.entity_id,
-            "split_by_delegation": self.agency.entity.split_by_delegation,
-            "columns_count": self.columns_count,
-            "editable_models": self.editable_models,
-            "real_models": self.real_models,
-            "model_fields": self.model_fields,
-            "existing_fields": self.existing_fields,
-            "is_prepare": is_prepare,
-            "lap": final_lap,
-            "string_date": string_date,
-        }
         self.task_params["function_after"] = "build_csv_data_from_aws"
-        all_tasks = []
-        if init_data["split_by_delegation"]:
-            init_data["delegation_cat"] = build_catalog_delegation_by_id(
-                self.institution, key_field="name")
 
-        filter_sheets = self.data_file.filtered_sheets
-        procesable_sheets = self.data_file.sheet_files.filter(
-            matched=True, sheet_name__in=filter_sheets)
-        transform_stage = Stage.objects.get(name="transform")
-        finish_status = StatusTask.objects.get(name="finished")
-        remaining_prev_stage = procesable_sheets.filter(
-            stage__order__lt=transform_stage.order)
-        remaining_same_stage = procesable_sheets.filter(
-            stage=transform_stage, status__order__lt=finish_status.order)
-        remaining_sheets = remaining_prev_stage | remaining_same_stage
-        if remaining_sheets.exists():
-            sheets_to_process = remaining_sheets
-        else:
-            sheets_to_process = procesable_sheets
-        first_sheet = sheets_to_process.first()
-        is_split = False
-        if first_sheet:
-            file_type = first_sheet.file_type_id
-            is_split = file_type == 'split'
-        # test_count = 0
-        for idx, sheet_file in enumerate(sheets_to_process):
+        for sf in self.calculate_sheets():
+            sheet_file = sf["sheet_file"]
+            params = sf["params"]
             lap_sheet, created = LapSheet.objects.get_or_create(
                 sheet_file=sheet_file, lap=final_lap)
-            if idx and is_split and not is_prepare:
-                init_data["row_start_data"] = 1
-            init_data["sheet_name"] = sheet_file.sheet_name
-            init_data["sheet_file_id"] = sheet_file.id
-            init_data["lap_sheet_id"] = lap_sheet.id
-            sheet_name2 = sheet_name_to_file_name(sheet_file.sheet_name)
-            init_data["final_path"] = self.final_path.replace(
-                "SHEET_NAME", sheet_name2)
-            self.task_params["models"] = [self.data_file, sheet_file]
-            params = {
-                "init_data": init_data,
-                "file": sheet_file.file.name,
-            }
+            # init_data["lap_sheet_id"] = lap_sheet.id
+            params["init_data"]["lap_sheet_id"] = lap_sheet.id
+
             if is_prepare:
                 dump_sample = json.dumps(sheet_file.sample_data)
                 final_path = f"catalogs/{self.agency.acronym}" \
@@ -257,11 +221,8 @@ class Match:
                     return [], errors, self.data_file
                 params["file"] = file_sample
                 # init_data["sample_data"] = sheet_file.sample_data
-            async_task = async_in_lambda(
-                "start_build_csv_data", params, self.task_params)
-            if async_task:
-                all_tasks.append(async_task)
-        return all_tasks, [], self.data_file
+            self.send_lambda("start_build_csv_data", params)
+        return self.all_tasks, [], self.data_file
 
     def build_existing_fields(self):
 
@@ -470,7 +431,6 @@ class Match:
         return first_value, None
 
     def save_catalog_csv(self, path, model_name):
-        from task.serverless import async_in_lambda
         from scripts.common import get_file, start_session
         s3_client, dev_resource = start_session()
         complete_file = get_file(self, dev_resource)

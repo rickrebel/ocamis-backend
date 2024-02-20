@@ -121,7 +121,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         if serializer_ctrl.is_valid():
             file_control = serializer_ctrl.save()
         else:
-            return Response({ "errors": serializer_ctrl.errors },
+            return Response({"errors": serializer_ctrl.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if petition_id:
@@ -129,7 +129,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 petition_id=petition_id, file_control=file_control)
 
             new_serializer = PetitionFileControlDeepSerializer(
-                new_pet_file_ctrl, context={ 'request': request })
+                new_pet_file_ctrl, context={'request': request})
             return Response(
                 new_serializer.data, status=status.HTTP_201_CREATED)
         else:
@@ -138,6 +138,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, **kwargs):
+        from data_param.models import CleanFunction
         file_control = self.get_object()
         data = request.data
 
@@ -146,10 +147,12 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         if serializer_file_control.is_valid():
             serializer_file_control.save()
         else:
-            return Response({ "errors": serializer_file_control.errors },
+            return Response({"errors": serializer_file_control.errors},
                             status=status.HTTP_400_BAD_REQUEST)
 
         transformations = data.pop('transformations', None)
+        clean_intermediary = CleanFunction.objects.filter(
+            name='horizontal_repeat').first()
         if transformations is not None:
             actual_id_transformations = []
             for transf_item in transformations:
@@ -159,12 +162,14 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 if transform_ser.is_valid():
                     tranform = transform_ser.save()
                     actual_id_transformations.append(tranform.id)
+                    if tranform.clean_function_id == clean_intermediary.id:
+                        file_control.is_intermediary = True
+                        file_control.save()
             Transformation.objects.filter(file_control=file_control) \
                 .exclude(id__in=actual_id_transformations).delete()
 
         new_file_control = FileControl.objects.get(id=file_control.id)
-        new_serializer = FileControlFullSerializer(
-            new_file_control)
+        new_serializer = FileControlFullSerializer(new_file_control)
         return Response(
             new_serializer.data, status=status.HTTP_206_PARTIAL_CONTENT)
 
@@ -330,7 +335,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         for (order, column_item) in enumerate(columns_items, start=1):
             column_id = column_item.get("id", False)
             transformations = column_item.pop('transformations', [])
-            print("TRANSFORMATIONS", transformations)
+            # print("TRANSFORMATIONS", transformations)
             column_item["seq"] = order
             if column_item.get("name_in_data"):
                 column_item["name_in_data"] = column_item["name_in_data"]\
@@ -350,7 +355,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             column_serializer = NameColumnEditSerializer(
                 column, data=column_item)
             if column_serializer.is_valid():
-                print("es válido")
+                # print("es válido")
                 column = column_serializer.save()
                 actual_id_columns.append(column.id)
                 actual_id_transformations = []

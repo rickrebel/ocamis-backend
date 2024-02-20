@@ -83,7 +83,7 @@ class FileControlViz2Serializer(serializers.ModelSerializer):
         model = FileControl
         fields = [
             "id",
-            "format_file",
+            # "format_file",
             "file_format",
             "anomalies",
             "name",
@@ -102,12 +102,12 @@ class PetitionFileControlVizSerializer(serializers.ModelSerializer):
     anomalies = AnomaliesVizSerializer(
         many=True, read_only=True, source="file_control.anomalies")
     format_file = serializers.ReadOnlyField(source="file_control.file_format_id")
-    #id = serializers.ReadOnlyField(source="file_control_id")
+    # id = serializers.ReadOnlyField(source="file_control_id")
 
     class Meta:
         model = FileControl
         fields = [
-            #"id"
+            # "id"
             "format_file",
             "anomalies",
             "data_group",

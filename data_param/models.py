@@ -118,16 +118,6 @@ def default_addl_params():
 
 class FileControl(models.Model):
 
-    FORMAT_CHOICES = (
-        ("pdf", "PDF"),
-        ("word", "Word"),
-        ("xls", "Excel"),
-        ("txt", "Texto"),
-        ("csv", "CSV"),
-        ("email", "Correo electrónico"),
-        ("other", "Otro"),
-    )
-
     name = models.CharField(max_length=255)
     data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE)
@@ -138,10 +128,8 @@ class FileControl(models.Model):
     real_entity = models.ForeignKey(
         Entity, on_delete=models.CASCADE,
         verbose_name="Proveedor real", blank=True, null=True)
-    format_file = models.CharField(
-        max_length=5,
-        choices=FORMAT_CHOICES,
-        null=True, blank=True)
+    # format_file = models.CharField(
+    #     max_length=5, choices=FORMAT_CHOICES, null=True, blank=True)
     # file_format = models.IntegerField(blank=True, null=True)
     file_format = models.ForeignKey(
         FileFormat, verbose_name="formato del archivo",
@@ -156,7 +144,9 @@ class FileControl(models.Model):
     row_headers = models.IntegerField(
         blank=True, null=True,
         verbose_name='# de fila donde se encuentran los encabezados')
-    in_percent = models.BooleanField(default= False)
+    # in_percent = models.BooleanField(default=False)
+    is_intermediary = models.BooleanField(
+        default=False, verbose_name="Es intermediario entre archivos")
     addl_params = JSONField(default=default_addl_params)
     delimiter = models.CharField(
         max_length=3, blank=True, null=True,

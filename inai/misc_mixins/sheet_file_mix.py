@@ -27,6 +27,29 @@ class FromAws:
         #         .update(inserted=True)
         return [], [], True
 
+    def save_new_split_files(self, **kwargs):
+        from inai.models import DataFile
+        errors = kwargs.get("errors", [])
+        if errors:
+            return [], errors, True
+
+        original_file = kwargs.get("original_file", None)
+        new_files = kwargs.get("new_files", [])
+        petition = self.sheet_file.data_file.petition_file_control.petition
+        orphan_pet_control = petition.orphan_pet_control
+        for file_name in new_files:
+            entity = petition.real_entity or petition.agency.entity
+            new_file = DataFile.objects.create(
+                file=file_name,
+                entity=entity,
+                directory=f"intermediary_of_{original_file}",
+                petition_file_control=orphan_pet_control,
+            )
+            new_file.finished_stage('initial|finished')
+            print("new_file", new_file)
+        self.sheet_file.save_stage("transform", errors)
+        return [], errors, True
+
     def build_csv_data_from_aws(self, **kwargs):
         from django.utils import timezone
         from inai.models import LapSheet, EntityMonth

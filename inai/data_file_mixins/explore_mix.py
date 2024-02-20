@@ -90,8 +90,14 @@ class ExploreMix:
 
     def transform_data(self, task_params, **kwargs):
         from inai.data_file_mixins.matches_mix import Match
-        my_match = Match(self, task_params)
-        return my_match.build_csv_converted(is_prepare=False)
+        from inai.data_file_mixins.intermediary_mix import Intermediary
+        file_control = self.petition_file_control.file_control
+        if file_control.is_intermediary:
+            my_intermediary = Intermediary(self, task_params)
+            return my_intermediary.split_columns()
+        else:
+            my_match = Match(self, task_params)
+            return my_match.build_csv_converted(is_prepare=False)
 
     def prepare_transform(self, task_params, **kwargs):
         from inai.data_file_mixins.matches_mix import Match
@@ -362,7 +368,7 @@ class ExploreMix:
                 return data_file, saved, errors
             return all_data_files[current_pfc], saved, []
         return data_file, saved, []
-        #return all_data_files, saved, []
+        # return all_data_files, saved, []
 
     def decompress_file(self, task_params=None, **kwargs):
         import pathlib
