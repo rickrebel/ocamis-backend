@@ -272,7 +272,7 @@ OFFLINE_TYPES = (
     ('weekly_meeting', 'Reunión semanal'),
     ('meeting', 'Reunión'),
     ('training', 'Capacitación'),
-    ('pnt', 'PNT'),
+    ('pnt', 'Solicitudes INAI'),
     ('other', 'Otro'),
 )
 

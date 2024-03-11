@@ -100,7 +100,6 @@ class GroupList(ListMix):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.GroupSerializer
     queryset = Group.objects.all()
-    pagination_class = StandardResultsSetPagination
 
 
 class PresentationTypeList(ListMix):
