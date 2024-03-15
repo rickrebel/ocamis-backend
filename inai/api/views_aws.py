@@ -118,7 +118,7 @@ def move_and_duplicate(data_files, petition, request):
     from category.models import FileType #, StatusControl
 
     destination = request.data.get("destination")
-    is_dupl = request.data.get("duplicate")
+    is_duplicate = request.data.get("duplicate")
     #initial_status = StatusControl.objects.get(
     #    name="initial", group="process")
     errors = []
@@ -128,7 +128,7 @@ def move_and_duplicate(data_files, petition, request):
                 petition=petition,
                 file=data_file.file,
                 file_type_id="no_final_info")
-            if not is_dupl:
+            if not is_duplicate:
                 data_file.delete()
     elif destination:
         file_ctrl_id = int(destination)
@@ -148,19 +148,19 @@ def move_and_duplicate(data_files, petition, request):
             except Exception as e:
                 raise ParseError(detail=e)
         for data_file in data_files:
-            if is_dupl:
+            if is_duplicate:
                 data_file_id = data_file.id
                 new_file = data_file
                 new_file.pk = None
                 new_file.petition_file_control = pet_file_ctrl
                 # new_file.save()
                 new_file.finished_stage('initial|finished')
-            #if not is_dupl:
+            # if not is_duplicate:
             else:
                 data_file.petition_file_control = pet_file_ctrl
                 data_file.save()
-                #data_file.delete()
-                #DataFile.objects.filter(id=data_file_id).delete()
+                # data_file.delete()
+                # DataFile.objects.filter(id=data_file_id).delete()
     else:
         raise ParseError(detail="No se especificó correctamente el destino")
 

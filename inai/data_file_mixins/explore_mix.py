@@ -102,6 +102,12 @@ class ExploreMix:
     def prepare_transform(self, task_params, **kwargs):
         from inai.data_file_mixins.matches_mix import Match
         data_file = self.count_file_rows()
+        file_control = data_file.petition_file_control.file_control
+        if file_control.is_intermediary:
+            error = (
+                "No se puede preparar muestra con la función " 
+                "'Se repiten las mismas columnas', enviar 'Transformar'")
+            return [], [error], data_file
         my_match = Match(data_file, task_params)
         return my_match.build_csv_converted(is_prepare=True)
 
@@ -374,7 +380,7 @@ class ExploreMix:
         import pathlib
         from category.models import FileFormat
         import re
-        #Se obienen todos los tipos del archivo inicial:
+        # Se obienen todos los tipos del archivo inicial:
         # print("final_path: ", self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
         re_is_suffix = re.compile(r'^\.([a-zA-Z]{3,4})$')

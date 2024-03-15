@@ -124,9 +124,9 @@ class WeeksGenerator:
         self.entity_weeks = EntityWeek.objects.all()
 
 
-def create_year():
+def create_year(year: int = 2024):
     # from scripts.ocamis_verified.initial_fields import WeeksGenerator
-    weeks_gen = WeeksGenerator(year=2024)
+    weeks_gen = WeeksGenerator(year=year)
     weeks_gen.generate_months()
     weeks_gen.generate_weeks()
 
