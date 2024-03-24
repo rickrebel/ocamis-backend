@@ -60,7 +60,7 @@ def restructurate_reasons():
 
 
 def set_file_type_to_datafile():
-    from inai.models import DataFile
+    from respond.models import DataFile
     from category.models import FileType
     all_files = DataFile.objects.all()
     for data_file in all_files:
@@ -71,7 +71,7 @@ def set_file_type_to_datafile():
 
 
 def change_some_default_values():
-    from inai.models import DataFile
+    from respond.models import DataFile
     all_files = DataFile.objects.all()
     fields = ['inserted_rows', 'completed_rows', 'total_rows']
     for data_file in all_files:
@@ -93,7 +93,7 @@ def name_columns_to_upper():
 def recalculate_sheets():
     from scripts.common import explore_sheets
 
-    from inai.models import DataFile
+    from respond.models import DataFile
     from data_param.models import FileControl
 
     all_controls = FileControl.objects.all()
@@ -124,7 +124,7 @@ def recalculate_sheets():
 
 
 def results_to_warnings():
-    from inai.models import DataFile
+    from respond.models import DataFile
     files_with_results = DataFile.objects.filter(
         all_results__isnull=False).exclude(all_results__exact={})
     for file in files_with_results:
@@ -135,13 +135,13 @@ def results_to_warnings():
 
 
 def set_data_files_to_initial():
-    from inai.models import DataFile
+    from respond.models import DataFile
     all_data_files = DataFile.objects.all()
     all_data_files.update(stage_id="initial", status_id="finished")
 
 
 def delete_child_data_files():
-    from inai.models import DataFile
+    from respond.models import DataFile
     all_data_files = DataFile.objects.filter(origin_file__isnull=False)
     all_data_files.delete()
 

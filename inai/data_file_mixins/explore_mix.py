@@ -8,7 +8,7 @@ class ExploreMix:
         # from task.models import AsyncTask
         from django.utils import timezone
         from category.models import FileFormat
-        from inai.models import SheetFile
+        from respond.models import SheetFile
         data_file = self
         task_params = task_params or {}
         data_file.error_process = []
@@ -113,11 +113,11 @@ class ExploreMix:
 
     def insert_data(self, task_params, **kwargs):
         from inai.data_file_mixins.insert_mix import Insert
-        from inai.models import LapSheet
+        from respond.models import LapSheet
         raise "Esta función ya no se usa"
 
     def count_file_rows(self):
-        from inai.models import SheetFile
+        from respond.models import SheetFile
         from django.db.models import Sum
         file_control = self.petition_file_control.file_control
         minus_headers = file_control.row_start_data - 1
@@ -177,7 +177,8 @@ class ExploreMix:
             self, saved=False, petition=None, file_ctrl=None,
             task_params=None, **kwargs):
         from scripts.common import similar, text_normalizer
-        from inai.models import PetitionFileControl, DataFile
+        from inai.models import PetitionFileControl
+        from respond.models import DataFile
         from data_param.models import NameColumn
         data_file = self
         already_cluster = not bool(file_ctrl)
@@ -285,7 +286,7 @@ class ExploreMix:
                 continue
 
             def save_sheet_file(d_f=data_file, save_sample_data=False):
-                from inai.models import SheetFile
+                from respond.models import SheetFile
 
                 try:
                     sheet_f = d_f.sheet_files\

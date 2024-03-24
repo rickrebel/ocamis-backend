@@ -2,7 +2,7 @@ from data_param.models import Transformation
 from scripts.common import start_session, create_file
 import json
 from task.serverless import camel_to_snake
-from inai.models import DataFile, LapSheet
+from respond.models import DataFile, LapSheet
 from inai.data_file_mixins.base_transform import BaseTransform
 
 

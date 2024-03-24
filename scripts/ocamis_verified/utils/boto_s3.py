@@ -5,7 +5,9 @@ from django.conf import settings
 def obtain_names_from_s3(
         path, folio_petition, is_reply_file=False, file_control_id=None):
     from inai.models import (
-        DataFile, PetitionFileControl, Petition, ReplyFile, FileType)
+        PetitionFileControl, Petition, FileType)
+    from respond.models import DataFile
+    from respond.models import ReplyFile
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")

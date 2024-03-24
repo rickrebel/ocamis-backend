@@ -20,7 +20,7 @@ class DataGroup(models.Model):
     order = models.IntegerField(default=5)
 
     def delete(self, *args, **kwargs):
-        from inai.models import LapSheet
+        from respond.models import LapSheet
         some_lap_inserted = LapSheet.objects.filter(
             sheet_file__data_file__petition_file_control__file_control__data_group=self,
             inserted=True).exists()
@@ -163,7 +163,8 @@ class FileControl(models.Model):
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
 
     def save(self, *args, **kwargs):
-        from inai.models import DataFile, TableFile
+        from respond.models import TableFile
+        from respond.models import DataFile
         final_real_entity = kwargs.get('real_entity', None)
         if final_real_entity != self.real_entity:
             data_files = DataFile.objects.filter(
@@ -180,7 +181,7 @@ class FileControl(models.Model):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        from inai.models import LapSheet
+        from respond.models import LapSheet
         some_lap_inserted = LapSheet.objects.filter(
             sheet_file__data_file__petition_file_control__file_control=self,
             inserted=True).exists()

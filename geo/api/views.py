@@ -60,7 +60,8 @@ class EntityViewSet(ListRetrieveUpdateMix):
         import time
         from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
-        from inai.models import EntityMonth, TableFile
+        from inai.models import EntityMonth
+        from respond.models import TableFile
         from classify_task.models import Stage
         entity_months_ids = request.data.get("entity_months", None)
         entity_months_id = request.data.get("entity_month", None)

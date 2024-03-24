@@ -5,8 +5,9 @@ from rest_framework import (permissions, views, status)
 from rest_framework.decorators import action
 
 from inai.models import (
-    Petition, SheetFile, PetitionBreak,
-    ReplyFile, PetitionFileControl, DataFile, EntityMonth, TableFile)
+    Petition, PetitionBreak,
+    PetitionFileControl, EntityMonth)
+from respond.models import ReplyFile, DataFile, SheetFile, CrossingSheet, TableFile
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -426,7 +427,6 @@ class EntityMonthViewSet(CreateRetrieveView):
 
     def retrieve(self, request, **kwargs):
         from inai.api.serializers import (SheetFileMonthSerializer)
-        from inai.models import CrossingSheet
         from task.models import ClickHistory
         entity_month = self.get_object()
         ClickHistory.objects.create(

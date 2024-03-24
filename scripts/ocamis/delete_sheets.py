@@ -1,7 +1,7 @@
 from django.db import connection
 from task.aws.common import calculate_delivered_final
 from datetime import datetime
-from inai.models import SheetFile, DataFile
+from respond.models import DataFile, SheetFile
 
 
 def delete_sheet_file(uuid_folios):

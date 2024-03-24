@@ -1,4 +1,5 @@
-from inai.models import LapSheet
+from respond.models import LapSheet, TableFile
+from inai.models import EntityWeek
 
 
 class FromAws:
@@ -9,7 +10,7 @@ class FromAws:
 
     def save_result_csv(self, result_files):
         from data_param.models import Collection
-        from inai.models import TableFile, EntityMonth, EntityWeek
+        from inai.models import EntityMonth
         from django.utils import timezone
 
         new_tasks = []

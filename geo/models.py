@@ -157,7 +157,7 @@ class Entity(models.Model):
             return 'Nacional'
 
     def delete(self, *args, **kwargs):
-        from inai.models import LapSheet
+        from respond.models import LapSheet
         some_lap_inserted = LapSheet.objects.filter(
             sheet_file__data_file__petition_file_control__petition__agency__entity=self,
             inserted=True).exists()
@@ -459,7 +459,7 @@ class Agency(models.Model):
         verbose_name="Derechohabientes", blank=True, null=True)
 
     def delete(self, *args, **kwargs):
-        from inai.models import LapSheet
+        from respond.models import LapSheet
         some_lap_inserted = LapSheet.objects.filter(
             sheet_file__data_file__petition_file_control__petition__agency=self,
             inserted=True).exists()

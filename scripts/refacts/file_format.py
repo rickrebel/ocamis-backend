@@ -1,6 +1,6 @@
 
 def refact_file_format():
-    from inai.models import DataFile
+    from respond.models import DataFile
     from data_param.models import FileControl
     from category.models import FileFormat
     original_formats = {

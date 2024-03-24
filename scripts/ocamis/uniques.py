@@ -1,7 +1,7 @@
 from django.db import connection
 from task.aws.common import calculate_delivered_final
 from datetime import datetime
-from inai.models import SheetFile
+from respond.models import SheetFile, CrossingSheet
 
 group_names = ["dupli", "shared"]
 
@@ -152,7 +152,6 @@ def save_sheets_months(year_month, entity_id, month_counts):
 # def save_crossing_sheets(entity_id, dupli_pairs, shared_pairs, sheets):
 def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
     from django.utils import timezone
-    from inai.models import CrossingSheet
     print("start save_crossing_sheets", timezone.now())
     # SPACE
     shared_pairs = month_pairs["shared"]

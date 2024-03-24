@@ -6,7 +6,8 @@ from rest_framework.decorators import action
 
 from inai.api.common import send_response
 from inai.models import (
-    DataFile, Petition, PetitionFileControl)
+    Petition, PetitionFileControl)
+from respond.models import DataFile
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
@@ -29,7 +30,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     }
 
     def retrieve(self, request, *args, **kwargs):
-        from inai.models import ReplyFile
+        from respond.models import ReplyFile
         from data_param.models import FileControl
         from data_param.models import DataGroup
 
@@ -113,7 +114,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
 def move_and_duplicate(data_files, petition, request):
     from rest_framework.exceptions import ParseError
-    from inai.models import ReplyFile
+    from respond.models import ReplyFile
     from data_param.models import FileControl
     from category.models import FileType #, StatusControl
 

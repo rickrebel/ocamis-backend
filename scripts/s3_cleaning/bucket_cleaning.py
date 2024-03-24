@@ -2,7 +2,11 @@
 def build_dict(only_data_files=False):
     import time
     from inai.models import (
-        DataFile, ReplyFile, TableFile, SheetFile, set_upload_path)
+        set_upload_path)
+    from respond.models import TableFile
+    from respond.models import SheetFile
+    from respond.models import DataFile
+    from respond.models import ReplyFile
     model_mapping = {
         'data_file': DataFile,
         'reply_file': ReplyFile,
@@ -55,7 +59,7 @@ def build_dict(only_data_files=False):
 
 def analyze_rep_files():
     from pprint import pprint
-    from inai.models import DataFile
+    from respond.models import DataFile
     from category.models import StatusControl
     files_in_db = build_dict(True)
     rep_files2 = [rep for rep in files_in_db.values() if len(rep) >= 2]
@@ -93,7 +97,7 @@ def analyze_rep_files():
 
 
 def revert_status_process():
-    from inai.models import DataFile
+    from respond.models import DataFile
     from category.models import StatusControl
     status_initial = StatusControl.objects.get(
         name="initial", group="process")

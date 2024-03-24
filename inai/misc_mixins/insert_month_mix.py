@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import connection
-from inai.models import DataFile, LapSheet, EntityMonth, EntityWeek
+from inai.models import EntityMonth, EntityWeek
+from respond.models import DataFile, LapSheet
 from task.models import Platform
 from task.serverless import async_in_lambda
 

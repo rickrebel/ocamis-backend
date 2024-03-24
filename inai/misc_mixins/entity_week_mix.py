@@ -1,3 +1,4 @@
+from respond.models import TableFile
 from inai.models import EntityWeek
 
 
@@ -28,7 +29,6 @@ class FromAws:
 
     # def save_csv_in_db_after(self, **kwargs):
     def save_week_base_models_after(self, **kwargs):
-        from inai.models import TableFile
         # from django.utils import timezone
         # self.entity_week.last_insertion = timezone.now()
         if kwargs.get("errors"):

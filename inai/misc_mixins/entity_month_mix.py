@@ -28,7 +28,9 @@ class FromAws:
         self.task_params = task_params
 
     def revert_stages(self, final_stage: Stage):
-        from inai.models import TableFile, CrossingSheet, LapSheet
+        from respond.models import TableFile
+        from respond.models import LapSheet
+        from respond.models import CrossingSheet
         from django.db import connection
 
         self.entity_month.stage = final_stage
@@ -111,7 +113,7 @@ class FromAws:
 
     def save_month_analysis(self, **kwargs):
         from django.utils import timezone
-        from inai.models import CrossingSheet
+        from respond.models import CrossingSheet
 
         from_aws = kwargs.get("from_aws", False)
         current_task = self.task_params.get("parent_task")
@@ -165,7 +167,7 @@ class FromAws:
         return [], [], True
 
     def save_sums(self, all_sheet_ids):
-        from inai.models import LapSheet
+        from respond.models import LapSheet
         from django.db.models import Sum
 
         sum_fields = [
@@ -190,7 +192,7 @@ class FromAws:
 
     def send_analysis(self):
         # import time
-        from inai.models import TableFile
+        from respond.models import TableFile
 
         all_tasks = []
         insert_stage = Stage.objects.get(name="insert")
@@ -231,7 +233,8 @@ class FromAws:
 
     def merge_files_by_week(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
-        from inai.models import DataFile, TableFile
+        from respond.models import TableFile
+        from respond.models import DataFile
         from django.utils import timezone
         from django.db.models import F
 
@@ -282,7 +285,9 @@ class FromAws:
         from task.views import comprobate_status, build_task_params
         from django.db import connection
         from inai.misc_mixins.insert_month_mix import InsertMonth
-        from inai.models import LapSheet, TableFile, DataFile
+        from respond.models import TableFile
+        from respond.models import LapSheet
+        from respond.models import DataFile
 
         # CREATE TABLE fm_55_201902_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
         # CREATE TABLE fm_55_201902_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
@@ -412,7 +417,7 @@ class FromAws:
         return new_tasks, errors, True
 
     def validate_month(self):
-        from inai.models import TableFile
+        from respond.models import TableFile
         clean_queries = []
         errors = []
 

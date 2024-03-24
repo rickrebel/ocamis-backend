@@ -8,7 +8,8 @@ from inai.api.serializers import (
     PetitionSemiFullSerializer, PetitionFileControlDeepSerializer,
     FileControlFullSerializer, TransformationEditSerializer,
     NameColumnEditSerializer, DataFileSerializer)
-from inai.models import PetitionFileControl, DataFile
+from inai.models import PetitionFileControl
+from respond.models import DataFile
 from task.views import build_task_params, comprobate_status
 from . import serializers
 from rest_framework.response import Response

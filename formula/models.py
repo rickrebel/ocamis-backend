@@ -1,6 +1,7 @@
 from django.db import models
 
-from inai.models import DataFile, SheetFile, LapSheet
+from respond.models import DataFile, SheetFile, LapSheet
+from inai.models import EntityWeek
 from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
@@ -239,7 +240,6 @@ class MissingField(models.Model):
 
 class MatDrugPriority(models.Model):
     from geo.models import CLUES, Delegation, Entity
-    from inai.models import EntityWeek
     from medicine.models import Container
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)

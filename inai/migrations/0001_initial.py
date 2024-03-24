@@ -8,6 +8,7 @@ import inai.data_file_mixins.utils_mix
 import inai.models
 import inai.petition_mixins.petition_mix
 import inai.reply_file_mixins.process_mix
+import respond.models
 
 
 class Migration(migrations.Migration):
@@ -98,7 +99,7 @@ class Migration(migrations.Migration):
                 ('file', models.FileField(max_length=255, upload_to=inai.models.set_upload_path)),
                 ('matched', models.BooleanField(blank=True, null=True)),
                 ('sheet_name', models.CharField(blank=True, max_length=255, null=True)),
-                ('sample_data', models.JSONField(blank=True, default=inai.models.default_explore_data, null=True)),
+                ('sample_data', models.JSONField(blank=True, default=respond.models.default_explore_data, null=True)),
                 ('total_rows', models.IntegerField(default=0)),
                 ('error_process', models.JSONField(blank=True, null=True)),
                 ('warnings', models.JSONField(blank=True, null=True)),

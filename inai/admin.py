@@ -3,9 +3,8 @@ from django.contrib.admin import AdminSite
 from django.contrib.admin.filters import SimpleListFilter
 
 from .models import (
-    Petition, PetitionFileControl, DataFile, CrossingSheet,
-    ReplyFile, SheetFile, LapSheet, TableFile, Behavior, EntityMonth,
-    EntityWeek)
+    Petition, PetitionFileControl, EntityMonth, EntityWeek)
+from respond.models import ReplyFile, DataFile, Behavior, SheetFile, CrossingSheet, LapSheet, TableFile
 
 
 class OcamisAdminSite(AdminSite):

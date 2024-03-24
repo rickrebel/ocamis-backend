@@ -5,7 +5,8 @@ import json
 import csv
 import uuid as uuid_lib
 
-from inai.models import DataFile
+from respond.models import DataFile
+
 delegation_value_list = [
     'name', 'other_names', 'state__short_name', 'id', 'clues']
 

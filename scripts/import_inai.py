@@ -48,7 +48,7 @@ def get_status_obj(val, petition):
 
 
 def join_url(row, main):
-    from inai.models import ReplyFile
+    from respond.models import ReplyFile
     from category.models import FileType
     default_url = "https://descarga.plataformadetransparencia.org.mx/buscador-ws/descargaArchivo/SISAI/"
     compl_hash = row.get("archivoAdjuntoRespuesta", False)
@@ -70,7 +70,8 @@ def join_url(row, main):
 
 
 def add_limit_complain(row, main):
-    from inai.models import ReplyFile, PetitionBreak
+    from inai.models import PetitionBreak
+    from respond.models import ReplyFile
     from category.models import DateBreak
 
     try:

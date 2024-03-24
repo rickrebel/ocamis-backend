@@ -191,7 +191,7 @@ class ExtractorsMix:
         return (all_sheets, filtered_sheets, []), None
 
     def decompress_gz_after(self, parent_task=None, **kwargs):
-        from inai.models import SheetFile
+        from respond.models import SheetFile
         # import pathlib
         new_files = kwargs.get("new_files", {})
         # final_path = kwargs.get("final_path", {})
@@ -222,7 +222,7 @@ class ExtractorsMix:
         return [], [], self
 
     def build_sample_data_after(self, parent_task=None, **kwargs):
-        from inai.models import SheetFile
+        from respond.models import SheetFile
         new_sheets = kwargs.get("new_sheets", {})
         sheet_count = len(new_sheets)
         for sheet_name, sheet_data in new_sheets.items():

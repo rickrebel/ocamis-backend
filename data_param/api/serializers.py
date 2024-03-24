@@ -120,7 +120,7 @@ class FileControlSerializer(FileControlSimpleSerializer):
     failed_files = serializers.SerializerMethodField(read_only=True)
 
     def get_summary_status(self, obj):
-        from inai.models import DataFile
+        from respond.models import DataFile
         from django.db.models import Count, F
         files = DataFile.objects\
             .filter(petition_file_control__file_control=obj)\
@@ -130,7 +130,7 @@ class FileControlSerializer(FileControlSimpleSerializer):
         return list(files)
 
     def get_example_file_id(self, obj):
-        from inai.models import SheetFile
+        from respond.models import SheetFile
         last_sheet_file = SheetFile.objects\
             .filter(data_file__petition_file_control__file_control=obj)\
             .order_by(
@@ -145,7 +145,7 @@ class FileControlSerializer(FileControlSimpleSerializer):
         return None
 
     def get_failed_files(self, obj):
-        from inai.models import DataFile
+        from respond.models import DataFile
         from django.db.models import Count, F
         files = DataFile.objects\
             .filter(petition_file_control__file_control=obj)\

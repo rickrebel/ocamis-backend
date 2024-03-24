@@ -1,6 +1,8 @@
 
 def reverse_transform(only_count=False, entity=None, every_files=False):
-    from inai.models import DataFile, LapSheet, TableFile
+    from respond.models import TableFile
+    from respond.models import LapSheet
+    from respond.models import DataFile
     finished_transform = DataFile.objects.filter(
         stage_id="transform", status_id="finished")
     if entity:
@@ -36,7 +38,12 @@ def reverse_transform(only_count=False, entity=None, every_files=False):
 
 def reverse_insert(hard=False):
     from inai.models import (
-        DataFile, TableFile, LapSheet, EntityMonth, EntityWeek, SheetFile)
+        EntityMonth)
+    from respond.models import TableFile
+    from inai.models import EntityWeek
+    from respond.models import LapSheet
+    from respond.models import SheetFile
+    from respond.models import DataFile
     from task.models import AsyncTask
     # TableFile.objects.filter(inserted=True).update(inserted=False)
     LapSheet.objects.filter(inserted=True).update(inserted=False)
@@ -72,7 +79,7 @@ def reverse_insert(hard=False):
 
 def save_success_params_after():
     from task.models import AsyncTask
-    from inai.models import TableFile
+    from respond.models import TableFile
     success_tasks = AsyncTask.objects.filter(
         task_function_id='save_csv_in_db',
         status_task_id="finished")
@@ -86,7 +93,7 @@ def save_success_params_after():
 
 
 def resend_possible_success():
-    from inai.models import TableFile
+    from respond.models import TableFile
     table_files_ids = [
         293729, 293728, 293727, 83449, 83334, 83263,
         296677, 296676, 296675, 82636, 82533, 82485]
@@ -139,7 +146,8 @@ def upload_s3_files(local_file, s3_dir):
 def delete_bad_week(entity_id, year, month, iso_year, iso_week, iso_delegation):
     from datetime import datetime
     from django.db import connection
-    from inai.models import EntityMonth, EntityWeek
+    from inai.models import EntityMonth
+    from inai.models import EntityWeek
     errors = []
     entity_week = EntityWeek.objects.filter(
         entity_id=entity_id, year=year, month=month,

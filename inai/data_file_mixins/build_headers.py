@@ -2,7 +2,7 @@ from scripts.common import text_normalizer
 
 
 class BuildComplexHeaders:
-    from inai.models import DataFile
+    from respond.models import DataFile
 
     def __init__(self, data_file: DataFile):
         self.data_file = data_file

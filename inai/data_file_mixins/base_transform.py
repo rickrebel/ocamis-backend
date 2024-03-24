@@ -1,4 +1,4 @@
-from inai.models import DataFile, LapSheet
+from respond.models import DataFile, LapSheet
 
 
 def sheet_name_to_file_name(sheet_name):

@@ -100,7 +100,7 @@ def categorize_clean_functions():
 
 def assign_entity_to_data_files():
     from geo.models import Entity
-    from inai.models import DataFile
+    from respond.models import DataFile
     all_entities = Entity.objects.all()
     for entity in all_entities:
         data_files = DataFile.objects.filter(
@@ -120,7 +120,7 @@ def assign_entity_to_month_agency():
 
 
 def assign_year_month_to_sheet_files(entity_id):
-    from inai.models import DataFile
+    from respond.models import DataFile
     import re
     all_data_files = DataFile.objects.filter(
         entity_id=entity_id)
@@ -137,7 +137,8 @@ def assign_year_month_to_sheet_files(entity_id):
 
 
 def add_line_to_year_months():
-    from inai.models import EntityMonth, SheetFile
+    from inai.models import EntityMonth
+    from respond.models import SheetFile
     all_year_months = EntityMonth.objects.values_list(
         "year_month", flat=True).distinct()
     for year_month in all_year_months:
@@ -204,7 +205,9 @@ def collection_to_snake_name():
 
 
 def assign_year_week_to_entity_weeks():
-    from inai.models import EntityWeek, TableFile, CrossingSheet
+    from respond.models import TableFile
+    from inai.models import EntityWeek
+    from respond.models import CrossingSheet
     all_entity_weeks = EntityWeek.objects.all()
     for entity_week in all_entity_weeks:
         iso_week = entity_week.iso_week
@@ -233,7 +236,8 @@ def assign_year_month_to_entity_months():
 
 
 def save_entity_months():
-    from inai.models import SheetFile, EntityMonth
+    from inai.models import EntityMonth
+    from respond.models import SheetFile
     all_sheet_files = SheetFile.objects.filter(
         entity_months__isnull=True, year_month__isnull=False)
     for sheet_file in all_sheet_files:
@@ -261,7 +265,8 @@ def assign_entity_to_delegations():
 
 
 def move_sheets_to_status(file_control_id):
-    from inai.models import SheetFile, Behavior
+    from respond.models import SheetFile
+    from respond.models import Behavior
     behavior_merge = Behavior.objects.get(name="need_merge")
     sheet_files = SheetFile.objects.filter(
         data_file__petition_file_control_id=file_control_id)
@@ -283,7 +288,7 @@ def send_entity_weeks_to_rebuild(limit=None):
     # from task.views import build_task_params
     from task.serverless import async_in_lambda
     from data_param.models import Collection
-    from inai.models import TableFile
+    from respond.models import TableFile
     from django.contrib.auth.models import User
     drug_collection = Collection.objects.get(model_name="Drug")
     # all_table_files = TableFile.objects.filter(
@@ -330,7 +335,7 @@ def send_entity_weeks_to_rebuild(limit=None):
 
 
 def delete_duplicate_table_files():
-    from inai.models import TableFile
+    from respond.models import TableFile
     # from data_param.models import Collection
     all_table_files = TableFile.objects\
         .filter(
@@ -344,7 +349,7 @@ def delete_duplicate_table_files():
 
 
 def delete_table_files_without_entity_week():
-    from inai.models import TableFile
+    from respond.models import TableFile
     all_table_files = TableFile.objects\
         .filter(
             entity_week__isnull=True,
@@ -356,7 +361,7 @@ def delete_table_files_without_entity_week():
 
 def sum_one_to_drug_table_files():
     from data_param.models import Collection
-    from inai.models import TableFile
+    from respond.models import TableFile
     drug_collection = Collection.objects.get(model_name="Drug")
     all_table_files = TableFile.objects.filter(
         collection=drug_collection,
@@ -367,7 +372,8 @@ def sum_one_to_drug_table_files():
 
 
 def delete_entity_weeks_with_zero():
-    from inai.models import EntityWeek, TableFile
+    from respond.models import TableFile
+    from inai.models import EntityWeek
     from data_param.models import Collection
     drug_collection = Collection.objects.get(model_name="Drug")
     need_delete = 0
@@ -393,7 +399,8 @@ def delete_entity_weeks_with_zero():
 
 
 def rebuild_entity_weeks():
-    from inai.models import EntityWeek, EntityMonth
+    from inai.models import EntityMonth
+    from inai.models import EntityWeek
     from django.db.models import Sum
     sum_fields = [
         "drugs_count", "rx_count", "duplicates_count", "shared_count"]
@@ -431,7 +438,8 @@ def rebuild_entity_weeks():
 
 
 def revert_own_mistake():
-    from inai.models import TableFile, SheetFile
+    from respond.models import TableFile
+    from respond.models import SheetFile
     from data_param.models import Collection
     import time
     def save_model_files(lapsheet, model_paths):
@@ -479,7 +487,8 @@ def revert_own_mistake():
 
 
 def revert_own_mistake2():
-    from inai.models import TableFile, SheetFile
+    from respond.models import TableFile
+    from respond.models import SheetFile
     from data_param.models import Collection
     import time
     count_fields = ["drugs_count", "rx_count"]
@@ -521,14 +530,14 @@ def revert_own_mistake2():
 
 
 def receive_specific_task(task_id="start_build_csv_data"):
-    from inai.models import SheetFile
+    from respond.models import SheetFile
     from task.serverless import async_in_lambda
     from task.models import AsyncTask
     all_sheet_files = SheetFile.objects.filter()
 
 
 def revert_duplicates_table_files():
-    from inai.models import TableFile
+    from respond.models import TableFile
     from django.db.models import Count
     table_sums = TableFile.objects.filter(
         collection__isnull=False, lap_sheet__lap=0).values(
@@ -591,7 +600,7 @@ def rename_task_function(original_name, new_name):
 
 
 def get_bad_inserted():
-    from inai.models import TableFile
+    from respond.models import TableFile
     from django.db import connection
     from django.db.models import F
     cursor = connection.cursor()
@@ -675,7 +684,7 @@ def insert_failed_weeks(failed_week_ids):
     failed_week_ids = failed_weeks
     from django.db import connection
     from inai.misc_mixins.insert_month_mix import InsertMonth
-    from inai.models import TableFile
+    from respond.models import TableFile
     cursor = connection.cursor()
     queries = {"create": [], "drop": []}
     current_temp_table = "55_temps"

@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "category.apps.CategoryConfig",
     "classify_task.apps.ClassifyTaskConfig",
     "task.apps.TaskConfig",
+    "respond.apps.RespondConfig",
 ]
 
 MIDDLEWARE = [

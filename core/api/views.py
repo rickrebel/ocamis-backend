@@ -12,7 +12,7 @@ from data_param.api.serializers import (
     CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer, )
 from inai.api.serializers import (
     FileControlFullSerializer, BehaviorSimpleSerializer)
-from inai.models import Behavior
+from respond.models import Behavior
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,

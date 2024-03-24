@@ -515,7 +515,7 @@ def debug_queue():
 
 
 def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):
-    from inai.models import TableFile
+    from respond.models import TableFile
     from task.models import AsyncTask
     from django.utils import timezone
     from task.serverless import execute_async

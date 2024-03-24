@@ -2,9 +2,9 @@ from rest_framework import serializers
 
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
-    Petition, PetitionFileControl, DataFile, EntityMonth,
-    ReplyFile, PetitionBreak, PetitionNegativeReason, SheetFile, LapSheet,
-    TableFile, CrossingSheet, Behavior, EntityWeek)
+    Petition, PetitionFileControl, EntityMonth,
+    PetitionBreak, PetitionNegativeReason, EntityWeek)
+from respond.models import ReplyFile, DataFile, Behavior, SheetFile, CrossingSheet, LapSheet, TableFile
 from data_param.models import Transformation, NameColumn, FileControl
 
 from category.api.serializers import (

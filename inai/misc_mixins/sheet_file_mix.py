@@ -1,4 +1,4 @@
-from inai.models import SheetFile
+from respond.models import SheetFile, LapSheet, TableFile
 
 
 class FromAws:
@@ -18,7 +18,6 @@ class FromAws:
 
     # def save_csv_in_db_after(self, **kwargs):
     def save_lap_cat_tables_after(self, **kwargs):
-        from inai.models import TableFile
         errors = kwargs.get("errors", [])
         # if not errors:
         #     table_files_ids = kwargs.get("table_files_ids", [])
@@ -28,7 +27,7 @@ class FromAws:
         return [], [], True
 
     def save_new_split_files(self, **kwargs):
-        from inai.models import DataFile
+        from respond.models import DataFile
         errors = kwargs.get("errors", [])
         if errors:
             return [], errors, True
@@ -52,7 +51,7 @@ class FromAws:
 
     def build_csv_data_from_aws(self, **kwargs):
         from django.utils import timezone
-        from inai.models import LapSheet, EntityMonth
+        from inai.models import EntityMonth
         from inai.misc_mixins.lap_sheet_mix import FromAws as LapSheetAws
         # print("FINISH BUILD CSV DATA")
         data_file = self.sheet_file.data_file

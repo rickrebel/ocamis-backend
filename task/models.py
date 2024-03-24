@@ -5,7 +5,8 @@ from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
 from inai.models import (
-    Petition, DataFile, ReplyFile, SheetFile, TableFile, EntityWeek, EntityMonth,)
+    Petition, EntityMonth, EntityWeek, )
+from respond.models import ReplyFile, DataFile, SheetFile, TableFile
 from geo.models import Entity
 from data_param.models import FileControl
 from classify_task.models import StatusTask, TaskFunction, Stage

@@ -1,5 +1,5 @@
 from django.conf import settings
-from inai.models import DataFile, LapSheet
+from respond.models import DataFile, LapSheet
 from task.models import Platform
 
 

@@ -6,7 +6,8 @@ class ReplyFileMix:
 
     def decompress(self, pet_file_ctrl, task_params=None):
         import pathlib
-        from inai.models import DataFile, set_upload_path
+        from inai.models import set_upload_path
+        from respond.models import DataFile
         from task.serverless import async_in_lambda
 
         if DataFile.objects.filter(reply_file=self).exists():
@@ -34,7 +35,8 @@ class ReplyFileMix:
 
     def decompress_zip_aws_after(self, task_params=None, **kwargs):
         print("decompress_zip_aws_after---------------------------------")
-        from inai.models import DataFile, PetitionFileControl
+        from inai.models import PetitionFileControl
+        from respond.models import DataFile
         # print("kwargs", kwargs)
         errors = []
         parent_task = task_params.get("parent_task")
