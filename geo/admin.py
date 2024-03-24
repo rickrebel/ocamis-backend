@@ -64,7 +64,7 @@ class AgencyInline(admin.StackedInline):
 
 class EntityAdmin(admin.ModelAdmin):
     list_display = [
-        "name",
+        "__str__",
         "acronym",
         "state",
         "institution",
@@ -129,6 +129,7 @@ class AgencyAdmin(admin.ModelAdmin):
     list_display = [
         "acronym",
         "name",
+        "entity",
         "agency_type",
         "vigencia",
         "competent",
@@ -136,12 +137,15 @@ class AgencyAdmin(admin.ModelAdmin):
         "state",
         "institution",
         "clues",
-        "is_pilot"]
-    raw_id_fields = ["clues"]
+        "is_pilot"
+    ]
+    raw_id_fields = ["clues", "state", "entity"]
     list_editable = ["nombreSujetoObligado", "competent", "is_pilot"]
     search_fields = [
         "acronym",
         "name",
+        "entity__acronym",
+        "entity__name",
         "institution__code",
         "state__short_name"
     ]

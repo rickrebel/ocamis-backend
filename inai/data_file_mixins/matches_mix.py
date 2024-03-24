@@ -66,7 +66,7 @@ def build_global_geo(global_obj):
     if not global_obj:
         return None
     is_clues = global_obj.__class__.__name__ == "CLUES"
-    final_dict = { "id": global_obj.id }
+    final_dict = {"id": global_obj.id}
     if is_clues:
         # is_tuple = isinstance(global_obj.clues, tuple)
         final_dict["clues_key"] = global_obj.clues

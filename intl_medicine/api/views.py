@@ -51,16 +51,28 @@ class RespondentViewSet(ListCreateRetrieveUpdateView):
         "list": serializers.RespondentSerializer,
         "retrieve": serializers.RespondentSerializer,
         "next_group": serializers.RespondentSerializer,
+        "login_with_token": serializers.RespondentSerializer,
     }
 
     def create(self, request, *args, **kwargs):
         import binascii
         import os
 
-        print("request.data", request.data)
+        # print("request.data", request.data)
         respondent_data = request.data
+
         token = binascii.hexlify(os.urandom(20)).decode()
-        print("token", token)
+        # print("token", token)
+        saved_respondent = Respondent.objects.filter(
+            email=respondent_data["email"]).first()
+        if saved_respondent:
+            return data_response(saved_respondent)
+        has_first_name = bool(respondent_data.get("first_name", None))
+        if not has_first_name:
+            return Response(
+                {"error": "Tus datos no están completos y no hay un usuario con ese correo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         new_respondent = Respondent()
 
         respondent_data["token"] = token
@@ -77,6 +89,22 @@ class RespondentViewSet(ListCreateRetrieveUpdateView):
     @action(detail=True, methods=["get"])
     def next_group(self, request, pk=None):
         respondent = self.get_object()
+        return data_response(respondent)
+
+    @action(detail=False, methods=["post"])
+    def login_with_token(self, request):
+        token = request.data.get("token", None)
+        if not token:
+            return Response(
+                {"error": "No token provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        respondent = Respondent.objects.filter(token=token).first()
+        if not respondent:
+            return Response(
+                {"error": "No respondent found with that token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         return data_response(respondent)
 
 

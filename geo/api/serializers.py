@@ -82,7 +82,8 @@ class EntityCatSerializer(serializers.ModelSerializer):
         model = Entity
         fields = [
             "id", "institution", "state", "clues", "name", "entity_type",
-            "acronym", "notes", "assigned_to", "status_opera", "cut_offs"]
+            "acronym", "notes", "assigned_to", "status_opera", "cut_offs",
+            "is_indirect", "has_indirect"]
 
 
 class EntitySerializer(serializers.ModelSerializer):
@@ -134,9 +135,19 @@ class AgencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Agency
         fields = [
-            "id", "institution", "state", "clues", "name", 
-            "addl_params", "vigencia", "agency_type", "acronym",
-            "notes", "is_pilot"]
+            "id",
+            "institution",
+            "state",
+            "entity",
+            "clues",
+            "name",
+            "addl_params",
+            "vigencia",
+            "agency_type",
+            "acronym",
+            "notes",
+            "is_pilot",
+        ]
 
 
 class AgencyFileControlsSerializer(serializers.ModelSerializer):
@@ -167,15 +178,20 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
     def get_file_controls(self, obj):
         from data_param.models import FileControl
         from data_param.api.serializers import FileControlSemiFullSerializer
-        queryset = FileControl.objects\
-            .filter(agency__entity=obj)\
-            .distinct()\
-            .order_by("data_group", "id")\
-            .prefetch_related(
-                "data_group",
-                "columns",
-                "columns__column_transformations",
-            )
+        prefetch_related = [
+            "data_group", "columns", "columns__column_transformations"]
+        if obj.is_indirect:
+            queryset = FileControl.objects\
+                .filter(real_entity=obj)\
+                .distinct()\
+                .order_by("data_group", "id")\
+                .prefetch_related(*prefetch_related)
+        else:
+            queryset = FileControl.objects\
+                .filter(agency__entity=obj)\
+                .distinct()\
+                .order_by("data_group", "id")\
+                .prefetch_related(*prefetch_related)
         return FileControlSemiFullSerializer(queryset, many=True).data
 
     class Meta:
@@ -274,14 +290,16 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
     def get_petitions(self, obj):
         from inai.api.serializers import PetitionSemiFullSerializer
         from inai.models import Petition
-        petitions = Petition.objects\
-            .filter(agency__entity=obj)\
-            .prefetch_related(
-                "agency",
-                "file_controls",
-                "negative_reasons",
-                "break_dates"
-            )
+        prefetch_related = [
+            "agency", "file_controls", "negative_reasons", "break_dates"]
+        if obj.is_indirect:
+            petitions = Petition.objects\
+                .filter(real_entity=obj)\
+                .prefetch_related(*prefetch_related)
+        else:
+            petitions = Petition.objects\
+                .filter(agency__entity=obj)\
+                .prefetch_related(*prefetch_related)
         serializer = PetitionSemiFullSerializer(petitions, many=True)
         return serializer.data
 
@@ -321,6 +339,7 @@ class AgencyVizSerializer(AgencySerializer):
             "institution",
             "state",
             "clues",
+            "entity",
             "agency_type",
             "petitions",
             "months",

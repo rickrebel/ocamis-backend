@@ -57,7 +57,7 @@ def set_upload_path(instance, filename):
 class Petition(models.Model, PetitionTransformsMix):
 
     folio_petition = models.CharField(
-        max_length=50,
+        max_length=50, blank=True, null=True,
         verbose_name="Folio de la solicitud")
     agency = models.ForeignKey(
         Agency,
@@ -66,9 +66,8 @@ class Petition(models.Model, PetitionTransformsMix):
     real_entity = models.ForeignKey(
         Entity, related_name="real_petitions",
         on_delete=models.CASCADE, null=True, blank=True)
-    ask_extension = models.BooleanField(
-        blank=True, null=True,
-        verbose_name="Se solicitó extensión")
+    entity_months = models.ManyToManyField(
+        "EntityMonth", blank=True, verbose_name="Meses de la solicitud")
     notes = models.TextField(blank=True, null=True)
     send_petition = models.DateField(
         verbose_name="Fecha de envío o recepción",
@@ -82,9 +81,6 @@ class Petition(models.Model, PetitionTransformsMix):
     description_response = models.TextField(
         verbose_name="Respuesta texto",
         blank=True, null=True)
-    description_complain = models.TextField(
-        verbose_name="Texto de la queja",
-        blank=True, null=True)
     status_data = models.ForeignKey(
         StatusControl, null=True, blank=True,
         related_name="petitions_data",
@@ -95,27 +91,33 @@ class Petition(models.Model, PetitionTransformsMix):
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
+    invalid_reason = models.ForeignKey(
+        InvalidReason, null=True, blank=True,
+        verbose_name="Razón de invalidez",
+        on_delete=models.CASCADE)
+    id_inai_open_data = models.IntegerField(
+        verbose_name="Id en el sistema de INAI",
+        blank=True, null=True)
+
+    # Complain data, needs to be moved to another model
+    ask_extension = models.BooleanField(
+        blank=True, null=True,
+        verbose_name="Se solicitó extensión")
+    description_complain = models.TextField(
+        verbose_name="Texto de la queja",
+        blank=True, null=True)
     status_complain = models.ForeignKey(
         StatusControl, null=True, blank=True,
         related_name="petitions_complain",
         verbose_name="Status de la queja",
         on_delete=models.CASCADE)
-    invalid_reason = models.ForeignKey(
-        InvalidReason, null=True, blank=True,
-        verbose_name="Razón de invalidez",
-        on_delete=models.CASCADE)
     folio_complain = models.IntegerField(
         verbose_name="Folio de la queja",
-        blank=True, null=True)
-    id_inai_open_data = models.IntegerField(
-        verbose_name="Id en el sistema de INAI",
         blank=True, null=True)
     info_queja_inai = JSONField(
         verbose_name="Datos de queja",
         help_text="Información de la queja en INAI Search",
         blank=True, null=True)
-    entity_months = models.ManyToManyField(
-        "EntityMonth", blank=True, verbose_name="Meses de la solicitud")
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(
@@ -359,10 +361,6 @@ class PetitionMonth(models.Model):
         verbose_name_plural = "Meses de solicitud"
 
 
-def default_explore_data():
-    return {}
-
-
 class ReplyFile(models.Model, ReplyFileMix):
 
     petition = models.ForeignKey(
@@ -410,6 +408,7 @@ class ReplyFile(models.Model, ReplyFileMix):
     class Meta:
         verbose_name = "Archivo sin datos finales"
         verbose_name_plural = "2. Archivos sin datos finales"
+        db_table = "inai_replyfile"
 
 
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
@@ -544,6 +543,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         ordering = ["-id"]
         verbose_name = "Archivo con datos"
         verbose_name_plural = "3. Archivos con datos (DataFile)"
+        db_table = "inai_datafile"
 
 
 class Behavior(models.Model):
@@ -563,6 +563,11 @@ class Behavior(models.Model):
     class Meta:
         verbose_name = "Comportamiento Merge"
         verbose_name_plural = "CAT. Comportamientos Merge"
+        db_table = "inai_behavior"
+
+
+def default_explore_data():
+    return {}
 
 
 class SheetFile(models.Model):
@@ -640,6 +645,7 @@ class SheetFile(models.Model):
         verbose_name_plural = "4. Archivos de pestaña (Sheets .csv)"
         ordering = ["id"]
         unique_together = ("data_file", "sheet_name", "file_type")
+        db_table = "inai_sheetfile"
 
 
 class CrossingSheet(models.Model):
@@ -666,6 +672,7 @@ class CrossingSheet(models.Model):
         get_latest_by = "month_agency__year_month"
         verbose_name = "Cruce de archivos"
         verbose_name_plural = "5.1 Cruces de archivos"
+        db_table = "inai_crossingsheet"
 
 
 class LapSheet(models.Model):
@@ -712,6 +719,7 @@ class LapSheet(models.Model):
         verbose_name_plural = "5. Laps de archivo csv"
         ordering = ["id"]
         unique_together = ("sheet_file", "lap")
+        db_table = "inai_lapsheet"
 
 
 class EntityWeek(models.Model):
@@ -764,6 +772,7 @@ class EntityWeek(models.Model):
             "entity", "year_week", "iso_delegation", "year_month")
         verbose_name = "Semana-proveedor"
         verbose_name_plural = "9. Semanas-proveedores"
+        db_table = "inai_entityweek"
 
 
 class TableFile(models.Model):
@@ -817,3 +826,4 @@ class TableFile(models.Model):
         unique_together = (
             "lap_sheet", "collection", "is_for_edition", "year",
             "iso_week", "iso_delegation")
+        db_table = "inai_tablefile"

@@ -52,10 +52,9 @@ class RespondentAdmin(admin.ModelAdmin):
         'id',
         'first_name',
         'last_name',
-        'email',
-        'institution',
-        'position',
         'recognition',
+        'institution',
+        'email',
     )
     list_filter = ['recognition']
     inlines = [GroupAnswerInline]

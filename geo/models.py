@@ -116,6 +116,9 @@ class Entity(models.Model):
         max_length=255, verbose_name="Nombre de la entidad")
     acronym = models.CharField(
         max_length=20, verbose_name="Clave de la entidad")
+    short_name = models.CharField(
+        max_length=255, verbose_name="Nombre corto",
+        blank=True, null=True)
     state = models.ForeignKey(
         State, verbose_name="Estado",
         blank=True, null=True, on_delete=models.CASCADE,
@@ -139,6 +142,10 @@ class Entity(models.Model):
         StatusControl, null=True, blank=True,
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
+    is_indirect = models.BooleanField(
+        default=False, verbose_name="Es indirecto (entidad Real)")
+    has_indirect = models.BooleanField(
+        default=False, verbose_name="Tiene indirectos")
 
     @property
     def entity_type(self):
@@ -168,9 +175,8 @@ class Entity(models.Model):
             weeks_gen.generate_months()
             weeks_gen.generate_weeks()
 
-
     def __str__(self):
-        return self.name
+        return self.short_name or self.name
 
     class Meta:
         ordering = ["state__name"]
@@ -476,6 +482,6 @@ class Agency(models.Model):
 
     class Meta:
         ordering = ["state__name"]
-        verbose_name = "Sujeto Obligado"
-        verbose_name_plural = "Sujetos Obligados"
+        verbose_name = "Sujeto Obligado (Agency)"
+        verbose_name_plural = "Sujetos Obligados (Agencies)"
         db_table = 'geo_agency'

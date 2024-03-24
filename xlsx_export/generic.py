@@ -288,10 +288,12 @@ class FastBasicExport(GenericBasicExport):
         return Response({"msg": "Se genero el archivo %s" % (file_name)})
 
 
-def export_xlsx(name="test.xlsx", data=[]):
+def export_xlsx(name="test.xlsx", data=None):
     import xlsxwriter
     workbook = xlsxwriter.Workbook(name)
     id_index = 0
+    if data is None:
+        data = []
     for worksheet in data:
         id_index += 1
         name = worksheet.get("name", "page %s" % id_index)
@@ -322,7 +324,7 @@ def export_xlsx(name="test.xlsx", data=[]):
             col = 0
             for celda in linea:
                 if type(celda) in [str]:
-                    if celda[0:1] == u"=":
+                    if celda[0:1] == "=":
                         worksheet.write_formula(row, col, celda)
                         col += 1
                         continue

@@ -47,12 +47,10 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         # self.check_permissions(request)
         data_petition = request.data
         new_petition = Petition()
-        petition = None
+        # petition_reasons = data_petition.pop('petition_reasons', [])
         range_months = data_petition.pop('range_months', [])
-        petition_reasons = data_petition.pop('petition_reasons', [])
         petition_breaks = data_petition.pop('build_petition_breaks', [])
-        agency = data_petition.pop('agency', [])
-        data_petition["agency"] = agency["id"]
+        print("data_petition", data_petition)
 
         serializer_pet = self.get_serializer_class()(
             new_petition, data=data_petition)

@@ -132,6 +132,7 @@ def adivinar_nombre():
         else:
             print("No text between parentheses found.")
 
+
 def delete_duplicates():
     from inai.models import Petition, PetitionBreak
     from category.models import DateBreak

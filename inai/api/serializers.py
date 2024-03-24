@@ -439,6 +439,7 @@ class PetitionFullSerializer(PetitionSemiFullSerializer):
 class PetitionEditSerializer(serializers.ModelSerializer):
     negative_reasons = PetitionNegativeReasonSerializer(
         many=True, read_only=True)
+    # folio_petition = serializers.CharField(required=False)
     # status_data = StatusControlSimpleSerializer(read_only=True)
     # status_data_id = serializers.PrimaryKeyRelatedField(
     #     write_only=True, source="status_data",

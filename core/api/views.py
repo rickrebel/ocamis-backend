@@ -49,7 +49,7 @@ class CatalogView(views.APIView):
         data = {
             "agencies": AgencySerializer(agencies_query, many=True).data,
             # "entities": EntitySerializer(Entity.objects.all(), many=True).data,
-            "entities2": EntityCatSerializer(entities_query, many=True).data,
+            "entities": EntityCatSerializer(entities_query, many=True).data,
             # CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,
