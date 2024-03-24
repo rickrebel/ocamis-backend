@@ -6,7 +6,6 @@ class ExploreMix:
     # Guardado en funciones
     def get_sample_data(self, task_params=None, **kwargs):
         # from task.models import AsyncTask
-        from django.utils import timezone
         from category.models import FileFormat
         from respond.models import SheetFile
         data_file = self
@@ -89,8 +88,8 @@ class ExploreMix:
         return [], [], data_file
 
     def transform_data(self, task_params, **kwargs):
-        from inai.data_file_mixins.matches_mix import Match
-        from inai.data_file_mixins.intermediary_mix import Intermediary
+        from respond.data_file_mixins.matches_mix import Match
+        from respond.data_file_mixins.intermediary_mix import Intermediary
         file_control = self.petition_file_control.file_control
         if file_control.is_intermediary:
             my_intermediary = Intermediary(self, task_params)
@@ -100,7 +99,7 @@ class ExploreMix:
             return my_match.build_csv_converted(is_prepare=False)
 
     def prepare_transform(self, task_params, **kwargs):
-        from inai.data_file_mixins.matches_mix import Match
+        from respond.data_file_mixins.matches_mix import Match
         data_file = self.count_file_rows()
         file_control = data_file.petition_file_control.file_control
         if file_control.is_intermediary:
@@ -112,8 +111,6 @@ class ExploreMix:
         return my_match.build_csv_converted(is_prepare=True)
 
     def insert_data(self, task_params, **kwargs):
-        from inai.data_file_mixins.insert_mix import Insert
-        from respond.models import LapSheet
         raise "Esta función ya no se usa"
 
     def count_file_rows(self):

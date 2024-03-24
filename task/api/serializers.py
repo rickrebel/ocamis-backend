@@ -55,7 +55,7 @@ class AsyncTaskSerializer(serializers.ModelSerializer):
 class AsyncTaskFullSerializer(AsyncTaskSerializer):
     # from inai.api.serializers import DataFileFullSerializer
     # data_file_full = DataFileFullSerializer(read_only=True, source="data_file")
-    from inai.api.serializers import DataFileSerializer
+    from respond.api.serializers import DataFileSerializer
     data_file_full = DataFileSerializer(read_only=True, source="data_file")
     file_control_full = serializers.SerializerMethodField(read_only=True)
     entity_month_full = serializers.SerializerMethodField(read_only=True)

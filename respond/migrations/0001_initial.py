@@ -2,11 +2,8 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import inai.data_file_mixins.explore_mix
-import inai.data_file_mixins.get_data_mix
-import inai.data_file_mixins.utils_mix
 import inai.models
-import inai.reply_file_mixins.process_mix
+import respond.reply_file_mixins.process_mix
 import respond.models
 
 
@@ -65,7 +62,7 @@ class Migration(migrations.Migration):
                 'db_table': 'inai_datafile',
                 'ordering': ['-id'],
             },
-            bases=(models.Model, inai.data_file_mixins.explore_mix.ExploreMix, inai.data_file_mixins.utils_mix.DataUtilsMix, inai.data_file_mixins.get_data_mix.ExtractorsMix),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='SheetFile',
@@ -116,7 +113,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': '2. Archivos sin datos finales',
                 'db_table': 'inai_replyfile',
             },
-            bases=(models.Model, inai.reply_file_mixins.process_mix.ReplyFileMix),
+            bases=(models.Model, respond.reply_file_mixins.process_mix.ReplyFileMix),
         ),
         migrations.CreateModel(
             name='LapSheet',

@@ -1,6 +1,5 @@
 
 def reverse_transform(only_count=False, entity=None, every_files=False):
-    from respond.models import TableFile
     from respond.models import LapSheet
     from respond.models import DataFile
     finished_transform = DataFile.objects.filter(
@@ -42,7 +41,6 @@ def reverse_insert(hard=False):
     from respond.models import TableFile
     from inai.models import EntityWeek
     from respond.models import LapSheet
-    from respond.models import SheetFile
     from respond.models import DataFile
     from task.models import AsyncTask
     # TableFile.objects.filter(inserted=True).update(inserted=False)
@@ -146,7 +144,6 @@ def upload_s3_files(local_file, s3_dir):
 def delete_bad_week(entity_id, year, month, iso_year, iso_week, iso_delegation):
     from datetime import datetime
     from django.db import connection
-    from inai.models import EntityMonth
     from inai.models import EntityWeek
     errors = []
     entity_week = EntityWeek.objects.filter(
@@ -345,8 +342,7 @@ def insert_id_to_csv(snake_name):
 
 def save_mat_view_in_db(model_name, model_in_db):
     from django.db import connection
-    from django.conf import settings
-    from inai.data_file_mixins.matches_mix import field_of_models
+    from respond.data_file_mixins.matches_mix import field_of_models
     from inai.misc_mixins.insert_month_mix import build_copy_sql_aws
     columns = field_of_models({"model": model_name, "app": "formula"})
     # column_names = [column["name"].replace("_total", "") for column in columns]
@@ -374,7 +370,7 @@ def sent_mat_view_to_table(model_name):
 
 
 def make_public_final_fields(collection_name):
-    from data_param.models import Collection, FinalField
+    from data_param.models import FinalField
     final_fields = FinalField.objects.filter(
         collection__model_name=collection_name)
     final_fields.update(included_code="complete")

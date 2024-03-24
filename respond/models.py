@@ -5,11 +5,11 @@ from category.models import FileType, StatusControl
 from classify_task.models import Stage, StatusTask
 from data_param.models import Collection
 from geo.models import Entity, Delegation
-from inai.data_file_mixins.explore_mix import ExploreMix
-from inai.data_file_mixins.get_data_mix import ExtractorsMix
-from inai.data_file_mixins.utils_mix import DataUtilsMix
+from respond.data_file_mixins.explore_mix import ExploreMix
+from respond.data_file_mixins.get_data_mix import ExtractorsMix
+from respond.data_file_mixins.utils_mix import DataUtilsMix
 from inai.models import Petition, set_upload_path, PetitionFileControl, EntityMonth, EntityWeek
-from inai.reply_file_mixins.process_mix import ReplyFileMix
+from respond.reply_file_mixins.process_mix import ReplyFileMix
 
 
 # Create your models here.

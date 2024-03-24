@@ -1,5 +1,5 @@
-from respond.models import DataFile, LapSheet
-from inai.data_file_mixins.base_transform import BaseTransform
+from respond.models import DataFile
+from respond.data_file_mixins.base_transform import BaseTransform
 
 
 class Intermediary(BaseTransform):

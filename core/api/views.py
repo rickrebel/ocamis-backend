@@ -11,7 +11,8 @@ from data_param.api.serializers import (
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
     CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer, )
 from inai.api.serializers import (
-    FileControlFullSerializer, BehaviorSimpleSerializer)
+    FileControlFullSerializer)
+from respond.api.serializers import BehaviorSimpleSerializer
 from respond.models import Behavior
 
 from category.models import (

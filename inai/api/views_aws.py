@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+import respond.api.serializers
 from . import serializers
 from rest_framework.response import Response
-from rest_framework import (permissions, views, status)
+from rest_framework import (permissions, status)
 from rest_framework.decorators import action
 
 from inai.api.common import send_response
@@ -10,12 +11,8 @@ from inai.models import (
 from respond.models import DataFile
 
 from api.mixins import (
-    ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
-    MultiSerializerCreateRetrieveMix as CreateRetrieveView,
     MultiSerializerListRetrieveMix as ListRetrieveView)
 
-from rest_framework.exceptions import (PermissionDenied, ValidationError)
-from geo.api.serializers import AgencyFileControlsSerializer
 from task.views import comprobate_status, build_task_params
 
 last_final_path = None
@@ -112,184 +109,9 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         return send_response(petition)
 
 
-def move_and_duplicate(data_files, petition, request):
-    from rest_framework.exceptions import ParseError
-    from respond.models import ReplyFile
-    from data_param.models import FileControl
-    from category.models import FileType #, StatusControl
-
-    destination = request.data.get("destination")
-    is_duplicate = request.data.get("duplicate")
-    #initial_status = StatusControl.objects.get(
-    #    name="initial", group="process")
-    errors = []
-    if destination == "reply_file":
-        for data_file in data_files:
-            ReplyFile.objects.create(
-                petition=petition,
-                file=data_file.file,
-                file_type_id="no_final_info")
-            if not is_duplicate:
-                data_file.delete()
-    elif destination:
-        file_ctrl_id = int(destination)
-        pet_file_ctrls = PetitionFileControl.objects.filter(
-            petition=petition, file_control_id=file_ctrl_id)
-        if pet_file_ctrls.exists():
-            pet_file_ctrl = pet_file_ctrls.first()
-        else:
-            try:
-                file_control = FileControl.objects.get(id=file_ctrl_id)
-                pet_file_ctrl = PetitionFileControl.objects.create(
-                    petition=petition,
-                    file_control=file_control)
-            except FileControl.DoesNotExist:
-                raise ParseError(
-                    detail="No se envió un id de file_control válido")
-            except Exception as e:
-                raise ParseError(detail=e)
-        for data_file in data_files:
-            if is_duplicate:
-                data_file_id = data_file.id
-                new_file = data_file
-                new_file.pk = None
-                new_file.petition_file_control = pet_file_ctrl
-                # new_file.save()
-                new_file.finished_stage('initial|finished')
-            # if not is_duplicate:
-            else:
-                data_file.petition_file_control = pet_file_ctrl
-                data_file.save()
-                # data_file.delete()
-                # DataFile.objects.filter(id=data_file_id).delete()
-    else:
-        raise ParseError(detail="No se especificó correctamente el destino")
-
-    petition_data = serializers.PetitionFullSerializer(petition).data
-    data = {
-        "petition": petition_data,
-        "file_controls": AgencyFileControlsSerializer(
-            petition.agency).data["file_controls"],
-    }
-    return Response(data, status=status.HTTP_200_OK)
-
-
-class DataFileViewSet(CreateRetrieveView):
-    queryset = DataFile.objects.all()
-    serializer_class = serializers.DataFileSerializer
-    # permission_classes = [permissions.IsAuthenticated]
-    permission_classes = [permissions.IsAdminUser]
-    action_serializers = {
-        "list": serializers.DataFileSerializer,
-        "retrieve": serializers.DataFileFullSerializer,
-    }
-
-    def get_queryset(self):
-        return DataFile.objects.all().prefetch_related(
-            "sheet_files",
-            "sheet_files__laps",
-            "sheet_files__laps__table_files",
-        )
-
-    @action(methods=["put"], detail=True, url_path="move")
-    def move(self, request, **kwargs):
-        data_file = self.get_object()
-        petition = data_file.petition_file_control.petition
-        return move_and_duplicate([data_file], petition, request)
-
-    @action(methods=["get"], detail=True, url_path="change_stage")
-    def change_stage(self, request, **kwargs):
-        from django.conf import settings
-        from classify_task.models import Stage
-
-        data_file = self.get_object()
-        is_local = settings.IS_LOCAL
-        if not data_file.can_repeat and not is_local:
-            return Response({
-                "errors": ["Aún se está procesando; espera máx. 15 minutos"]
-            }, status=status.HTTP_404_NOT_FOUND)
-        stage_text = request.query_params.get("stage")
-        target_stage = Stage.objects.get(name=stage_text)
-        key_task, task_params = build_task_params(
-            data_file, target_stage.main_function.name, request)
-        target_name = target_stage.name
-        after_aws = "find_coincidences_from_aws" if \
-            target_name == "cluster" else "build_sample_data_after"
-        curr_kwargs = {"after_if_empty": after_aws}
-        for stage in target_stage.re_process_stages.all():
-            current_function = stage.main_function.name
-            print("stage", stage.name, current_function)
-            task_params["models"] = [data_file]
-            method = getattr(data_file, current_function)
-            if not method:
-                break
-            new_tasks, all_errors, data_file = method(task_params, **curr_kwargs)
-            if all_errors or new_tasks:
-                if all_errors:
-                    print("all_errors", all_errors)
-                    data_file.save_errors(
-                        all_errors, f"{stage.name}|with_errors")
-                return comprobate_status(
-                    key_task, all_errors, new_tasks, want_http_response=True)
-            elif stage.name == target_name:
-                data_file = data_file.finished_stage(f"{target_name}|finished")
-                comprobate_status(key_task, all_errors, new_tasks)
-                data = serializers.DataFileSerializer(data_file).data
-                response_body = {"data_file": data}
-                return Response(response_body, status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_404_NOT_FOUND, data={
-            "errors": "Hubo un error inesperado"
-        })
-
-    @action(methods=["get"], detail=True, url_path="build_columns")
-    def build_columns(self, request, **kwargs):
-        from inai.data_file_mixins.build_headers import BuildComplexHeaders
-        data_file = self.get_object()
-        key_task, task_params = build_task_params(
-            data_file, "build_columns", request)
-        curr_kwargs = {
-            "after_if_empty": "build_sample_data_after",
-        }
-        all_tasks, all_errors, data_file = data_file.get_sample_data(
-            task_params, **curr_kwargs)
-        if all_tasks or all_errors:
-            return comprobate_status(
-                key_task, all_errors, all_tasks, want_http_response=True)
-        elif data_file:
-            build_complex_headers = BuildComplexHeaders(data_file)
-            new_tasks, errors, data = build_complex_headers()
-            # new_tasks, errors, data = data_file.build_complex_headers()
-            all_errors.extend(errors or [])
-            if data:
-                return Response(data, status=status.HTTP_201_CREATED)
-        if not all_errors:
-            all_errors = ["Pasó algo extraño en build_columns, reportar a Rick"]
-        return Response(
-            {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(methods=["get"], detail=True, url_path="back_start")
-    def back_start(self, request, **kwargs):
-        from inai.api.serializers import DataFileSerializer
-        data_file = self.get_object()
-        data_file.sheet_files.all().delete()
-        data_file.stage_id = 'initial'
-        data_file.status_id = 'finished'
-        data_file.filtered_sheets = []
-        data_file.total_rows = 0
-        data_file.suffix = None
-        data_file.error_process = None
-        data_file.warnings = None
-        data_file.save()
-
-        data_file_full = DataFileSerializer(data_file)
-
-        return Response(
-            {"data_file_full": data_file_full.data}, status=status.HTTP_200_OK)
-
-
 class OpenDataInaiViewSet(ListRetrieveView):
     queryset = DataFile.objects.all()
-    serializer_class = serializers.DataFileSerializer
+    serializer_class = respond.api.serializers.DataFileSerializer
     permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
@@ -297,7 +119,6 @@ class OpenDataInaiViewSet(ListRetrieveView):
 
     @action(methods=["post"], detail=False, url_path='insert_xls')
     def insert_xls(self, request, **kwargs):
-        import json
         import zipfile
         import pandas as pd
         from datetime import datetime

@@ -1,4 +1,4 @@
-from respond.models import SheetFile, LapSheet, TableFile
+from respond.models import SheetFile, LapSheet
 
 
 class FromAws:
@@ -52,7 +52,7 @@ class FromAws:
     def build_csv_data_from_aws(self, **kwargs):
         from django.utils import timezone
         from inai.models import EntityMonth
-        from inai.misc_mixins.lap_sheet_mix import FromAws as LapSheetAws
+        from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheetAws
         # print("FINISH BUILD CSV DATA")
         data_file = self.sheet_file.data_file
         is_prepare = kwargs.get("is_prepare", False)

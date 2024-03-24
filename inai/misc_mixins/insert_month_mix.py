@@ -1,8 +1,6 @@
 from django.conf import settings
-from django.db import connection
 from inai.models import EntityMonth, EntityWeek
-from respond.models import DataFile, LapSheet
-from task.models import Platform
+from respond.models import LapSheet
 from task.serverless import async_in_lambda
 
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
@@ -38,7 +36,7 @@ def build_alternative_query(model_in_db, columns_join):
 class InsertMonth:
 
     def __init__(self, entity_month: EntityMonth, task_params=None):
-        from inai.data_file_mixins.matches_mix import (
+        from respond.data_file_mixins.matches_mix import (
             get_models_of_app, field_of_models)
         self.task_params = task_params
         self.entity_month = entity_month
@@ -65,7 +63,6 @@ class InsertMonth:
                             if model["model"] in self.base_models_names]
 
     def merge_week_base_tables(self, entity_week: EntityWeek, week_table_files: list):
-        from inai.api.serializers import TableFileAwsSerializer
         fields_in_name = ["iso_year", "iso_week", "year", "month"]
         complement_name = "_".join([str(getattr(entity_week, field))
                                     for field in fields_in_name])

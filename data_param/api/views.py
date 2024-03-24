@@ -7,7 +7,8 @@ from api.mixins import MultiSerializerModelViewSet
 from inai.api.serializers import (
     PetitionSemiFullSerializer, PetitionFileControlDeepSerializer,
     FileControlFullSerializer, TransformationEditSerializer,
-    NameColumnEditSerializer, DataFileSerializer)
+    NameColumnEditSerializer)
+from respond.api.serializers import DataFileSerializer
 from inai.models import PetitionFileControl
 from respond.models import DataFile
 from task.views import build_task_params, comprobate_status

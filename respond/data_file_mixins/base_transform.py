@@ -14,7 +14,6 @@ def sheet_name_to_file_name(sheet_name):
 class BaseTransform:
 
     def __init__(self, data_file: DataFile, task_params=None):
-        from inai.models import set_upload_path
         self.is_prepare = False
         self.data_file = data_file
         self.init_data = {}
