@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.contrib.admin import AdminSite
 
 from .models import (
-    Petition, PetitionFileControl, EntityMonth, EntityWeek)
+    Petition, PetitionFileControl, EntityMonth, EntityWeek, RequestTemplate,
+    Variable)
 
 
 class OcamisAdminSite(AdminSite):

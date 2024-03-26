@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class CategoryConfig(AppConfig):
     name = 'category'
-    verbose_name = 'D. Categorías diversas'
+    verbose_name = 'E. Categorías diversas'

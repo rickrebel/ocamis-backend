@@ -5,7 +5,6 @@ from rest_framework.decorators import action
 
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
-# from desabasto.api.views import StandardResultsSetPagination
 
 from mat.models import MotherDrugPriority, MotherDrug, MotherDrugTotals
 from formula.models import MatDrugTotals, MatDrug, MatDrugPriority

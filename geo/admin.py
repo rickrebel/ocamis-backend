@@ -1,16 +1,12 @@
 from inai.admin import ocamis_admin_site
-from report.admin import desabasto_admin_site
 
 from django.contrib import admin
-# from django.contrib.admin import AdminSite
 
 from .models import (
-    Alliances,
     CLUES,
     Institution,
     State,
     Municipality,
-    Disease,
     Agency,
     Delegation,
     Entity
@@ -108,23 +104,6 @@ class CLUESAdmin(admin.ModelAdmin):
     ]
 
 
-class AlliancesAdmin(admin.ModelAdmin):
-    list_display = [
-        "name",
-        "page_url",
-        "logo",
-        "level",
-    ]
-    search_fields = ["name"]
-
-
-class DiseaseAdmin(admin.ModelAdmin):
-    list_display = [
-        "name",
-    ]
-    search_fields = ["name"]
-
-
 class AgencyAdmin(admin.ModelAdmin):
     list_display = [
         "acronym",
@@ -174,10 +153,7 @@ admin.site.register(Institution, InstitutionAdmin)
 ocamis_admin_site.register(Institution, InstitutionAdmin)
 ocamis_admin_site.register(Entity, EntityAdmin)
 admin.site.register(Entity, EntityAdmin)
-desabasto_admin_site.register(CLUES, CLUESAdmin)
 admin.site.register(CLUES, CLUESAdmin)
-desabasto_admin_site.register(Alliances, AlliancesAdmin)
-desabasto_admin_site.register(Disease, DiseaseAdmin)
 
 ocamis_admin_site.register(Agency, AgencyAdmin)
 admin.site.register(Agency, AgencyAdmin)

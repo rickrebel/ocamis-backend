@@ -127,14 +127,11 @@ class Entity(models.Model):
         Institution, verbose_name="Institución",
         null=True, on_delete=models.CASCADE,
         related_name="entities")
-    is_clues = models.BooleanField(
-        default=False, verbose_name="Es solo un CLUES")
     population = models.IntegerField(
         default=0, verbose_name="Población")
-    split_by_delegation = models.BooleanField(
-        default=False, verbose_name="Dividir por delegación")
-    is_pilot = models.BooleanField(default=False, verbose_name="Es piloto")
     notes = models.TextField(blank=True, null=True, verbose_name="Notas")
+    is_clues = models.BooleanField(
+        default=False, verbose_name="Es solo un CLUES")
     assigned_to = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.CASCADE,
         verbose_name="Asignado a")
@@ -142,10 +139,14 @@ class Entity(models.Model):
         StatusControl, null=True, blank=True,
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
+    split_by_delegation = models.BooleanField(
+        default=False, verbose_name="Dividir por delegación")
     is_indirect = models.BooleanField(
         default=False, verbose_name="Es indirecto (entidad Real)")
     has_indirect = models.BooleanField(
         default=False, verbose_name="Tiene indirectos")
+    # Deprecated:
+    # is_pilot = models.BooleanField(default=False, verbose_name="Es piloto")
 
     @property
     def entity_type(self):
@@ -362,52 +363,6 @@ class Jurisdiction(models.Model):
         verbose_name = "Jurisdicción"
         verbose_name_plural = "Jurisdicciones"
         db_table = 'geo_jurisdiction'
-
-
-class Disease(models.Model):
-    name = models.CharField(max_length=50)
-
-    class Meta:
-        verbose_name = "Padecimiento"
-        verbose_name_plural = "7. Padecimientos"
-        db_table = u'desabasto_disease'
-
-    def __str__(self):
-        return self.name
-
-
-class Alliances(models.Model):
-    name = models.CharField(max_length=180)
-    page_url = models.CharField(
-        verbose_name="Página web",
-        max_length=180, blank=True, null=True)
-    logo = models.FileField()
-    level = models.IntegerField(default=2)
-    diseases_litigation = models.ManyToManyField(
-        Disease, related_name="litigations",
-        verbose_name="Padecimientos asociados (asesoría legal)",
-        blank=True)
-    diseases_management = models.ManyToManyField(
-        Disease, related_name="managements",
-        verbose_name="Padecimientos asociados (acompañamiento)",
-        blank=True)
-    page_help = models.CharField(
-        max_length=255, blank=True, null=True,
-        verbose_name="Página web de asistencia")
-    email = models.CharField(
-        max_length=255, verbose_name="Email para asistencia",
-        blank=True, null=True)
-    phone = models.CharField(
-        max_length=255, blank=True, null=True,
-        verbose_name="Número de contacto")
-
-    class Meta:
-        verbose_name = "Alianza"
-        verbose_name_plural = "Alianzas"
-        db_table = u'desabasto_alliances'
-
-    def __str__(self):
-        return self.name
 
 
 class Agency(models.Model):

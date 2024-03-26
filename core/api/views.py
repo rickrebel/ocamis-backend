@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from rest_framework import (permissions, status, views)
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from data_param.models import (
@@ -10,23 +11,26 @@ from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
     CleanFunctionSimpleSerializer, ParameterGroupSimpleSerializer, )
-from inai.api.serializers import (
-    FileControlFullSerializer)
+
+from inai.models import RequestTemplate
+from inai.api.serializers import RequestTemplateSerializer
+
 from respond.api.serializers import BehaviorSimpleSerializer
 from respond.models import Behavior
+
+from transparency.models import Anomaly, TransparencyIndex
 
 from category.models import (
     FileType, StatusControl, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
-from transparency.models import Anomaly, TransparencyIndex
-from classify_task.models import StatusTask, TaskFunction, Stage
 from category.api.serializers import (
     FileTypeSimpleSerializer, StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
     DateBreakSimpleSerializer, AnomalySimpleSerializer,
     InvalidReasonSimpleSerializer, FileFormatSimpleSerializer,
-    TransparencyIndexSimpleSerializer, TransparencyLevelSimpleSerializer,
     TransparencyIndexSerializer,)
+
+from classify_task.models import StatusTask, TaskFunction, Stage
 from task.api.serializers import (
     StatusTaskSimpleSerializer, TaskFunctionSerializer, StageSimpleSerializer)
 
@@ -92,6 +96,8 @@ class CatalogView(views.APIView):
             "date_breaks": DateBreakSimpleSerializer(
                 DateBreak.objects.all(), many=True).data,
             "offline_types": {k: v for k, v in OFFLINE_TYPES},
+            "last_request_template": RequestTemplateSerializer(
+                RequestTemplate.objects.first()).data,
         }
         return Response(data)
 
@@ -128,3 +134,15 @@ class CatalogViz(views.APIView):
                 FileFormat.objects.all(), many=True).data,
         }
         return Response(data)
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 500
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+
+class HeavyResultsSetPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 500

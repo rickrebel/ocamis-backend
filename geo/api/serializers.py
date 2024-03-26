@@ -1,19 +1,11 @@
 from rest_framework import serializers
 
-from report.models import Responsable
 from geo.models import (
-    State, Institution, CLUES, Alliances, Municipality, Disease, Agency,
+    State, Institution, CLUES, Municipality, Agency,
     Entity, Delegation)
 from task.api.serializers import CutOffSerializer
 # from report.api.serializers import ResponsableListSerializer
 # from inai.models import EntityMonth
-
-
-class ResponsableListSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Responsable
-        fields = "__all__"
 
 
 class MunicipalityListSerializers(serializers.ModelSerializer):
@@ -39,12 +31,10 @@ class StateSerializer(serializers.ModelSerializer):
 
 
 class StateListSerializer(serializers.ModelSerializer):
-    responsables = ResponsableListSerializer(many=True)
 
     class Meta:
         model = State
         fields = "__all__"
-        read_only_fields = ["responsables"]
 
 
 class InstitutionSerializer(serializers.ModelSerializer):
@@ -55,12 +45,10 @@ class InstitutionSerializer(serializers.ModelSerializer):
 
 
 class InstitutionListSerializer(serializers.ModelSerializer):
-    responsables = ResponsableListSerializer(many=True)
 
     class Meta:
         model = Institution
         fields = "__all__"
-        read_only_fields = ["responsables"]
 
 
 class CLUESSerializer(serializers.ModelSerializer):
@@ -95,14 +83,12 @@ class EntitySerializer(serializers.ModelSerializer):
 
 
 class CLUESListSerializer(serializers.ModelSerializer):
-    responsables = ResponsableListSerializer(many=True)
 
     class Meta:
         model = CLUES
         fields = ['id', 'name', 'real_name', 'alter_clasifs',
                   'prev_clasif_name', 'clasif_name', 'number_unity',
                   'total_unities', 'municipality', "responsables"]
-        read_only_fields = ["responsables"]
 
 
 class CLUESFullSerializer(serializers.ModelSerializer):
@@ -111,20 +97,6 @@ class CLUESFullSerializer(serializers.ModelSerializer):
         model = CLUES
         fields = "__all__"
         depth = 1
-
-
-class AlliancesSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Alliances
-        fields = "__all__"
-
-
-class DiseaseSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Disease
-        fields = "__all__"
 
 
 class AgencySerializer(serializers.ModelSerializer):

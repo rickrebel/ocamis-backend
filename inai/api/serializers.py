@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
-    Petition, PetitionFileControl, EntityMonth,
+    Petition, PetitionFileControl, EntityMonth, RequestTemplate, Variable,
     PetitionBreak, PetitionNegativeReason, EntityWeek)
 from respond.api.serializers import ReplyFileSerializer, DataFileSerializer
 from respond.models import TableFile
@@ -87,32 +87,6 @@ class EntityWeekSimpleSerializer(serializers.ModelSerializer):
             "last_transformation", "last_crossing"]
 
 
-# class PetitionMonthSerializer(serializers.ModelSerializer):
-#     entity_month = EntityMonthSimpleSerializer(read_only=True)
-#
-#     class Meta:
-#         model = PetitionMonth
-#         fields = "__all__"
-
-
-# class PetitionMiniSerializer(serializers.ModelSerializer):
-#     petition_months = PetitionMonthSerializer(many=True)
-#     #agency = serializers.SerializerMethodField(read_only=True)
-#     last_year_month = serializers.CharField(read_only=True)
-#     first_year_month = serializers.CharField(read_only=True)
-#
-#     def get_agency(self, obj):
-#         show_inst = self.context.get("show_institution", False)
-#         request = self.context.get("request", False)
-#         if request and request.method == "GET" and show_inst:
-#             return AgencySerializer(obj.agency).data
-#         return obj.agency.id
-#
-#     class Meta:
-#         model = Petition
-#         fields = "__all__"
-
-
 class PetitionFileControlCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -177,7 +151,7 @@ class PetitionBreakSerializer(serializers.ModelSerializer):
         model = PetitionBreak
         fields = "__all__"
         read_only_fields = ["petition"]
-        #write_only_fields = ('date_break_id',)
+        # write_only_fields = ('date_break_id',)
 
 
 class PetitionNegativeReasonSimpleSerializer(serializers.ModelSerializer):
@@ -239,6 +213,21 @@ class PetitionEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         read_only_fields = ["id", "break_dates", "entity_months"]
+        fields = "__all__"
+
+
+class VariableSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Variable
+        fields = "__all__"
+
+
+class RequestTemplateSerializer(serializers.ModelSerializer):
+    variables = VariableSerializer(many=True)
+
+    class Meta:
+        model = RequestTemplate
         fields = "__all__"
 
 

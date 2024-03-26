@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
     MultiSerializerListRetrieveMix as ListRetrieveMix)
-from desabasto.api.views import StandardResultsSetPagination
+from core.api.views import StandardResultsSetPagination
 
 from geo.models import Institution, State, CLUES, Agency, Entity
 

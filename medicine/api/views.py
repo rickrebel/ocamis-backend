@@ -13,7 +13,7 @@ from medicine.models import (
 
 from api.mixins import ListMix
 from api.mixins import MultiSerializerListRetrieveMix
-from desabasto.api.views import StandardResultsSetPagination
+from core.api.views import StandardResultsSetPagination
 
 
 class ComponentList(MultiSerializerListRetrieveMix):

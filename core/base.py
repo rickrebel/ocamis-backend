@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "channels_redis",
     "corsheaders",
-    # "desabasto.apps.DesabastoConfig",
     "geo.apps.GeoConfig",
     "medicine.apps.MedicineConfig",
     "report.apps.ReportConfig",

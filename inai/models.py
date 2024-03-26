@@ -50,6 +50,47 @@ def set_upload_path(instance, filename):
     return "/".join([agency_type, acronym, folio_petition, filename])
 
 
+class RequestTemplate(models.Model):
+    version = models.IntegerField()
+    text = models.TextField()
+    entity = models.ForeignKey(
+        Entity, related_name="request_templates",
+        on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return self.version
+
+    class Meta:
+        verbose_name = "Plantilla de solicitud"
+        verbose_name_plural = "Plantillas de solicitud"
+        ordering = ["-version"]
+
+
+VARIABLE_TYPES = (
+    ("string", "String"),
+    ("date", "Date"),
+)
+
+
+class Variable(models.Model):
+    request_template = models.ForeignKey(
+        RequestTemplate, related_name="variables",
+        on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    color = models.CharField(max_length=20, blank=True, null=True)
+    variable_type = models.CharField(
+        max_length=10, choices=VARIABLE_TYPES, default="string")
+    default_value = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Variable de plantilla"
+        verbose_name_plural = "Variables de plantilla"
+
+
 class Petition(models.Model, PetitionTransformsMix):
 
     folio_petition = models.CharField(

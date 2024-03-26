@@ -1,7 +1,17 @@
 from django.contrib import admin
-from report.admin import desabasto_admin_site
+# from report.admin import email_admin_site
 from email_sendgrid.models import (
     EmailRecord, EmailEventHistory, TemplateBase, SendGridProfile)
+from django.contrib.admin import AdminSite
+
+
+class DesabastoAdminSite(AdminSite):
+    site_header = "Email Admin"
+    site_title = "Email Portal"
+    index_title = "Welcome to Email Portal"
+
+
+email_admin_site = DesabastoAdminSite(name='email_admin')
 
 
 class EmailEventHistoryInLine(admin.TabularInline):
@@ -38,6 +48,6 @@ class TemplateBaseAdmin(admin.ModelAdmin):
             return ["created"]
 
 
-desabasto_admin_site.register(TemplateBase, TemplateBaseAdmin)
-desabasto_admin_site.register(SendGridProfile)
-desabasto_admin_site.register(EmailRecord, EmailRecordAdmin)
+email_admin_site.register(TemplateBase, TemplateBaseAdmin)
+email_admin_site.register(SendGridProfile)
+email_admin_site.register(EmailRecord, EmailRecordAdmin)
