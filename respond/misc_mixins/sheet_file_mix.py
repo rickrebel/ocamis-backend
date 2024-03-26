@@ -37,7 +37,7 @@ class FromAws:
         petition = self.sheet_file.data_file.petition_file_control.petition
         orphan_pet_control = petition.orphan_pet_control
         for file_name in new_files:
-            entity = petition.real_entity or petition.agency.entity
+            entity = petition.real_provider or petition.agency.entity
             new_file = DataFile.objects.create(
                 file=file_name,
                 entity=entity,

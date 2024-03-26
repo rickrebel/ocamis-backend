@@ -52,9 +52,9 @@ def update_med_container_simple():
 def update_med_container_id():
     from med_cat.models import Medicament
     from medicine.models import Container
-    from geo.models import Entity
+    from geo.models import Provider
     prints_count = 0
-    entity_imss = Entity.objects.get(id=55)
+    entity_imss = Provider.objects.get(id=55)
     all_fields = get_medicament_fields()
     medicaments_own_imss = Medicament.objects.filter(
         entity=entity_imss)

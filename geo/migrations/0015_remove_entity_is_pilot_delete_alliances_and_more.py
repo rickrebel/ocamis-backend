@@ -5,7 +5,9 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = []
+    dependencies = [
+        ('geo', '0014_entity_has_indirect_entity_is_indirect'),
+    ]
 
     operations = [
         migrations.RemoveField(

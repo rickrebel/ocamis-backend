@@ -33,10 +33,10 @@ class DocumentType(models.Model):
 
 
 class Rx(models.Model):
-    from geo.models import CLUES, Delegation, Entity
+    from geo.models import CLUES, Delegation, Provider
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
-    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
+    entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
     folio_ocamis = models.CharField(max_length=64)
     folio_document = models.CharField(max_length=46)
     year = models.PositiveSmallIntegerField(blank=True, null=True)
@@ -72,10 +72,10 @@ class Rx(models.Model):
 
 #
 # class MiniRx(models.Model):
-#     from geo.models import CLUES, Delegation, Entity
+#     from geo.models import CLUES, Delegation, Provider
 #     uuid_folio = models.UUIDField(
 #         primary_key=True, default=uuid_lib.uuid4, editable=False)
-#     entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
+#     entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
 #     folio_ocamis = models.CharField(max_length=64)
 #     entity_week = models.ForeignKey(
 #         "EntityWeek", on_delete=models.CASCADE, blank=True, null=True)
@@ -239,7 +239,7 @@ class MissingField(models.Model):
 
 
 class MatDrugPriority(models.Model):
-    from geo.models import CLUES, Delegation, Entity
+    from geo.models import CLUES, Delegation, Provider
     from medicine.models import Container
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
@@ -265,7 +265,7 @@ class MatDrugPriority(models.Model):
 
 
 class MatDrug(models.Model):
-    from geo.models import CLUES, Delegation, Entity
+    from geo.models import CLUES, Delegation, Provider
     from inai.models import EntityWeek
     from medicine.models import Container
     key = models.CharField(max_length=255)
@@ -292,7 +292,7 @@ class MatDrug(models.Model):
 
 
 class MatDrugExtended(models.Model):
-    from geo.models import Delegation, Entity
+    from geo.models import Delegation, Provider
     from inai.models import EntityWeek
     from medicine.models import Component, Presentation, Container
     delegation = models.ForeignKey(
@@ -300,7 +300,7 @@ class MatDrugExtended(models.Model):
     iso_year = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE)
+        Provider, on_delete=models.CASCADE)
     component = models.ForeignKey(
         Component, on_delete=models.CASCADE)
     presentation = models.ForeignKey(
@@ -320,7 +320,7 @@ class MatDrugExtended(models.Model):
 
 
 class MatDrugTotals(models.Model):
-    from geo.models import CLUES, Delegation, Entity
+    from geo.models import CLUES, Delegation, Provider
     from inai.models import EntityWeek
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)

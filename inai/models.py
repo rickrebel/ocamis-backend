@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from geo.models import Agency, Entity, Delegation
+from geo.models import Agency, Provider, Delegation
 from category.models import (
     StatusControl, FileType, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
@@ -54,7 +54,7 @@ class RequestTemplate(models.Model):
     version = models.IntegerField()
     text = models.TextField()
     entity = models.ForeignKey(
-        Entity, related_name="request_templates",
+        Provider, related_name="request_templates",
         on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
@@ -100,8 +100,8 @@ class Petition(models.Model, PetitionTransformsMix):
         Agency,
         related_name="petitions",
         on_delete=models.CASCADE)
-    real_entity = models.ForeignKey(
-        Entity, related_name="real_petitions",
+    real_provider = models.ForeignKey(
+        Provider, related_name="real_petitions",
         on_delete=models.CASCADE, null=True, blank=True)
     entity_months = models.ManyToManyField(
         "EntityMonth", blank=True, verbose_name="Meses de la solicitud")
@@ -299,7 +299,7 @@ class EntityMonth(models.Model):
         related_name="months",
         on_delete=models.CASCADE, blank=True, null=True)
     entity = models.ForeignKey(
-        Entity,
+        Provider,
         related_name="entity_months",
         verbose_name="Proveedor de servicios de salud",
         on_delete=models.CASCADE, blank=True, null=True)
@@ -401,7 +401,7 @@ class PetitionMonth(models.Model):
 
 class EntityWeek(models.Model):
     entity = models.ForeignKey(
-        Entity,
+        Provider,
         related_name="weeks",
         on_delete=models.CASCADE, blank=True, null=True)
     entity_month = models.ForeignKey(

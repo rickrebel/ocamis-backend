@@ -115,13 +115,13 @@ class Stage(models.Model):
 
     def save(self, *args, **kwargs):
         from task.models import Step
-        from geo.models import Entity
+        from geo.models import Provider
         from category.models import StatusControl
         if self.stage_group == "entity":
             status_initial = StatusControl.objects.get(name="initial")
-            for entity in Entity.objects.all():
+            for provider in Provider.objects.all():
                 Step.objects.get_or_create(
-                    entity=entity, stage=self, status_opera=status_initial)
+                    entity=provider, stage=self, status_opera=status_initial)
 
         super().save(*args, **kwargs)
 

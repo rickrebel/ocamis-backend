@@ -3,8 +3,8 @@
 # def update_med_container_id():
 #     from med_cat.models import Medicament
 #     from medicine.models import Container
-#     from geo.models import Entity
-#     entity_imss = Entity.objects.get(id=55)
+#     from geo.models import Provider
+#     entity_imss = Provider.objects.get(id=55)
 #     medicaments_own_imss = Medicament.objects.filter(
 #         entity=entity_imss)
 #     errors = {
@@ -60,8 +60,8 @@
 # def update_med_container_id():
 #     from med_cat.models import Medicament
 #     from medicine.models import Container
-#     from geo.models import Entity
-#     entity_imss = Entity.objects.get(id=55)
+#     from geo.models import Provider
+#     entity_imss = Provider.objects.get(id=55)
 #     medicaments_own_imss = Medicament.objects.filter(
 #         entity=entity_imss)
 #     errors = {
@@ -111,8 +111,8 @@
 # def update_med_container_id():
 #     from med_cat.models import Medicament
 #     from medicine.models import Container
-#     from geo.models import Entity
-#     entity_imss = Entity.objects.get(id=55)
+#     from geo.models import Provider
+#     entity_imss = Provider.objects.get(id=55)
 #     medicaments_own_imss = Medicament.objects.filter(
 #         entity=entity_imss)
 #     errors = {
@@ -197,8 +197,8 @@
 def update_med_container_id():
     from med_cat.models import Medicament
     from medicine.models import Container
-    from geo.models import Entity
-    entity_imss = Entity.objects.get(id=55)
+    from geo.models import Provider
+    entity_imss = Provider.objects.get(id=55)
     medicaments_own_imss = Medicament.objects.filter(
         entity=entity_imss)
     errors = {

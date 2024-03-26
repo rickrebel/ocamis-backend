@@ -9,7 +9,7 @@ from .models import (
     Municipality,
     Agency,
     Delegation,
-    Entity
+    Provider
 )
 
 
@@ -151,8 +151,8 @@ admin.site.register(State, StateAdmin)
 admin.site.register(Municipality, MunicipalityAdmin)
 admin.site.register(Institution, InstitutionAdmin)
 ocamis_admin_site.register(Institution, InstitutionAdmin)
-ocamis_admin_site.register(Entity, EntityAdmin)
-admin.site.register(Entity, EntityAdmin)
+ocamis_admin_site.register(Provider, EntityAdmin)
+admin.site.register(Provider, EntityAdmin)
 admin.site.register(CLUES, CLUESAdmin)
 
 ocamis_admin_site.register(Agency, AgencyAdmin)

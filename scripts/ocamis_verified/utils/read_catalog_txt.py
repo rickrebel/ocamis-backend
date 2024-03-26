@@ -12,11 +12,11 @@ def generate_agency_delegations():
 
 
 def create_entity_by_agency():
-    from geo.models import Agency, Entity
+    from geo.models import Agency, Provider
     agencies = Agency.objects.all()
     for agency in agencies:
         if agency.clues:
-            entity, created = Entity.objects.get_or_create(
+            entity, created = Provider.objects.get_or_create(
                 name=agency.name, acronym=agency.acronym, state=agency.state,
                 institution=agency.institution,
                 population=agency.population or 0, is_clues=True
@@ -25,7 +25,7 @@ def create_entity_by_agency():
             clues.entity = entity
             clues.save()
         elif agency.state:
-            entity, created = Entity.objects.get_or_create(
+            entity, created = Provider.objects.get_or_create(
                 state=agency.state, institution=agency.institution,
                 is_clues=False)
             if created:
@@ -35,7 +35,7 @@ def create_entity_by_agency():
                 entity.name = f"{agency.institution.name} {agency.state.short_name}"
                 entity.save()
         else:
-            entity, created = Entity.objects.get_or_create(
+            entity, created = Provider.objects.get_or_create(
                 name=agency.institution.name, acronym=agency.acronym,
                 institution=agency.institution, population=agency.population or 0,
                 is_clues=False)
@@ -47,7 +47,7 @@ def create_entity_by_agency():
 
 
 def move_delegation_clues():
-    from geo.models import Delegation, CLUES, Entity
+    from geo.models import Delegation, CLUES, Provider
     all_delegations = Delegation.objects.all()
     for delegation in all_delegations:
         clues = delegation.clues
@@ -58,12 +58,12 @@ def move_delegation_clues():
                 delegation.entity = clues.entity
         elif not delegation.entity:
             try:
-                delegation.entity = Entity.objects.get(
+                delegation.entity = Provider.objects.get(
                     institution=delegation.institution,
                     state=delegation.state, ent_clues__isnull=True)
-            except Entity.DoesNotExist:
-                print("Entity not found: ", delegation)
-            except Entity.MultipleObjectsReturned:
+            except Provider.DoesNotExist:
+                print("Provider not found: ", delegation)
+            except Provider.MultipleObjectsReturned:
                 print("Multiple entities found: ", delegation)
         delegation.save()
 
@@ -99,9 +99,9 @@ def categorize_clean_functions():
 
 
 def assign_entity_to_data_files():
-    from geo.models import Entity
+    from geo.models import Provider
     from respond.models import DataFile
-    all_entities = Entity.objects.all()
+    all_entities = Provider.objects.all()
     for entity in all_entities:
         data_files = DataFile.objects.filter(
             petition_file_control__petition__agency__entity=entity)
@@ -109,7 +109,7 @@ def assign_entity_to_data_files():
 
 
 def assign_entity_to_month_agency():
-    from geo.models import Entity, Agency
+    from geo.models import Provider, Agency
     from inai.models import EntityMonth
     all_agencies = Agency.objects.all()
     for agency in all_agencies:
@@ -160,8 +160,8 @@ def replace_petition_month_by_months_agency():
 
 def delete_duplicates_months_agency():
     from inai.models import EntityMonth
-    from geo.models import Entity
-    all_entities = Entity.objects.all()
+    from geo.models import Provider
+    all_entities = Provider.objects.all()
     for entity in all_entities:
         all_months_agency = EntityMonth.objects.filter(entity=entity)
         year_months = all_months_agency.order_by("year_month").distinct(
@@ -179,8 +179,8 @@ def delete_duplicates_months_agency():
 
 def delete_duplicates_entity_weeks():
     from inai.models import EntityWeek
-    from geo.models import Entity
-    all_entities = Entity.objects.all()
+    from geo.models import Provider
+    all_entities = Provider.objects.all()
     for entity in all_entities:
         all_entity_weeks = EntityWeek.objects.filter(entity=entity)
         year_weeks = all_entity_weeks\
@@ -250,14 +250,14 @@ def save_entity_months():
 
 
 def assign_entity_to_delegations():
-    from inai.models import Entity
+    from inai.models import Provider
     from geo.models import Delegation
     all_delegations = Delegation.objects.filter(
         entity__isnull=True, is_clues=False)
     for delegation in all_delegations:
         institution = delegation.institution
         try:
-            entity = Entity.objects.get(institution=institution)
+            entity = Provider.objects.get(institution=institution)
             delegation.entity = entity
             delegation.save()
         except Exception as e:

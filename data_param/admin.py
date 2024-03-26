@@ -172,7 +172,7 @@ class FileControlAdmin(admin.ModelAdmin):
         "status_register",
     ]
     list_filter = ["data_group", "petition_file_control__petition__agency"]
-    raw_id_fields = ["real_entity", "agency", "status_register"]
+    raw_id_fields = ["real_provider", "agency", "status_register"]
     inlines = [
         NameColumnInline,
         PetitionFileControlInline,

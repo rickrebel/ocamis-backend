@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from geo.models import (
     State, Institution, CLUES, Municipality, Agency,
-    Entity, Delegation)
+    Provider, Delegation)
 from task.api.serializers import CutOffSerializer
 # from report.api.serializers import ResponsableListSerializer
 # from inai.models import EntityMonth
@@ -67,7 +67,7 @@ class EntityCatSerializer(serializers.ModelSerializer):
     cut_offs = CutOffSerializer(many=True)
 
     class Meta:
-        model = Entity
+        model = Provider
         fields = [
             "id", "institution", "state", "clues", "name", "entity_type",
             "acronym", "notes", "assigned_to", "status_opera", "cut_offs",
@@ -77,7 +77,7 @@ class EntityCatSerializer(serializers.ModelSerializer):
 class EntitySerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Entity
+        model = Provider
         fields = "__all__"
         read_only_fields = ["name", "acronym"]
 
@@ -154,7 +154,7 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
             "data_group", "columns", "columns__column_transformations"]
         if obj.is_indirect:
             queryset = FileControl.objects\
-                .filter(real_entity=obj)\
+                .filter(real_provider=obj)\
                 .distinct()\
                 .order_by("data_group", "id")\
                 .prefetch_related(*prefetch_related)
@@ -167,7 +167,7 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
         return FileControlSemiFullSerializer(queryset, many=True).data
 
     class Meta:
-        model = Entity
+        model = Provider
         fields = ["file_controls"]
 
 
@@ -266,7 +266,7 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
             "agency", "file_controls", "negative_reasons", "break_dates"]
         if obj.is_indirect:
             petitions = Petition.objects\
-                .filter(real_entity=obj)\
+                .filter(real_provider=obj)\
                 .prefetch_related(*prefetch_related)
         else:
             petitions = Petition.objects\
@@ -282,7 +282,7 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
         return calc_drugs_summarize(obj)
 
     class Meta:
-        model = Entity
+        model = Provider
         fields = "__all__"
 
 

@@ -8,7 +8,7 @@ from api.mixins import (
     MultiSerializerListRetrieveMix as ListRetrieveMix)
 from core.api.views import StandardResultsSetPagination
 
-from geo.models import Institution, State, CLUES, Agency, Entity
+from geo.models import Institution, State, CLUES, Agency, Provider
 
 
 class StateViewSet(ListRetrieveUpdateMix):
@@ -23,7 +23,7 @@ class StateViewSet(ListRetrieveUpdateMix):
 
 class EntityVizViewSet(ListRetrieveMix):
     permission_classes = (permissions.AllowAny,)
-    queryset = Entity.objects.all()
+    queryset = Provider.objects.all()
     serializer_class = serializers.EntitySerializer
 
     @action(methods=["get"], detail=True, url_path='delegation')
@@ -39,7 +39,7 @@ class EntityVizViewSet(ListRetrieveMix):
 class EntityViewSet(ListRetrieveUpdateMix):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.EntitySerializer
-    queryset = Entity.objects.all()
+    queryset = Provider.objects.all()
 
     action_serializers = {
         "retrieve": serializers.EntityFullSerializer,

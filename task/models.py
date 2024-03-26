@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from inai.models import (
     Petition, EntityMonth, EntityWeek, )
 from respond.models import ReplyFile, DataFile, SheetFile, TableFile
-from geo.models import Entity
+from geo.models import Provider
 from data_param.models import FileControl
 from classify_task.models import StatusTask, TaskFunction, Stage
 from category.models import StatusControl
@@ -21,7 +21,7 @@ class AsyncTask(models.Model):
         blank=True, null=True, on_delete=models.CASCADE)
 
     entity = models.ForeignKey(
-        Entity, related_name="async_tasks",
+        Provider, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     file_control = models.ForeignKey(
         FileControl, related_name="async_tasks",
@@ -203,7 +203,7 @@ class FilePath(models.Model):
 
 class CutOff(models.Model):
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE,
+        Provider, on_delete=models.CASCADE,
         verbose_name="Entidad", related_name="cut_offs")
     last_entity_month = models.ForeignKey(
         EntityMonth, on_delete=models.CASCADE,

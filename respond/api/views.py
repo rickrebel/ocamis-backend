@@ -77,8 +77,8 @@ class AscertainableViewSet(CreateRetrieveView):
 
         data_file = request.data
         pfc = PetitionFileControl.objects.get(id=petition_file_control_id)
-        if pfc.file_control.real_entity:
-            data_file["entity"] = pfc.file_control.real_entity_id
+        if pfc.file_control.real_provider:
+            data_file["entity"] = pfc.file_control.real_provider_id
         else:
             agency_id = request.data.get("agency_id")
             agency = Agency.objects.get(id=agency_id)

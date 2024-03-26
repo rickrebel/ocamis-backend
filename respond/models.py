@@ -4,7 +4,7 @@ from django.db.models import JSONField
 from category.models import FileType, StatusControl
 from classify_task.models import Stage, StatusTask
 from data_param.models import Collection
-from geo.models import Entity, Delegation
+from geo.models import Provider, Delegation
 from respond.data_file_mixins.explore_mix import ExploreMix
 from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
@@ -67,7 +67,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
     entity = models.ForeignKey(
-        Entity, related_name="data_files", on_delete=models.CASCADE,
+        Provider, related_name="data_files", on_delete=models.CASCADE,
         blank=True, null=True)
     # zip_path = models.TextField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
@@ -302,7 +302,7 @@ class SheetFile(models.Model):
 
 class CrossingSheet(models.Model):
     # entity = models.ForeignKey(
-    #     Entity, related_name="crossing_sheets", on_delete=models.CASCADE)
+    #     Provider, related_name="crossing_sheets", on_delete=models.CASCADE)
     sheet_file_1 = models.ForeignKey(
         SheetFile, related_name="crossing_1", on_delete=models.CASCADE)
     sheet_file_2 = models.ForeignKey(
@@ -383,7 +383,7 @@ class TableFile(models.Model):
         LapSheet, related_name="table_files", on_delete=models.CASCADE,
         blank=True, null=True)
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True,
+        Provider, on_delete=models.CASCADE, blank=True, null=True,
         related_name="table_files")
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE, blank=True, null=True)

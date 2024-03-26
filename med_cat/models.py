@@ -3,14 +3,14 @@ import hashlib
 
 from django.db import models
 
-from geo.models import Institution, Delegation, Entity, Typology, CLUES
+from geo.models import Institution, Delegation, Provider, Typology, CLUES
 from medicine.models import Component, Presentation, Container
 
 
 class MedicalUnit(models.Model):
     hex_hash = models.CharField(max_length=32, primary_key=True)
     entity = models.ForeignKey(
-        Entity, verbose_name="Entity", on_delete=models.CASCADE)
+        Provider, verbose_name="Provider", on_delete=models.CASCADE)
     delegation = models.ForeignKey(
         Delegation, verbose_name="Delegación",
         on_delete=models.CASCADE, blank=True, null=True)
@@ -49,7 +49,7 @@ class MedicalUnit(models.Model):
 class Area(models.Model):
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
+    entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(
@@ -76,7 +76,7 @@ class Doctor(models.Model):
     from geo.models import Institution, Delegation
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    entity = models.ForeignKey(Entity, on_delete=models.CASCADE)
+    entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(
@@ -118,7 +118,7 @@ class Medicament(models.Model):
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True,
+        Provider, on_delete=models.CASCADE, blank=True, null=True,
         help_text="ent")
     # ⚠️ No mover los campos de arriba
     component = models.ForeignKey(

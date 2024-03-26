@@ -1,17 +1,17 @@
 from inai.models import EntityMonth, EntityWeek
-from geo.models import Entity
+from geo.models import Provider
 
 
 class WeeksGenerator:
 
-    def __init__(self, year: int = None, entity: Entity = None):
+    def __init__(self, year: int = None, entity: Provider = None):
         from datetime import datetime
         current_year = datetime.now().year
         self.years = [year] if year else range(2017, current_year + 1)
         self.entity = entity
         self.all_months = []
 
-        self.entities = Entity.objects.all()
+        self.entities = Provider.objects.all()
         self.entity_months = EntityMonth.objects.all()
         self.entity_weeks = EntityWeek.objects.all()
         if entity:
@@ -35,7 +35,7 @@ class WeeksGenerator:
                     self.all_months.append(current_month)
         return self.all_months
 
-    def get_all_weeks(self, entity: Entity = None) -> list:
+    def get_all_weeks(self, entity: Provider = None) -> list:
         if not entity:
             return self.generic_weeks
         if not entity.split_by_delegation:

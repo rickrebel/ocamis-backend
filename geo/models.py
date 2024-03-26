@@ -111,7 +111,7 @@ class Typology(models.Model):
         db_table = 'geo_typology'
 
 
-class Entity(models.Model):
+class Provider(models.Model):
     name = models.CharField(
         max_length=255, verbose_name="Nombre de la entidad")
     acronym = models.CharField(
@@ -170,7 +170,7 @@ class Entity(models.Model):
         from inai.models import EntityMonth
         from scripts.ocamis_verified.initial_fields import WeeksGenerator
         self_created = True if self.pk is None else False
-        super(Entity, self).save(*args, **kwargs)
+        super(Provider, self).save(*args, **kwargs)
         if self_created:
             weeks_gen = WeeksGenerator(entity=self)
             weeks_gen.generate_months()
@@ -183,6 +183,7 @@ class Entity(models.Model):
         ordering = ["state__name"]
         verbose_name = "Proveedor"
         verbose_name_plural = "Proveedores (Entities)"
+        db_table = 'geo_entity'
 
 
 class CLUES(models.Model):
@@ -191,7 +192,7 @@ class CLUES(models.Model):
     institution = models.ForeignKey(
         Institution, on_delete=models.CASCADE)
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True,
+        Provider, on_delete=models.CASCADE, blank=True, null=True,
         related_name="ent_clues")
     # institution = models.IntegerField()
     name = models.CharField(
@@ -314,7 +315,7 @@ class CLUES(models.Model):
 class Delegation(models.Model):
     # RICK 21 Convertir esto en obligatorio
     entity = models.ForeignKey(
-        Entity, verbose_name="Entidad", related_name="delegations",
+        Provider, verbose_name="Entidad", related_name="delegations",
         on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=255, verbose_name="Nombre")
     jurisdiction_key = models.CharField(
@@ -368,7 +369,7 @@ class Jurisdiction(models.Model):
 class Agency(models.Model):
 
     entity = models.ForeignKey(
-        Entity, verbose_name="Entidad",
+        Provider, verbose_name="Entidad",
         on_delete=models.CASCADE, blank=True, null=True,
         related_name="agencies")
     name = models.CharField(

@@ -5,7 +5,7 @@ from django.db.models import JSONField
 
 from category.models import ColumnType, FileFormat, StatusControl
 from transparency.models import Anomaly
-from geo.models import Institution, Delegation, Agency, Entity
+from geo.models import Institution, Delegation, Agency, Provider
 
 
 class DataGroup(models.Model):
@@ -125,8 +125,8 @@ class FileControl(models.Model):
     agency = models.ForeignKey(
         Agency, on_delete=models.CASCADE,
         verbose_name="Entidad", blank=True, null=True)
-    real_entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE,
+    real_provider = models.ForeignKey(
+        Provider, on_delete=models.CASCADE,
         verbose_name="Proveedor real", blank=True, null=True)
     # format_file = models.CharField(
     #     max_length=5, choices=FORMAT_CHOICES, null=True, blank=True)
@@ -165,15 +165,15 @@ class FileControl(models.Model):
     def save(self, *args, **kwargs):
         from respond.models import TableFile
         from respond.models import DataFile
-        final_real_entity = kwargs.get('real_entity', None)
-        if final_real_entity != self.real_entity:
+        final_real_provider = kwargs.get('real_provider', None)
+        if final_real_provider != self.real_provider:
             data_files = DataFile.objects.filter(
                 petition_file_control__file_control=self)
             table_files = TableFile.objects.filter(
                 lap_sheet__sheet_file__data_file__petition_file_control__file_control=self)
-            if final_real_entity is not None:
-                data_files.update(entity=final_real_entity)
-                table_files.update(entity=final_real_entity)
+            if final_real_provider is not None:
+                data_files.update(entity=final_real_provider)
+                table_files.update(entity=final_real_provider)
             else:
                 data_files.update(entity=self.agency.entity)
                 table_files.update(entity=self.agency.entity)
@@ -282,7 +282,7 @@ class FinalField(models.Model):
 
 class DictionaryFile(models.Model):
     entity = models.ForeignKey(
-        Entity, on_delete=models.CASCADE, blank=True, null=True)
+        Provider, on_delete=models.CASCADE, blank=True, null=True)
     # institution = models.ForeignKey(
     #     Institution, on_delete=models.CASCADE, blank=True, null=True)
     # delegation = models.ForeignKey(

@@ -6,7 +6,7 @@ is_managed = not is_big_active
 
 
 class MotherDrugPriority(models.Model):
-    from geo.models import CLUES, Delegation, Entity
+    from geo.models import CLUES, Delegation, Provider
     from inai.models import EntityWeek
     from medicine.models import Container
     delegation = models.ForeignKey(
@@ -36,7 +36,7 @@ class MotherDrugPriority(models.Model):
 
 
 class MotherDrug(models.Model):
-    from geo.models import CLUES, Delegation, Entity
+    from geo.models import CLUES, Delegation, Provider
     from inai.models import EntityWeek
     from medicine.models import Container
     key = models.CharField(max_length=255, primary_key=True, db_column="key")
@@ -66,7 +66,7 @@ class MotherDrug(models.Model):
 
 
 # class MotherDrugExtended(models.Model):
-#     from geo.models import Delegation, Entity
+#     from geo.models import Delegation, Provider
 #     from inai.models import EntityWeek
 #     from medicine.models import Component, Presentation, Container
 #     delegation = models.ForeignKey(
@@ -74,7 +74,7 @@ class MotherDrug(models.Model):
 #     iso_year = models.PositiveSmallIntegerField(db_column="iso_year")
 #     iso_week = models.PositiveSmallIntegerField(db_column="iso_week")
 #     entity = models.ForeignKey(
-#         Entity, on_delete=models.DO_NOTHING, db_column="entity_id")
+#         Provider, on_delete=models.DO_NOTHING, db_column="entity_id")
 #     component = models.ForeignKey(
 #         Component, on_delete=models.DO_NOTHING, db_column="component_id")
 #     presentation = models.ForeignKey(
@@ -97,7 +97,7 @@ class MotherDrug(models.Model):
 
 
 class MotherDrugTotals(models.Model):
-    from geo.models import CLUES, Delegation, Entity
+    from geo.models import CLUES, Delegation, Provider
     from inai.models import EntityWeek
     clues = models.ForeignKey(
         CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
