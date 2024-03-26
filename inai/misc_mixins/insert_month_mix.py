@@ -1,5 +1,5 @@
 from django.conf import settings
-from inai.models import EntityMonth, EntityWeek
+from inai.models import MonthRecord, WeekRecord
 from respond.models import LapSheet
 from task.serverless import async_in_lambda
 
@@ -35,12 +35,12 @@ def build_alternative_query(model_in_db, columns_join):
 
 class InsertMonth:
 
-    def __init__(self, entity_month: EntityMonth, task_params=None):
+    def __init__(self, month_record: MonthRecord, task_params=None):
         from respond.data_file_mixins.matches_mix import (
             get_models_of_app, field_of_models)
         self.task_params = task_params
-        self.entity_month = entity_month
-        self.entity = self.entity_month.provider
+        self.month_record = month_record
+        self.entity = self.month_record.provider
         self.editable_models = get_models_of_app("med_cat")
         self.editable_models += get_models_of_app("formula")
         self.model_fields = {model["model"]: field_of_models(model)
@@ -62,12 +62,12 @@ class InsertMonth:
         self.base_models = [model for model in self.editable_models
                             if model["model"] in self.base_models_names]
 
-    def merge_week_base_tables(self, entity_week: EntityWeek, week_table_files: list):
+    def merge_week_base_tables(self, week_record: WeekRecord, week_table_files: list):
         fields_in_name = ["iso_year", "iso_week", "year", "month"]
-        complement_name = "_".join([str(getattr(entity_week, field))
+        complement_name = "_".join([str(getattr(week_record, field))
                                     for field in fields_in_name])
-        iso_delegation = entity_week.iso_delegation.id if \
-            entity_week.iso_delegation else 0
+        iso_delegation = week_record.iso_delegation.id if \
+            week_record.iso_delegation else 0
         only_name = (
             f"NEW_ELEM_NAME/NEW_ELEM_NAME_by_week_{complement_name}_"
             f"{str(iso_delegation)}.csv")
@@ -79,11 +79,11 @@ class InsertMonth:
             #     week_table_files, many=True).data,
             "week_table_files": week_table_files,
             "final_path": final_path,
-            "entity_week_id": entity_week.id,
+            "week_record_id": week_record.id,
         }
         current_task_params = self.task_params.copy()
-        current_task_params["models"] = [entity_week, self.entity_month]
-        current_task_params["entity_week_id"] = entity_week.id
+        current_task_params["models"] = [week_record, self.month_record]
+        current_task_params["week_record_id"] = week_record.id
         current_task_params["function_after"] = "save_merged_from_aws"
         return async_in_lambda("build_week_csvs", params, current_task_params)
 
@@ -128,18 +128,18 @@ class InsertMonth:
         return queries_by_model
 
     def send_base_tables_to_db(
-            self, entity_week: EntityWeek, table_files: list):
+            self, week_record: WeekRecord, table_files: list):
         first_query = f"""
             SELECT last_pre_insertion IS NOT NULL AS last_pre_insertion
             FROM public.inai_entityweek
-            WHERE id = {entity_week.id}
+            WHERE id = {week_record.id}
         """
         last_query = f"""
             UPDATE public.inai_entityweek
             SET last_pre_insertion = now()
-            WHERE id = {entity_week.id}
+            WHERE id = {week_record.id}
         """
-        temp_complement = self.entity_month.temp_table
+        temp_complement = self.month_record.temp_table
         main_queries = self.build_query_tables(table_files, temp_complement)
         table_files_ids = [table_file.id for table_file in table_files]
         params = {
@@ -147,13 +147,13 @@ class InsertMonth:
             "last_query": last_query,
             "queries_by_model": main_queries,
             "db_config": ocamis_db,
-            "entity_month_id": self.entity_month.id,
-            "entity_week_id": entity_week.id,
+            "month_record_id": self.month_record.id,
+            "week_record_id": week_record.id,
             "table_files_ids": table_files_ids,
         }
         # self.task_params["function_after"] = "check_success_insert"
         current_task_params = self.task_params.copy()
-        current_task_params["models"] = [entity_week, self.entity_month]
+        current_task_params["models"] = [week_record, self.month_record]
         # current_task_params["params_after"] = {
         #     "table_files_ids": [table_file.id for table_file in table_files],
         # }
@@ -178,10 +178,10 @@ class InsertMonth:
         current_task_params["models"] = [
             lap_sheet.sheet_file,
             lap_sheet.sheet_file.data_file,
-            self.entity_month]
+            self.month_record]
         if inserted_field == "missing_inserted":
             function_name = "save_lap_missing_tables"
-            temp_complement = self.entity_month.temp_table
+            temp_complement = self.month_record.temp_table
             current_task_params["function_after"] = "check_success_insert"
             current_task_params["subgroup"] = "missing"
         elif inserted_field == "cat_inserted":

@@ -29,7 +29,7 @@ class TableFileInline(admin.StackedInline):
     model = TableFile
     extra = 0
     raw_id_fields = [
-        "provider", "lap_sheet", "entity_week", "iso_delegation", "collection"]
+        "provider", "lap_sheet", "week_record", "iso_delegation", "collection"]
     show_change_link = True
 
 
@@ -37,7 +37,7 @@ class SheetFileInline(admin.StackedInline):
     model = SheetFile
     extra = 0
     show_change_link = True
-    raw_id_fields = ["entity_months"]
+    raw_id_fields = ["month_records"]
 
 
 class NullFilterField(SimpleListFilter):
@@ -106,7 +106,7 @@ class SheetFileAdmin(admin.ModelAdmin):
         "file", "data_file__petition_file_control__petition__agency__acronym",
         "data_file__petition_file_control__petition__folio_petition"]
     inlines = [LapSheetInline]
-    raw_id_fields = ["data_file", "entity_months"]
+    raw_id_fields = ["data_file", "month_records"]
 
 
 class LapSheetAdmin(admin.ModelAdmin):
@@ -145,13 +145,13 @@ class TableFileAdmin(admin.ModelAdmin):
         "inserted", "provider__acronym", "collection", "year", "month",
         "iso_delegation"]
     search_fields = ["year_month", "year_week"]
-    raw_id_fields = ["provider", "lap_sheet", "entity_week", "iso_delegation"]
+    raw_id_fields = ["provider", "lap_sheet", "week_record", "iso_delegation"]
 
 
 class CrossingSheetAdmin(admin.ModelAdmin):
     list_display = [
-        "entity_week",
-        "entity_month",
+        "week_record",
+        "month_record",
         "duplicates_count",
         "shared_count",
         "last_crossing",
@@ -159,16 +159,16 @@ class CrossingSheetAdmin(admin.ModelAdmin):
         "sheet_file_2",
     ]
     list_filter = [
-        "entity_week__provider__acronym", "entity_week__year",
-        "entity_week__month", "entity_week__iso_delegation",
-        "entity_month__provider__acronym", "entity_month__year",
-        "entity_month__month"]
+        "week_record__provider__acronym", "week_record__year",
+        "week_record__month", "week_record__iso_delegation",
+        "month_record__provider__acronym", "month_record__year",
+        "month_record__month"]
     raw_id_fields = [
-        "entity_week", "sheet_file_1", "sheet_file_2", "entity_month"]
+        "week_record", "sheet_file_1", "sheet_file_2", "month_record"]
     search_fields = [
-        "entity_week__year_week", "entity_week__year_month",
-        "entity_month__year_month", "entity_month__provider__acronym",
-        "entity_week__provider__acronym", "entity_week__iso_delegation"]
+        "week_record__year_week", "week_record__year_month",
+        "month_record__year_month", "month_record__provider__acronym",
+        "week_record__provider__acronym", "week_record__iso_delegation"]
 
 
 class BehaviorAdmin(admin.ModelAdmin):

@@ -62,7 +62,7 @@ def calculate_special_function(special_function):
 def find_task_model(async_task):
     task_models = [
         "petition", "file_control", "reply_file", "sheet_file",
-        "data_file", "entity_week", "entity_month"]
+        "data_file", "week_record", "month_record"]
     for model in task_models:
         current_obj = getattr(async_task, model)
         if current_obj:
@@ -546,10 +546,10 @@ def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):
                 task.status_task_id = "finished"
                 task.save()
                 continue
-            if task.entity_week:
-                print("last_pre_insertion:", task.entity_week.last_pre_insertion)
+            if task.week_record:
+                print("last_pre_insertion:", task.week_record.last_pre_insertion)
             else:
-                print("no hay entity_week")
+                print("no hay week_record")
             print("-------------------------")
             new_task = task
             new_task.pk = None

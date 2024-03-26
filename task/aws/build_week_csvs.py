@@ -17,7 +17,7 @@ class BuildWeekAws:
     def __init__(self, event: dict, context):
 
         self.provider_id = event.get("provider_id")
-        self.entity_week_id = event.get("entity_week_id")
+        self.week_record_id = event.get("week_record_id")
         self.week_table_files = event.get("week_table_files", [])
         self.pos_uuid_folio = None
         self.pos_comp_drug = None
@@ -103,9 +103,9 @@ class BuildWeekAws:
                 self.positions[b_field] = row.index(b_field)
             self.headers["drug"] = row[:self.pos_uuid_folio]
             self.headers["drug"] = [field for field in self.headers["drug"]
-                                    if field != "entity_week_id"]
+                                    if field != "week_record_id"]
             self.len_drug = len(self.headers["drug"])
-            self.headers["drug"].append("entity_week_id")
+            self.headers["drug"].append("week_record_id")
             self.buffers["drug"].writerow(self.headers["drug"])
             self.headers["rx"] = row[self.pos_uuid_folio:self.pos_final_main]
             self.buffers["rx"].writerow(self.headers["rx"])
@@ -142,7 +142,7 @@ class BuildWeekAws:
             sheet_id, folio_ocamis, current_uuid, current_delivered = current_util
             self.drugs_count += 1
             current_drug = row[:self.len_drug]
-            current_drug.append(self.entity_week_id)
+            current_drug.append(self.week_record_id)
             current_comp_drug = None
             if self.pos_comp_drug:
                 current_comp_drug = row[self.pos_comp_drug:self.pos_final_comp_drug]

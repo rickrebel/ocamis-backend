@@ -37,9 +37,9 @@ def reverse_transform(only_count=False, entity=None, every_files=False):
 
 def reverse_insert(hard=False):
     from inai.models import (
-        EntityMonth)
+        MonthRecord)
     from respond.models import TableFile
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from respond.models import LapSheet
     from respond.models import DataFile
     from task.models import AsyncTask
@@ -52,17 +52,17 @@ def reverse_insert(hard=False):
     inserted_table_files.update(inserted=False)
     DataFile.objects.filter(stage_id="insert")\
         .update(stage_id="transform", status_id="finished")
-    EntityMonth.objects.filter(last_pre_insertion__isnull=False)\
+    MonthRecord.objects.filter(last_pre_insertion__isnull=False)\
         .update(last_pre_insertion=None)
-    EntityWeek.objects.filter(last_pre_insertion__isnull=False)\
+    WeekRecord.objects.filter(last_pre_insertion__isnull=False)\
         .update(last_pre_insertion=None)
-    EntityMonth.objects.filter(stage_id='pre_insert')\
+    MonthRecord.objects.filter(stage_id='pre_insert')\
         .update(stage_id='merge', status_id='finished')
-    EntityMonth.objects.filter(stage_id='insert')\
+    MonthRecord.objects.filter(stage_id='insert')\
         .update(stage_id='merge', status_id='finished')
-    # EntityMonth.objects.filter(last_merge__isnull=False)\
+    # MonthRecord.objects.filter(last_merge__isnull=False)\
     #     .update(last_merge=None)
-    # EntityWeek.objects.filter(last_merge__isnull=False)\
+    # WeekRecord.objects.filter(last_merge__isnull=False)\
     #     .update(last_merge=None)
     # SheetFile.objects.filter(behavior="merged").update(behavior="need_merge")
     if hard:
@@ -144,13 +144,13 @@ def upload_s3_files(local_file, s3_dir):
 def delete_bad_week(provider_id, year, month, iso_year, iso_week, iso_delegation):
     from datetime import datetime
     from django.db import connection
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     errors = []
-    entity_week = EntityWeek.objects.filter(
+    week_record = WeekRecord.objects.filter(
         provider_id=provider_id, year=year, month=month,
         iso_year=iso_year, iso_week=iso_week,
         iso_delegation=iso_delegation).first()
-    if not entity_week:
+    if not week_record:
         errors.append("No existe la semana")
         return None, errors
     cursor = connection.cursor()
@@ -173,7 +173,7 @@ def delete_bad_week(provider_id, year, month, iso_year, iso_week, iso_delegation
     drop_queries.append(query_1)
     query_2 = f"""
         DELETE FROM formula_drug
-        WHERE entity_week_id = {entity_week.id};
+        WHERE week_record_id = {week_record.id};
     """
     drop_queries.append(query_2)
     # for drop_query in drop_queries:
@@ -200,7 +200,7 @@ def delete_bad_week(provider_id, year, month, iso_year, iso_week, iso_delegation
 def delete_bad_month(year, month, provider_id=55):
     from datetime import datetime
     from django.db import connection
-    from inai.models import EntityMonth
+    from inai.models import MonthRecord
     errors = []
     cursor = connection.cursor()
     drop_queries = []
@@ -219,12 +219,12 @@ def delete_bad_month(year, month, provider_id=55):
     """
     drop_queries.append(query_1)
     year_month = f"{year}-{month:02}"
-    entity_m = EntityMonth.objects.get(
+    entity_m = MonthRecord.objects.get(
         provider_id=provider_id, year_month=year_month)
     all_weeks = entity_m.weeks.all().values_list("id", flat=True)
     query_2 = f"""
         DELETE FROM formula_drug
-        WHERE entity_week_id IN {tuple(all_weeks)}
+        WHERE week_record_id IN {tuple(all_weeks)}
     """
     drop_queries.append(query_2)
     sheet_files = entity_m.sheet_files.all().values_list("id", flat=True)

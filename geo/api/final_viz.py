@@ -20,7 +20,7 @@ def fetch_agencies(include_groups):
     # prefetch_petition_month = Prefetch(
     #     "petitions__petition_months",
     #     queryset=filter_petition_month)
-    # filter_month = EntityMonth.objects\
+    # filter_month = MonthRecord.objects\
     #     .filter(year_month__lte="2023-02")
     # prefetch_month = Prefetch("months", queryset=filter_month)
     filter_file_control = FileControl.objects\
@@ -42,7 +42,7 @@ def fetch_agencies(include_groups):
             "petitions__status_petition",
             # prefetch_petition_month,
             # "petitions__petition_months",
-            "petitions__entity_months",
+            "petitions__month_records",
             "petitions__negative_reasons",
             # "petitions__petition_months__month_agency",
             # prefetch_file_control,

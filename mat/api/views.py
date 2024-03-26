@@ -64,9 +64,9 @@ class DrugViewSet(ListRetrieveUpdateMix):
             # is_complex = is_total or bool(clues_id)
             is_complex = True
 
-            prefetches = ['entity_week'] if is_complex else []
+            prefetches = ['week_record'] if is_complex else []
 
-            prev_iso = "entity_week__" if is_complex else ""
+            prev_iso = "week_record__" if is_complex else ""
 
             first_values = {
                 'iso_week': f'{prev_iso}iso_week',

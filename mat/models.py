@@ -7,14 +7,14 @@ is_managed = not is_big_active
 
 class MotherDrugPriority(models.Model):
     from geo.models import CLUES, Delegation, Provider
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from medicine.models import Container
     delegation = models.ForeignKey(
         Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
     clues = models.ForeignKey(
         CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.DO_NOTHING, db_column="entity_week_id")
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.DO_NOTHING, db_column="entity_week_id")
     delivered = models.ForeignKey(
         Delivered, on_delete=models.DO_NOTHING, db_column="delivered_id")
     key = models.CharField(max_length=255, primary_key=True, db_column="key")
@@ -32,20 +32,20 @@ class MotherDrugPriority(models.Model):
 
     def __str__(self):
         return "%s -- %s -- %s -- %s" % (
-            self.entity_week, self.delivered, self.container, self.key)
+            self.week_record, self.delivered, self.container, self.key)
 
 
 class MotherDrug(models.Model):
     from geo.models import CLUES, Delegation, Provider
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from medicine.models import Container
     key = models.CharField(max_length=255, primary_key=True, db_column="key")
     clues = models.ForeignKey(
         CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
     delegation = models.ForeignKey(
         Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.DO_NOTHING, db_column="entity_week_id")
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.DO_NOTHING, db_column="entity_week_id")
     delivered = models.ForeignKey(
         Delivered, on_delete=models.DO_NOTHING, db_column="delivered_id")
     container = models.ForeignKey(
@@ -62,12 +62,12 @@ class MotherDrug(models.Model):
 
     def __str__(self):
         return "%s -- %s -- %s -- %s" % (
-            self.entity_week, self.delivered, self.container, self.key)
+            self.week_record, self.delivered, self.container, self.key)
 
 
 # class MotherDrugExtended(models.Model):
 #     from geo.models import Delegation, Provider
-#     from inai.models import EntityWeek
+#     from inai.models import WeekRecord
 #     from medicine.models import Component, Presentation, Container
 #     delegation = models.ForeignKey(
 #         Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
@@ -98,13 +98,13 @@ class MotherDrug(models.Model):
 
 class MotherDrugTotals(models.Model):
     from geo.models import CLUES, Delegation, Provider
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     clues = models.ForeignKey(
         CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
     delegation = models.ForeignKey(
         Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.DO_NOTHING, db_column="entity_week_id")
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.DO_NOTHING, db_column="entity_week_id")
     delivered = models.ForeignKey(
         Delivered, on_delete=models.DO_NOTHING, db_column="delivered_id")
     prescribed_total = models.IntegerField(db_column="prescribed")
@@ -119,4 +119,4 @@ class MotherDrugTotals(models.Model):
 
     def __str__(self):
         return "%s -- %s -- %s" % (
-            self.entity_week, self.delivered, self.clues)
+            self.week_record, self.delivered, self.clues)

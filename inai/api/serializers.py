@@ -2,8 +2,8 @@ from rest_framework import serializers
 
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
-    Petition, PetitionFileControl, EntityMonth, RequestTemplate, Variable,
-    PetitionBreak, PetitionNegativeReason, EntityWeek)
+    Petition, PetitionFileControl, MonthRecord, RequestTemplate, Variable,
+    PetitionBreak, PetitionNegativeReason, WeekRecord)
 from respond.api.serializers import ReplyFileSerializer, DataFileSerializer
 from respond.models import TableFile
 from data_param.models import Transformation, NameColumn, FileControl
@@ -26,13 +26,13 @@ class NameColumnEditSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class EntityMonthSerializer(serializers.ModelSerializer):
+class MonthRecordSerializer(serializers.ModelSerializer):
     # all_laps_inserted = serializers.SerializerMethodField(read_only=True)
     # def get_all_laps_inserted(self, obj):
     #     return obj.laps.filter(lap=0).first().all_laps_inserted
 
     class Meta:
-        model = EntityMonth
+        model = MonthRecord
         fields = [
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
@@ -41,14 +41,14 @@ class EntityMonthSerializer(serializers.ModelSerializer):
             "last_insertion", "stage", "status", "provider_id", "error_process"]
 
 
-class EntityMonthFullSerializer(serializers.ModelSerializer):
+class MonthRecordFullSerializer(serializers.ModelSerializer):
     drugs_counts = serializers.SerializerMethodField(read_only=True)
     behavior_counts = serializers.SerializerMethodField(read_only=True)
 
     def get_drugs_counts(self, obj):
         from geo.api.serializers import calc_drugs_summarize
         table_files = TableFile.objects.filter(
-            entity_week__entity_month=obj)
+            week_record__month_record=obj)
         # print("calc_drugs_summarize \n", calc_drugs_summarize(obj, table_files))
         if table_files:
             drugs_sum = calc_drugs_summarize(obj, table_files)
@@ -62,7 +62,7 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
         return calc_sheet_files_summarize(None, obj)
 
     class Meta:
-        model = EntityMonth
+        model = MonthRecord
         fields = [
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
@@ -71,17 +71,17 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
             "stage", "status", "drugs_counts", "provider_id"]
 
 
-class EntityMonthSimpleSerializer(serializers.ModelSerializer):
+class MonthRecordSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = EntityMonth
+        model = MonthRecord
         fields = ["year_month", "human_name"]
 
 
-class EntityWeekSimpleSerializer(serializers.ModelSerializer):
+class WeekRecordSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = EntityWeek
+        model = WeekRecord
         exclude = [
             "rx_count", "duplicates_count", "shared_count",
             "last_transformation", "last_crossing"]
@@ -167,7 +167,7 @@ class PetitionNegativeReasonSerializer(PetitionNegativeReasonSimpleSerializer):
 
 class PetitionSmallSerializer(serializers.ModelSerializer):
     # petition_months = PetitionMonthSerializer(many=True)
-    entity_months = EntityMonthSimpleSerializer(many=True)
+    month_records = MonthRecordSimpleSerializer(many=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)
     months_in_description = serializers.CharField(read_only=True)
@@ -212,7 +212,7 @@ class PetitionEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Petition
-        read_only_fields = ["id", "break_dates", "entity_months"]
+        read_only_fields = ["id", "break_dates", "month_records"]
         fields = "__all__"
 
 

@@ -1,5 +1,5 @@
 from respond.models import LapSheet, TableFile
-from inai.models import EntityWeek
+from inai.models import WeekRecord
 
 
 class FromAws:
@@ -10,7 +10,7 @@ class FromAws:
 
     def save_result_csv(self, result_files):
         from data_param.models import Collection
-        from inai.models import EntityMonth
+        from inai.models import MonthRecord
         from django.utils import timezone
 
         new_tasks = []
@@ -21,25 +21,25 @@ class FromAws:
             "year", "month", "year_month"]
         count_fields = ["drugs_count", "rx_count"]
         all_year_months = set()
-        all_entity_months = EntityMonth.objects.filter(entity=entity)\
+        all_month_records = MonthRecord.objects.filter(entity=entity)\
             .values("id", "year_month")
         values_to_weeks = optional_fields.copy()
-        values_to_weeks.extend(["entity_month_id"])
-        all_entity_weeks = EntityWeek.objects\
+        values_to_weeks.extend(["month_record_id"])
+        all_week_records = WeekRecord.objects\
             .filter(entity=entity).values(*["id"] + values_to_weeks)
-        dict_entity_weeks = {}
-        for entity_week in all_entity_weeks:
+        dict_week_records = {}
+        for week_record in all_week_records:
             concat_id = []
             for field in values_to_weeks:
-                concat_id.append(entity_week[field])
+                concat_id.append(week_record[field])
             string_id = "_".join([str(x) for x in concat_id])
-            dict_entity_weeks[string_id] = entity_week["id"]
+            dict_week_records[string_id] = week_record["id"]
 
         TableFile.objects\
             .filter(lap_sheet=self.lap_sheet, inserted=False)\
             .delete()
         new_table_files = []
-        entity_weeks_ids = []
+        week_records_ids = []
         for result_file in result_files:
             model_name = result_file.get("model")
             # print("model_name", model_name)
@@ -50,7 +50,7 @@ class FromAws:
             if not model_name:
                 year_month = result_file.get("year_month")
                 try:
-                    entity_month_id = all_entity_months.get(
+                    month_record_id = all_month_records.get(
                         year_month=year_month)["id"]
                 except Exception as e:
                     all_errors.append(
@@ -61,30 +61,30 @@ class FromAws:
                 for field in optional_fields:
                     value = result_file.get(field, None)
                     query_create_week[field] = value
-                    if field == "entity_month_id":
-                        concat_id.append(entity_month_id)
+                    if field == "month_record_id":
+                        concat_id.append(month_record_id)
                     else:
                         concat_id.append(value)
                         query_create[field] = value
                 for field in count_fields:
                     query_create[field] = result_file.get(field, 0)
                 string_id = "_".join([str(x) for x in concat_id])
-                entity_week_id = dict_entity_weeks.get(string_id, None)
-                if entity_week_id:
-                    entity_weeks_ids.append(entity_week_id)
+                week_record_id = dict_week_records.get(string_id, None)
+                if week_record_id:
+                    week_records_ids.append(week_record_id)
                 else:
                     query_create_week["provider"] = entity
-                    query_create_week["entity_month_id"] = entity_month_id
+                    query_create_week["month_record_id"] = month_record_id
                     try:
-                        entity_week, created = EntityWeek.objects.get_or_create(
+                        week_record, created = WeekRecord.objects.get_or_create(
                             **query_create_week)
-                        entity_week_id = entity_week.id
-                        entity_weeks_ids.append(entity_week_id)
+                        week_record_id = week_record.id
+                        week_records_ids.append(week_record_id)
                     except Exception as e:
                         all_errors.append(
                             f"Error al crear la semana {query_create_week} - {e}")
                         continue
-                query_create["entity_week_id"] = entity_week_id
+                query_create["week_record_id"] = week_record_id
             else:
                 collection = Collection.objects.get(model_name=model_name)
                 query_create["collection"] = collection
@@ -94,12 +94,12 @@ class FromAws:
 
         TableFile.objects.bulk_create(new_table_files)
 
-        EntityMonth.objects\
+        MonthRecord.objects\
             .filter(year_month__in=list(all_year_months), entity=entity)\
             .update(last_transformation=timezone.now())
 
-        EntityWeek.objects\
-            .filter(id__in=entity_weeks_ids, entity=entity)\
+        WeekRecord.objects\
+            .filter(id__in=week_records_ids, entity=entity)\
             .update(last_transformation=timezone.now())
 
         # return new_tasks, all_errors, all_new_files
@@ -107,7 +107,7 @@ class FromAws:
 
     def save_result_csv_prev(self, result_files):
         from data_param.models import Collection
-        from inai.models import TableFile, EntityMonth, EntityWeek
+        from inai.models import TableFile, MonthRecord, WeekRecord
         from django.utils import timezone
 
         all_new_files = []
@@ -139,14 +139,14 @@ class FromAws:
                 all_complex_dates.add(complex_date)
                 query_create_week = query_create.copy()
                 query_create_week["provider"] = entity
-                entity_month = EntityMonth.objects.filter(
+                month_record = MonthRecord.objects.filter(
                     year_month=year_month, entity=entity).first()
-                query_create_week["entity_month"] = entity_month
-                entity_week, created = EntityWeek.objects.get_or_create(
+                query_create_week["month_record"] = month_record
+                week_record, created = WeekRecord.objects.get_or_create(
                     **query_create_week)
-                entity_week.last_transformation = timezone.now()
-                entity_week.save()
-                query_create["entity_week"] = entity_week
+                week_record.last_transformation = timezone.now()
+                week_record.save()
+                query_create["week_record"] = week_record
             else:
                 collection = Collection.objects.get(model_name=model_name)
                 query_create["collection"] = collection
@@ -181,7 +181,7 @@ class FromAws:
         #     year_month = f"{year_gregorian}-{month:02d}"
         #     all_months.add(year_month)
 
-        EntityMonth.objects\
+        MonthRecord.objects\
             .filter(year_month__in=list(all_year_months), entity=entity)\
             .update(last_transformation=timezone.now())
 

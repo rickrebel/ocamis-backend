@@ -12,7 +12,7 @@ from inai.api.serializers import PetitionNegativeReasonSimpleSerializer
 
 # class PetitionMonthVizSerializer(serializers.RelatedField):
 #     def to_representation(self, value):
-#         return value.entity_month.year_month
+#         return value.month_record.year_month
 #
 
 class MonthAgencyVizSerializer(serializers.RelatedField):
@@ -20,7 +20,7 @@ class MonthAgencyVizSerializer(serializers.RelatedField):
         return value.year_month
 
 
-class EntityMonthVizSerializer(serializers.RelatedField):
+class MonthRecordVizSerializer(serializers.RelatedField):
     def to_representation(self, value):
         return value.year_month
 
@@ -146,7 +146,7 @@ class PetitionVizSerializer(serializers.ModelSerializer):
     # months = PetitionMonthVizSerializer(
     #     many=True, read_only=True, source="petition_months")
     months = MonthAgencyVizSerializer(
-        many=True, read_only=True, source="entity_months")
+        many=True, read_only=True, source="month_records")
 
     class Meta:
         model = Petition

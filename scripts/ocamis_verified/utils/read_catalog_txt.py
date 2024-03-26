@@ -110,12 +110,12 @@ def assign_provider_to_data_files():
 
 def assign_entity_to_month_agency():
     from geo.models import Provider, Agency
-    from inai.models import EntityMonth
+    from inai.models import MonthRecord
     all_agencies = Agency.objects.all()
     for agency in all_agencies:
         entity = agency.provider
         if entity:
-            month_agencies = EntityMonth.objects.filter(agency=agency)
+            month_agencies = MonthRecord.objects.filter(agency=agency)
             month_agencies.update(entity=entity)
 
 
@@ -137,13 +137,13 @@ def assign_year_month_to_sheet_files(provider_id):
 
 
 def add_line_to_year_months():
-    from inai.models import EntityMonth
+    from inai.models import MonthRecord
     from respond.models import SheetFile
-    all_year_months = EntityMonth.objects.values_list(
+    all_year_months = MonthRecord.objects.values_list(
         "year_month", flat=True).distinct()
     for year_month in all_year_months:
         new_ym = year_month[:4] + "-" + year_month[4:]
-        month_agencies = EntityMonth.objects.filter(year_month=year_month)
+        month_agencies = MonthRecord.objects.filter(year_month=year_month)
         month_agencies.update(year_month=new_ym)
         sheet_files = SheetFile.objects.filter(year_month=year_month)
         sheet_files.update(year_month=new_ym)
@@ -154,22 +154,22 @@ def replace_petition_month_by_months_agency():
     all_petitions = Petition.objects.all()
     for petition in all_petitions:
         month_agencies_ids = petition.petition_months.values_list(
-            "entity_month_id", flat=True)
-        petition.entity_months.set(month_agencies_ids)
+            "month_record_id", flat=True)
+        petition.month_records.set(month_agencies_ids)
 
 
 def delete_duplicates_months_agency():
-    from inai.models import EntityMonth
+    from inai.models import MonthRecord
     from geo.models import Provider
     all_providers = Provider.objects.all()
     for provider in all_providers:
-        all_months_agency = EntityMonth.objects.filter(entity=provider)
+        all_months_agency = MonthRecord.objects.filter(entity=provider)
         year_months = all_months_agency.order_by("year_month").distinct(
             "year_month")
         year_months = year_months.values_list(
             "year_month", flat=True)
         for year_month in list(year_months):
-            month_agencies = EntityMonth.objects.filter(
+            month_agencies = MonthRecord.objects.filter(
                 entity=provider, year_month=year_month)
             month_agencies = month_agencies.order_by("-id")
             first_month_agency = month_agencies.first()
@@ -177,24 +177,24 @@ def delete_duplicates_months_agency():
                 month_agencies.exclude(id=first_month_agency.id).delete()
 
 
-def delete_duplicates_entity_weeks():
-    from inai.models import EntityWeek
+def delete_duplicates_week_records():
+    from inai.models import WeekRecord
     from geo.models import Provider
     all_providers = Provider.objects.all()
     for provider in all_providers:
-        all_entity_weeks = EntityWeek.objects.filter(entity=provider)
-        year_weeks = all_entity_weeks\
+        all_week_records = WeekRecord.objects.filter(entity=provider)
+        year_weeks = all_week_records\
             .order_by("year_week", "year_month", "iso_delegation")\
             .distinct("year_week", "year_month", "iso_delegation")\
             .values_list("year_week", "year_month", "iso_delegation")
         for year_week, year_month, iso_delegation in list(year_weeks):
-            entity_weeks = EntityWeek.objects.filter(
+            week_records = WeekRecord.objects.filter(
                 entity=provider, year_week=year_week,
                 year_month=year_month, iso_delegation=iso_delegation)
-            entity_weeks = entity_weeks.order_by("-id")
-            first_entity_week = entity_weeks.first()
-            if entity_weeks.count() > 1:
-                entity_weeks.exclude(id=first_entity_week.id).delete()
+            week_records = week_records.order_by("-id")
+            first_week_record = week_records.first()
+            if week_records.count() > 1:
+                week_records.exclude(id=first_week_record.id).delete()
 
 
 def collection_to_snake_name():
@@ -204,17 +204,17 @@ def collection_to_snake_name():
         collection.save()
 
 
-def assign_year_week_to_entity_weeks():
+def assign_year_week_to_week_records():
     from respond.models import TableFile
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from respond.models import CrossingSheet
-    all_entity_weeks = EntityWeek.objects.all()
-    for entity_week in all_entity_weeks:
-        iso_week = entity_week.iso_week
-        iso_year = entity_week.iso_year
+    all_week_records = WeekRecord.objects.all()
+    for week_record in all_week_records:
+        iso_week = week_record.iso_week
+        iso_year = week_record.iso_year
         year_week = f"{iso_year}-{iso_week:02d}"
-        entity_week.year_week = year_week
-        entity_week.save()
+        week_record.year_week = year_week
+        week_record.save()
     all_table_files = TableFile.objects.filter(iso_week__isnull=False)
     for table_file in all_table_files:
         iso_week = table_file.iso_week
@@ -224,28 +224,28 @@ def assign_year_week_to_entity_weeks():
         table_file.save()
 
 
-def assign_year_month_to_entity_months():
-    from inai.models import EntityMonth
-    all_entity_months = EntityMonth.objects.all()
-    for entity_month in all_entity_months:
-        year_month = entity_month.year_month
+def assign_year_month_to_month_records():
+    from inai.models import MonthRecord
+    all_month_records = MonthRecord.objects.all()
+    for month_record in all_month_records:
+        year_month = month_record.year_month
         year, month = year_month.split("-")
-        entity_month.year = year
-        entity_month.month = month
-        entity_month.save()
+        month_record.year = year
+        month_record.month = month
+        month_record.save()
 
 
-def save_entity_months():
-    from inai.models import EntityMonth
+def save_month_records():
+    from inai.models import MonthRecord
     from respond.models import SheetFile
     all_sheet_files = SheetFile.objects.filter(
-        entity_months__isnull=True, year_month__isnull=False)
+        month_records__isnull=True, year_month__isnull=False)
     for sheet_file in all_sheet_files:
         try:
-            entity_month = EntityMonth.objects.get(
+            month_record = MonthRecord.objects.get(
                 entity=sheet_file.data_file.provider, year_month=sheet_file.year_month)
-            sheet_file.entity_months.add(entity_month)
-        except EntityMonth.DoesNotExist:
+            sheet_file.month_records.add(month_record)
+        except MonthRecord.DoesNotExist:
             print("year_month does not exist", sheet_file.year_month)
 
 
@@ -274,15 +274,15 @@ def move_sheets_to_status(file_control_id):
 
 
 def analyze_every_months(provider_id):
-    from inai.misc_mixins.entity_month_mix import FromAws
-    from inai.models import EntityMonth
-    all_months = EntityMonth.objects.filter(provider_id=provider_id)
+    from inai.misc_mixins.month_record_mix import FromAws
+    from inai.models import MonthRecord
+    all_months = MonthRecord.objects.filter(provider_id=provider_id)
     for month in all_months:
         from_aws = FromAws(month)
         from_aws.save_month_analysis_prev()
 
 
-def send_entity_weeks_to_rebuild(limit=None):
+def send_week_records_to_rebuild(limit=None):
     import time
     from scripts.common import build_s3
     # from task.views import build_task_params
@@ -293,20 +293,20 @@ def send_entity_weeks_to_rebuild(limit=None):
     drug_collection = Collection.objects.get(model_name="Drug")
     # all_table_files = TableFile.objects.filter(
     #     collection=drug_collection,
-    #     entity_week__isnull=False,
+    #     week_record__isnull=False,
     #     drugs_count=0)
     all_table_files = TableFile.objects.filter(
         collection=drug_collection,
-        entity_week__isnull=False,
-        entity_week_id__in=[31002, 36680],
-        # entity_week__entity_month_id=470,
+        week_record__isnull=False,
+        week_record_id__in=[31002, 36680],
+        # week_record__month_record_id=470,
         # drugs_count=1,
         # drugs_count__gt=0,
-        # entity_week__async_tasks__errors__icontains="extra data after last expected"
+        # week_record__async_tasks__errors__icontains="extra data after last expected"
     )\
         .distinct()
-    # .exclude(entity_week__async_tasks__task_function_id="rebuild_week_csv")\
-    # entity_week__async_tasks__task_function_id=True)
+    # .exclude(week_record__async_tasks__task_function_id="rebuild_week_csv")\
+    # week_record__async_tasks__task_function_id=True)
     if limit:
         all_table_files = all_table_files[:limit]
     print("table_files", all_table_files.count())
@@ -316,22 +316,22 @@ def send_entity_weeks_to_rebuild(limit=None):
     #         self.user = User.objects.get(username="rickrebel@gmail.com")
     # request = RequestClass()
     # key_task, task_params = build_task_params(
-    #     entity_week, "rebuild_week_csv", request)
+    #     week_record, "rebuild_week_csv", request)
     for table_file in all_table_files:
-        entity_week = table_file.entity_week
-        if entity_week:
+        week_record = table_file.week_record
+        if week_record:
             params = {
                 "final_path": table_file.file.name,
                 "s3": build_s3(),
-                "entity_week_id": entity_week.id,
+                "week_record_id": week_record.id,
             }
             task_params = {
-                "models": [entity_week]
+                "models": [week_record]
             }
             async_in_lambda("rebuild_week_csv", params, task_params)
 
 
-# send_entity_weeks_to_rebuild()
+# send_week_records_to_rebuild()
 
 
 def delete_duplicate_table_files():
@@ -339,20 +339,20 @@ def delete_duplicate_table_files():
     # from data_param.models import Collection
     all_table_files = TableFile.objects\
         .filter(
-            drugs_count=0, entity_week__isnull=False,
+            drugs_count=0, week_record__isnull=False,
             collection__isnull=False)\
-        .prefetch_related("entity_week", "entity_week__entity")
+        .prefetch_related("week_record", "week_record__entity")
     print("all_table_files", all_table_files.count())
     for table_file in all_table_files:
-        if table_file.provider != table_file.entity_week.provider:
+        if table_file.provider != table_file.week_record.provider:
             table_file.delete()
 
 
-def delete_table_files_without_entity_week():
+def delete_table_files_without_week_record():
     from respond.models import TableFile
     all_table_files = TableFile.objects\
         .filter(
-            entity_week__isnull=True,
+            week_record__isnull=True,
             collection__isnull=False)
     print("all_table_files", all_table_files.count())
     # !!!! ERROOOOOOR
@@ -365,52 +365,52 @@ def sum_one_to_drug_table_files():
     drug_collection = Collection.objects.get(model_name="Drug")
     all_table_files = TableFile.objects.filter(
         collection=drug_collection,
-        entity_week__isnull=False)
+        week_record__isnull=False)
     for table_file in all_table_files:
         table_file.drugs_count = table_file.drugs_count + 1
         table_file.save()
 
 
-def delete_entity_weeks_with_zero():
+def delete_week_records_with_zero():
     from respond.models import TableFile
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from data_param.models import Collection
     drug_collection = Collection.objects.get(model_name="Drug")
     need_delete = 0
     table_files = TableFile.objects.filter(
-        drugs_count=0, entity_week__isnull=False,
+        drugs_count=0, week_record__isnull=False,
         collection=drug_collection)
     for table_file in table_files:
-        entity_week = table_file.entity_week
+        week_record = table_file.week_record
         avoid = False
-        if entity_week.last_transformation and entity_week.last_crossing:
-            if entity_week.last_transformation < entity_week.last_crossing:
+        if week_record.last_transformation and week_record.last_crossing:
+            if week_record.last_transformation < week_record.last_crossing:
                 avoid = True
         if not avoid:
-            table_files = entity_week.table_files.all()
+            table_files = week_record.table_files.all()
             if table_files.count() != 2:
-                print("entity_week_id", entity_week.id)
+                print("week_record_id", week_record.id)
                 print("count", table_files.count())
             else:
                 need_delete += 1
-                # print("entity_week_id", entity_week.id)
+                # print("week_record_id", week_record.id)
                 # table_files.delete()
     print("need_delete", need_delete)
 
 
-def rebuild_entity_weeks():
-    from inai.models import EntityMonth
-    from inai.models import EntityWeek
+def rebuild_week_records():
+    from inai.models import MonthRecord
+    from inai.models import WeekRecord
     from django.db.models import Sum
     sum_fields = [
         "drugs_count", "rx_count", "duplicates_count", "shared_count"]
     # SPACE
-    def recalculate_entity_month(entity_month):
+    def recalculate_month_record(month_record):
         query_sums = [Sum(field) for field in sum_fields]
-        result_sums = entity_month.weeks.all().aggregate(*query_sums)
+        result_sums = month_record.weeks.all().aggregate(*query_sums)
         for field_1 in sum_fields:
-            setattr(entity_month, field_1, result_sums[field_1 + "__sum"])
-        entity_month.save()
+            setattr(month_record, field_1, result_sums[field_1 + "__sum"])
+        month_record.save()
     # SPACE
     fields = [
         # ["drugs_count", "drugs_count"],
@@ -418,23 +418,23 @@ def rebuild_entity_weeks():
         ["duplicates_count", "dupli"],
         ["shared_count", "shared"]
     ]
-    entity_months = set()
-    entity_weeks = EntityWeek.objects.filter(
+    month_records = set()
+    week_records = WeekRecord.objects.filter(
         last_crossing__isnull=False, rx_count__gt=0)
-    for entity_week in entity_weeks:
-        first_task = entity_week.async_tasks\
+    for week_record in week_records:
+        first_task = week_record.async_tasks\
             .filter(status_task_id='finished').first()
         if first_task:
             week_counts = first_task.result.get("month_week_counts")
             if not week_counts:
                 continue
             for field in fields:
-                setattr(entity_week, field[0], week_counts[field[1]])
-            entity_week.save()
-            entity_months.add(entity_week.entity_month_id)
-    entity_months = EntityMonth.objects.filter(id__in=list(entity_months))
-    for ent_month in entity_months:
-        recalculate_entity_month(ent_month)
+                setattr(week_record, field[0], week_counts[field[1]])
+            week_record.save()
+            month_records.add(week_record.month_record_id)
+    month_records = MonthRecord.objects.filter(id__in=list(month_records))
+    for ent_month in month_records:
+        recalculate_month_record(ent_month)
 
 
 def revert_own_mistake():
@@ -552,36 +552,36 @@ def revert_duplicates_table_files():
 
 
 def reassign_default_stage(first_stage="initial"):
-    from inai.models import EntityMonth
-    default_entity_months = EntityMonth.objects.filter(
+    from inai.models import MonthRecord
+    default_month_records = MonthRecord.objects.filter(
         stage_id=first_stage)
-    default_entity_months.update(stage_id="init_month")
+    default_month_records.update(stage_id="init_month")
 
 
 def calculate_real_stage():
-    from inai.models import EntityMonth
-    entity_months = EntityMonth.objects.filter(
+    from inai.models import MonthRecord
+    month_records = MonthRecord.objects.filter(
         last_crossing__isnull=False)
-    for entity_month in entity_months:
-        if entity_month.last_merge:
-            if entity_month.last_crossing < entity_month.last_merge:
-                entity_month.stage_id = "merge"
+    for month_record in month_records:
+        if month_record.last_merge:
+            if month_record.last_crossing < month_record.last_merge:
+                month_record.stage_id = "merge"
             else:
-                entity_month.stage_id = "analysis"
-        elif entity_month.last_crossing and entity_month.last_transformation:
-            if entity_month.last_transformation < entity_month.last_crossing:
-                entity_month.stage_id = "analysis"
-        entity_month.save()
+                month_record.stage_id = "analysis"
+        elif month_record.last_crossing and month_record.last_transformation:
+            if month_record.last_transformation < month_record.last_crossing:
+                month_record.stage_id = "analysis"
+        month_record.save()
 
 
 def comprobate_table_insert_when_pre_insert():
-    from inai.models import EntityWeek
-    entity_weeks = EntityWeek.objects.filter(
+    from inai.models import WeekRecord
+    week_records = WeekRecord.objects.filter(
         last_pre_insertion__isnull=False,
         table_files__collection__isnull=False,
         table_files__inserted=False)
-    for entity_week in entity_weeks:
-        entity_week.table_files.filter(
+    for week_record in week_records:
+        week_record.table_files.filter(
             collection__isnull=False, inserted=False).update(
             inserted=True)
 
@@ -607,15 +607,15 @@ def get_bad_inserted():
     drugs_in_csvs = TableFile.objects.filter(
         collection__model_name="Drug",
         drugs_count__gt=0,
-        entity_week__entity_month__last_insertion__isnull=False) \
-        .values("entity_week_id", "drugs_count", "provider_id",
-                "entity_week__entity_month__year_month") \
-        .annotate(year_month=F("entity_week__entity_month__year_month"))
-    objects_in_csvs = {drug["entity_week_id"]: drug for drug in drugs_in_csvs}
+        week_record__month_record__last_insertion__isnull=False) \
+        .values("week_record_id", "drugs_count", "provider_id",
+                "week_record__month_record__year_month") \
+        .annotate(year_month=F("week_record__month_record__year_month"))
+    objects_in_csvs = {drug["week_record_id"]: drug for drug in drugs_in_csvs}
     errors = []
     count_query = f"""
-        SELECT entity_week_id, count 
-        FROM entity_week_count;
+        SELECT week_record_id, count 
+        FROM week_record_count;
     """
     cursor.execute(count_query)
     week_counts_in_db = cursor.fetchall()
@@ -629,26 +629,26 @@ def get_bad_inserted():
         "above_saved": [],
         "above_saved_details": [],
         "weeks_not_in_db": [],
-        "failed_entity_months": {},
+        "failed_month_records": {},
     }
     def add_failed_week(week_obj, type_error):
-        result[type_error].append(week_obj["entity_week_id"])
-        entity_month = f"{week_obj['provider_id']}-{week_obj['year_month']}"
-        if entity_month not in result["failed_entity_months"]:
-            result["failed_entity_months"][entity_month] = {}
-        if type_error not in result["failed_entity_months"][entity_month]:
-            result["failed_entity_months"][entity_month][type_error] = 0
-        result["failed_entity_months"][entity_month][type_error] += 1
+        result[type_error].append(week_obj["week_record_id"])
+        month_record = f"{week_obj['provider_id']}-{week_obj['year_month']}"
+        if month_record not in result["failed_month_records"]:
+            result["failed_month_records"][month_record] = {}
+        if type_error not in result["failed_month_records"][month_record]:
+            result["failed_month_records"][month_record][type_error] = 0
+        result["failed_month_records"][month_record][type_error] += 1
     weeks_in_db = [week_db[0] for week_db in week_counts_in_db if week_db[1]]
     for week_csv in drugs_in_csvs:
-        if week_csv["entity_week_id"] not in weeks_in_db:
+        if week_csv["week_record_id"] not in weeks_in_db:
             add_failed_week(week_csv, "weeks_not_in_db")
     for week_id, count_in_db in week_counts_in_db:
         if not count_in_db:
             continue
         try:
             week_in_csv = objects_in_csvs[week_id]
-            # week_in_csv = drugs_in_csvs.get(entity_week_id=week_id)
+            # week_in_csv = drugs_in_csvs.get(week_record_id=week_id)
             count_in_csv = week_in_csv["drugs_count"]
             if count_in_csv > count_in_db:
                 add_failed_week(week_in_csv, "below_saved")
@@ -667,7 +667,7 @@ def get_bad_inserted():
 
 def generate_report_inserted():
     bad_inserted = get_bad_inserted()
-    failed_months = bad_inserted["failed_entity_months"]
+    failed_months = bad_inserted["failed_month_records"]
     sorted_failed_months = sorted(
         failed_months.items(), key=lambda x: x[0], reverse=False)
     for key, value in sorted_failed_months:
@@ -710,12 +710,12 @@ def insert_failed_weeks(failed_week_ids):
 
     month_table_files = TableFile.objects\
         .filter(
-            entity_week_id__in=failed_week_ids,
+            week_record_id__in=failed_week_ids,
             inserted=True)
     print("month_table_files", month_table_files.count())
 
-    first_entity_month = month_table_files.first().entity_week.entity_month
-    my_insert_base = InsertMonth(first_entity_month)
+    first_month_record = month_table_files.first().week_record.month_record
+    my_insert_base = InsertMonth(first_month_record)
 
     queries_by_model = my_insert_base.build_query_tables(
         month_table_files, current_temp_table)
@@ -735,12 +735,12 @@ def insert_failed_weeks(failed_week_ids):
     print("errors", errors)
 
     drugs_counts = TableFile.objects.filter(
-            entity_week_id__in=failed_week_ids,
+            week_record_id__in=failed_week_ids,
             collection__model_name="Drug")\
-        .values("entity_week_id", "drugs_count")
+        .values("week_record_id", "drugs_count")
     # drugs_counts = {d["id"]: d["drugs_count"] for d in drugs_counts}
     drugs_counts = list(drugs_counts)
-    drugs_object = {drug["entity_week_id"]: drug["drugs_count"]
+    drugs_object = {drug["week_record_id"]: drug["drugs_count"]
                     for drug in drugs_counts}
 
     if not drugs_object:
@@ -750,10 +750,10 @@ def insert_failed_weeks(failed_week_ids):
     temp_drug = f"fm_{current_temp_table}_drug"
 
     count_query = f"""
-        SELECT entity_week_id,
+        SELECT week_record_id,
         COUNT(*)
         FROM {temp_drug}
-        GROUP BY entity_week_id;
+        GROUP BY week_record_id;
     """
 
     some_error = False

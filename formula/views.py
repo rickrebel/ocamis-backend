@@ -95,7 +95,7 @@ def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
 
 
 def rebuild_primary_key(cursor, table_name, constraint):
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from task.models import AsyncTask
     from task.serverless import execute_async
     from django.utils import timezone
@@ -120,9 +120,9 @@ def rebuild_primary_key(cursor, table_name, constraint):
             cursor.execute(query_duplicates)
             result = cursor.fetchone()
             get_params = {field: result[i] for i, field in enumerate(fields)}
-            entity_week = EntityWeek.objects.get(**get_params)
+            week_record = WeekRecord.objects.get(**get_params)
             print("time_now", timezone.now())
-            print("entity_week", entity_week)
+            print("week_record", week_record)
             complement_delete_rx = [f"{field} = {result[i]}"
                                     for i, field in enumerate(fields)]
             query_delete_rx = f"""
@@ -132,16 +132,16 @@ def rebuild_primary_key(cursor, table_name, constraint):
             cursor.execute(query_delete_rx)
             print("time_now", timezone.now())
             complement_delete_drug = f"""
-                DELETE FROM formula_drug WHERE entity_week_id = {entity_week.id}
+                DELETE FROM formula_drug WHERE week_record_id = {week_record.id}
             """
             print("complement_delete_drug", complement_delete_drug)
             cursor.execute(complement_delete_drug)
             print("time_now", timezone.now())
-            # last_insertion = entity_week.last_insertion
-            entity_week.last_pre_insertion = None
-            entity_week.save()
+            # last_insertion = week_record.last_insertion
+            week_record.last_pre_insertion = None
+            week_record.save()
             task = AsyncTask.objects.filter(
-                entity_week=entity_week,
+                week_record=week_record,
                 task_function_id='save_week_base_models')
             if task.exists():
                 task = task.first()

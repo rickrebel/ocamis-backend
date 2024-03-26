@@ -1,7 +1,7 @@
 from django.db import models
 
 from respond.models import DataFile, SheetFile, LapSheet
-from inai.models import EntityWeek
+from inai.models import WeekRecord
 from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
@@ -77,8 +77,8 @@ class Rx(models.Model):
 #         primary_key=True, default=uuid_lib.uuid4, editable=False)
 #     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
 #     folio_ocamis = models.CharField(max_length=64)
-#     entity_week = models.ForeignKey(
-#         "EntityWeek", on_delete=models.CASCADE, blank=True, null=True)
+#     week_record = models.ForeignKey(
+#         "WeekRecord", on_delete=models.CASCADE, blank=True, null=True)
 #     medical_unit = models.ForeignKey(
 #         MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
 #     area = models.ForeignKey(
@@ -127,7 +127,7 @@ class Drug(models.Model):
     date_created = models.DateTimeField(blank=True, null=True)
     date_closed = models.DateTimeField(blank=True, null=True)
     price = models.FloatField(blank=True, null=True)
-    entity_week_id = models.IntegerField(blank=True, null=True)
+    week_record_id = models.IntegerField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Insumos"
@@ -245,8 +245,8 @@ class MatDrugPriority(models.Model):
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
     clues = models.ForeignKey(
         CLUES, on_delete=models.CASCADE, blank=True, null=True)
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE)
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.CASCADE)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE)
     key = models.CharField(max_length=255, blank=True, null=True)
@@ -261,20 +261,20 @@ class MatDrugPriority(models.Model):
 
     def __str__(self):
         return "%s -- %s -- %s -- %s" % (
-            self.entity_week, self.delivered, self.container, self.key)
+            self.week_record, self.delivered, self.container, self.key)
 
 
 class MatDrug(models.Model):
     from geo.models import CLUES, Delegation, Provider
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from medicine.models import Container
     key = models.CharField(max_length=255)
     clues = models.ForeignKey(
         CLUES, on_delete=models.CASCADE)
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE)
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE)
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.CASCADE)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE)
     container = models.ForeignKey(
@@ -288,12 +288,12 @@ class MatDrug(models.Model):
 
     def __str__(self):
         return "%s -- %s -- %s -- %s" % (
-            self.entity_week, self.delivered, self.container, self.key)
+            self.week_record, self.delivered, self.container, self.key)
 
 
 class MatDrugExtended(models.Model):
     from geo.models import Delegation, Provider
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     from medicine.models import Component, Presentation, Container
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE)
@@ -321,13 +321,13 @@ class MatDrugExtended(models.Model):
 
 class MatDrugTotals(models.Model):
     from geo.models import CLUES, Delegation, Provider
-    from inai.models import EntityWeek
+    from inai.models import WeekRecord
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
     clues = models.ForeignKey(
         CLUES, on_delete=models.CASCADE, blank=True, null=True)
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE)
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.CASCADE)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE)
     prescribed_total = models.IntegerField()
@@ -339,4 +339,4 @@ class MatDrugTotals(models.Model):
 
     def __str__(self):
         return "%s -- %s -- %s" % (
-            self.entity_week, self.delivered, self.clues)
+            self.week_record, self.delivered, self.clues)

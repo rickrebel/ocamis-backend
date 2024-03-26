@@ -24,7 +24,7 @@ class RebuildWeekAws:
 
     def __init__(self, event: dict, context):
 
-        self.entity_week_id = str(event.get("entity_week_id"))
+        self.week_record_id = str(event.get("week_record_id"))
         self.final_path = event["final_path"]
         self.result_path = event.get("result_path", self.final_path)
         self.csv = io.StringIO()
@@ -69,15 +69,15 @@ class RebuildWeekAws:
         for idx, row in enumerate(csv_content):
             if not idx:
                 row = [field for field in row
-                       if field != "entity_week_id"]
+                       if field != "week_record_id"]
                 len_rows = len(row)
-                row.append("entity_week_id")
+                row.append("week_record_id")
             else:
                 row = row[:len_rows]
                 if len(row) < len_rows:
                     row.append(None)
                 # row.append(None)
-                row.append(self.entity_week_id)
+                row.append(self.week_record_id)
                 total_rows += 1
             if example_prints < 10:
                 print("row", row)
@@ -86,7 +86,7 @@ class RebuildWeekAws:
         self.buffer.writerows(current_rows)
         self.s3_utils.save_file_in_aws(self.csv.getvalue(), self.final_path)
         result = {
-            "entity_week_id": self.entity_week_id,
+            "week_record_id": self.week_record_id,
             "drugs_count": total_rows
         }
         return result

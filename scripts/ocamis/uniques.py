@@ -139,10 +139,10 @@ def build_pairs_sheets(filters):
 
 
 def save_sheets_months(year_month, provider_id, month_counts):
-    from inai.models import EntityMonth
-    current_entity_months = EntityMonth.objects.filter(
+    from inai.models import MonthRecord
+    current_month_records = MonthRecord.objects.filter(
         provider_id=provider_id, year_month=year_month)
-    current_entity_months.update(
+    current_month_records.update(
         duplicates_count=month_counts["dupli"],
         shared_count=month_counts["shared"],
         rx_count=month_counts["total"]

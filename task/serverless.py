@@ -160,7 +160,7 @@ def async_in_lambda(function_name, params, task_params):
             many_groups = groups_count >= task_function.simultaneous_groups
             if not many_groups:
                 return save_and_send()
-        # entity_month = query_kwargs.get("entity_month", False)
+        # month_record = query_kwargs.get("month_record", False)
         return save_and_send(True)
     else:
         return save_and_send()

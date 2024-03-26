@@ -310,7 +310,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             file_controls__file_control__in=controls)\
             .prefetch_related(
                 # "petition_months",
-                "entity_months",
+                "month_records",
                 "file_controls",
                 "break_dates",
                 "negative_reasons",

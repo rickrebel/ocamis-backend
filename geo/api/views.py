@@ -58,28 +58,28 @@ class EntityViewSet(ListRetrieveUpdateMix):
     def send_months(self, request, **kwargs):
         import threading
         import time
-        from inai.misc_mixins.entity_month_mix import FromAws as EntityMonthMix
+        from inai.misc_mixins.month_record_mix import FromAws as EntityMonthMix
         from task.views import comprobate_status, build_task_params
-        from inai.models import EntityMonth
+        from inai.models import MonthRecord
         from respond.models import TableFile
         from classify_task.models import Stage
-        entity_months_ids = request.data.get("entity_months", None)
-        entity_months_id = request.data.get("entity_month", None)
+        month_records_ids = request.data.get("month_records", None)
+        month_records_id = request.data.get("month_record", None)
         main_function_name = request.data.get("function_name", None)
         stage_name = request.data.get("stage", None)
         # query_stage = request.data.get("stage", None)
         entity = self.get_object()
-        if entity_months_ids:
-            entity_months = EntityMonth.objects.filter(
-                id__in=entity_months_ids)
-        elif entity_months_id:
-            entity_months = EntityMonth.objects.filter(id=entity_months_id)
+        if month_records_ids:
+            month_records = MonthRecord.objects.filter(
+                id__in=month_records_ids)
+        elif month_records_id:
+            month_records = MonthRecord.objects.filter(id=month_records_id)
         else:
-            entity_months = EntityMonth.objects.filter(entity=entity)
-        print("entity_months", entity_months)
+            month_records = MonthRecord.objects.filter(entity=entity)
+        print("month_records", month_records)
         all_tasks = []
         all_errors = []
-        if entity_months_id:
+        if month_records_id:
             key_task = None
         else:
             key_task, task_params = build_task_params(
@@ -99,20 +99,20 @@ class EntityViewSet(ListRetrieveUpdateMix):
             "finished_function": stage.finished_function
         }
 
-        for entity_month in entity_months:
-            # related_weeks = entity_month.weeks.all()
+        for month_record in month_records:
+            # related_weeks = month_record.weeks.all()
             month_task, task_params = build_task_params(
-                entity_month, main_function_name, request, **kwargs)
+                month_record, main_function_name, request, **kwargs)
             all_tasks.append(month_task)
-            prev_stage = entity_month.stage
-            if entity_months_ids:
+            prev_stage = month_record.stage
+            if month_records_ids:
                 if prev_stage.next_stage == stage:
                     pass
                 elif prev_stage == stage:
                     pass
                 else:
                     error_msg = f"""
-                        El mes {entity_month.year_month} está en la etapa 
+                        El mes {month_record.year_month} está en la etapa 
                         {prev_stage.public_name} y no puede pasar a la etapa 
                         {stage.public_name}
                     """
@@ -125,11 +125,11 @@ class EntityViewSet(ListRetrieveUpdateMix):
             is_revert = prev_stage.order > stage.order
             if main_function_name == "revert_stages":
                 is_revert = True
-            entity_month.stage = stage
-            entity_month.status_id = "created"
-            entity_month.save()
+            month_record.stage = stage
+            month_record.status_id = "created"
+            month_record.save()
             month_errors = []
-            base_class = EntityMonthMix(entity_month, task_params)
+            base_class = EntityMonthMix(month_record, task_params)
             function_name = "revert_stages" if is_revert else main_function_name
             main_method = getattr(base_class, function_name)
 
@@ -146,13 +146,13 @@ class EntityViewSet(ListRetrieveUpdateMix):
             stage_merge = Stage.objects.get(name="merge")
             all_classified = stage.order >= stage_merge.order
             if all_classified:
-                if entity_month.sheet_files.filter(behavior_id="pending").exists():
+                if month_record.sheet_files.filter(behavior_id="pending").exists():
                     month_errors.append(
                         f"Hay pestañas pendientes de clasificar para el mes "
-                        f"{entity_month.year_month}")
+                        f"{month_record.year_month}")
             if month_errors:
                 print("month_errors", month_errors)
-                entity_month.save_stage(stage, month_errors)
+                month_record.save_stage(stage, month_errors)
                 comprobate_status(month_task, month_errors, [])
             elif entity.split_by_delegation:
                 run_in_thread()
@@ -179,7 +179,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
     queryset = Agency.objects.all().prefetch_related(
             "petitions",
             # "petitions__petition_months",
-            "petitions__entity_months",
+            "petitions__month_records",
             "petitions__file_controls",
             "petitions__break_dates",
             "petitions__negative_reasons",

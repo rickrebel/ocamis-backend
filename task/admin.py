@@ -42,7 +42,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     ]
     raw_id_fields = [
         "petition", "file_control", "data_file", "reply_file", "sheet_file",
-        "parent_task", "user", "entity_week", "provider", "entity_month"]
+        "parent_task", "user", "week_record", "provider", "month_record"]
     list_filter = [
         NullFilterTask,
         "status_task", "task_function__is_queueable",
@@ -239,15 +239,15 @@ class StepInline(admin.TabularInline):
 class CutOffAdmin(admin.ModelAdmin):
     list_display = [
         "provider",
-        "last_entity_month",
+        "last_month_record",
     ]
-    raw_id_fields = ["provider", "last_entity_month"]
+    raw_id_fields = ["provider", "last_month_record"]
     inlines = [StepInline]
 
 
 class ClickHistoryAdmin(admin.ModelAdmin):
-    list_display = ["user", "date", "petition", "file_control", "entity_month"]
-    raw_id_fields = ["user", "petition", "file_control", "entity_month"]
+    list_display = ["user", "date", "petition", "file_control", "month_record"]
+    raw_id_fields = ["user", "petition", "file_control", "month_record"]
     list_filter = ["user"]
 
 

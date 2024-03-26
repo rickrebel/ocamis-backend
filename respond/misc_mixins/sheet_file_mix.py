@@ -51,7 +51,7 @@ class FromAws:
 
     def build_csv_data_from_aws(self, **kwargs):
         from django.utils import timezone
-        from inai.models import EntityMonth
+        from inai.models import MonthRecord
         from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheetAws
         # print("FINISH BUILD CSV DATA")
         data_file = self.sheet_file.data_file
@@ -107,10 +107,10 @@ class FromAws:
             for ym in all_months:
                 month = str(ym[1]).zfill(2)
                 year_months.append(f"{ym[0]}-{month}")
-                entity_month = EntityMonth.objects.get_or_create(
+                month_record = MonthRecord.objects.get_or_create(
                     entity=self.sheet_file.data_file.provider,
                     year_month=f"{ym[0]}-{month}")[0]
-                self.sheet_file.entity_months.add(entity_month)
+                self.sheet_file.month_records.add(month_record)
             # errors.append(f"Se encontraron demasiados meses: {all_months}")
         if len(all_months) == 1:
             ym = all_months[0]

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.admin import AdminSite
 
 from .models import (
-    Petition, PetitionFileControl, EntityMonth, EntityWeek, RequestTemplate,
+    Petition, PetitionFileControl, MonthRecord, WeekRecord, RequestTemplate,
     Variable)
 
 
@@ -17,21 +17,21 @@ ocamis_admin_site = OcamisAdminSite(name='ocamis_admin')
 
 # class PetitionMonthInline(admin.TabularInline):
 #     model = PetitionMonth
-#     raw_id_fields = ["entity_month"]
+#     raw_id_fields = ["month_record"]
 #     extra = 0
 
 
-class EntityWeekInline(admin.TabularInline):
-    model = EntityWeek
-    raw_id_fields = ["provider", "entity_month", "iso_delegation"]
+class WeekRecordInline(admin.TabularInline):
+    model = WeekRecord
+    raw_id_fields = ["provider", "month_record", "iso_delegation"]
     extra = 0
 
 
-class EntityWeekAdmin(admin.ModelAdmin):
+class WeekRecordAdmin(admin.ModelAdmin):
     from respond.admin import TableFileInline
     list_display = [
         "id",
-        "entity_month",
+        "month_record",
         "year_week",
         "year_month",
         "iso_delegation",
@@ -40,14 +40,14 @@ class EntityWeekAdmin(admin.ModelAdmin):
         "duplicates_count",
     ]
     list_filter = ["provider__acronym", "year", "month"]
-    raw_id_fields = ["provider", "entity_month", "iso_delegation"]
+    raw_id_fields = ["provider", "month_record", "iso_delegation"]
     inlines = [TableFileInline]
     search_fields = [
         "provider__acronym", "provider__state__short_name",
         "year_week", "year_month", "iso_delegation__name"]
 
 
-class EntityMonthAdmin(admin.ModelAdmin):
+class MonthRecordAdmin(admin.ModelAdmin):
     list_display = [
         "id",
         "provider",
@@ -57,11 +57,11 @@ class EntityMonthAdmin(admin.ModelAdmin):
     raw_id_fields = ["provider", "agency"]
     filter_horizontal = ["petition"]
     list_filter = ["provider__acronym", "year_month"]
-    # inlines = [EntityWeekInline]
+    # inlines = [WeekRecordInline]
 
 
 # class EntityMonthInline(admin.TabularInline):
-#     model = EntityMonth
+#     model = MonthRecord
 #     raw_id_fields = ["provider"]
 #     extra = 0
 
@@ -79,7 +79,7 @@ class PetitionAdmin(admin.ModelAdmin):
     search_fields = [
         "folio_petition", "agency__acronym", "agency__name",
         "agency__state__short_name"]
-    raw_id_fields = ["entity_months"]
+    raw_id_fields = ["month_records"]
     # inlines = [EntityMonthInline]
     list_filter = ["agency"]
 
@@ -98,6 +98,6 @@ class PetitionFileControlAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(Petition, PetitionAdmin)
 ocamis_admin_site.register(PetitionFileControl, PetitionFileControlAdmin)
 
-ocamis_admin_site.register(EntityMonth, EntityMonthAdmin)
-ocamis_admin_site.register(EntityWeek, EntityWeekAdmin)
+ocamis_admin_site.register(MonthRecord, MonthRecordAdmin)
+ocamis_admin_site.register(WeekRecord, WeekRecordAdmin)
 

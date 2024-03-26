@@ -190,22 +190,22 @@ string_petitions = [
 
 
 def recover():
-    from inai.models import Petition, EntityMonth
+    from inai.models import Petition, MonthRecord
     for pet in string_petitions:
         folio_petition, dates = pet.split(";")
         dates = dates.split("|")
         petition = Petition.objects.get(folio_petition=folio_petition)
-        if petition.entity_months.exists():
+        if petition.month_records.exists():
             continue
         if len(dates) == 1:
-            entity_month = EntityMonth.objects.get(
+            month_record = MonthRecord.objects.get(
                 entity=petition.agency.provider, year_month=dates[0])
-            # petition.entity_months.add(entity_month)
+            # petition.month_records.add(month_record)
         else:
             end, start = dates
-            entity_months = EntityMonth.objects.filter(
+            month_records = MonthRecord.objects.filter(
                 entity=petition.agency.provider,
                 year_month__gte=start, year_month__lte=end)
-            petition.entity_months.add(*entity_months)
+            petition.month_records.add(*month_records)
         petition.save()
-        # print(petition.folio, petition.entity_months.all())
+        # print(petition.folio, petition.month_records.all())

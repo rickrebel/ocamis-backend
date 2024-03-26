@@ -30,10 +30,10 @@ class AsyncTaskSerializer(serializers.ModelSerializer):
         source="sheet_file.data_file_id", read_only=True)
     petition_file_control_id = serializers.IntegerField(
         source="data_file.petition_file_control_id", read_only=True)
-    entity_month_id = serializers.IntegerField(
-        source="entity_week.entity_month_id", read_only=True)
+    month_record_id = serializers.IntegerField(
+        source="week_record.month_record_id", read_only=True)
     provider_id = serializers.IntegerField(
-        source="entity_month.provider_id", read_only=True)
+        source="month_record.provider_id", read_only=True)
 
     def get_petition_id(self, obj):
         if obj.data_file:
@@ -58,7 +58,7 @@ class AsyncTaskFullSerializer(AsyncTaskSerializer):
     from respond.api.serializers import DataFileSerializer
     data_file_full = DataFileSerializer(read_only=True, source="data_file")
     file_control_full = serializers.SerializerMethodField(read_only=True)
-    entity_month_full = serializers.SerializerMethodField(read_only=True)
+    month_record_full = serializers.SerializerMethodField(read_only=True)
 
     def get_file_control_full(self, obj):
         from data_param.api.serializers import FileControlSerializer
@@ -69,14 +69,14 @@ class AsyncTaskFullSerializer(AsyncTaskSerializer):
         # print("serializer: \n", FileControlSerializer(file_control).data)
         return FileControlSerializer(file_control).data
 
-    def get_entity_month_full(self, obj):
-        from inai.api.serializers import EntityMonthFullSerializer
+    def get_month_record_full(self, obj):
+        from inai.api.serializers import MonthRecordFullSerializer
         function = obj.task_function
         if function.is_from_aws:
             return None
-        if not obj.entity_month or function.model_name != "entity_month":
+        if not obj.month_record or function.model_name != "month_record":
             return None
-        return EntityMonthFullSerializer(obj.entity_month).data
+        return MonthRecordFullSerializer(obj.month_record).data
 
 
 class TaskFunctionSerializer(serializers.ModelSerializer):
@@ -107,9 +107,9 @@ class StepSerializer(serializers.ModelSerializer):
 
 
 class CutOffSerializer(serializers.ModelSerializer):
-    from inai.api.serializers import EntityMonthSimpleSerializer
+    from inai.api.serializers import MonthRecordSimpleSerializer
     steps = StepSerializer(many=True, read_only=True)
-    last_entity_month = EntityMonthSimpleSerializer(read_only=True)
+    last_month_record = MonthRecordSimpleSerializer(read_only=True)
 
     class Meta:
         model = CutOff
@@ -180,7 +180,7 @@ class ClickHistoryActivitySerializer(ActivitySerializer):
     start_field = "date"
 
     def get_model(self, obj):
-        models = ["file_control", "entity_month", "petition"]
+        models = ["file_control", "month_record", "petition"]
         for model in models:
             if getattr(obj, model, None) is not None:
                 return model

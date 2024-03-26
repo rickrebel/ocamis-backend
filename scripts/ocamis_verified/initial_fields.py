@@ -1,4 +1,4 @@
-from inai.models import EntityMonth, EntityWeek
+from inai.models import MonthRecord, WeekRecord
 from geo.models import Provider
 
 
@@ -12,14 +12,14 @@ class WeeksGenerator:
         self.all_months = []
 
         self.providers = Provider.objects.all()
-        self.entity_months = EntityMonth.objects.all()
-        self.entity_weeks = EntityWeek.objects.all()
+        self.month_records = MonthRecord.objects.all()
+        self.week_records = WeekRecord.objects.all()
         if provider:
             self.providers = self.providers.filter(id=provider.id)
-            self.entity_weeks = self.entity_weeks.filter(entity=provider)
+            self.week_records = self.week_records.filter(entity=provider)
         if year:
-            self.entity_months = self.entity_months.filter(year=year)
-            self.entity_weeks = self.entity_weeks.filter(year=year)
+            self.month_records = self.month_records.filter(year=year)
+            self.week_records = self.week_records.filter(year=year)
         self.already_months = {}
         self.generic_weeks = []
 
@@ -83,7 +83,7 @@ class WeeksGenerator:
                 self.generic_weeks.append(current_week)
 
     def generate_months(self):
-        already_months = self.entity_months.values_list('provider', 'year_month')
+        already_months = self.month_records.values_list('provider', 'year_month')
         bulk_months = []
         for provider in self.providers:
             all_months = self.get_all_months()
@@ -91,19 +91,19 @@ class WeeksGenerator:
                 if (provider.id, month_data["year_month"]) in already_months:
                     continue
                 month_data.update({"provider": provider})
-                bulk_months.append(EntityMonth(**month_data))
-        EntityMonth.objects.bulk_create(bulk_months)
-        self.entity_months = EntityMonth.objects.all()
+                bulk_months.append(MonthRecord(**month_data))
+        MonthRecord.objects.bulk_create(bulk_months)
+        self.month_records = MonthRecord.objects.all()
 
     def build_already_months(self):
-        entity_months = self.entity_months.values('id', 'provider', 'year_month')
-        for month in entity_months:
+        month_records = self.month_records.values('id', 'provider', 'year_month')
+        for month in month_records:
             entity = month["provider"]
             self.already_months.setdefault(entity, {})
             self.already_months[entity][month["year_month"]] = month["id"]
 
     def generate_weeks(self):
-        already_weeks = self.entity_weeks.values_list(
+        already_weeks = self.week_records.values_list(
             'year_week', 'provider', 'year_month', 'iso_delegation')
 
         self.build_already_months()
@@ -117,11 +117,11 @@ class WeeksGenerator:
                     week_data["year_month"], week_data["iso_delegation"])
                 if current_week in already_weeks:
                     continue
-                entity_month_id = self.already_months[provider.id][week_data["year_month"]]
-                week_data.update({"provider_id": provider.id, "entity_month_id": entity_month_id})
-                bulk_weeks.append(EntityWeek(**week_data))
-        EntityWeek.objects.bulk_create(bulk_weeks)
-        self.entity_weeks = EntityWeek.objects.all()
+                month_record_id = self.already_months[provider.id][week_data["year_month"]]
+                week_data.update({"provider_id": provider.id, "month_record_id": month_record_id})
+                bulk_weeks.append(WeekRecord(**week_data))
+        WeekRecord.objects.bulk_create(bulk_weeks)
+        self.week_records = WeekRecord.objects.all()
 
 
 def create_year(year: int = 2024):

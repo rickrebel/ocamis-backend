@@ -91,208 +91,7 @@ class Variable(models.Model):
         verbose_name_plural = "Variables de plantilla"
 
 
-class Petition(models.Model, PetitionTransformsMix):
-
-    folio_petition = models.CharField(
-        max_length=50, blank=True, null=True,
-        verbose_name="Folio de la solicitud")
-    agency = models.ForeignKey(
-        Agency,
-        related_name="petitions",
-        on_delete=models.CASCADE)
-    real_provider = models.ForeignKey(
-        Provider, related_name="real_petitions",
-        on_delete=models.CASCADE, null=True, blank=True)
-    entity_months = models.ManyToManyField(
-        "EntityMonth", blank=True, verbose_name="Meses de la solicitud")
-    notes = models.TextField(blank=True, null=True)
-    send_petition = models.DateField(
-        verbose_name="Fecha de envío o recepción",
-        blank=True, null=True)
-    send_response = models.DateField(
-        verbose_name="Fecha de última respuesta",
-        blank=True, null=True)
-    description_petition = models.TextField(
-        verbose_name="descripción enviada",
-        blank=True, null=True)
-    description_response = models.TextField(
-        verbose_name="Respuesta texto",
-        blank=True, null=True)
-    status_data = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_data",
-        verbose_name="Status de los datos entregados",
-        on_delete=models.CASCADE)
-    status_petition = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_petition",
-        verbose_name="Status de la petición",
-        on_delete=models.CASCADE)
-    invalid_reason = models.ForeignKey(
-        InvalidReason, null=True, blank=True,
-        verbose_name="Razón de invalidez",
-        on_delete=models.CASCADE)
-    id_inai_open_data = models.IntegerField(
-        verbose_name="Id en el sistema de INAI",
-        blank=True, null=True)
-
-    # Complain data, needs to be moved to another model
-    ask_extension = models.BooleanField(
-        blank=True, null=True,
-        verbose_name="Se solicitó extensión")
-    description_complain = models.TextField(
-        verbose_name="Texto de la queja",
-        blank=True, null=True)
-    status_complain = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_complain",
-        verbose_name="Status de la queja",
-        on_delete=models.CASCADE)
-    folio_complain = models.IntegerField(
-        verbose_name="Folio de la queja",
-        blank=True, null=True)
-    info_queja_inai = JSONField(
-        verbose_name="Datos de queja",
-        help_text="Información de la queja en INAI Search",
-        blank=True, null=True)
-
-    def delete(self, *args, **kwargs):
-        from respond.models import LapSheet
-        some_lap_inserted = LapSheet.objects.filter(
-            sheet_file__data_file__petition_file_control__petition=self,
-            inserted=True).exists()
-        if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
-        super().delete(*args, **kwargs)
-
-    def first_year_month(self):
-        # return self.petition_months.earliest().entity_month.year_month
-        if self.entity_months.exists():
-            return self.entity_months.earliest().year_month
-        return None
-
-    def last_year_month(self):
-        # return self.petition_months.latest().entity_month.year_month
-        if self.entity_months.exists():
-            return self.entity_months.latest().year_month
-        return None
-
-    @property
-    def orphan_pet_control(self):
-        orphan_group = DataGroup.objects.get(name="orphan")
-        orphan = self.file_controls\
-            .filter(file_control__data_group=orphan_group)\
-            .first()
-        if not orphan:
-            name_control = "Archivos por agrupar. Solicitud %s" % (
-                self.folio_petition)
-            file_control, created = FileControl.objects.get_or_create(
-                name=name_control,
-                data_group=orphan_group,
-                final_data=False,
-                agency=self.agency,
-            )
-            orphan, _ = PetitionFileControl.objects.get_or_create(
-                petition=self, file_control=file_control)
-        return orphan
-
-    def months(self):
-        html_list = ''
-        # start = self.petition_months.earliest().entity_month.human_name
-        start = self.entity_months.earliest().year_month
-        # end = self.petition_months.latest().entity_month.human_name
-        end = self.entity_months.latest().year_month
-        return " ".join(list({start, end}))
-    months.short_description = "Meses"
-
-    def months_in_description(self):
-        from django.utils.html import format_html
-        months = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-        curr_months = []
-        if self.description_petition:
-            description = self.description_petition.lower()
-            for month in months:
-                if month in description:
-                    curr_months.append(month)
-            html_list = ''
-            for month in list(curr_months):
-                html_list = html_list + ('<span>%s</span><br>' % month)
-            return format_html(html_list)
-        else:
-            return "Sin descripción"
-    months_in_description.short_description = "Meses escritos"
-
-    def __str__(self):
-        return "%s -- %s" % (self.agency, self.folio_petition or self.id)
-
-    class Meta:
-        verbose_name = "Solicitud - Petición"
-        verbose_name_plural = "1. Solicitudes (Peticiones)"
-
-
-class PetitionBreak(models.Model):
-    petition = models.ForeignKey(
-        Petition, 
-        related_name="break_dates",
-        on_delete=models.CASCADE)
-    date_break = models.ForeignKey(
-        DateBreak, on_delete=models.CASCADE)
-    date = models.DateField(blank=True, null=True)
-
-    def __str__(self):
-        return "%s, %s" % (self.petition, self.date_break)
-
-    class Meta:
-        verbose_name = "Petición - fecha de corte (m2m)"
-        verbose_name_plural = "Peticiones - fechas de corte (m2m)"
-
-
-class PetitionNegativeReason(models.Model):
-    petition = models.ForeignKey(
-        Petition, on_delete=models.CASCADE,
-        related_name="negative_reasons",)
-    negative_reason = models.ForeignKey(
-        NegativeReason, on_delete=models.CASCADE)
-    is_main = models.BooleanField(
-        verbose_name="Es la razón principal")
-
-    def __str__(self):
-        return "%s, %s" % (self.petition, self.negative_reason)
-
-    class Meta:
-        verbose_name = "Petición - razón negativa (m2m)"
-        verbose_name_plural = "Peticiones - razones negativas (m2m)"
-
-
-class PetitionFileControl(models.Model):
-    petition = models.ForeignKey(
-        Petition,
-        related_name="file_controls",
-        on_delete=models.CASCADE)
-    # file_control = models.IntegerField(blank=True, null=True)
-    file_control = models.ForeignKey(
-        FileControl, on_delete=models.CASCADE,
-        related_name="petition_file_control",)
-
-    def delete(self, *args, **kwargs):
-        some_lap_inserted = LapSheet.objects.filter(
-            sheet_file__data_file__petition_file_control=self,
-            inserted=True).exists()
-        if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
-        super().delete(*args, **kwargs)
-
-    def __str__(self):
-        return "%s - %s" % (self.petition, self.file_control)
-
-    class Meta:
-        verbose_name = "Relacional: petición -- Grupo de Control"
-        verbose_name_plural = "7. Relacional: Petición -- Grupos de Control"
-
-
-class EntityMonth(models.Model):
+class MonthRecord(models.Model):
     agency = models.ForeignKey(
         Agency,
         verbose_name="Sujeto Obligado",
@@ -300,7 +99,7 @@ class EntityMonth(models.Model):
         on_delete=models.CASCADE, blank=True, null=True)
     provider = models.ForeignKey(
         Provider,
-        related_name="entity_months",
+        related_name="month_records",
         verbose_name="Proveedor de servicios de salud",
         on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10)
@@ -378,9 +177,212 @@ class EntityMonth(models.Model):
 
     class Meta:
         get_latest_by = "year_month"
+        db_table = "inai_entitymonth"
         ordering = ["year_month"]
         verbose_name = "8. Mes-proveedor"
         verbose_name_plural = "8. Meses-proveedores"
+
+
+class Petition(models.Model, PetitionTransformsMix):
+
+    folio_petition = models.CharField(
+        max_length=50, blank=True, null=True,
+        verbose_name="Folio de la solicitud")
+    agency = models.ForeignKey(
+        Agency,
+        related_name="petitions",
+        on_delete=models.CASCADE)
+    real_provider = models.ForeignKey(
+        Provider, related_name="real_petitions",
+        on_delete=models.CASCADE, null=True, blank=True)
+    month_records = models.ManyToManyField(
+        MonthRecord, blank=True, verbose_name="Meses de la solicitud")
+    notes = models.TextField(blank=True, null=True)
+    send_petition = models.DateField(
+        verbose_name="Fecha de envío o recepción",
+        blank=True, null=True)
+    send_response = models.DateField(
+        verbose_name="Fecha de última respuesta",
+        blank=True, null=True)
+    description_petition = models.TextField(
+        verbose_name="descripción enviada",
+        blank=True, null=True)
+    description_response = models.TextField(
+        verbose_name="Respuesta texto",
+        blank=True, null=True)
+    status_data = models.ForeignKey(
+        StatusControl, null=True, blank=True,
+        related_name="petitions_data",
+        verbose_name="Status de los datos entregados",
+        on_delete=models.CASCADE)
+    status_petition = models.ForeignKey(
+        StatusControl, null=True, blank=True,
+        related_name="petitions_petition",
+        verbose_name="Status de la petición",
+        on_delete=models.CASCADE)
+    invalid_reason = models.ForeignKey(
+        InvalidReason, null=True, blank=True,
+        verbose_name="Razón de invalidez",
+        on_delete=models.CASCADE)
+    id_inai_open_data = models.IntegerField(
+        verbose_name="Id en el sistema de INAI",
+        blank=True, null=True)
+
+    # Complain data, needs to be moved to another model
+    ask_extension = models.BooleanField(
+        blank=True, null=True,
+        verbose_name="Se solicitó extensión")
+    description_complain = models.TextField(
+        verbose_name="Texto de la queja",
+        blank=True, null=True)
+    status_complain = models.ForeignKey(
+        StatusControl, null=True, blank=True,
+        related_name="petitions_complain",
+        verbose_name="Status de la queja",
+        on_delete=models.CASCADE)
+    folio_complain = models.IntegerField(
+        verbose_name="Folio de la queja",
+        blank=True, null=True)
+    info_queja_inai = JSONField(
+        verbose_name="Datos de queja",
+        help_text="Información de la queja en INAI Search",
+        blank=True, null=True)
+
+    def delete(self, *args, **kwargs):
+        from respond.models import LapSheet
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control__petition=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
+    def first_year_month(self):
+        # return self.petition_months.earliest().month_record.year_month
+        if self.month_records.exists():
+            return self.month_records.earliest().year_month
+        return None
+
+    def last_year_month(self):
+        # return self.petition_months.latest().month_record.year_month
+        if self.month_records.exists():
+            return self.month_records.latest().year_month
+        return None
+
+    @property
+    def orphan_pet_control(self):
+        orphan_group = DataGroup.objects.get(name="orphan")
+        orphan = self.file_controls\
+            .filter(file_control__data_group=orphan_group)\
+            .first()
+        if not orphan:
+            name_control = "Archivos por agrupar. Solicitud %s" % (
+                self.folio_petition)
+            file_control, created = FileControl.objects.get_or_create(
+                name=name_control,
+                data_group=orphan_group,
+                final_data=False,
+                agency=self.agency,
+            )
+            orphan, _ = PetitionFileControl.objects.get_or_create(
+                petition=self, file_control=file_control)
+        return orphan
+
+    def months(self):
+        html_list = ''
+        # start = self.petition_months.earliest().month_record.human_name
+        start = self.month_records.earliest().year_month
+        # end = self.petition_months.latest().month_record.human_name
+        end = self.month_records.latest().year_month
+        return " ".join(list({start, end}))
+    months.short_description = "Meses"
+
+    def months_in_description(self):
+        from django.utils.html import format_html
+        months = [
+            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        curr_months = []
+        if self.description_petition:
+            description = self.description_petition.lower()
+            for month in months:
+                if month in description:
+                    curr_months.append(month)
+            html_list = ''
+            for month in list(curr_months):
+                html_list = html_list + ('<span>%s</span><br>' % month)
+            return format_html(html_list)
+        else:
+            return "Sin descripción"
+    months_in_description.short_description = "Meses escritos"
+
+    def __str__(self):
+        return "%s -- %s" % (self.agency, self.folio_petition or self.id)
+
+    class Meta:
+        verbose_name = "Solicitud - Petición"
+        verbose_name_plural = "1. Solicitudes (Peticiones)"
+
+
+class PetitionBreak(models.Model):
+    petition = models.ForeignKey(
+        Petition, 
+        related_name="break_dates",
+        on_delete=models.CASCADE)
+    date_break = models.ForeignKey(
+        DateBreak, on_delete=models.CASCADE)
+    date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s, %s" % (self.petition, self.date_break)
+
+    class Meta:
+        verbose_name = "Petición - fecha de corte (m2m)"
+        verbose_name_plural = "Peticiones - fechas de corte (m2m)"
+
+
+class PetitionNegativeReason(models.Model):
+    petition = models.ForeignKey(
+        Petition, on_delete=models.CASCADE,
+        related_name="negative_reasons",)
+    negative_reason = models.ForeignKey(
+        NegativeReason, on_delete=models.CASCADE)
+    is_main = models.BooleanField(
+        verbose_name="Es la razón principal")
+
+    def __str__(self):
+        return "%s, %s" % (self.petition, self.negative_reason)
+
+    class Meta:
+        verbose_name = "Petición - razón negativa (m2m)"
+        verbose_name_plural = "Peticiones - razones negativas (m2m)"
+
+
+class PetitionFileControl(models.Model):
+    petition = models.ForeignKey(
+        Petition,
+        related_name="file_controls",
+        on_delete=models.CASCADE)
+    # file_control = models.IntegerField(blank=True, null=True)
+    file_control = models.ForeignKey(
+        FileControl, on_delete=models.CASCADE,
+        related_name="petition_file_control",)
+
+    def delete(self, *args, **kwargs):
+        from respond.models import LapSheet
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return "%s - %s" % (self.petition, self.file_control)
+
+    class Meta:
+        verbose_name = "Relacional: petición -- Grupo de Control"
+        verbose_name_plural = "7. Relacional: Petición -- Grupos de Control"
 
 
 class PetitionMonth(models.Model):
@@ -388,10 +390,10 @@ class PetitionMonth(models.Model):
         Petition,
         related_name="petition_months",
         on_delete=models.CASCADE)
-    entity_month = models.ForeignKey(EntityMonth, on_delete=models.CASCADE)
+    month_record = models.ForeignKey(MonthRecord, on_delete=models.CASCADE)
 
     def __str__(self):
-        return "%s-> %s, %s" % (self.id, self.petition, self.entity_month)
+        return "%s-> %s, %s" % (self.id, self.petition, self.month_record)
 
     class Meta:
         get_latest_by = "month_agency__year_month"
@@ -399,13 +401,13 @@ class PetitionMonth(models.Model):
         verbose_name_plural = "Meses de solicitud"
 
 
-class Week(models.Model):
+class WeekRecord(models.Model):
     provider = models.ForeignKey(
         Provider,
         related_name="weeks",
         on_delete=models.CASCADE, blank=True, null=True)
-    entity_month = models.ForeignKey(
-        EntityMonth,
+    month_record = models.ForeignKey(
+        MonthRecord,
         related_name="weeks",
         on_delete=models.CASCADE, blank=True, null=True)
     year_week = models.CharField(max_length=8, blank=True, null=True)

@@ -8,7 +8,7 @@ def lambda_handler(event, context):
     from datetime import datetime
     # print("model_name", event.get("model_name"))
     lap_sheet_id = event.get("lap_sheet_id")
-    entity_month_id = event.get("entity_month_id")
+    month_record_id = event.get("month_record_id")
     table_files_ids = event.get("table_files_ids", [])
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries", [])
@@ -66,7 +66,7 @@ def lambda_handler(event, context):
 
     final_result = {
         "lap_sheet_id": lap_sheet_id,
-        "entity_month_id": entity_month_id,
+        "month_record_id": month_record_id,
     }
     return send_simple_response(event, context, errors, final_result)
 

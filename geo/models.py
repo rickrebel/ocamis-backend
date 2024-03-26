@@ -167,7 +167,7 @@ class Provider(models.Model):
         super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        from inai.models import EntityMonth
+        from inai.models import MonthRecord
         from scripts.ocamis_verified.initial_fields import WeeksGenerator
         self_created = True if self.pk is None else False
         super(Provider, self).save(*args, **kwargs)

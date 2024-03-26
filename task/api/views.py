@@ -107,7 +107,7 @@ class AsyncTaskViewSet(ListRetrieveView):
 
 class CutOffViewSet(ListRetrieveView):
     queryset = CutOff.objects.all().prefetch_related(
-        "steps", "last_entity_month")
+        "steps", "last_month_record")
     serializer_class = serializers.CutOffSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
@@ -117,20 +117,20 @@ class CutOffViewSet(ListRetrieveView):
 
     def get_queryset(self):
         return CutOff.objects.all().prefetch_related(
-            "steps", "last_entity_month")
+            "steps", "last_month_record")
 
     def create(self, request, *args, **kwargs):
-        from inai.models import EntityMonth
+        from inai.models import MonthRecord
         from classify_task.models import Stage
         from category.models import StatusControl
         year = request.data.get("year")
         month = request.data.get("month")
         year_month = f"{year}-{str(month).zfill(2)}"
         provider_id = request.data.get("provider_id")
-        entity_month = EntityMonth.objects.filter(
+        month_record = MonthRecord.objects.filter(
             year_month=year_month, provider_id=provider_id).first()
         cut_off = CutOff.objects.create(
-            last_entity_month=entity_month, provider_id=provider_id)
+            last_month_record=month_record, provider_id=provider_id)
         entity_stages = Stage.objects\
             .filter(stage_group__contains="provider-")\
             .order_by("-order")

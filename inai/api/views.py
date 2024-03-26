@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 
 from inai.models import (
     Petition, PetitionBreak,
-    PetitionFileControl, EntityMonth)
+    PetitionFileControl, MonthRecord)
 from respond.models import SheetFile, CrossingSheet
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
@@ -62,16 +62,16 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
         data_petition["petition"] = petition.id
 
-        entity_months = EntityMonth.objects.filter(
+        month_records = MonthRecord.objects.filter(
             entity=petition.agency.provider,
             year_month__gte=range_months[0],
             year_month__lte=range_months[1])
 
-        # for entity_month in entity_months:
+        # for month_record in month_records:
         #     PetitionMonth.objects.create(
-        #         petition=petition, entity_month=entity_month)
-        entity_months_ids = entity_months.values_list('id', flat=True)
-        petition.entity_months.set(entity_months_ids)
+        #         petition=petition, month_record=month_record)
+        month_records_ids = month_records.values_list('id', flat=True)
+        petition.month_records.set(month_records_ids)
 
         for pet_break in petition_breaks:
             petition_break = PetitionBreak()
@@ -157,7 +157,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
         petitions = Petition.objects.all().prefetch_related(
             # "petition_months",
-            "entity_months",
+            "month_records",
             "file_controls",
             "break_dates",
             "negative_reasons",
@@ -179,12 +179,12 @@ class PetitionViewSet(ListRetrieveUpdateMix):
                 if limiters.get("selected_month"):
                     # all_filters["petition_months__month_agency__year_month"] =\
                     #     f"{limiters.get('selected_year')}-{limiters.get('selected_month')}"
-                    all_filters["entity_months__year_month"] =\
+                    all_filters["month_records__year_month"] =\
                         f"{limiters.get('selected_year')}-{limiters.get('selected_month')}"
                 else:
                     # all_filters["petition_months__month_agency__year_month__icontains"] =\
                     #     limiters.get("selected_year")
-                    all_filters["entity_months__year_month__icontains"] =\
+                    all_filters["month_records__year_month__icontains"] =\
                         limiters.get("selected_year")
             if all_filters:
                 petitions = petitions.filter(**all_filters).distinct()
@@ -221,19 +221,19 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         #     month_agency__year_month__gte=limiters[0],
         #     month_agency__year_month__lte=limiters[1],
         # ).delete()
-        new_entity_month = EntityMonth.objects.filter(
+        new_month_record = MonthRecord.objects.filter(
             entity=petition.agency.provider,
             year_month__gte=limiters[0], year_month__lte=limiters[1])
         # for mon_ent in new_entity_month:
         #     PetitionMonth.objects.get_or_create(
-        #         petition=petition, entity_month=mon_ent)
-        petition.entity_months.set(new_entity_month)
+        #         petition=petition, month_record=mon_ent)
+        petition.month_records.set(new_month_record)
 
         # final_pet_months = PetitionMonth.objects.filter(petition=petition)
         # new_serializer = serializers.PetitionMonthSerializer(
         #     final_pet_months, many=True)
-        new_serializer = serializers.EntityMonthSimpleSerializer(
-            petition.entity_months, many=True)
+        new_serializer = serializers.MonthRecordSimpleSerializer(
+            petition.month_records, many=True)
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -287,24 +287,24 @@ class PetitionFileControlViewSet(CreateRetrieveView):
         return move_and_duplicate(data_files, petition, request)
 
 
-class EntityMonthViewSet(CreateRetrieveView):
-    queryset = EntityMonth.objects.all()
-    serializer_class = serializers.EntityMonthSerializer
+class MonthRecordViewSet(CreateRetrieveView):
+    queryset = MonthRecord.objects.all()
+    serializer_class = serializers.MonthRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "retrieve": serializers.EntityMonthSerializer,
+        "retrieve": serializers.MonthRecordSerializer,
     }
 
     def retrieve(self, request, **kwargs):
         from respond.api.serializers import SheetFileMonthSerializer
         from task.models import ClickHistory
-        entity_month = self.get_object()
+        month_record = self.get_object()
         ClickHistory.objects.create(
-            entity_month=entity_month, user=request.user)
-        sheet_files = entity_month.sheet_files.all() \
+            month_record=month_record, user=request.user)
+        sheet_files = month_record.sheet_files.all() \
             .prefetch_related("data_file", "data_file__petition_file_control")
         # sheet_files = SheetFile.objects.filter(
-        #     laps__table_files__entity_week__entity_month=entity_month)\
+        #     laps__table_files__week_record__month_record=month_record)\
         #     .distinct()
         serializer_sheet_files = SheetFileMonthSerializer(
             sheet_files, many=True)
@@ -313,9 +313,9 @@ class EntityMonthViewSet(CreateRetrieveView):
         crossing_sheets_2 = CrossingSheet.objects.filter(
             sheet_file_2__in=sheet_files)
         all_crossing_sheets = crossing_sheets_1 | crossing_sheets_2
-        if all_crossing_sheets.filter(entity_month__isnull=False).exists():
+        if all_crossing_sheets.filter(month_record__isnull=False).exists():
             all_crossing_sheets = all_crossing_sheets.filter(
-                entity_month__isnull=False)
+                month_record__isnull=False)
 
         all_related_sheets = set()
         for crossing_sheet in all_crossing_sheets:
@@ -340,15 +340,15 @@ class EntityMonthViewSet(CreateRetrieveView):
 
     @action(detail=True, methods=["post"], url_path="change_behavior")
     def change_behavior(self, request, **kwargs):
-        entity_month = self.get_object()
+        month_record = self.get_object()
 
         behavior = request.data.get("behavior")
         for_all = request.data.get("all", False)
-        sheet_files = entity_month.sheet_files.filter(
+        sheet_files = month_record.sheet_files.filter(
             laps__rx_count__gt=0,
             laps__lap=0).distinct()
         # sheet_files = SheetFile.objects.filter(
-        #     laps__table_files__entity_week__entity_month=entity_month,
+        #     laps__table_files__week_record__month_record=month_record,
         #     rx_count__gt=0,
         #     laps__lap=0)
         if for_all:

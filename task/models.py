@@ -5,7 +5,7 @@ from django.db.models.signals import post_save, post_delete
 
 from django.contrib.auth.models import User
 from inai.models import (
-    Petition, EntityMonth, EntityWeek, )
+    Petition, MonthRecord, WeekRecord, )
 from respond.models import ReplyFile, DataFile, SheetFile, TableFile
 from geo.models import Provider
 from data_param.models import FileControl
@@ -26,11 +26,11 @@ class AsyncTask(models.Model):
     file_control = models.ForeignKey(
         FileControl, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    entity_week = models.ForeignKey(
-        EntityWeek, related_name="async_tasks",
+    week_record = models.ForeignKey(
+        WeekRecord, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    entity_month = models.ForeignKey(
-        EntityMonth, related_name="async_tasks",
+    month_record = models.ForeignKey(
+        MonthRecord, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     petition = models.ForeignKey(
         Petition, blank=True, null=True,
@@ -205,12 +205,12 @@ class CutOff(models.Model):
     provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE,
         verbose_name="Entidad", related_name="cut_offs")
-    last_entity_month = models.ForeignKey(
-        EntityMonth, on_delete=models.CASCADE,
+    last_month_record = models.ForeignKey(
+        MonthRecord, on_delete=models.CASCADE,
         verbose_name="Mes de corte", blank=True, null=True)
 
     def __str__(self):
-        return "%s - %s" % (self.provider, self.last_entity_month)
+        return "%s - %s" % (self.provider, self.last_month_record)
 
     class Meta:
         verbose_name = "Corte"
@@ -248,8 +248,8 @@ class ClickHistory(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE,
         verbose_name="Usuario", related_name="clicks")
-    entity_month = models.ForeignKey(
-        EntityMonth, on_delete=models.CASCADE,
+    month_record = models.ForeignKey(
+        MonthRecord, on_delete=models.CASCADE,
         verbose_name="Mes", blank=True, null=True)
     petition = models.ForeignKey(
         Petition, on_delete=models.CASCADE,

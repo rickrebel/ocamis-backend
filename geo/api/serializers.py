@@ -5,7 +5,7 @@ from geo.models import (
     Provider, Delegation)
 from task.api.serializers import CutOffSerializer
 # from report.api.serializers import ResponsableListSerializer
-# from inai.models import EntityMonth
+# from inai.models import MonthRecord
 
 
 class MunicipalityListSerializers(serializers.ModelSerializer):
@@ -174,30 +174,30 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
 def calc_drugs_summarize(obj, table_files=None):
     from django.db.models import Sum, F
     drugs_counts_by_week = obj.weeks \
-        .values("entity_month") \
+        .values("month_record") \
         .annotate(drugs_count=Sum(F("drugs_count"))) \
-        .values("entity_month", "drugs_count")
+        .values("month_record", "drugs_count")
     if not table_files:
         table_files = obj.table_files \
-            .filter(entity_week__isnull=False)
+            .filter(week_record__isnull=False)
     drugs_count_by_drug = table_files \
         .exclude(collection__model_name="Rx") \
         .prefetch_related("collection", "lap_sheet__sheet_file__behavior") \
         .values(
-            "entity_week__entity_month",
+            "week_record__month_record",
             "collection__model_name",
             "lap_sheet__sheet_file__behavior__is_discarded"
         ) \
         .annotate(
             drugs_count=Sum(F("drugs_count")),
-            entity_month=F("entity_week__entity_month"),
+            month_record=F("week_record__month_record"),
             collection=F("collection__model_name"),
             discarded=F("lap_sheet__sheet_file__behavior__is_discarded")) \
-        .values("entity_month", "drugs_count", "collection", "discarded")
+        .values("month_record", "drugs_count", "collection", "discarded")
     final_result = {}
     for drugs_count_by_week in drugs_counts_by_week:
-        entity_month = str(drugs_count_by_week["entity_month"])
-        final_result[entity_month] = {
+        month_record = str(drugs_count_by_week["month_record"])
+        final_result[month_record] = {
             "by_week": drugs_count_by_week["drugs_count"],
             "Drug": 0,
             "by_tables_included": 0,
@@ -205,7 +205,7 @@ def calc_drugs_summarize(obj, table_files=None):
             "in_month": getattr(obj, "drugs_count", 0)
         }
     for drugs_count_by_drug in drugs_count_by_drug:
-        entity_month = drugs_count_by_drug["entity_month"]
+        month_record = drugs_count_by_drug["month_record"]
         collection = drugs_count_by_drug["collection"]
         if collection == "Drug":
             field = "Drug"
@@ -213,37 +213,37 @@ def calc_drugs_summarize(obj, table_files=None):
             field = "by_tables_included"
             if drugs_count_by_drug["discarded"]:
                 field = "by_tables_discarded"
-        entity_month = str(entity_month)
-        if not final_result.get(entity_month):
-            final_result[entity_month] = {}
+        month_record = str(month_record)
+        if not final_result.get(month_record):
+            final_result[month_record] = {}
         # print("final_result\n", final_result, "\n")
-        # print("entity_month", entity_month)
-        # print("type of entity_month", type(entity_month))
-        # print("final_result[entity_month]", final_result[entity_month])
+        # print("month_record", month_record)
+        # print("type of month_record", type(month_record))
+        # print("final_result[month_record]", final_result[month_record])
         # print("field", field)
         # print("drugs_count_by_drug[drugs_count]", drugs_count_by_drug["drugs_count"])
-        final_result[entity_month][field] = drugs_count_by_drug["drugs_count"]
+        final_result[month_record][field] = drugs_count_by_drug["drugs_count"]
     return final_result
 
 
-def calc_sheet_files_summarize(entity, entity_month=None):
+def calc_sheet_files_summarize(entity, month_record=None):
     from django.db.models import Count
-    from inai.models import EntityMonth
+    from inai.models import MonthRecord
     count_by_year_month_and_behavior = []
-    if entity_month:
-        all_entity_months = [entity_month]
+    if month_record:
+        all_month_records = [month_record]
     else:
-        all_entity_months = EntityMonth.objects\
+        all_month_records = MonthRecord.objects\
             .filter(entity=entity)\
             .order_by("year_month")
-    for entity_month in all_entity_months:
-        behavior_counts = entity_month.sheet_files\
+    for month_record in all_month_records:
+        behavior_counts = month_record.sheet_files\
             .filter(behavior__isnull=False)\
             .values("behavior")\
             .annotate(count=Count("behavior"))
         for behavior_count in behavior_counts:
             count_by_year_month_and_behavior.append({
-                "year_month": entity_month.year_month,
+                "year_month": month_record.year_month,
                 "behavior": behavior_count["behavior"],
                 "count": behavior_count["count"]
             })
@@ -251,11 +251,11 @@ def calc_sheet_files_summarize(entity, entity_month=None):
 
 
 class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
-    from inai.api.serializers import EntityMonthSerializer
+    from inai.api.serializers import MonthRecordSerializer
 
     # petitions = PetitionSemiFullSerializer(many=True)
     petitions = serializers.SerializerMethodField(read_only=True)
-    entity_months = EntityMonthSerializer(many=True)
+    month_records = MonthRecordSerializer(many=True)
     sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
     drugs_summarize = serializers.SerializerMethodField(read_only=True)
 
@@ -287,18 +287,18 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
 
 
 class AgencyVizSerializer(AgencySerializer):
-    # from inai.api.serializers import EntityMonthSimpleSerializer
+    # from inai.api.serializers import MonthRecordSimpleSerializer
     from inai.api.serializers_viz import (
-        PetitionVizSerializer, EntityMonthVizSerializer)
+        PetitionVizSerializer, MonthRecordVizSerializer)
 
     agency_type = serializers.ReadOnlyField()
     petitions = PetitionVizSerializer(many=True)
-    months = EntityMonthVizSerializer(
-        many=True, read_only=True, source="provider.entity_months")
+    months = MonthRecordVizSerializer(
+        many=True, read_only=True, source="provider.month_records")
     # months = serializers.SerializerMethodField(read_only=True)
 
     # def get_months(self, obj):
-    #    return EntityMonth.objects.filter(agency=obj)\
+    #    return MonthRecord.objects.filter(agency=obj)\
     #        .values_list("year_month", flat=True).distinct()
 
     class Meta:

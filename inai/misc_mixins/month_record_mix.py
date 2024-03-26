@@ -1,5 +1,5 @@
 from classify_task.models import Stage
-from inai.models import EntityMonth
+from inai.models import MonthRecord
 from task.serverless import async_in_lambda
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
@@ -23,8 +23,8 @@ def exist_temp_table(table_name):
 
 class FromAws:
 
-    def __init__(self, entity_month: EntityMonth, task_params=None):
-        self.entity_month = entity_month
+    def __init__(self, month_record: MonthRecord, task_params=None):
+        self.month_record = month_record
         self.task_params = task_params
 
     def revert_stages(self, final_stage: Stage):
@@ -33,26 +33,26 @@ class FromAws:
         from respond.models import CrossingSheet
         from django.db import connection
 
-        self.entity_month.stage = final_stage
+        self.month_record.stage = final_stage
         if final_stage.name == "revert_stages":
-            self.entity_month.status_id = "finished"
+            self.month_record.status_id = "finished"
         else:
-            self.entity_month.status_id = "created"
+            self.month_record.status_id = "created"
 
-        self.entity_month.last_validate = None
-        self.entity_month.last_indexing = None
-        self.entity_month.last_insertion = None
-        self.entity_month.error_process = None
-        entity_weeks = self.entity_month.weeks.all()
+        self.month_record.last_validate = None
+        self.month_record.last_indexing = None
+        self.month_record.last_insertion = None
+        self.month_record.error_process = None
+        week_records = self.month_record.weeks.all()
         base_table_files = TableFile.objects.filter(
-            entity_week__entity_month=self.entity_month,
+            week_record__month_record=self.month_record,
             collection__isnull=False)
-        sheet_files = self.entity_month.sheet_files.all()
+        sheet_files = self.month_record.sheet_files.all()
 
         stage_pre_insert = Stage.objects.get(name="pre_insert")
         if final_stage.order <= stage_pre_insert.order:
-            self.entity_month.last_pre_insertion = None
-            entity_weeks.update(
+            self.month_record.last_pre_insertion = None
+            week_records.update(
                 last_pre_insertion=None)
 
             related_lap_sheets = LapSheet.objects \
@@ -69,7 +69,7 @@ class FromAws:
             base_table_files.update(inserted=False)
             cursor = connection.cursor()
             for table_name in ["rx", "drug", "missingrow", "missingfield"]:
-                temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+                temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
                 cursor.execute(f"""
                     DROP TABLE IF EXISTS {temp_table} CASCADE;
                 """)
@@ -79,35 +79,35 @@ class FromAws:
 
         stage_merge = Stage.objects.get(name="merge")
         if final_stage.order <= stage_merge.order:
-            self.entity_month.last_merge = None
+            self.month_record.last_merge = None
             base_table_files.delete()
-            entity_weeks.update(
+            week_records.update(
                 last_merge=None)
 
         stage_analysis = Stage.objects.get(name="analysis")
         if final_stage.order <= stage_analysis.order:
-            self.entity_month.last_crossing = None
+            self.month_record.last_crossing = None
             lap_table_files = TableFile.objects.filter(
-                entity_week__entity_month=self.entity_month,
+                week_record__month_record=self.month_record,
                 lap_sheet__isnull=False)
             lap_table_files.update(
                 rx_count=0,
                 duplicates_count=0,
                 shared_count=0)
             CrossingSheet.objects.filter(
-                entity_month=self.entity_month).delete()
-            entity_weeks.update(
+                month_record=self.month_record).delete()
+            week_records.update(
                 rx_count=0,
                 drugs_count=0,
                 duplicates_count=0,
                 shared_count=0,
                 last_crossing=None,
                 crosses=None)
-            all_sheet_ids = self.entity_month.sheet_files.all() \
+            all_sheet_ids = self.month_record.sheet_files.all() \
                 .values_list("id", flat=True)
             self.save_sums(all_sheet_ids)
 
-        self.entity_month.save()
+        self.month_record.save()
 
         return [], [], True
 
@@ -118,9 +118,9 @@ class FromAws:
         from_aws = kwargs.get("from_aws", False)
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
-        self.entity_month.end_stage("analysis", parent_task)
+        self.month_record.end_stage("analysis", parent_task)
 
-        related_weeks = self.entity_month.weeks.all()
+        related_weeks = self.month_record.weeks.all()
         all_crosses = {}
         all_errors = []
         for related_week in related_weeks:
@@ -141,14 +141,14 @@ class FromAws:
                     all_crosses[pair] = {"dupli": 0, "shared": value}
         if all_errors:
             return [], all_errors, False
-        CrossingSheet.objects.filter(entity_month=self.entity_month).delete()
+        CrossingSheet.objects.filter(month_record=self.month_record).delete()
 
         all_sheet_ids = set()
         current_crosses = []
         for pair, value in all_crosses.items():
             sheet_1, sheet_2 = pair.split("|")
             crossing_sheet = CrossingSheet(
-                entity_month=self.entity_month,
+                month_record=self.month_record,
                 sheet_file_1_id=sheet_1,
                 sheet_file_2_id=sheet_2,
                 duplicates_count=value["dupli"],
@@ -162,8 +162,8 @@ class FromAws:
         CrossingSheet.objects.bulk_create(current_crosses)
 
         if from_aws:
-            self.entity_month.last_crossing = timezone.now()
-        self.entity_month.save()
+            self.month_record.last_crossing = timezone.now()
+        self.month_record.save()
         return [], [], True
 
     def save_sums(self, all_sheet_ids):
@@ -184,10 +184,10 @@ class FromAws:
             lap_sheet.sheet_file.save()
 
         query_sums = [Sum(field) for field in sum_fields]
-        result_sums = self.entity_month.weeks.all().aggregate(*query_sums)
+        result_sums = self.month_record.weeks.all().aggregate(*query_sums)
         # print("result_sums", result_sums)
         for field in sum_fields:
-            setattr(self.entity_month, field,
+            setattr(self.month_record, field,
                     result_sums[f"{field}__sum"] or 0)
 
     def send_analysis(self):
@@ -196,30 +196,30 @@ class FromAws:
 
         all_tasks = []
         insert_stage = Stage.objects.get(name="insert")
-        if self.entity_month.stage.order >= insert_stage.order:
-            error = f"El mes {self.entity_month.year_month} ya se insertó"
+        if self.month_record.stage.order >= insert_stage.order:
+            error = f"El mes {self.month_record.year_month} ya se insertó"
             return all_tasks, [error], True
         all_table_files = TableFile.objects\
             .filter(
-                entity_week__entity_month=self.entity_month,
+                week_record__month_record=self.month_record,
                 collection__isnull=True,
             ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
 
-        for week in self.entity_month.weeks.all():
+        for week in self.month_record.weeks.all():
             # if week.last_crossing and week.last_transformation:
             #     if week.last_transformation < week.last_crossing:
             #         continue
-            # init_data = EntityWeekSimpleSerializer(week).data
+            # init_data = WeekRecordSimpleSerializer(week).data
             # table_files = TableFile.objects.filter(
-            #     entity_week=week,
+            #     week_record=week,
             #     collection__isnull=True)
-            table_files = all_table_files.filter(entity_week=week)
+            table_files = all_table_files.filter(week_record=week)
             file_names = table_files.values_list("file", flat=True)
             params = {
                 "provider_id": week.provider_id,
                 "table_files": list(file_names)
             }
-            self.task_params["models"] = [week, self.entity_month]
+            self.task_params["models"] = [week, self.month_record]
             self.task_params["function_after"] = "analyze_uniques_after"
             params_after = self.task_params.get("params_after", {})
             # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
@@ -227,7 +227,7 @@ class FromAws:
             async_task = async_in_lambda(
                 "analyze_uniques", params, self.task_params)
             all_tasks.append(async_task)
-            # if self.entity_month.provider.split_by_delegation:
+            # if self.month_record.provider.split_by_delegation:
             #     time.sleep(0.2)
         return all_tasks, [], True
 
@@ -238,45 +238,45 @@ class FromAws:
         from django.utils import timezone
         from django.db.models import F
 
-        related_sheet_files = self.entity_month.sheet_files.all()
+        related_sheet_files = self.month_record.sheet_files.all()
 
-        my_insert = InsertMonth(self.entity_month, self.task_params)
+        my_insert = InsertMonth(self.month_record, self.task_params)
         new_tasks = []
-        entity_weeks = self.entity_month.weeks.all().prefetch_related(
+        week_records = self.month_record.weeks.all().prefetch_related(
             "table_files", "table_files__collection", "table_files__lap_sheet",
             "table_files__lap_sheet__sheet_file")
 
         all_table_files = TableFile.objects \
             .filter(
-                entity_week__entity_month=self.entity_month,
+                week_record__month_record=self.month_record,
                 lap_sheet__lap=0,
             ).exclude(lap_sheet__sheet_file__behavior_id="invalid") \
             .values(
-                "entity_week_id", "id", "file", "collection", "year",
+                "week_record_id", "id", "file", "collection", "year",
                 "month", "year_month", "iso_week", "iso_year", "year_week",
                 "lap_sheet__sheet_file__behavior_id"
             ).annotate(
                 sheet_behavior=F("lap_sheet__sheet_file__behavior_id"))
 
-        for ew in entity_weeks:
+        for wr in week_records:
             # if ew.last_merge:
             #     if ew.last_transformation < ew.last_crossing < ew.last_merge:
             #         continue
-            # if self.entity_month.provider_id == 55 and ew.complete:
+            # if self.month_record.provider_id == 55 and ew.complete:
             #     continue
             # lap_sheet.sheet_file.behavior_id
             # week_base_table_files = ew.table_files\
             #     .filter(lap_sheet__lap=0)\
             #     .prefetch_related("lap_sheet__sheet_file")
             week_base_table_files = list(all_table_files.filter(
-                entity_week_id=ew.id))
+                week_record_id=wr.id))
             # if week_base_table_files.count() == 0:
             if not week_base_table_files:
-                ew.last_merge = timezone.now()
-                ew.save()
+                wr.last_merge = timezone.now()
+                wr.save()
                 continue
             table_task = my_insert.merge_week_base_tables(
-                ew, week_base_table_files)
+                wr, week_base_table_files)
             new_tasks.append(table_task)
 
         return new_tasks, [], True
@@ -293,14 +293,14 @@ class FromAws:
         # CREATE TABLE fm_55_201902_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
         queries = {"create": [], "drop": []}
 
-        drug_table = f"fm_{self.entity_month.temp_table}_drug"
+        drug_table = f"fm_{self.month_record.temp_table}_drug"
         cursor = connection.cursor()
         exists_temp_tables = exist_temp_table(drug_table)
 
         formula_tables = ["rx", "drug", "missingrow", "missingfield",
                           "complementrx", "complementdrug"]
         for table_name in formula_tables:
-            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             queries["create"].append(f"""
                 CREATE TABLE {temp_table}
                 (LIKE formula_{table_name} INCLUDING CONSTRAINTS);
@@ -316,11 +316,11 @@ class FromAws:
 
         month_table_files = TableFile.objects\
             .filter(
-                entity_week__entity_month=self.entity_month,
+                week_record__month_record=self.month_record,
                 collection__isnull=True
             )\
             .exclude(inserted=True)
-        related_sheet_files = self.entity_month.sheet_files.all()
+        related_sheet_files = self.month_record.sheet_files.all()
 
         related_lap_sheets = LapSheet.objects\
             .filter(sheet_file__in=related_sheet_files)\
@@ -336,7 +336,7 @@ class FromAws:
         errors = []
         if not collection_table_files.exists() and not month_table_files.exists():
             error = ["No existen tablas por insertar para el mes "
-                     f"{self.entity_month.year_month}"]
+                     f"{self.month_record.year_month}"]
             errors.append(error)
             # return [], errors, False
         if errors:
@@ -351,14 +351,14 @@ class FromAws:
         req = RequestClass()
 
         task_cats, task_params_cat = build_task_params(
-            self.entity_month, 'save_month_cat_tables', req,
+            self.month_record, 'save_month_cat_tables', req,
             **self.task_params)
         new_tasks = []
         errors = []
         cat_tasks = []
 
         new_tasks.append(task_cats)
-        my_insert_cat = InsertMonth(self.entity_month, task_params_cat)
+        my_insert_cat = InsertMonth(self.month_record, task_params_cat)
         for lap_sheet in pending_lap_sheets:
             current_table_files = collection_table_files.filter(
                 lap_sheet=lap_sheet,
@@ -379,17 +379,17 @@ class FromAws:
             inserted=False)
         # base_table_files = TableFile.objects.filter(
         #     lap_sheet__isnull=True,
-        #     year_month=self.entity_month.year_month,
+        #     year_month=self.month_record.year_month,
         #     collection__app_label="formula",
         #     inserted=False)
 
         task_base, task_params_base = build_task_params(
-            self.entity_month, 'save_month_base_tables', req,
+            self.month_record, 'save_month_base_tables', req,
             **self.task_params)
         new_tasks.append(task_base)
-        my_insert_base = InsertMonth(self.entity_month, task_params_base)
+        my_insert_base = InsertMonth(self.month_record, task_params_base)
         base_tasks = []
-        for week in self.entity_month.weeks.all():
+        for week in self.month_record.weeks.all():
             week_base_table_files = week.table_files.filter(
                 lap_sheet__isnull=True,
                 collection__app_label="formula",
@@ -422,15 +422,15 @@ class FromAws:
         errors = []
 
         for table_name in ["rx", "drug"]:
-            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table)
             if not exists_temp_tables:
                 errors.append(f"No existe la tabla esencial {temp_table}")
         if errors:
             return [], errors, False
 
-        if self.entity_month.error_process:
-            error_process_list = self.entity_month.error_process
+        if self.month_record.error_process:
+            error_process_list = self.month_record.error_process
             error_process_str = "\n".join(error_process_list)
             blocked_error = "blocked by process " in error_process_str
             if "semanas con más medicamentos" in error_process_str:
@@ -439,7 +439,7 @@ class FromAws:
                     "drug": "uuid",
                 }
                 for table_name, field in models.items():
-                    temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+                    temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
                     clean_queries.append(f"""
                         DELETE FROM {temp_table}
                         WHERE {field} IN (
@@ -455,43 +455,43 @@ class FromAws:
                     """)
             elif not blocked_error:
                 error = f"Existen otros errores: {error_process_str}"
-                self.entity_month.error_process = [error]
-                self.entity_month.status_id = "with_errors"
-                self.entity_month.save()
+                self.month_record.error_process = [error]
+                self.month_record.status_id = "with_errors"
+                self.month_record.save()
                 return [], [error], True
 
         drugs_counts = TableFile.objects.filter(
-                entity_week__entity_month=self.entity_month,
+                week_record__month_record=self.month_record,
                 collection__model_name="Drug")\
-            .values("entity_week_id", "drugs_count")
+            .values("week_record_id", "drugs_count")
         # drugs_counts = {d["id"]: d["drugs_count"] for d in drugs_counts}
         drugs_counts = list(drugs_counts)
         drugs_object = {}
         for drug in drugs_counts:
-            drugs_object[drug["entity_week_id"]] = drug["drugs_count"]
+            drugs_object[drug["week_record_id"]] = drug["drugs_count"]
         if not drugs_object:
             error = "No se encontraron semanas con medicamentos"
-            self.entity_month.error_process = [error]
-            self.entity_month.status_id = "with_errors"
-            self.entity_month.save()
+            self.month_record.error_process = [error]
+            self.month_record.status_id = "with_errors"
+            self.month_record.save()
             return [], [error], True
-        temp_drug = f"fm_{self.entity_month.temp_table}_drug"
+        temp_drug = f"fm_{self.month_record.temp_table}_drug"
         count_query = f"""
-            SELECT entity_week_id,
+            SELECT week_record_id,
             COUNT(*)
             FROM {temp_drug}
-            GROUP BY entity_week_id;
+            GROUP BY week_record_id;
         """
 
         last_query = f"""
             UPDATE public.inai_entitymonth
             SET last_validate = now()
-            WHERE id = {self.entity_month.id}
+            WHERE id = {self.month_record.id}
         """
 
         params = {
-            "entity_month_id": self.entity_month.id,
-            "temp_table": self.entity_month.temp_table,
+            "month_record_id": self.month_record.id,
+            "temp_table": self.month_record.temp_table,
             "db_config": ocamis_db,
             "clean_queries": clean_queries,
             "count_query": count_query,
@@ -500,7 +500,7 @@ class FromAws:
         }
 
         all_tasks = []
-        self.task_params["models"] = [self.entity_month]
+        self.task_params["models"] = [self.month_record]
         async_task = async_in_lambda(
             "validate_temp_tables", params, self.task_params)
         if async_task:
@@ -512,41 +512,41 @@ class FromAws:
         errors = []
 
         for table_name in ["rx", "drug"]:
-            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table)
             if not exists_temp_tables:
                 errors.append(f"No existe la tabla esencial {temp_table}")
         if errors:
             return [], errors, False
 
-        if self.entity_month.error_process:
-            error_process_list = self.entity_month.error_process
+        if self.month_record.error_process:
+            error_process_list = self.month_record.error_process
             error_process_str = "\n".join(error_process_list)
             error = f"Existen otros errores: {error_process_str}"
-            self.entity_month.error_process = [error]
-            self.entity_month.status_id = "with_errors"
-            self.entity_month.save()
+            self.month_record.error_process = [error]
+            self.month_record.status_id = "with_errors"
+            self.month_record.save()
             return [], [error], True
 
         constraint_queries = modify_constraints(
-            True, False, self.entity_month.temp_table)
+            True, False, self.month_record.temp_table)
 
         last_query = f"""
             UPDATE public.inai_entitymonth
             SET last_indexing = now()
-            WHERE id = {self.entity_month.id}
+            WHERE id = {self.month_record.id}
         """
 
         params = {
-            "entity_month_id": self.entity_month.id,
-            "temp_table": self.entity_month.temp_table,
+            "month_record_id": self.month_record.id,
+            "temp_table": self.month_record.temp_table,
             "db_config": ocamis_db,
             "constraint_queries": constraint_queries,
             "last_query": last_query,
         }
 
         all_tasks = []
-        self.task_params["models"] = [self.entity_month]
+        self.task_params["models"] = [self.month_record]
         async_task = async_in_lambda(
             "indexing_temp_tables", params, self.task_params)
         if async_task:
@@ -562,7 +562,7 @@ class FromAws:
         insert_queries = []
         drop_queries = []
         for table_name in ["rx", "drug", "missingrow", "missingfield"]:
-            temp_table = f"fm_{self.entity_month.temp_table}_{table_name}"
+            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table)
             if not exists_temp_tables:
                 if table_name in ["rx", "drug"]:
@@ -584,17 +584,17 @@ class FromAws:
         first_query = f"""
             SELECT last_insertion IS NOT NULL AS last_insertion
             FROM public.inai_entitymonth
-            WHERE id = {self.entity_month.id}
+            WHERE id = {self.month_record.id}
         """
         last_query = f"""
             UPDATE public.inai_entitymonth
             SET last_insertion = now()
-            WHERE id = {self.entity_month.id}
+            WHERE id = {self.month_record.id}
         """
 
         params = {
-            "entity_month_id": self.entity_month.id,
-            "temp_table": self.entity_month.temp_table,
+            "month_record_id": self.month_record.id,
+            "temp_table": self.month_record.temp_table,
             "db_config": ocamis_db,
             "first_query": first_query,
             "insert_queries": insert_queries,
@@ -602,7 +602,7 @@ class FromAws:
             "last_query": last_query,
         }
         all_tasks = []
-        self.task_params["models"] = [self.entity_month]
+        self.task_params["models"] = [self.month_record]
         async_task = async_in_lambda(
             "insert_temp_tables", params, self.task_params)
         if async_task:
@@ -611,11 +611,11 @@ class FromAws:
 
     def all_base_tables_merged(self, **kwargs):
         from django.utils import timezone
-        self.entity_month.last_merge = timezone.now()
+        self.month_record.last_merge = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
-        self.entity_month.end_stage("merge", parent_task)
-        self.entity_month.save()
+        self.month_record.end_stage("merge", parent_task)
+        self.month_record.save()
         return [], [], True
 
     def insert_temp_tables_after(self, **kwargs):
@@ -630,57 +630,57 @@ class FromAws:
 
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
-        self.entity_month.last_pre_insertion = timezone.now()
+        self.month_record.last_pre_insertion = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
-        errors = self.entity_month.end_stage("pre_insert", parent_task)
+        errors = self.month_record.end_stage("pre_insert", parent_task)
         # if not errors:
-        #     self.entity_month.end_stage("insert", parent_task)
-        self.entity_month.save()
+        #     self.month_record.end_stage("insert", parent_task)
+        self.month_record.save()
         return [], [], True
 
     def all_base_tables_validated(self, **kwargs):
         from django.utils import timezone
         import json
-        self.entity_month.last_validate = timezone.now()
+        self.month_record.last_validate = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
-        errors = self.entity_month.end_stage("validate", parent_task)
+        errors = self.month_record.end_stage("validate", parent_task)
         for error in errors:
             if "semanas no insertadas en la base" in error:
                 week_ids = error.split(": ")[1]
                 week_ids = json.loads(week_ids)
                 for week_id in week_ids:
-                    week = self.entity_month.weeks.get(id=week_id)
+                    week = self.month_record.weeks.get(id=week_id)
                     week.last_pre_insertion = None
                     week.table_files.update(inserted=False)
                     week.save()
-                self.entity_month.stage_id = "pre_insert"
-                self.entity_month.status_id = "with_errors"
-                self.entity_month.save()
+                self.month_record.stage_id = "pre_insert"
+                self.month_record.status_id = "with_errors"
+                self.month_record.save()
                 return [], errors, False
         # if not errors:
-        #     self.entity_month.end_stage("insert", parent_task)
-        self.entity_month.save()
+        #     self.month_record.end_stage("insert", parent_task)
+        self.month_record.save()
         return [], [], True
 
     def all_base_tables_indexed(self, **kwargs):
-        # self.entity_month.last_indexing = timezone.now()
+        # self.month_record.last_indexing = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
-        self.entity_month.end_stage("indexing", parent_task)
+        self.month_record.end_stage("indexing", parent_task)
         # if not errors:
-        #     self.entity_month.end_stage("insert", parent_task)
-        self.entity_month.save()
+        #     self.month_record.end_stage("insert", parent_task)
+        self.month_record.save()
         return [], [], True
 
     def all_temp_tables_inserted(self, **kwargs):
         from django.utils import timezone
-        # self.entity_month.last_insertion = timezone.now()
+        # self.month_record.last_insertion = timezone.now()
         current_task = self.task_params.get("parent_task")
         parent_task = current_task.parent_task
-        errors = self.entity_month.end_stage("insert", parent_task)
+        errors = self.month_record.end_stage("insert", parent_task)
         # if not errors:
-        #     self.entity_month.end_stage("insert", parent_task)
-        self.entity_month.save()
+        #     self.month_record.end_stage("insert", parent_task)
+        self.month_record.save()
         return [], [], True

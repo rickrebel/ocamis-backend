@@ -8,7 +8,7 @@ from geo.models import Provider, Delegation
 from respond.data_file_mixins.explore_mix import ExploreMix
 from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
-from inai.models import Petition, set_upload_path, PetitionFileControl, EntityMonth, EntityWeek
+from inai.models import Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord
 from respond.reply_file_mixins.process_mix import ReplyFileMix
 
 
@@ -237,8 +237,8 @@ class SheetFile(models.Model):
     warnings = JSONField(blank=True, null=True)
     year_month = models.CharField(
         max_length=8, blank=True, null=True, verbose_name="Año y mes")
-    entity_months = models.ManyToManyField(
-        EntityMonth, blank=True, related_name="sheet_files")
+    month_records = models.ManyToManyField(
+        MonthRecord, blank=True, related_name="sheet_files")
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         default='explore', verbose_name="Etapa actual")
@@ -307,11 +307,11 @@ class CrossingSheet(models.Model):
         SheetFile, related_name="crossing_1", on_delete=models.CASCADE)
     sheet_file_2 = models.ForeignKey(
         SheetFile, related_name="crossing_2", on_delete=models.CASCADE)
-    entity_week = models.ForeignKey(
-        EntityWeek, related_name="crossing_sheets",
+    week_record = models.ForeignKey(
+        WeekRecord, related_name="crossing_sheets",
         on_delete=models.CASCADE, blank=True, null=True)
-    entity_month = models.ForeignKey(
-        EntityMonth, related_name="crossing_sheets",
+    month_record = models.ForeignKey(
+        MonthRecord, related_name="crossing_sheets",
         on_delete=models.CASCADE, blank=True, null=True)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
@@ -391,8 +391,8 @@ class TableFile(models.Model):
         Collection, on_delete=models.CASCADE, blank=True, null=True)
     inserted = models.BooleanField(default=False)
 
-    entity_week = models.ForeignKey(
-        EntityWeek, on_delete=models.CASCADE,
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.CASCADE,
         blank=True, null=True, related_name="table_files")
     year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
