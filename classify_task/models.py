@@ -121,7 +121,8 @@ class Stage(models.Model):
             status_initial = StatusControl.objects.get(name="initial")
             for provider in Provider.objects.all():
                 Step.objects.get_or_create(
-                    entity=provider, stage=self, status_opera=status_initial)
+                    # provider=provider,
+                    stage=self, status_opera=status_initial)
 
         super().save(*args, **kwargs)
 

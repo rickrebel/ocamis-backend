@@ -38,7 +38,7 @@ class EntityMonthSerializer(serializers.ModelSerializer):
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
             "last_indexing",
-            "last_insertion", "stage", "status", "entity_id", "error_process"]
+            "last_insertion", "stage", "status", "provider_id", "error_process"]
 
 
 class EntityMonthFullSerializer(serializers.ModelSerializer):
@@ -68,7 +68,7 @@ class EntityMonthFullSerializer(serializers.ModelSerializer):
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion", "error_process",
             "last_indexing", "last_insertion", "behavior_counts",
-            "stage", "status", "drugs_counts", "entity_id"]
+            "stage", "status", "drugs_counts", "provider_id"]
 
 
 class EntityMonthSimpleSerializer(serializers.ModelSerializer):

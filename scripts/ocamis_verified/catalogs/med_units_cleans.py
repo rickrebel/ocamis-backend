@@ -1,10 +1,10 @@
 
-def update_delegation_in_med_units(entity_id):
+def update_delegation_in_med_units(provider_id):
     from med_cat.models import MedicalUnit
     from geo.models import Delegation, Provider
     from scripts.common import text_normalizer
     from geo.views import build_catalog_delegation_by_id
-    provider = Provider.objects.get(id=entity_id)
+    provider = Provider.objects.get(id=provider_id)
     dict_delegations = build_catalog_delegation_by_id(provider.institution)
     all_medical_units = MedicalUnit.objects.filter(
         entity=provider, delegation__isnull=True, delegation_name__isnull=False)

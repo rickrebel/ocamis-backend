@@ -374,7 +374,7 @@ class EntityMonth(models.Model):
     @property
     def temp_table(self):
         year_month = self.year_month.replace("-", "")
-        return f"{self.entity_id}_{year_month}"
+        return f"{self.provider_id}_{year_month}"
 
     class Meta:
         get_latest_by = "year_month"
@@ -399,7 +399,7 @@ class PetitionMonth(models.Model):
         verbose_name_plural = "Meses de solicitud"
 
 
-class EntityWeek(models.Model):
+class Week(models.Model):
     provider = models.ForeignKey(
         Provider,
         related_name="weeks",

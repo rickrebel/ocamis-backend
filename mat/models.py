@@ -74,7 +74,7 @@ class MotherDrug(models.Model):
 #     iso_year = models.PositiveSmallIntegerField(db_column="iso_year")
 #     iso_week = models.PositiveSmallIntegerField(db_column="iso_week")
 #     provider = models.ForeignKey(
-#         Provider, on_delete=models.DO_NOTHING, db_column="entity_id")
+#         Provider, on_delete=models.DO_NOTHING, db_column="provider_id")
 #     component = models.ForeignKey(
 #         Component, on_delete=models.DO_NOTHING, db_column="component_id")
 #     presentation = models.ForeignKey(

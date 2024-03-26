@@ -118,7 +118,7 @@ class WeeksGenerator:
                 if current_week in already_weeks:
                     continue
                 entity_month_id = self.already_months[provider.id][week_data["year_month"]]
-                week_data.update({"entity_id": provider.id, "entity_month_id": entity_month_id})
+                week_data.update({"provider_id": provider.id, "entity_month_id": entity_month_id})
                 bulk_weeks.append(EntityWeek(**week_data))
         EntityWeek.objects.bulk_create(bulk_weeks)
         self.entity_weeks = EntityWeek.objects.all()

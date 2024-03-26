@@ -29,7 +29,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
         from django.db.models import F, Sum
         from django.apps import apps
         is_big_active = getattr(settings, "IS_BIG_ACTIVE")
-        entity_id = request.data.get('provider')
+        provider_id = request.data.get('provider')
         delegation_id = request.data.get('delegation', None)
         by_delegation = request.data.get('by_delegation', False)
         display_totals = request.data.get('display_totals', False)
@@ -42,7 +42,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
         presentation_id = request.data.get('presentation', None)
         container_id = request.data.get('container', None)
 
-        some_geo = clues_id or delegation_id or entity_id
+        some_geo = clues_id or delegation_id or provider_id
         some_drug = container_id or presentation_id or component_id
         if group_by == 'iso_year':
             if not some_geo or not some_drug:
@@ -52,7 +52,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         elif group_by == 'delegation':
             by_delegation = True
-            if not some_drug or not entity_id:
+            if not some_drug or not provider_id:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         elif group_by == 'component':
             if not some_geo:
@@ -72,7 +72,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 'iso_week': f'{prev_iso}iso_week',
                 'iso_year': f'{prev_iso}iso_year',
             }
-            field_ent = f"{prev_iso}entity_id"
+            field_ent = f"{prev_iso}provider_id"
             field_comp = 'container__presentation__component_id' \
                 if is_complex else 'component_id'
 
@@ -81,9 +81,9 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 query_filter['clues_id'] = clues_id
             elif delegation_id:
                 query_filter['delegation_id'] = delegation_id
-            elif entity_id:
+            elif provider_id:
                 first_values['provider'] = field_ent
-                query_filter[field_ent] = entity_id
+                query_filter[field_ent] = provider_id
 
             if group_by == 'provider':
                 first_values['provider'] = field_ent

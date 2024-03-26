@@ -52,7 +52,7 @@ class MatchAws:
     months = set()
     last_revised = datetime.now()
 
-    entity_id = None
+    provider_id = None
     delimiter = None
     global_delegation = None
     global_delivered = None
@@ -131,8 +131,8 @@ class MatchAws:
                 field["name"] = field_name
                 field["default_value"] = None
                 if field["is_relation"]:
-                    if field_name == "entity_id" and not is_medicament:
-                        value = self.entity_id
+                    if field_name == "provider_id" and not is_medicament:
+                        value = self.provider_id
                         data_values.append(str(value))
                     if is_med_unit:
                         if field_name == "delegation_id" and self.global_delegation:
@@ -278,7 +278,7 @@ class MatchAws:
             uuid = str(uuid_lib.uuid4())
 
             available_data = {
-                "entity_id": self.entity_id,
+                "provider_id": self.provider_id,
                 "sheet_file_id": self.sheet_file_id,
                 "lap_sheet_id": self.lap_sheet_id,
                 "row_seq": int(row[0]),
@@ -865,7 +865,7 @@ class MatchAws:
                 if field_name == "key2":
                     value = value.replace(".", "")
                 if field_name == "own_key2":
-                    all_values[0] = self.entity_id
+                    all_values[0] = self.provider_id
             elif is_med_unit and not value:
                 value = flat_field["default_value"]
             if value is not None:
@@ -1114,7 +1114,7 @@ class MatchAws:
 
         if folio_document := available_data.get("folio_document"):
             folio_ocamis = "|".join([
-                str(self.entity_id),
+                str(self.provider_id),
                 str(iso_year), str(iso_week),
                 str(iso_delegation) or '0', folio_document])
             if len(folio_ocamis) > 64:

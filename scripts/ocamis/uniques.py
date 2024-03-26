@@ -8,7 +8,7 @@ group_names = ["dupli", "shared"]
 
 def get_all_folios(filters):
     cursor = connection.cursor()
-    entity_id = filters["entity_id"]
+    provider_id = filters["provider_id"]
     year = filters["year"]
     week = filters["week"]
     excluded_sheets = filters.get("excluded_sheets", set())
@@ -21,7 +21,7 @@ def get_all_folios(filters):
         FROM
             drugs_and_rxs
         WHERE
-            entity_id = {entity_id} AND
+            provider_id = {provider_id} AND
             iso_week = {week} AND
             iso_year = {year}
     """
@@ -138,10 +138,10 @@ def build_pairs_sheets(filters):
     return pairs, sheets, month_counts
 
 
-def save_sheets_months(year_month, entity_id, month_counts):
+def save_sheets_months(year_month, provider_id, month_counts):
     from inai.models import EntityMonth
     current_entity_months = EntityMonth.objects.filter(
-        entity_id=entity_id, year_month=year_month)
+        provider_id=provider_id, year_month=year_month)
     current_entity_months.update(
         duplicates_count=month_counts["dupli"],
         shared_count=month_counts["shared"],
@@ -149,8 +149,8 @@ def save_sheets_months(year_month, entity_id, month_counts):
     )
 
 
-# def save_crossing_sheets(entity_id, dupli_pairs, shared_pairs, sheets):
-def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
+# def save_crossing_sheets(provider_id, dupli_pairs, shared_pairs, sheets):
+def save_crossing_sheets(year_month, provider_id, month_pairs, sheets):
     from django.utils import timezone
     print("start save_crossing_sheets", timezone.now())
     # SPACE
@@ -177,7 +177,7 @@ def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
     for pair, value in month_pairs["dupli"].items():
         # shared_count = shared_pairs.pop(pair, 0)
         cross, created = CrossingSheet.objects.get_or_create(
-            entity_id=entity_id,
+            provider_id=provider_id,
             sheet_file_1_id=pair[0],
             sheet_file_2_id=pair[1],
         )
@@ -200,7 +200,7 @@ def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
         if pair in already_shared:
             continue
         cross, created = CrossingSheet.objects.get_or_create(
-            entity_id=entity_id,
+            provider_id=provider_id,
             sheet_file_1_id=pair[0],
             sheet_file_2_id=pair[1]
         )
@@ -212,9 +212,9 @@ def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
         cross.save()
     # SPACE
     year_month_crosses_1 = CrossingSheet.objects.filter(
-        entity_id=entity_id, sheet_file_1__year_month=year_month)
+        provider_id=provider_id, sheet_file_1__year_month=year_month)
     year_month_crosses_2 = CrossingSheet.objects.filter(
-        entity_id=entity_id, sheet_file_2__year_month=year_month)
+        provider_id=provider_id, sheet_file_2__year_month=year_month)
     year_month_crosses = year_month_crosses_1 | year_month_crosses_2
     year_month_crosses = year_month_crosses.exclude(id__in=edited_crosses)
     year_month_crosses.delete()
@@ -228,7 +228,7 @@ def save_crossing_sheets(year_month, entity_id, month_pairs, sheets):
 def get_delivered_results(filters):
     print("start get_delivered_results", datetime.now())
     cursor = connection.cursor()
-    entity_id = filters["entity_id"]
+    provider_id = filters["provider_id"]
     month = filters["month"]
     week = filters["week"]
     year = filters["year"]
@@ -246,7 +246,7 @@ def get_delivered_results(filters):
         FROM
             drugs_and_rxs
         WHERE 
-            entity_id = {entity_id} AND
+            provider_id = {provider_id} AND
             iso_week = {week} AND
             iso_year = {year}
     """
@@ -303,7 +303,7 @@ def get_delivered_results(filters):
 def get_uuids_duplicates(filters):
     print("start get_uuids_duplicates", datetime.now())
     cursor = connection.cursor()
-    entity_id = filters["entity_id"]
+    provider_id = filters["provider_id"]
     week = filters["week"]
     month = filters["month"]
     year = filters["year"]
@@ -320,7 +320,7 @@ def get_uuids_duplicates(filters):
         FROM
             drugs_and_rxs        
         WHERE 
-            entity_id = {entity_id} AND
+            provider_id = {provider_id} AND
             iso_week = {week} AND
             iso_year = {year}
     """
@@ -461,7 +461,7 @@ def update_sheets_to_merged(filters):
     year = filters["year"]
     month = filters["month"]
     year_month = f"{year}-{str(month).zfill(2)}"
-    entity_id = filters["entity_id"]
+    provider_id = filters["provider_id"]
     sql_update = f"""
         UPDATE inai_sheetfile sheet_file
         SET 
@@ -470,7 +470,7 @@ def update_sheets_to_merged(filters):
             inai_datafile data_file
         WHERE 
             sheet_file.data_file_id = data_file.id AND
-            data_file.entity_id = {entity_id} AND
+            data_file.provider_id = {provider_id} AND
             sheet_file.behavior_id = 'need_merge' OR behavior_id = 'merged' AND
             sheet_file.year_month = '{year_month}'
     """
@@ -598,12 +598,12 @@ def refresh_materialized_views():
         # "    deferrable initially deferred;",
         # "create index if not exists formula_drug_rx_id_cdf044b3"
         # "    on formula_drug(rx_id);",
-        "CREATE INDEX if not exists d_and_p_entity_id_iso_week_iso_year"
-        "    ON drugs_and_rxs(entity_id, iso_week, iso_year);",
-        # "CREATE INDEX if not exists d_and_p_entity_id_month_iso_year"
-        # "    ON drugs_and_rxs(entity_id, month, iso_year);",
+        "CREATE INDEX if not exists d_and_p_provider_id_iso_week_iso_year"
+        "    ON drugs_and_rxs(provider_id, iso_week, iso_year);",
+        # "CREATE INDEX if not exists d_and_p_provider_id_month_iso_year"
+        # "    ON drugs_and_rxs(provider_id, month, iso_year);",
         "REFRESH MATERIALIZED VIEW drugs_and_rxs WITH DATA;",
-        # "DROP INDEX if exists d_and_p_entity_id_iso_week_iso_year;",
+        # "DROP INDEX if exists d_and_p_provider_id_iso_week_iso_year;",
     ]
     for sql in sql_queries:
         print("PRE: ", datetime.now())
@@ -634,7 +634,7 @@ def delete_indexes_and_constraints():
 
 
 def get_period_report(
-        entity_id, is_explore='True', start_month_year=None,
+        provider_id, is_explore='True', start_month_year=None,
         end_month_year=None, refresh=False):
     if not start_month_year:
         start_month_year = "2017-01"
@@ -649,7 +649,7 @@ def get_period_report(
     else:
         behaviors = ["invalid", "pending", "not_merge"]
     excluded_sheets = SheetFile.objects.filter(
-        data_file__entity_id=entity_id,behavior_id__in=behaviors)\
+        data_file__provider_id=provider_id,behavior_id__in=behaviors)\
         .values_list("id", flat=True)
     excluded_sheets = set(list(excluded_sheets))
     print("excluded_sheets", excluded_sheets)
@@ -675,7 +675,7 @@ def get_period_report(
             filters = {
                 "month": month,
                 "year": year,
-                "entity_id": entity_id,
+                "provider_id": provider_id,
                 "excluded_sheets": excluded_sheets,
             }
             # if is_explore == 'result':
@@ -690,14 +690,14 @@ def get_period_report(
                     print("|", year_month, "|", delivered, "|", value, "|")
                 print("Sí estoy en result")
             elif is_explore:
-                save_sheets_months(year_month, entity_id, unique_counts)
+                save_sheets_months(year_month, provider_id, unique_counts)
                 save_crossing_sheets(
-                    year_month, entity_id, month_pairs, month_sheets)
+                    year_month, provider_id, month_pairs, month_sheets)
     print("END_PROCESS", datetime.now())
 
 
 # my_filter = (53, 20, 2020)
-# my_filter = {"month": 5, "year": 2020, "entity_id": 53}
+# my_filter = {"month": 5, "year": 2020, "provider_id": 53}
 # get_duplicates_folios(my_filter)
 
 

@@ -218,8 +218,8 @@ class InsertMonth:
             path, temp_table, columns_join))
         optional_condition = ""
         if model_name not in entity_optional_models:
-            entity_id = self.entity.id
-            optional_condition = f" AND {model_in_db}.entity_id = {entity_id} "
+            provider_id = self.entity.id
+            optional_condition = f" AND {model_in_db}.provider_id = {provider_id} "
         # final_condition += f"{model_in_db}.hex_hash = {temp_table}.hex_hash"
         sql_queries.append(f"""
             INSERT INTO {model_in_db} ({columns_join})

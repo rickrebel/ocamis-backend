@@ -1,4 +1,4 @@
-# def update_medicament_entity_id():
+# def update_medicament_provider_id():
 #     from med_cat.models import Medicament
 #     from geo.models import Provider
 #     # medicaments_own_imss = Medicament.objects.filter(
@@ -14,7 +14,7 @@
 #         medicament.save()
 
 
-def update_medicament_entity_id():
+def update_medicament_provider_id():
     from med_cat.models import Medicament
     from geo.models import Provider
     medicaments_own_imss = Medicament.objects.filter(
@@ -34,4 +34,4 @@ def update_medicament_entity_id():
     print("success_count", success_count)
 
 
-update_medicament_entity_id()
+update_medicament_provider_id()

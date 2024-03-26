@@ -119,11 +119,11 @@ def assign_entity_to_month_agency():
             month_agencies.update(entity=entity)
 
 
-def assign_year_month_to_sheet_files(entity_id):
+def assign_year_month_to_sheet_files(provider_id):
     from respond.models import DataFile
     import re
     all_data_files = DataFile.objects.filter(
-        entity_id=entity_id)
+        provider_id=provider_id)
     regex_year_month = re.compile(r"_(20\d{4})")
     for data_file in all_data_files:
         file_name = data_file.file.url.split("/")[-1]
@@ -273,10 +273,10 @@ def move_sheets_to_status(file_control_id):
     sheet_files.update(behavior=behavior_merge)
 
 
-def analyze_every_months(entity_id):
+def analyze_every_months(provider_id):
     from inai.misc_mixins.entity_month_mix import FromAws
     from inai.models import EntityMonth
-    all_months = EntityMonth.objects.filter(entity_id=entity_id)
+    all_months = EntityMonth.objects.filter(provider_id=provider_id)
     for month in all_months:
         from_aws = FromAws(month)
         from_aws.save_month_analysis_prev()
@@ -608,7 +608,7 @@ def get_bad_inserted():
         collection__model_name="Drug",
         drugs_count__gt=0,
         entity_week__entity_month__last_insertion__isnull=False) \
-        .values("entity_week_id", "drugs_count", "entity_id",
+        .values("entity_week_id", "drugs_count", "provider_id",
                 "entity_week__entity_month__year_month") \
         .annotate(year_month=F("entity_week__entity_month__year_month"))
     objects_in_csvs = {drug["entity_week_id"]: drug for drug in drugs_in_csvs}
@@ -633,7 +633,7 @@ def get_bad_inserted():
     }
     def add_failed_week(week_obj, type_error):
         result[type_error].append(week_obj["entity_week_id"])
-        entity_month = f"{week_obj['entity_id']}-{week_obj['year_month']}"
+        entity_month = f"{week_obj['provider_id']}-{week_obj['year_month']}"
         if entity_month not in result["failed_entity_months"]:
             result["failed_entity_months"][entity_month] = {}
         if type_error not in result["failed_entity_months"][entity_month]:

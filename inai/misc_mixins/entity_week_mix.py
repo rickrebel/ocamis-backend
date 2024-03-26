@@ -108,7 +108,7 @@ class FromAws:
         self.entity_week.last_crossing = timezone.now()
         self.entity_week.save()
         # current_entity_months = EntityMonth.objects.filter(
-        #     entity_id=self.entity_week.entity_id,
+        #     provider_id=self.entity_week.provider_id,
         #     year_month=self.entity_week.year_month)
         # current_entity_months.update(
         #     duplicates_count=month_counts["dupli"],

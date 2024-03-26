@@ -90,7 +90,7 @@ class NameColumnHeadersSerializer(serializers.ModelSerializer):
     parameter_group = serializers.IntegerField(
         source="final_field.parameter_group_id", read_only=True)
     entity = serializers.IntegerField(
-        source="file_control.agency.entity_id", read_only=True)
+        source="file_control.agency.provider_id", read_only=True)
 
     class Meta:
         model = NameColumn

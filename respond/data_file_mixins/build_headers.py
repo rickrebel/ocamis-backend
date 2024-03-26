@@ -52,8 +52,8 @@ class BuildComplexHeaders:
             ).prefetch_related(
                 'final_field__parameter_group', 'column_transformations',
                 'file_control__agency')
-            entity_id = file_control.agency.entity_id
-            self.build_unique_dicts(worked_name_columns, entity_id)
+            provider_id = file_control.agency.provider_id
+            self.build_unique_dicts(worked_name_columns, provider_id)
             self.find_header_values(df_headers)
             return self.send_results(first_valid_sheet)
 
@@ -71,7 +71,7 @@ class BuildComplexHeaders:
             for posit, head in enumerate(real_headers, start=1)]
         return self.send_results(first_valid_sheet)
 
-    def build_unique_dicts(self, worked_name_columns, entity_id):
+    def build_unique_dicts(self, worked_name_columns, provider_id):
         from data_param.api.serializers import NameColumnHeadersSerializer
         saved_name_columns = NameColumnHeadersSerializer(
             worked_name_columns, many=True).data
@@ -83,7 +83,7 @@ class BuildComplexHeaders:
                 f'{name_col["parameter_group"]}'), name_col)
             self.unique_std_names.setdefault(std_name, [])
             self.unique_std_names[std_name].append(unique_name)
-            if name_col["provider"] == entity_id:
+            if name_col["provider"] == provider_id:
                 self.entity_uniques.setdefault(std_name, [])
                 self.entity_uniques[std_name].append(unique_name)
 

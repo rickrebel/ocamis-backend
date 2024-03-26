@@ -100,7 +100,7 @@ def rebuild_primary_key(cursor, table_name, constraint):
     from task.serverless import execute_async
     from django.utils import timezone
     fields = [
-        "entity_id", "iso_year", "month", "iso_week", "iso_delegation",
+        "provider_id", "iso_year", "month", "iso_week", "iso_delegation",
         "month", "year"]
     try:
         cursor.execute(constraint)

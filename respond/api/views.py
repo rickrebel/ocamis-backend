@@ -82,7 +82,7 @@ class AscertainableViewSet(CreateRetrieveView):
         else:
             agency_id = request.data.get("agency_id")
             agency = Agency.objects.get(id=agency_id)
-            data_file["provider"] = agency.entity_id
+            data_file["provider"] = agency.provider_id
         new_data_file = DataFile()
 
         serializer_data_file = self.get_serializer_class()(

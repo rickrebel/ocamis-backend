@@ -6,7 +6,7 @@ def reverse_transform(only_count=False, entity=None, every_files=False):
         stage_id="transform", status_id="finished")
     if entity:
         finished_transform = finished_transform.filter(
-            petition_file_control__petition__agency__entity_id=entity)
+            petition_file_control__petition__agency__provider_id=entity)
     print("Finished transform: ", finished_transform.count())
     need_reverse = 0
     for data_file in finished_transform:
@@ -141,13 +141,13 @@ def upload_s3_files(local_file, s3_dir):
 #     'C:\\Users\\Ricardo\\Downloads\\req_mayo_2020_02.txt.gz', 'nacional/imss/202107/')
 
 
-def delete_bad_week(entity_id, year, month, iso_year, iso_week, iso_delegation):
+def delete_bad_week(provider_id, year, month, iso_year, iso_week, iso_delegation):
     from datetime import datetime
     from django.db import connection
     from inai.models import EntityWeek
     errors = []
     entity_week = EntityWeek.objects.filter(
-        entity_id=entity_id, year=year, month=month,
+        provider_id=provider_id, year=year, month=month,
         iso_year=iso_year, iso_week=iso_week,
         iso_delegation=iso_delegation).first()
     if not entity_week:
@@ -166,7 +166,7 @@ def delete_bad_week(entity_id, year, month, iso_year, iso_week, iso_delegation):
             errors.append(f"Hubo un error al guardar; {str(e)}")
     query_1 = f"""
         DELETE FROM formula_rx
-        WHERE entity_id = {entity_id} AND year = {year} AND month = {month}  
+        WHERE provider_id = {provider_id} AND year = {year} AND month = {month}  
             AND iso_year = {iso_year} AND iso_week = {iso_week}
             AND iso_delegation = {iso_delegation};
     """
@@ -197,7 +197,7 @@ def delete_bad_week(entity_id, year, month, iso_year, iso_week, iso_delegation):
 # queries, errs = delete_bad_week(55, 2018, 11, 2018, 46, 247)
 
 
-def delete_bad_month(year, month, entity_id=55):
+def delete_bad_month(year, month, provider_id=55):
     from datetime import datetime
     from django.db import connection
     from inai.models import EntityMonth
@@ -215,12 +215,12 @@ def delete_bad_month(year, month, entity_id=55):
             errors.append(f"Hubo un error al guardar; {str(e)}")
     query_1 = f"""
         DELETE FROM formula_rx
-        WHERE entity_id = {entity_id} AND year = {year} AND month = {month};
+        WHERE provider_id = {provider_id} AND year = {year} AND month = {month};
     """
     drop_queries.append(query_1)
     year_month = f"{year}-{month:02}"
     entity_m = EntityMonth.objects.get(
-        entity_id=entity_id, year_month=year_month)
+        provider_id=provider_id, year_month=year_month)
     all_weeks = entity_m.weeks.all().values_list("id", flat=True)
     query_2 = f"""
         DELETE FROM formula_drug

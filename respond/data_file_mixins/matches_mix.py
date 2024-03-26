@@ -157,7 +157,7 @@ class Match(BaseTransform):
             "hash_null": hash_null,
             "delimiter": self.delimiter,
             "row_start_data": self.file_control.row_start_data,
-            "entity_id": self.agency.entity_id,
+            "provider_id": self.agency.provider_id,
             "split_by_delegation": self.agency.provider.split_by_delegation,
             "columns_count": self.columns_count,
             "editable_models": self.editable_models,

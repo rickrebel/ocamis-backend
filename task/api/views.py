@@ -126,11 +126,11 @@ class CutOffViewSet(ListRetrieveView):
         year = request.data.get("year")
         month = request.data.get("month")
         year_month = f"{year}-{str(month).zfill(2)}"
-        entity_id = request.data.get("entity_id")
+        provider_id = request.data.get("provider_id")
         entity_month = EntityMonth.objects.filter(
-            year_month=year_month, entity_id=entity_id).first()
+            year_month=year_month, provider_id=provider_id).first()
         cut_off = CutOff.objects.create(
-            last_entity_month=entity_month, entity_id=entity_id)
+            last_entity_month=entity_month, provider_id=provider_id)
         entity_stages = Stage.objects\
             .filter(stage_group__contains="provider-")\
             .order_by("-order")

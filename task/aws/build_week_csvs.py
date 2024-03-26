@@ -16,7 +16,7 @@ class BuildWeekAws:
 
     def __init__(self, event: dict, context):
 
-        self.entity_id = event.get("entity_id")
+        self.provider_id = event.get("provider_id")
         self.entity_week_id = event.get("entity_week_id")
         self.week_table_files = event.get("week_table_files", [])
         self.pos_uuid_folio = None
@@ -59,7 +59,7 @@ class BuildWeekAws:
 
         print("inside build_week_csvs")
         result = {
-            "entity_id": self.entity_id,
+            "provider_id": self.provider_id,
             "sums_by_delivered": self.sums_by_delivered,
             "drugs_count": self.drugs_count,
         }

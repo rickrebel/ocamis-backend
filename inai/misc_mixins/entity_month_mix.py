@@ -216,7 +216,7 @@ class FromAws:
             table_files = all_table_files.filter(entity_week=week)
             file_names = table_files.values_list("file", flat=True)
             params = {
-                "entity_id": week.entity_id,
+                "provider_id": week.provider_id,
                 "table_files": list(file_names)
             }
             self.task_params["models"] = [week, self.entity_month]
@@ -262,7 +262,7 @@ class FromAws:
             # if ew.last_merge:
             #     if ew.last_transformation < ew.last_crossing < ew.last_merge:
             #         continue
-            # if self.entity_month.entity_id == 55 and ew.complete:
+            # if self.entity_month.provider_id == 55 and ew.complete:
             #     continue
             # lap_sheet.sheet_file.behavior_id
             # week_base_table_files = ew.table_files\

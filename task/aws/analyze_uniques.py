@@ -99,7 +99,7 @@ class UniquesAws:
 
     def __init__(self, event: dict, context):
 
-        self.entity_id = event.get("entity_id")
+        self.provider_id = event.get("provider_id")
         self.table_files = event.get("table_files", [])
 
         self.s3_utils = BotoUtils(event.get("s3"))
