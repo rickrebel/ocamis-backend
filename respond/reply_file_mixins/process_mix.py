@@ -54,7 +54,7 @@ class ReplyFileMix:
         all_files = kwargs.get("files", [])
         print("all_files", all_files)
         for data_file in all_files:
-            entity = self.petition.real_provider or self.petition.agency.entity
+            entity = self.petition.real_provider or self.petition.agency.provider
             new_file = DataFile.objects.create(
                 file=data_file["file"],
                 entity=entity,

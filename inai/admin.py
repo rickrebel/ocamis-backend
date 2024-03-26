@@ -23,7 +23,7 @@ ocamis_admin_site = OcamisAdminSite(name='ocamis_admin')
 
 class EntityWeekInline(admin.TabularInline):
     model = EntityWeek
-    raw_id_fields = ["entity", "entity_month", "iso_delegation"]
+    raw_id_fields = ["provider", "entity_month", "iso_delegation"]
     extra = 0
 
 
@@ -39,30 +39,30 @@ class EntityWeekAdmin(admin.ModelAdmin):
         "rx_count",
         "duplicates_count",
     ]
-    list_filter = ["entity__acronym", "year", "month"]
-    raw_id_fields = ["entity", "entity_month", "iso_delegation"]
+    list_filter = ["provider__acronym", "year", "month"]
+    raw_id_fields = ["provider", "entity_month", "iso_delegation"]
     inlines = [TableFileInline]
     search_fields = [
-        "entity__acronym", "entity__state__short_name",
+        "provider__acronym", "provider__state__short_name",
         "year_week", "year_month", "iso_delegation__name"]
 
 
 class EntityMonthAdmin(admin.ModelAdmin):
     list_display = [
         "id",
-        "entity",
+        "provider",
         "year_month",
         "agency",
     ]
-    raw_id_fields = ["entity", "agency"]
+    raw_id_fields = ["provider", "agency"]
     filter_horizontal = ["petition"]
-    list_filter = ["entity__acronym", "year_month"]
+    list_filter = ["provider__acronym", "year_month"]
     # inlines = [EntityWeekInline]
 
 
 # class EntityMonthInline(admin.TabularInline):
 #     model = EntityMonth
-#     raw_id_fields = ["entity"]
+#     raw_id_fields = ["provider"]
 #     extra = 0
 
 

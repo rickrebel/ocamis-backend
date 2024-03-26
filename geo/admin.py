@@ -90,7 +90,7 @@ class CLUESAdmin(admin.ModelAdmin):
         "state"
     ]
     raw_id_fields = [
-        "state", "institution", "municipality", "delegation", "entity"]
+        "state", "institution", "municipality", "delegation", "provider"]
     search_fields = [
         "name",
         "institution__name",
@@ -108,7 +108,7 @@ class AgencyAdmin(admin.ModelAdmin):
     list_display = [
         "acronym",
         "name",
-        "entity",
+        "provider",
         "agency_type",
         "vigencia",
         "competent",
@@ -118,13 +118,13 @@ class AgencyAdmin(admin.ModelAdmin):
         "clues",
         "is_pilot"
     ]
-    raw_id_fields = ["clues", "state", "entity"]
+    raw_id_fields = ["clues", "state", "provider"]
     list_editable = ["nombreSujetoObligado", "competent", "is_pilot"]
     search_fields = [
         "acronym",
         "name",
-        "entity__acronym",
-        "entity__name",
+        "provider__acronym",
+        "provider__name",
         "institution__code",
         "state__short_name"
     ]

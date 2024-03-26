@@ -6,7 +6,7 @@ class FromAws:
 
     def __init__(self, entity_week: EntityWeek, task_params=None):
         self.entity_week = entity_week
-        self.split_by_delegation = entity_week.entity.split_by_delegation
+        self.split_by_delegation = entity_week.provider.split_by_delegation
         self.task_params = task_params
 
     def analyze_uniques_after(self, **kwargs):
@@ -55,7 +55,7 @@ class FromAws:
             collection = Collection.objects.get(snake_name=model)
             table_file, c = TableFile.objects.get_or_create(
                 # entity_week=self.entity_week,
-                entity=self.entity_week.entity,
+                entity=self.entity_week.provider,
                 iso_week=self.entity_week.iso_week,
                 iso_year=self.entity_week.iso_year,
                 year_week=self.entity_week.year_week,

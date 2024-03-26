@@ -16,30 +16,30 @@ def create_entity_by_agency():
     agencies = Agency.objects.all()
     for agency in agencies:
         if agency.clues:
-            entity, created = Provider.objects.get_or_create(
+            provider, created = Provider.objects.get_or_create(
                 name=agency.name, acronym=agency.acronym, state=agency.state,
                 institution=agency.institution,
                 population=agency.population or 0, is_clues=True
             )
             clues = agency.clues
-            clues.entity = entity
+            clues.provider = provider
             clues.save()
         elif agency.state:
-            entity, created = Provider.objects.get_or_create(
+            provider, created = Provider.objects.get_or_create(
                 state=agency.state, institution=agency.institution,
                 is_clues=False)
             if created:
-                entity.population = agency.population or 0
+                provider.population = agency.population or 0
                 state_code = agency.state.code_name.upper().replace(".", "")
-                entity.acronym = f"SSA-{state_code}"
-                entity.name = f"{agency.institution.name} {agency.state.short_name}"
-                entity.save()
+                provider.acronym = f"SSA-{state_code}"
+                provider.name = f"{agency.institution.name} {agency.state.short_name}"
+                provider.save()
         else:
-            entity, created = Provider.objects.get_or_create(
+            provider, created = Provider.objects.get_or_create(
                 name=agency.institution.name, acronym=agency.acronym,
                 institution=agency.institution, population=agency.population or 0,
                 is_clues=False)
-        agency.entity = entity
+        agency.provider = provider
         agency.save()
 
 
@@ -54,17 +54,17 @@ def move_delegation_clues():
         if clues:
             clues.delegation = delegation
             delegation.is_clues = True
-            if clues.entity:
-                delegation.entity = clues.entity
-        elif not delegation.entity:
+            if clues.provider:
+                delegation.provider = clues.provider
+        elif not delegation.provider:
             try:
-                delegation.entity = Provider.objects.get(
+                delegation.provider = Provider.objects.get(
                     institution=delegation.institution,
                     state=delegation.state, ent_clues__isnull=True)
             except Provider.DoesNotExist:
                 print("Provider not found: ", delegation)
             except Provider.MultipleObjectsReturned:
-                print("Multiple entities found: ", delegation)
+                print("Multiple delegations found: ", delegation)
         delegation.save()
 
 
@@ -98,11 +98,11 @@ def categorize_clean_functions():
         name__in=functions_alone).update(ready_code="ready_alone")
 
 
-def assign_entity_to_data_files():
+def assign_provider_to_data_files():
     from geo.models import Provider
     from respond.models import DataFile
-    all_entities = Provider.objects.all()
-    for entity in all_entities:
+    all_providers = Provider.objects.all()
+    for entity in all_providers:
         data_files = DataFile.objects.filter(
             petition_file_control__petition__agency__entity=entity)
         data_files.update(entity=entity)
@@ -113,7 +113,7 @@ def assign_entity_to_month_agency():
     from inai.models import EntityMonth
     all_agencies = Agency.objects.all()
     for agency in all_agencies:
-        entity = agency.entity
+        entity = agency.provider
         if entity:
             month_agencies = EntityMonth.objects.filter(agency=agency)
             month_agencies.update(entity=entity)
@@ -161,16 +161,16 @@ def replace_petition_month_by_months_agency():
 def delete_duplicates_months_agency():
     from inai.models import EntityMonth
     from geo.models import Provider
-    all_entities = Provider.objects.all()
-    for entity in all_entities:
-        all_months_agency = EntityMonth.objects.filter(entity=entity)
+    all_providers = Provider.objects.all()
+    for provider in all_providers:
+        all_months_agency = EntityMonth.objects.filter(entity=provider)
         year_months = all_months_agency.order_by("year_month").distinct(
             "year_month")
         year_months = year_months.values_list(
             "year_month", flat=True)
         for year_month in list(year_months):
             month_agencies = EntityMonth.objects.filter(
-                entity=entity, year_month=year_month)
+                entity=provider, year_month=year_month)
             month_agencies = month_agencies.order_by("-id")
             first_month_agency = month_agencies.first()
             if month_agencies.count() > 1:
@@ -180,16 +180,16 @@ def delete_duplicates_months_agency():
 def delete_duplicates_entity_weeks():
     from inai.models import EntityWeek
     from geo.models import Provider
-    all_entities = Provider.objects.all()
-    for entity in all_entities:
-        all_entity_weeks = EntityWeek.objects.filter(entity=entity)
+    all_providers = Provider.objects.all()
+    for provider in all_providers:
+        all_entity_weeks = EntityWeek.objects.filter(entity=provider)
         year_weeks = all_entity_weeks\
             .order_by("year_week", "year_month", "iso_delegation")\
             .distinct("year_week", "year_month", "iso_delegation")\
             .values_list("year_week", "year_month", "iso_delegation")
         for year_week, year_month, iso_delegation in list(year_weeks):
             entity_weeks = EntityWeek.objects.filter(
-                entity=entity, year_week=year_week,
+                entity=provider, year_week=year_week,
                 year_month=year_month, iso_delegation=iso_delegation)
             entity_weeks = entity_weeks.order_by("-id")
             first_entity_week = entity_weeks.first()
@@ -243,7 +243,7 @@ def save_entity_months():
     for sheet_file in all_sheet_files:
         try:
             entity_month = EntityMonth.objects.get(
-                entity=sheet_file.data_file.entity, year_month=sheet_file.year_month)
+                entity=sheet_file.data_file.provider, year_month=sheet_file.year_month)
             sheet_file.entity_months.add(entity_month)
         except EntityMonth.DoesNotExist:
             print("year_month does not exist", sheet_file.year_month)
@@ -253,12 +253,12 @@ def assign_entity_to_delegations():
     from inai.models import Provider
     from geo.models import Delegation
     all_delegations = Delegation.objects.filter(
-        entity__isnull=True, is_clues=False)
+        provider__isnull=True, is_clues=False)
     for delegation in all_delegations:
         institution = delegation.institution
         try:
-            entity = Provider.objects.get(institution=institution)
-            delegation.entity = entity
+            provider = Provider.objects.get(institution=institution)
+            delegation.provider = provider
             delegation.save()
         except Exception as e:
             print(e)
@@ -344,7 +344,7 @@ def delete_duplicate_table_files():
         .prefetch_related("entity_week", "entity_week__entity")
     print("all_table_files", all_table_files.count())
     for table_file in all_table_files:
-        if table_file.entity != table_file.entity_week.entity:
+        if table_file.provider != table_file.entity_week.provider:
             table_file.delete()
 
 
@@ -443,13 +443,13 @@ def revert_own_mistake():
     from data_param.models import Collection
     import time
     def save_model_files(lapsheet, model_paths):
-        entity = lapsheet.sheet_file.data_file.entity
+        entity = lapsheet.sheet_file.data_file.provider
         new_table_files = []
         for result_file in model_paths:
             model_name = result_file.get("model")
             if model_name == "Prescription":
                 model_name = "Rx"
-            query_create = {"entity": entity, "file": result_file["path"]}
+            query_create = {"provider": entity, "file": result_file["path"]}
             collection = Collection.objects.get(model_name=model_name)
             query_create["collection"] = collection
             query_create["lap_sheet"] = lapsheet

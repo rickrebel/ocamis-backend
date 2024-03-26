@@ -29,7 +29,7 @@ class TableFileInline(admin.StackedInline):
     model = TableFile
     extra = 0
     raw_id_fields = [
-        "entity", "lap_sheet", "entity_week", "iso_delegation", "collection"]
+        "provider", "lap_sheet", "entity_week", "iso_delegation", "collection"]
     show_change_link = True
 
 
@@ -70,7 +70,7 @@ class DataFileAdmin(admin.ModelAdmin):
         "status",
     ]
     raw_id_fields = [
-        "entity", "petition_file_control", "reply_file"]
+        "provider", "petition_file_control", "reply_file"]
     list_filter = [
         NullFilterField, "stage", "status",
         "petition_file_control__petition__agency"]
@@ -125,7 +125,7 @@ class LapSheetAdmin(admin.ModelAdmin):
         # "sheet_file__data_file__file",
         "sheet_file__data_file_id"]
     list_filter = [
-        "sheet_file__data_file__entity__acronym", "lap",
+        "sheet_file__data_file__provider__acronym", "lap",
         "inserted", "cat_inserted", "missing_inserted"]
     raw_id_fields = ["sheet_file"]
 
@@ -142,10 +142,10 @@ class TableFileAdmin(admin.ModelAdmin):
         "file",
     ]
     list_filter = [
-        "inserted", "entity__acronym", "collection", "year", "month",
+        "inserted", "provider__acronym", "collection", "year", "month",
         "iso_delegation"]
     search_fields = ["year_month", "year_week"]
-    raw_id_fields = ["entity", "lap_sheet", "entity_week", "iso_delegation"]
+    raw_id_fields = ["provider", "lap_sheet", "entity_week", "iso_delegation"]
 
 
 class CrossingSheetAdmin(admin.ModelAdmin):
@@ -159,16 +159,16 @@ class CrossingSheetAdmin(admin.ModelAdmin):
         "sheet_file_2",
     ]
     list_filter = [
-        "entity_week__entity__acronym", "entity_week__year",
+        "entity_week__provider__acronym", "entity_week__year",
         "entity_week__month", "entity_week__iso_delegation",
-        "entity_month__entity__acronym", "entity_month__year",
+        "entity_month__provider__acronym", "entity_month__year",
         "entity_month__month"]
     raw_id_fields = [
         "entity_week", "sheet_file_1", "sheet_file_2", "entity_month"]
     search_fields = [
         "entity_week__year_week", "entity_week__year_month",
-        "entity_month__year_month", "entity_month__entity__acronym",
-        "entity_week__entity__acronym", "entity_week__iso_delegation"]
+        "entity_month__year_month", "entity_month__provider__acronym",
+        "entity_week__provider__acronym", "entity_week__iso_delegation"]
 
 
 class BehaviorAdmin(admin.ModelAdmin):

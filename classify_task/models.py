@@ -34,7 +34,7 @@ class TaskFunction(models.Model):
         ("sheet_file", "Pestaña"),
         ("entity_week", "Semana Proveedor"),
         ("entity_month", "Mes Proveedor"),
-        ("entity", "Proveedor"),
+        ("provider", "Proveedor"),
     )
 
     name = models.CharField(max_length=100, primary_key=True)
@@ -77,10 +77,10 @@ class TaskFunction(models.Model):
 STAGE_GROUP_CHOICES = (
     ("transformation", "Transformación"),
     ("months", "Meses"),
-    ("entity", "Proveedor"),
-    ("entity-petition", "Proveedor (Solicitud)"),
-    ("entity-control", "Proveedor (Grupos de control)"),
-    ("entity-month", "Proveedor (Meses)"),
+    ("provider", "Proveedor"),
+    ("provider-petition", "Proveedor (Solicitud)"),
+    ("provider-control", "Proveedor (Grupos de control)"),
+    ("provider-month", "Proveedor (Meses)"),
 )
 
 
@@ -117,7 +117,7 @@ class Stage(models.Model):
         from task.models import Step
         from geo.models import Provider
         from category.models import StatusControl
-        if self.stage_group == "entity":
+        if self.stage_group == "provider":
             status_initial = StatusControl.objects.get(name="initial")
             for provider in Provider.objects.all():
                 Step.objects.get_or_create(

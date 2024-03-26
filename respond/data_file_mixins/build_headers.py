@@ -83,7 +83,7 @@ class BuildComplexHeaders:
                 f'{name_col["parameter_group"]}'), name_col)
             self.unique_std_names.setdefault(std_name, [])
             self.unique_std_names[std_name].append(unique_name)
-            if name_col["entity"] == entity_id:
+            if name_col["provider"] == entity_id:
                 self.entity_uniques.setdefault(std_name, [])
                 self.entity_uniques[std_name].append(unique_name)
 

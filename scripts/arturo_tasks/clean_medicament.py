@@ -6,7 +6,7 @@
 #     from geo.models import Provider
 #     entity_imss = Provider.objects.get(id=55)
 #     medicaments_own_imss = Medicament.objects.filter(
-#         entity=entity_imss)
+#         provider=entity_imss)
 #     errors = {
 #         "Key no encontrada": [], "No tiene formato correcto": [],
 #         "Multiples contenedores": [], "Otros errores": []}
@@ -63,7 +63,7 @@
 #     from geo.models import Provider
 #     entity_imss = Provider.objects.get(id=55)
 #     medicaments_own_imss = Medicament.objects.filter(
-#         entity=entity_imss)
+#         provider=entity_imss)
 #     errors = {
 #         "Key no encontrada": [], "No tiene formato correcto": [],
 #         "Multiples contenedores": [], "Otros errores": []}
@@ -114,7 +114,7 @@
 #     from geo.models import Provider
 #     entity_imss = Provider.objects.get(id=55)
 #     medicaments_own_imss = Medicament.objects.filter(
-#         entity=entity_imss)
+#         provider=entity_imss)
 #     errors = {
 #             "Key no encontrada": [], "Multiples contenedores": [],
 #             "Otros errores": []}
@@ -198,9 +198,9 @@ def update_med_container_id():
     from med_cat.models import Medicament
     from medicine.models import Container
     from geo.models import Provider
-    entity_imss = Provider.objects.get(id=55)
+    provider_imss = Provider.objects.get(id=55)
     medicaments_own_imss = Medicament.objects.filter(
-        entity=entity_imss)
+        entity=provider_imss)
     errors = {
         "Key no encontrada": [], "No tiene formato correcto": [],
         "Multiples contenedores": [], "Otros errores": []}

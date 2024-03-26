@@ -18,7 +18,7 @@ router.register(r'institutions', InstitutionList)
 router.register(r'clues', CLUESList)
 router.register(r'state', StateViewSet)
 router.register(r'agency', AgencyViewSet)
-router.register(r'entity', EntityViewSet)
+router.register(r'provider', EntityViewSet)
 router.register(r'institution', EntityVizViewSet)
 
 urlpatterns = [

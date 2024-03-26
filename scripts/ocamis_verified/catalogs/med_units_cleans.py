@@ -4,10 +4,10 @@ def update_delegation_in_med_units(entity_id):
     from geo.models import Delegation, Provider
     from scripts.common import text_normalizer
     from geo.views import build_catalog_delegation_by_id
-    entity = Provider.objects.get(id=entity_id)
-    dict_delegations = build_catalog_delegation_by_id(entity.institution)
+    provider = Provider.objects.get(id=entity_id)
+    dict_delegations = build_catalog_delegation_by_id(provider.institution)
     all_medical_units = MedicalUnit.objects.filter(
-        entity=entity, delegation__isnull=True, delegation_name__isnull=False)
+        entity=provider, delegation__isnull=True, delegation_name__isnull=False)
     print("all_medical_units", all_medical_units.count())
     for medical_unit in all_medical_units:
         delegation_name = text_normalizer(medical_unit.delegation_name)

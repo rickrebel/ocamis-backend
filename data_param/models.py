@@ -175,8 +175,8 @@ class FileControl(models.Model):
                 data_files.update(entity=final_real_provider)
                 table_files.update(entity=final_real_provider)
             else:
-                data_files.update(entity=self.agency.entity)
-                table_files.update(entity=self.agency.entity)
+                data_files.update(entity=self.agency.provider)
+                table_files.update(entity=self.agency.provider)
 
         super().save(*args, **kwargs)
 
@@ -281,7 +281,7 @@ class FinalField(models.Model):
 
 
 class DictionaryFile(models.Model):
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE, blank=True, null=True)
     # institution = models.ForeignKey(
     #     Institution, on_delete=models.CASCADE, blank=True, null=True)

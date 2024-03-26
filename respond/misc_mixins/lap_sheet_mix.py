@@ -15,7 +15,7 @@ class FromAws:
 
         new_tasks = []
         all_errors = []
-        entity = self.lap_sheet.sheet_file.data_file.entity
+        entity = self.lap_sheet.sheet_file.data_file.provider
         optional_fields = [
             "iso_year", "iso_week", "year_week", "iso_delegation_id",
             "year", "month", "year_month"]
@@ -43,9 +43,9 @@ class FromAws:
         for result_file in result_files:
             model_name = result_file.get("model")
             # print("model_name", model_name)
-            query_create = {"entity": entity, "file": result_file["path"]}
+            query_create = {"provider": entity, "file": result_file["path"]}
             concat_id = []
-            # query_create = {"entity": entity}
+            # query_create = {"provider": provider}
             # query_update = {"file": result_file["path"]}
             if not model_name:
                 year_month = result_file.get("year_month")
@@ -73,7 +73,7 @@ class FromAws:
                 if entity_week_id:
                     entity_weeks_ids.append(entity_week_id)
                 else:
-                    query_create_week["entity"] = entity
+                    query_create_week["provider"] = entity
                     query_create_week["entity_month_id"] = entity_month_id
                     try:
                         entity_week, created = EntityWeek.objects.get_or_create(
@@ -113,7 +113,7 @@ class FromAws:
         all_new_files = []
         new_tasks = []
         new_file_ids = []
-        entity = self.lap_sheet.sheet_file.data_file.entity
+        entity = self.lap_sheet.sheet_file.data_file.provider
         optional_fields = [
             "iso_year", "iso_week", "year_week", "iso_delegation",
             "year", "month", "year_month"]
@@ -123,7 +123,7 @@ class FromAws:
         for result_file in result_files:
             model_name = result_file.get("model")
             # print("model_name", model_name)
-            query_create = {"entity": entity}
+            query_create = {"provider": entity}
             query_update = {"file": result_file["path"]}
             if not model_name:
                 complex_date = tuple()
@@ -138,7 +138,7 @@ class FromAws:
                     query_update[field] = result_file.get(field, 0)
                 all_complex_dates.add(complex_date)
                 query_create_week = query_create.copy()
-                query_create_week["entity"] = entity
+                query_create_week["provider"] = entity
                 entity_month = EntityMonth.objects.filter(
                     year_month=year_month, entity=entity).first()
                 query_create_week["entity_month"] = entity_month

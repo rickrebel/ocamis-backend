@@ -162,7 +162,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
             else:
                 run_in_thread()
                 time.sleep(1)
-            # seconds_sleep = 10 if entity.split_by_delegation else 1
+            # seconds_sleep = 10 if provider.split_by_delegation else 1
             # time.sleep(seconds_sleep)
 
         if (all_tasks or all_errors) and key_task:

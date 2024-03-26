@@ -53,7 +53,7 @@ def set_upload_path(instance, filename):
 class RequestTemplate(models.Model):
     version = models.IntegerField()
     text = models.TextField()
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, related_name="request_templates",
         on_delete=models.CASCADE, null=True, blank=True)
 
@@ -298,7 +298,7 @@ class EntityMonth(models.Model):
         verbose_name="Sujeto Obligado",
         related_name="months",
         on_delete=models.CASCADE, blank=True, null=True)
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider,
         related_name="entity_months",
         verbose_name="Proveedor de servicios de salud",
@@ -327,7 +327,7 @@ class EntityMonth(models.Model):
     last_insertion = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return "%s -- %s" % (self.entity.acronym, self.year_month)
+        return "%s -- %s" % (self.provider.acronym, self.year_month)
 
     def end_stage(self, stage_id, parent_task):
         child_task_errors = parent_task.child_tasks.filter(
@@ -400,7 +400,7 @@ class PetitionMonth(models.Model):
 
 
 class EntityWeek(models.Model):
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider,
         related_name="weeks",
         on_delete=models.CASCADE, blank=True, null=True)
@@ -441,12 +441,12 @@ class EntityWeek(models.Model):
     cancelled = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.entity} {self.year_month} - {self.iso_week} - {self.iso_delegation}"
+        return f"{self.provider} {self.year_month} - {self.iso_week} - {self.iso_delegation}"
 
     class Meta:
         get_latest_by = ["year_month", "year_week"]
         unique_together = (
-            "entity", "year_week", "iso_delegation", "year_month")
+            "provider", "year_week", "iso_delegation", "year_month")
         verbose_name = "Semana-proveedor"
         verbose_name_plural = "9. Semanas-proveedores"
         db_table = "inai_entityweek"

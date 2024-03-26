@@ -73,7 +73,7 @@ class MotherDrug(models.Model):
 #         Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
 #     iso_year = models.PositiveSmallIntegerField(db_column="iso_year")
 #     iso_week = models.PositiveSmallIntegerField(db_column="iso_week")
-#     entity = models.ForeignKey(
+#     provider = models.ForeignKey(
 #         Provider, on_delete=models.DO_NOTHING, db_column="entity_id")
 #     component = models.ForeignKey(
 #         Component, on_delete=models.DO_NOTHING, db_column="component_id")
@@ -93,7 +93,7 @@ class MotherDrug(models.Model):
 #
 #     def __str__(self):
 #         return "%s -- %s -- %s -- %s" % (
-#             self.iso_year, self.iso_week, self.entity, self.component)
+#             self.iso_year, self.iso_week, self.provider, self.component)
 
 
 class MotherDrugTotals(models.Model):

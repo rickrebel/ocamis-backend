@@ -97,7 +97,7 @@ class Match(BaseTransform):
         self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
         self.agency = petition.agency
-        entity = self.agency.entity
+        entity = self.agency.provider
         self.institution = entity.institution
         self.global_clues = entity.ent_clues.first() if entity.is_clues else None
         # print("self.institution.code", self.institution.code)
@@ -158,7 +158,7 @@ class Match(BaseTransform):
             "delimiter": self.delimiter,
             "row_start_data": self.file_control.row_start_data,
             "entity_id": self.agency.entity_id,
-            "split_by_delegation": self.agency.entity.split_by_delegation,
+            "split_by_delegation": self.agency.provider.split_by_delegation,
             "columns_count": self.columns_count,
             "editable_models": self.editable_models,
             "real_models": self.real_models,

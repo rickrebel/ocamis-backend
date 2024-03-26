@@ -191,7 +191,7 @@ class TransformationAdmin(admin.ModelAdmin):
 
 class DictionaryFileAdmin(admin.ModelAdmin):
     list_display = [
-        "entity",
+        "provider",
         "file_control",
         "file",
         "unique_field",

@@ -122,11 +122,11 @@ class Provider(models.Model):
     state = models.ForeignKey(
         State, verbose_name="Estado",
         blank=True, null=True, on_delete=models.CASCADE,
-        related_name="entities")
+        related_name="providers")
     institution = models.ForeignKey(
         Institution, verbose_name="Institución",
         null=True, on_delete=models.CASCADE,
-        related_name="entities")
+        related_name="providers")
     population = models.IntegerField(
         default=0, verbose_name="Población")
     notes = models.TextField(blank=True, null=True, verbose_name="Notas")
@@ -172,7 +172,7 @@ class Provider(models.Model):
         self_created = True if self.pk is None else False
         super(Provider, self).save(*args, **kwargs)
         if self_created:
-            weeks_gen = WeeksGenerator(entity=self)
+            weeks_gen = WeeksGenerator(provider=self)
             weeks_gen.generate_months()
             weeks_gen.generate_weeks()
 
@@ -191,7 +191,7 @@ class CLUES(models.Model):
     # state = models.IntegerField()
     institution = models.ForeignKey(
         Institution, on_delete=models.CASCADE)
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE, blank=True, null=True,
         related_name="ent_clues")
     # institution = models.IntegerField()
@@ -314,7 +314,7 @@ class CLUES(models.Model):
 
 class Delegation(models.Model):
     # RICK 21 Convertir esto en obligatorio
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, verbose_name="Entidad", related_name="delegations",
         on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=255, verbose_name="Nombre")
@@ -368,7 +368,7 @@ class Jurisdiction(models.Model):
 
 class Agency(models.Model):
 
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, verbose_name="Entidad",
         on_delete=models.CASCADE, blank=True, null=True,
         related_name="agencies")

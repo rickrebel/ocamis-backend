@@ -20,7 +20,7 @@ class AsyncTask(models.Model):
         "self", related_name="child_tasks",
         blank=True, null=True, on_delete=models.CASCADE)
 
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
     file_control = models.ForeignKey(
@@ -202,7 +202,7 @@ class FilePath(models.Model):
 
 
 class CutOff(models.Model):
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE,
         verbose_name="Entidad", related_name="cut_offs")
     last_entity_month = models.ForeignKey(
@@ -210,7 +210,7 @@ class CutOff(models.Model):
         verbose_name="Mes de corte", blank=True, null=True)
 
     def __str__(self):
-        return "%s - %s" % (self.entity, self.last_entity_month)
+        return "%s - %s" % (self.provider, self.last_entity_month)
 
     class Meta:
         verbose_name = "Corte"

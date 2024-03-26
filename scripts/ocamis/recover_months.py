@@ -199,12 +199,12 @@ def recover():
             continue
         if len(dates) == 1:
             entity_month = EntityMonth.objects.get(
-                entity=petition.agency.entity, year_month=dates[0])
+                entity=petition.agency.provider, year_month=dates[0])
             # petition.entity_months.add(entity_month)
         else:
             end, start = dates
             entity_months = EntityMonth.objects.filter(
-                entity=petition.agency.entity,
+                entity=petition.agency.provider,
                 year_month__gte=start, year_month__lte=end)
             petition.entity_months.add(*entity_months)
         petition.save()

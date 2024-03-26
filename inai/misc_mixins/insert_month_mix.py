@@ -40,7 +40,7 @@ class InsertMonth:
             get_models_of_app, field_of_models)
         self.task_params = task_params
         self.entity_month = entity_month
-        self.entity = self.entity_month.entity
+        self.entity = self.entity_month.provider
         self.editable_models = get_models_of_app("med_cat")
         self.editable_models += get_models_of_app("formula")
         self.model_fields = {model["model"]: field_of_models(model)

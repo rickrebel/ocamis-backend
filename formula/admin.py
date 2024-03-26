@@ -22,7 +22,7 @@ class DrugInline(admin.TabularInline):
 class RxAdmin(admin.ModelAdmin):
 
     list_display = [
-        "entity",
+        "provider",
         "folio_document",
         "delivered_final",
         "iso_year",
@@ -35,8 +35,8 @@ class RxAdmin(admin.ModelAdmin):
     inlines = [
         DrugInline,
     ]
-    raw_id_fields = ["entity", "medical_unit", "area", "doctor", "diagnosis"]
-    list_filter = ["entity", "iso_year", "month"]
+    raw_id_fields = ["provider", "medical_unit", "area", "doctor", "diagnosis"]
+    list_filter = ["provider", "iso_year", "month"]
     search_fields = ["folio_document", ]
 
 

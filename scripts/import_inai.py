@@ -125,11 +125,11 @@ def insert_between_months(row, petition):
     # months_agency = petition.entity_months.all()
     # print("-------------")
     # print("curr_year_month: ", curr_year_month)
-    entity_months = EntityMonth.objects.filter(entity=petition.agency.entity)
+    entity_months = EntityMonth.objects.filter(entity=petition.agency.provider)
     entity_month = entity_months.filter(year_month=curr_year_month).first()
     if not entity_month:
         entity_month = EntityMonth.objects.create(
-            entity=petition.agency.entity, year_month=curr_year_month)
+            entity=petition.agency.provider, year_month=curr_year_month)
     petition.entity_months.add(entity_month)
     # if months_agency:
     #     # last_pet_mon = pet_months.latest('month_agency__year_month')

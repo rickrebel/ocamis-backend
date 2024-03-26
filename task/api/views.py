@@ -132,7 +132,7 @@ class CutOffViewSet(ListRetrieveView):
         cut_off = CutOff.objects.create(
             last_entity_month=entity_month, entity_id=entity_id)
         entity_stages = Stage.objects\
-            .filter(stage_group__contains="entity-")\
+            .filter(stage_group__contains="provider-")\
             .order_by("-order")
         initial_status = StatusControl.objects.get(
             name="initial", group="register")

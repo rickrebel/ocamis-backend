@@ -63,7 +63,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         data_petition["petition"] = petition.id
 
         entity_months = EntityMonth.objects.filter(
-            entity=petition.agency.entity,
+            entity=petition.agency.provider,
             year_month__gte=range_months[0],
             year_month__lte=range_months[1])
 
@@ -222,7 +222,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         #     month_agency__year_month__lte=limiters[1],
         # ).delete()
         new_entity_month = EntityMonth.objects.filter(
-            entity=petition.agency.entity,
+            entity=petition.agency.provider,
             year_month__gte=limiters[0], year_month__lte=limiters[1])
         # for mon_ent in new_entity_month:
         #     PetitionMonth.objects.get_or_create(

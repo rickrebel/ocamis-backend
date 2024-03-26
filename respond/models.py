@@ -66,7 +66,7 @@ class ReplyFile(models.Model, ReplyFileMix):
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, related_name="data_files", on_delete=models.CASCADE,
         blank=True, null=True)
     # zip_path = models.TextField(blank=True, null=True)
@@ -301,7 +301,7 @@ class SheetFile(models.Model):
 
 
 class CrossingSheet(models.Model):
-    # entity = models.ForeignKey(
+    # provider = models.ForeignKey(
     #     Provider, related_name="crossing_sheets", on_delete=models.CASCADE)
     sheet_file_1 = models.ForeignKey(
         SheetFile, related_name="crossing_1", on_delete=models.CASCADE)
@@ -382,7 +382,7 @@ class TableFile(models.Model):
     lap_sheet = models.ForeignKey(
         LapSheet, related_name="table_files", on_delete=models.CASCADE,
         blank=True, null=True)
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE, blank=True, null=True,
         related_name="table_files")
     # file_type = models.ForeignKey(

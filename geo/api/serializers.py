@@ -110,7 +110,7 @@ class AgencySerializer(serializers.ModelSerializer):
             "id",
             "institution",
             "state",
-            "entity",
+            "provider",
             "clues",
             "name",
             "addl_params",
@@ -294,7 +294,7 @@ class AgencyVizSerializer(AgencySerializer):
     agency_type = serializers.ReadOnlyField()
     petitions = PetitionVizSerializer(many=True)
     months = EntityMonthVizSerializer(
-        many=True, read_only=True, source="entity.entity_months")
+        many=True, read_only=True, source="provider.entity_months")
     # months = serializers.SerializerMethodField(read_only=True)
 
     # def get_months(self, obj):
@@ -311,7 +311,7 @@ class AgencyVizSerializer(AgencySerializer):
             "institution",
             "state",
             "clues",
-            "entity",
+            "provider",
             "agency_type",
             "petitions",
             "months",

@@ -36,7 +36,7 @@ class Rx(models.Model):
     from geo.models import CLUES, Delegation, Provider
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
-    entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
     folio_ocamis = models.CharField(max_length=64)
     folio_document = models.CharField(max_length=46)
     year = models.PositiveSmallIntegerField(blank=True, null=True)
@@ -75,7 +75,7 @@ class Rx(models.Model):
 #     from geo.models import CLUES, Delegation, Provider
 #     uuid_folio = models.UUIDField(
 #         primary_key=True, default=uuid_lib.uuid4, editable=False)
-#     entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
+#     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
 #     folio_ocamis = models.CharField(max_length=64)
 #     entity_week = models.ForeignKey(
 #         "EntityWeek", on_delete=models.CASCADE, blank=True, null=True)
@@ -299,7 +299,7 @@ class MatDrugExtended(models.Model):
         Delegation, on_delete=models.CASCADE)
     iso_year = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE)
     component = models.ForeignKey(
         Component, on_delete=models.CASCADE)
@@ -316,7 +316,7 @@ class MatDrugExtended(models.Model):
 
     def __str__(self):
         return "%s -- %s -- %s -- %s" % (
-            self.iso_year, self.iso_week, self.entity, self.component)
+            self.iso_year, self.iso_week, self.provider, self.component)
 
 
 class MatDrugTotals(models.Model):

@@ -9,7 +9,7 @@ from medicine.models import Component, Presentation, Container
 
 class MedicalUnit(models.Model):
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, verbose_name="Provider", on_delete=models.CASCADE)
     delegation = models.ForeignKey(
         Delegation, verbose_name="Delegación",
@@ -49,7 +49,7 @@ class MedicalUnit(models.Model):
 class Area(models.Model):
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(
@@ -76,7 +76,7 @@ class Doctor(models.Model):
     from geo.models import Institution, Delegation
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    entity = models.ForeignKey(Provider, on_delete=models.CASCADE)
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
     aggregate_to = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE)
     is_aggregate = models.BooleanField(
@@ -117,7 +117,7 @@ class Diagnosis(models.Model):
 class Medicament(models.Model):
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
-    entity = models.ForeignKey(
+    provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE, blank=True, null=True,
         help_text="ent")
     # ⚠️ No mover los campos de arriba
