@@ -5,10 +5,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('report', '0003_remove_covidreport_municipality_and_more'),
-        ('geo', '0014_entity_has_indirect_entity_is_indirect'),
-    ]
+    dependencies = []
 
     operations = [
         migrations.RemoveField(
