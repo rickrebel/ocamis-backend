@@ -1,12 +1,12 @@
 
-def reverse_transform(only_count=False, entity=None, every_files=False):
+def reverse_transform(only_count=False, provider=None, every_files=False):
     from respond.models import LapSheet
     from respond.models import DataFile
     finished_transform = DataFile.objects.filter(
         stage_id="transform", status_id="finished")
-    if entity:
+    if provider:
         finished_transform = finished_transform.filter(
-            petition_file_control__petition__agency__provider_id=entity)
+            petition_file_control__petition__agency__provider_id=provider)
     print("Finished transform: ", finished_transform.count())
     need_reverse = 0
     for data_file in finished_transform:
@@ -219,15 +219,15 @@ def delete_bad_month(year, month, provider_id=55):
     """
     drop_queries.append(query_1)
     year_month = f"{year}-{month:02}"
-    entity_m = MonthRecord.objects.get(
+    m_record = MonthRecord.objects.get(
         provider_id=provider_id, year_month=year_month)
-    all_weeks = entity_m.weeks.all().values_list("id", flat=True)
+    all_weeks = m_record.weeks.all().values_list("id", flat=True)
     query_2 = f"""
         DELETE FROM formula_drug
         WHERE week_record_id IN {tuple(all_weeks)}
     """
     drop_queries.append(query_2)
-    sheet_files = entity_m.sheet_files.all().values_list("id", flat=True)
+    sheet_files = m_record.sheet_files.all().values_list("id", flat=True)
     query_3 = f"""
         SELECT uuid 
         FROM formula_missingrow

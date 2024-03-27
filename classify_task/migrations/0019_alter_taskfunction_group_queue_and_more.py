@@ -3,6 +3,33 @@
 from django.db import migrations, models
 
 
+def update_model_name(apps, schema_editor):
+    TaskFunction = apps.get_model("classify_task", "TaskFunction")
+    # from classify_task.models import TaskFunction
+    for task_function in TaskFunction.objects.all():
+        if task_function.model_name == "entity_week":
+            task_function.model_name = "week_record"
+            task_function.save()
+        elif task_function.model_name == "entity_month":
+            task_function.model_name = "month_record"
+            task_function.save()
+        if task_function.group_queue == "entity_week":
+            task_function.group_queue = "week_record"
+            task_function.save()
+        elif task_function.group_queue == "entity_month":
+            task_function.group_queue = "month_record"
+            task_function.save()
+
+def update_stage_group_queue(apps, schema_editor):
+    Stage = apps.get_model("classify_task", "Stage")
+    # from classify_task.models import Stage
+    for stage in Stage.objects.all():
+        if "entity" in stage.stage_group:
+            new_name = stage.stage_group.replace("entity", "provider")
+            stage.stage_group = new_name
+            stage.save()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -20,4 +47,5 @@ class Migration(migrations.Migration):
             name='model_name',
             field=models.CharField(blank=True, choices=[('petition', 'Solicitud (Petición)'), ('file_control', 'Grupo de Control'), ('data_file', 'DataFile (archivo de datos)'), ('reply_file', 'ReplyFile (.zip)'), ('sheet_file', 'Pestaña'), ('week_record', 'Semana Proveedor'), ('month_record', 'Mes Proveedor'), ('provider', 'Proveedor')], max_length=100, null=True),
         ),
+        migrations.RunPython(update_model_name),
     ]

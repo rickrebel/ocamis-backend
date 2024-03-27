@@ -40,7 +40,7 @@ class InsertMonth:
             get_models_of_app, field_of_models)
         self.task_params = task_params
         self.month_record = month_record
-        self.entity = self.month_record.provider
+        self.provider = self.month_record.provider
         self.editable_models = get_models_of_app("med_cat")
         self.editable_models += get_models_of_app("formula")
         self.model_fields = {model["model"]: field_of_models(model)
@@ -71,9 +71,9 @@ class InsertMonth:
         only_name = (
             f"NEW_ELEM_NAME/NEW_ELEM_NAME_by_week_{complement_name}_"
             f"{str(iso_delegation)}.csv")
-        entity_type = self.entity.entity_type[:8].lower()
-        acronym = self.entity.acronym.lower()
-        final_path = "/".join([entity_type, acronym, only_name])
+        provider_type = self.provider.provider_type[:8].lower()
+        acronym = self.provider.acronym.lower()
+        final_path = "/".join([provider_type, acronym, only_name])
         params = {
             # "week_table_files": TableFileAwsSerializer(
             #     week_table_files, many=True).data,
@@ -207,7 +207,7 @@ class InsertMonth:
 
     def build_catalog_queries(
             self, path, columns_join, model_in_db, model_name):
-        entity_optional_models = ["Diagnosis", "Medicament"]
+        provider_optional_models = ["Diagnosis", "Medicament"]
         sql_queries = []
         temp_table = f"temp_{model_in_db}"
         sql_queries.append(f"""
@@ -217,8 +217,8 @@ class InsertMonth:
         sql_queries.append(build_copy_sql_aws(
             path, temp_table, columns_join))
         optional_condition = ""
-        if model_name not in entity_optional_models:
-            provider_id = self.entity.id
+        if model_name not in provider_optional_models:
+            provider_id = self.provider.id
             optional_condition = f" AND {model_in_db}.provider_id = {provider_id} "
         # final_condition += f"{model_in_db}.hex_hash = {temp_table}.hex_hash"
         sql_queries.append(f"""

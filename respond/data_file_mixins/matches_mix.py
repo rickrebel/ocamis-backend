@@ -97,9 +97,9 @@ class Match(BaseTransform):
         self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
         self.agency = petition.agency
-        entity = self.agency.provider
-        self.institution = entity.institution
-        self.global_clues = entity.ent_clues.first() if entity.is_clues else None
+        provider = self.agency.provider
+        self.institution = provider.institution
+        self.global_clues = provider.ent_clues.first() if provider.is_clues else None
         # print("self.institution.code", self.institution.code)
         self.global_delegation = self.global_clues.delegation \
             if self.global_clues else None

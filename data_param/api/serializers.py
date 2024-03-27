@@ -89,7 +89,7 @@ class NameColumnHeadersSerializer(serializers.ModelSerializer):
         many=True, source="column_transformations")
     parameter_group = serializers.IntegerField(
         source="final_field.parameter_group_id", read_only=True)
-    entity = serializers.IntegerField(
+    provider = serializers.IntegerField(
         source="file_control.agency.provider_id", read_only=True)
 
     class Meta:

@@ -8,7 +8,7 @@ class WeeksGenerator:
         from datetime import datetime
         current_year = datetime.now().year
         self.years = [year] if year else range(2017, current_year + 1)
-        self.entity = provider
+        self.provider = provider
         self.all_months = []
 
         self.providers = Provider.objects.all()
@@ -16,7 +16,7 @@ class WeeksGenerator:
         self.week_records = WeekRecord.objects.all()
         if provider:
             self.providers = self.providers.filter(id=provider.id)
-            self.week_records = self.week_records.filter(entity=provider)
+            self.week_records = self.week_records.filter(provider=provider)
         if year:
             self.month_records = self.month_records.filter(year=year)
             self.week_records = self.week_records.filter(year=year)
@@ -98,9 +98,9 @@ class WeeksGenerator:
     def build_already_months(self):
         month_records = self.month_records.values('id', 'provider', 'year_month')
         for month in month_records:
-            entity = month["provider"]
-            self.already_months.setdefault(entity, {})
-            self.already_months[entity][month["year_month"]] = month["id"]
+            provider = month["provider"]
+            self.already_months.setdefault(provider, {})
+            self.already_months[provider][month["year_month"]] = month["id"]
 
     def generate_weeks(self):
         already_weeks = self.week_records.values_list(
@@ -367,10 +367,10 @@ def find_municipalities_with_regex(file_path="fixture/municipios_inegi_2023.txt"
         if not match:
             continue
         regex_matches += 1
-        entity_key = match.group(1)
+        provider = match.group(1)
         municipality_key = match.group(3)
         municipality_name = match.group(4)
-        key = f"{entity_key}-{municipality_key}"
+        key = f"{provider}-{municipality_key}"
         if key not in municipalities_dict:
             try:
                 success_count += 1
@@ -378,7 +378,7 @@ def find_municipalities_with_regex(file_path="fixture/municipios_inegi_2023.txt"
                 Municipality.objects.create(
                     inegi_code=municipality_key,
                     name=municipality_name,
-                    state_id=states_dict[entity_key])
+                    state_id=states_dict[provider])
                 municipalities_dict[key] = True
             except Exception as e:
                 not_found_muni.append([key, municipality_name, e])

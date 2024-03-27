@@ -15,18 +15,18 @@ class FromAws:
 
         new_tasks = []
         all_errors = []
-        entity = self.lap_sheet.sheet_file.data_file.provider
+        provider = self.lap_sheet.sheet_file.data_file.provider
         optional_fields = [
             "iso_year", "iso_week", "year_week", "iso_delegation_id",
             "year", "month", "year_month"]
         count_fields = ["drugs_count", "rx_count"]
         all_year_months = set()
-        all_month_records = MonthRecord.objects.filter(entity=entity)\
+        all_month_records = MonthRecord.objects.filter(provider=provider)\
             .values("id", "year_month")
         values_to_weeks = optional_fields.copy()
         values_to_weeks.extend(["month_record_id"])
         all_week_records = WeekRecord.objects\
-            .filter(entity=entity).values(*["id"] + values_to_weeks)
+            .filter(provider=provider).values(*["id"] + values_to_weeks)
         dict_week_records = {}
         for week_record in all_week_records:
             concat_id = []
@@ -43,7 +43,7 @@ class FromAws:
         for result_file in result_files:
             model_name = result_file.get("model")
             # print("model_name", model_name)
-            query_create = {"provider": entity, "file": result_file["path"]}
+            query_create = {"provider": provider, "file": result_file["path"]}
             concat_id = []
             # query_create = {"provider": provider}
             # query_update = {"file": result_file["path"]}
@@ -73,7 +73,7 @@ class FromAws:
                 if week_record_id:
                     week_records_ids.append(week_record_id)
                 else:
-                    query_create_week["provider"] = entity
+                    query_create_week["provider"] = provider
                     query_create_week["month_record_id"] = month_record_id
                     try:
                         week_record, created = WeekRecord.objects.get_or_create(
@@ -95,11 +95,11 @@ class FromAws:
         TableFile.objects.bulk_create(new_table_files)
 
         MonthRecord.objects\
-            .filter(year_month__in=list(all_year_months), entity=entity)\
+            .filter(year_month__in=list(all_year_months), provider=provider)\
             .update(last_transformation=timezone.now())
 
         WeekRecord.objects\
-            .filter(id__in=week_records_ids, entity=entity)\
+            .filter(id__in=week_records_ids, provider=provider)\
             .update(last_transformation=timezone.now())
 
         # return new_tasks, all_errors, all_new_files
@@ -113,7 +113,7 @@ class FromAws:
         all_new_files = []
         new_tasks = []
         new_file_ids = []
-        entity = self.lap_sheet.sheet_file.data_file.provider
+        provider = self.lap_sheet.sheet_file.data_file.provider
         optional_fields = [
             "iso_year", "iso_week", "year_week", "iso_delegation",
             "year", "month", "year_month"]
@@ -123,7 +123,7 @@ class FromAws:
         for result_file in result_files:
             model_name = result_file.get("model")
             # print("model_name", model_name)
-            query_create = {"provider": entity}
+            query_create = {"provider": provider}
             query_update = {"file": result_file["path"]}
             if not model_name:
                 complex_date = tuple()
@@ -138,9 +138,9 @@ class FromAws:
                     query_update[field] = result_file.get(field, 0)
                 all_complex_dates.add(complex_date)
                 query_create_week = query_create.copy()
-                query_create_week["provider"] = entity
+                query_create_week["provider"] = provider
                 month_record = MonthRecord.objects.filter(
-                    year_month=year_month, entity=entity).first()
+                    year_month=year_month, provider=provider).first()
                 query_create_week["month_record"] = month_record
                 week_record, created = WeekRecord.objects.get_or_create(
                     **query_create_week)
@@ -182,7 +182,7 @@ class FromAws:
         #     all_months.add(year_month)
 
         MonthRecord.objects\
-            .filter(year_month__in=list(all_year_months), entity=entity)\
+            .filter(year_month__in=list(all_year_months), provider=provider)\
             .update(last_transformation=timezone.now())
 
         return new_tasks, [], all_new_files

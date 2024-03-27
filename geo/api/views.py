@@ -21,37 +21,37 @@ class StateViewSet(ListRetrieveUpdateMix):
     }
 
 
-class EntityVizViewSet(ListRetrieveMix):
+class ProviderVizViewSet(ListRetrieveMix):
     permission_classes = (permissions.AllowAny,)
     queryset = Provider.objects.all()
-    serializer_class = serializers.EntitySerializer
+    serializer_class = serializers.ProviderSerializer
 
     @action(methods=["get"], detail=True, url_path='delegation')
     def delegation(self, request, **kwargs):
-        entity = self.get_object()
-        delegations = entity.delegations\
+        provider = self.get_object()
+        delegations = provider.delegations\
             .filter(is_clues=False).order_by("state__id")
         serializer = serializers.DelegationVizSerializer(
             delegations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class EntityViewSet(ListRetrieveUpdateMix):
+class ProviderViewSet(ListRetrieveUpdateMix):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.EntitySerializer
+    serializer_class = serializers.ProviderSerializer
     queryset = Provider.objects.all()
 
     action_serializers = {
-        "retrieve": serializers.EntityFullSerializer,
-        "update": serializers.EntitySerializer,
-        "list": serializers.EntitySerializer,
-        "send_months": serializers.EntitySerializer,
+        "retrieve": serializers.ProviderFullSerializer,
+        "update": serializers.ProviderSerializer,
+        "list": serializers.ProviderSerializer,
+        "send_months": serializers.ProviderSerializer,
     }
 
     def get(self, request):
-        entity = self.get_object()
-        serializer = serializers.EntityFullSerializer(
-            entity, context={ 'request': request })
+        provider = self.get_object()
+        serializer = serializers.ProviderFullSerializer(
+            provider, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["post"], detail=True, url_path='send_months')
@@ -68,14 +68,14 @@ class EntityViewSet(ListRetrieveUpdateMix):
         main_function_name = request.data.get("function_name", None)
         stage_name = request.data.get("stage", None)
         # query_stage = request.data.get("stage", None)
-        entity = self.get_object()
+        provider = self.get_object()
         if month_records_ids:
             month_records = MonthRecord.objects.filter(
                 id__in=month_records_ids)
         elif month_records_id:
             month_records = MonthRecord.objects.filter(id=month_records_id)
         else:
-            month_records = MonthRecord.objects.filter(entity=entity)
+            month_records = MonthRecord.objects.filter(provider=provider)
         print("month_records", month_records)
         all_tasks = []
         all_errors = []
@@ -83,7 +83,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
             key_task = None
         else:
             key_task, task_params = build_task_params(
-                entity, main_function_name, request, keep_tasks=True)
+                provider, main_function_name, request, keep_tasks=True)
 
         stage = Stage.objects\
             .filter(main_function__name=main_function_name).first()
@@ -154,7 +154,7 @@ class EntityViewSet(ListRetrieveUpdateMix):
                 print("month_errors", month_errors)
                 month_record.save_stage(stage, month_errors)
                 comprobate_status(month_task, month_errors, [])
-            elif entity.split_by_delegation:
+            elif provider.split_by_delegation:
                 run_in_thread()
                 # t = threading.Thread(target=run_in_thread)
                 # t.start()

@@ -7,7 +7,7 @@ class BuildComplexHeaders:
     def __init__(self, data_file: DataFile):
         self.data_file = data_file
         self.complex_headers = []
-        self.entity_uniques = {}
+        self.provider_uniques = {}
         self.unique_std_names = {}
 
     def __call__(self, *args, **kwargs):
@@ -84,8 +84,8 @@ class BuildComplexHeaders:
             self.unique_std_names.setdefault(std_name, [])
             self.unique_std_names[std_name].append(unique_name)
             if name_col["provider"] == provider_id:
-                self.entity_uniques.setdefault(std_name, [])
-                self.entity_uniques[std_name].append(unique_name)
+                self.provider_uniques.setdefault(std_name, [])
+                self.provider_uniques[std_name].append(unique_name)
 
     def find_header_values(self, df_headers):
         for (position, header) in enumerate(df_headers, start=1):
@@ -98,7 +98,7 @@ class BuildComplexHeaders:
 
     def find_match(self, std_header):
         from statistics import mode
-        dicts = [self.entity_uniques, self.unique_std_names]
+        dicts = [self.provider_uniques, self.unique_std_names]
         for uniques_dict in dicts:
             if vals_matched := uniques_dict.get(std_header, False):
                 count_vals = len(vals_matched)

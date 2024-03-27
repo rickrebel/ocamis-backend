@@ -172,11 +172,11 @@ class FileControl(models.Model):
             table_files = TableFile.objects.filter(
                 lap_sheet__sheet_file__data_file__petition_file_control__file_control=self)
             if final_real_provider is not None:
-                data_files.update(entity=final_real_provider)
-                table_files.update(entity=final_real_provider)
+                data_files.update(provider=final_real_provider)
+                table_files.update(provider=final_real_provider)
             else:
-                data_files.update(entity=self.agency.provider)
-                table_files.update(entity=self.agency.provider)
+                data_files.update(provider=self.agency.provider)
+                table_files.update(provider=self.agency.provider)
 
         super().save(*args, **kwargs)
 

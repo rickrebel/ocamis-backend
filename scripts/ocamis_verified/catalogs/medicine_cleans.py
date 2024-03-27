@@ -57,7 +57,7 @@ def update_med_container_id():
     provider_imss = Provider.objects.get(id=55)
     all_fields = get_medicament_fields()
     medicaments_own_imss = Medicament.objects.filter(
-        entity=provider_imss)
+        provider=provider_imss)
     errors = {
         "Key no encontrada": [], "No tiene formato correcto": [],
         "Multiples contenedores": [], "Otros errores": []}

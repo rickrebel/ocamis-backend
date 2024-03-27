@@ -4,14 +4,14 @@ from category.models import StatusControl
 from django.contrib.auth.models import User
 
 
-def set_upload_path_entity(instance, filename):
+def set_upload_path_provider(instance, filename):
 
-    entity_type = instance.entity_type[:8].lower()
+    provider_type = instance.provider_type[:8].lower()
     try:
         acronym = instance.acronym.lower()
     except AttributeError:
         acronym = 'others'
-    return "/".join([entity_type, acronym,  filename])
+    return "/".join([provider_type, acronym,  filename])
 
 
 def default_alternative_names():
@@ -149,7 +149,7 @@ class Provider(models.Model):
     # is_pilot = models.BooleanField(default=False, verbose_name="Es piloto")
 
     @property
-    def entity_type(self):
+    def provider_type(self):
         if self.is_clues:
             return 'Hospital Federal'
         elif self.state:
@@ -160,7 +160,7 @@ class Provider(models.Model):
     def delete(self, *args, **kwargs):
         from respond.models import LapSheet
         some_lap_inserted = LapSheet.objects.filter(
-            sheet_file__data_file__petition_file_control__petition__agency__entity=self,
+            sheet_file__data_file__petition_file_control__petition__agency__provider=self,
             inserted=True).exists()
         if some_lap_inserted:
             raise Exception("No se puede eliminar un archivo con datos insertados")

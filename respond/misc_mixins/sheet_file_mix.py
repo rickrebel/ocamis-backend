@@ -37,10 +37,10 @@ class FromAws:
         petition = self.sheet_file.data_file.petition_file_control.petition
         orphan_pet_control = petition.orphan_pet_control
         for file_name in new_files:
-            entity = petition.real_provider or petition.agency.provider
+            provider = petition.real_provider or petition.agency.provider
             new_file = DataFile.objects.create(
                 file=file_name,
-                entity=entity,
+                provider=provider,
                 directory=f"intermediary_of_{original_file}",
                 petition_file_control=orphan_pet_control,
             )
@@ -108,7 +108,7 @@ class FromAws:
                 month = str(ym[1]).zfill(2)
                 year_months.append(f"{ym[0]}-{month}")
                 month_record = MonthRecord.objects.get_or_create(
-                    entity=self.sheet_file.data_file.provider,
+                    provider=self.sheet_file.data_file.provider,
                     year_month=f"{ym[0]}-{month}")[0]
                 self.sheet_file.month_records.add(month_record)
             # errors.append(f"Se encontraron demasiados meses: {all_months}")

@@ -199,12 +199,12 @@ def recover():
             continue
         if len(dates) == 1:
             month_record = MonthRecord.objects.get(
-                entity=petition.agency.provider, year_month=dates[0])
+                provider=petition.agency.provider, year_month=dates[0])
             # petition.month_records.add(month_record)
         else:
             end, start = dates
             month_records = MonthRecord.objects.filter(
-                entity=petition.agency.provider,
+                provider=petition.agency.provider,
                 year_month__gte=start, year_month__lte=end)
             petition.month_records.add(*month_records)
         petition.save()

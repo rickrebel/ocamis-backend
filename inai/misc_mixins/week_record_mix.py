@@ -55,7 +55,7 @@ class FromAws:
             collection = Collection.objects.get(snake_name=model)
             table_file, c = TableFile.objects.get_or_create(
                 # week_record=self.week_record,
-                entity=self.week_record.provider,
+                provider=self.week_record.provider,
                 iso_week=self.week_record.iso_week,
                 iso_year=self.week_record.iso_year,
                 year_week=self.week_record.year_week,

@@ -36,7 +36,7 @@ from task.api.serializers import (
 
 from geo.models import Agency, Provider
 from geo.api.serializers import (
-    AgencySerializer, EntitySerializer, EntityCatSerializer)
+    AgencySerializer, ProviderSerializer, ProviderCatSerializer)
 
 
 class CatalogView(views.APIView):
@@ -53,7 +53,7 @@ class CatalogView(views.APIView):
 
         data = {
             "agencies": AgencySerializer(agencies_query, many=True).data,
-            "providers": EntityCatSerializer(providers_query, many=True).data,
+            "providers": ProviderCatSerializer(providers_query, many=True).data,
             # CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
                 DataGroup.objects.all(), many=True).data,

@@ -7,7 +7,7 @@ def update_delegation_in_med_units(provider_id):
     provider = Provider.objects.get(id=provider_id)
     dict_delegations = build_catalog_delegation_by_id(provider.institution)
     all_medical_units = MedicalUnit.objects.filter(
-        entity=provider, delegation__isnull=True, delegation_name__isnull=False)
+        provider=provider, delegation__isnull=True, delegation_name__isnull=False)
     print("all_medical_units", all_medical_units.count())
     for medical_unit in all_medical_units:
         delegation_name = text_normalizer(medical_unit.delegation_name)
@@ -28,7 +28,7 @@ def update_delegation_in_med_units(provider_id):
             except Exception as e:
                 print("error", e)
                 print("delegation_name", delegation_name)
-        elif entity.acronym == "ISSSTE":
+        elif provider.acronym == "ISSSTE":
             try:
                 print("soy ISSSTE")
                 if medical_unit.clues:

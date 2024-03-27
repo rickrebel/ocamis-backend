@@ -60,7 +60,7 @@ class CLUESSerializer(serializers.ModelSerializer):
                   'total_unities', 'municipality']
 
 
-class EntityCatSerializer(serializers.ModelSerializer):
+class ProviderCatSerializer(serializers.ModelSerializer):
     institution = InstitutionSerializer(read_only=True)
     state = StateSimpleSerializer(read_only=True)
     clues = CLUESSerializer(read_only=True, source="ent_clues", many=True)
@@ -69,12 +69,12 @@ class EntityCatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Provider
         fields = [
-            "id", "institution", "state", "clues", "name", "entity_type",
+            "id", "institution", "state", "clues", "name", "provider_type",
             "acronym", "notes", "assigned_to", "status_opera", "cut_offs",
             "is_indirect", "has_indirect"]
 
 
-class EntitySerializer(serializers.ModelSerializer):
+class ProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Provider
@@ -144,7 +144,7 @@ class AgencyFileControlsSerializer(serializers.ModelSerializer):
         fields = ["file_controls"]
 
 
-class EntityFileControlsSerializer(serializers.ModelSerializer):
+class ProviderFileControlsSerializer(serializers.ModelSerializer):
     file_controls = serializers.SerializerMethodField(read_only=True)
 
     def get_file_controls(self, obj):
@@ -160,7 +160,7 @@ class EntityFileControlsSerializer(serializers.ModelSerializer):
                 .prefetch_related(*prefetch_related)
         else:
             queryset = FileControl.objects\
-                .filter(agency__entity=obj)\
+                .filter(agency__provider=obj)\
                 .distinct()\
                 .order_by("data_group", "id")\
                 .prefetch_related(*prefetch_related)
@@ -226,7 +226,7 @@ def calc_drugs_summarize(obj, table_files=None):
     return final_result
 
 
-def calc_sheet_files_summarize(entity, month_record=None):
+def calc_sheet_files_summarize(provider, month_record=None):
     from django.db.models import Count
     from inai.models import MonthRecord
     count_by_year_month_and_behavior = []
@@ -234,7 +234,7 @@ def calc_sheet_files_summarize(entity, month_record=None):
         all_month_records = [month_record]
     else:
         all_month_records = MonthRecord.objects\
-            .filter(entity=entity)\
+            .filter(provider=provider)\
             .order_by("year_month")
     for month_record in all_month_records:
         behavior_counts = month_record.sheet_files\
@@ -250,7 +250,7 @@ def calc_sheet_files_summarize(entity, month_record=None):
     return count_by_year_month_and_behavior
 
 
-class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
+class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializer):
     from inai.api.serializers import MonthRecordSerializer
 
     # petitions = PetitionSemiFullSerializer(many=True)
@@ -270,7 +270,7 @@ class EntityFullSerializer(EntityCatSerializer, EntityFileControlsSerializer):
                 .prefetch_related(*prefetch_related)
         else:
             petitions = Petition.objects\
-                .filter(agency__entity=obj)\
+                .filter(agency__provider=obj)\
                 .prefetch_related(*prefetch_related)
         serializer = PetitionSemiFullSerializer(petitions, many=True)
         return serializer.data

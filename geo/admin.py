@@ -58,7 +58,7 @@ class AgencyInline(admin.StackedInline):
     extra = 0
 
 
-class EntityAdmin(admin.ModelAdmin):
+class ProviderAdmin(admin.ModelAdmin):
     list_display = [
         "__str__",
         "acronym",
@@ -151,8 +151,8 @@ admin.site.register(State, StateAdmin)
 admin.site.register(Municipality, MunicipalityAdmin)
 admin.site.register(Institution, InstitutionAdmin)
 ocamis_admin_site.register(Institution, InstitutionAdmin)
-ocamis_admin_site.register(Provider, EntityAdmin)
-admin.site.register(Provider, EntityAdmin)
+ocamis_admin_site.register(Provider, ProviderAdmin)
+admin.site.register(Provider, ProviderAdmin)
 admin.site.register(CLUES, CLUESAdmin)
 
 ocamis_admin_site.register(Agency, AgencyAdmin)

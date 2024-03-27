@@ -11,7 +11,7 @@ def generate_agency_delegations():
             institution=agency.institution, clues=agency.clues)
 
 
-def create_entity_by_agency():
+def create_provider_by_agency():
     from geo.models import Agency, Provider
     agencies = Agency.objects.all()
     for agency in agencies:
@@ -102,21 +102,21 @@ def assign_provider_to_data_files():
     from geo.models import Provider
     from respond.models import DataFile
     all_providers = Provider.objects.all()
-    for entity in all_providers:
+    for provider in all_providers:
         data_files = DataFile.objects.filter(
-            petition_file_control__petition__agency__entity=entity)
-        data_files.update(entity=entity)
+            petition_file_control__petition__agency__provider=provider)
+        data_files.update(provider=provider)
 
 
-def assign_entity_to_month_agency():
+def assign_provider_to_month_agency():
     from geo.models import Provider, Agency
     from inai.models import MonthRecord
     all_agencies = Agency.objects.all()
     for agency in all_agencies:
-        entity = agency.provider
-        if entity:
+        provider = agency.provider
+        if provider:
             month_agencies = MonthRecord.objects.filter(agency=agency)
-            month_agencies.update(entity=entity)
+            month_agencies.update(provider=provider)
 
 
 def assign_year_month_to_sheet_files(provider_id):
@@ -163,14 +163,14 @@ def delete_duplicates_months_agency():
     from geo.models import Provider
     all_providers = Provider.objects.all()
     for provider in all_providers:
-        all_months_agency = MonthRecord.objects.filter(entity=provider)
+        all_months_agency = MonthRecord.objects.filter(provider=provider)
         year_months = all_months_agency.order_by("year_month").distinct(
             "year_month")
         year_months = year_months.values_list(
             "year_month", flat=True)
         for year_month in list(year_months):
             month_agencies = MonthRecord.objects.filter(
-                entity=provider, year_month=year_month)
+                provider=provider, year_month=year_month)
             month_agencies = month_agencies.order_by("-id")
             first_month_agency = month_agencies.first()
             if month_agencies.count() > 1:
@@ -182,14 +182,14 @@ def delete_duplicates_week_records():
     from geo.models import Provider
     all_providers = Provider.objects.all()
     for provider in all_providers:
-        all_week_records = WeekRecord.objects.filter(entity=provider)
+        all_week_records = WeekRecord.objects.filter(provider=provider)
         year_weeks = all_week_records\
             .order_by("year_week", "year_month", "iso_delegation")\
             .distinct("year_week", "year_month", "iso_delegation")\
             .values_list("year_week", "year_month", "iso_delegation")
         for year_week, year_month, iso_delegation in list(year_weeks):
             week_records = WeekRecord.objects.filter(
-                entity=provider, year_week=year_week,
+                provider=provider, year_week=year_week,
                 year_month=year_month, iso_delegation=iso_delegation)
             week_records = week_records.order_by("-id")
             first_week_record = week_records.first()
@@ -243,7 +243,7 @@ def save_month_records():
     for sheet_file in all_sheet_files:
         try:
             month_record = MonthRecord.objects.get(
-                entity=sheet_file.data_file.provider, year_month=sheet_file.year_month)
+                provider=sheet_file.data_file.provider, year_month=sheet_file.year_month)
             sheet_file.month_records.add(month_record)
         except MonthRecord.DoesNotExist:
             print("year_month does not exist", sheet_file.year_month)
@@ -341,7 +341,7 @@ def delete_duplicate_table_files():
         .filter(
             drugs_count=0, week_record__isnull=False,
             collection__isnull=False)\
-        .prefetch_related("week_record", "week_record__entity")
+        .prefetch_related("week_record", "week_record__provider")
     print("all_table_files", all_table_files.count())
     for table_file in all_table_files:
         if table_file.provider != table_file.week_record.provider:
@@ -443,13 +443,13 @@ def revert_own_mistake():
     from data_param.models import Collection
     import time
     def save_model_files(lapsheet, model_paths):
-        entity = lapsheet.sheet_file.data_file.provider
+        provider = lapsheet.sheet_file.data_file.provider
         new_table_files = []
         for result_file in model_paths:
             model_name = result_file.get("model")
             if model_name == "Prescription":
                 model_name = "Rx"
-            query_create = {"provider": entity, "file": result_file["path"]}
+            query_create = {"provider": provider, "file": result_file["path"]}
             collection = Collection.objects.get(model_name=model_name)
             query_create["collection"] = collection
             query_create["lap_sheet"] = lapsheet
