@@ -50,47 +50,6 @@ def set_upload_path(instance, filename):
     return "/".join([agency_type, acronym, folio_petition, filename])
 
 
-class RequestTemplate(models.Model):
-    version = models.IntegerField()
-    text = models.TextField()
-    provider = models.ForeignKey(
-        Provider, related_name="request_templates",
-        on_delete=models.CASCADE, null=True, blank=True)
-
-    def __str__(self):
-        return self.version
-
-    class Meta:
-        verbose_name = "Plantilla de solicitud"
-        verbose_name_plural = "Plantillas de solicitud"
-        ordering = ["-version"]
-
-
-VARIABLE_TYPES = (
-    ("string", "String"),
-    ("date", "Date"),
-)
-
-
-class Variable(models.Model):
-    request_template = models.ForeignKey(
-        RequestTemplate, related_name="variables",
-        on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
-    color = models.CharField(max_length=20, blank=True, null=True)
-    variable_type = models.CharField(
-        max_length=10, choices=VARIABLE_TYPES, default="string")
-    default_value = models.CharField(max_length=255, blank=True, null=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = "Variable de plantilla"
-        verbose_name_plural = "Variables de plantilla"
-
-
 class MonthRecord(models.Model):
     agency = models.ForeignKey(
         Agency,
@@ -183,14 +142,59 @@ class MonthRecord(models.Model):
         verbose_name_plural = "8. Meses-proveedores"
 
 
+class RequestTemplate(models.Model):
+    version = models.IntegerField()
+    text = models.TextField()
+    provider = models.ForeignKey(
+        Provider, related_name="request_templates",
+        on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return self.version
+
+    class Meta:
+        verbose_name = "Plantilla de solicitud"
+        verbose_name_plural = "Plantillas de solicitud"
+        ordering = ["-version"]
+
+
+VARIABLE_TYPES = (
+    ("string", "String"),
+    ("provider", "By Provider"),
+    # ("name_provider", "Nombre del sujeto obligado"),
+    ("date", "Date"),
+)
+
+
+class Variable(models.Model):
+    request_template = models.ForeignKey(
+        RequestTemplate, related_name="variables",
+        on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    color = models.CharField(max_length=20, blank=True, null=True)
+    variable_type = models.CharField(
+        max_length=15, choices=VARIABLE_TYPES, default="string")
+    default_value = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Variable de plantilla"
+        verbose_name_plural = "Variables de plantilla"
+
+
 class Petition(models.Model, PetitionTransformsMix):
 
     folio_petition = models.CharField(
         max_length=50, blank=True, null=True,
         verbose_name="Folio de la solicitud")
+    id_inai_open_data = models.IntegerField(
+        verbose_name="Id en el sistema de INAI",
+        blank=True, null=True)
     agency = models.ForeignKey(
-        Agency,
-        related_name="petitions",
+        Agency, related_name="petitions",
         on_delete=models.CASCADE)
     real_provider = models.ForeignKey(
         Provider, related_name="real_petitions",
@@ -198,6 +202,13 @@ class Petition(models.Model, PetitionTransformsMix):
     month_records = models.ManyToManyField(
         MonthRecord, blank=True, verbose_name="Meses de la solicitud")
     notes = models.TextField(blank=True, null=True)
+    template_text = models.TextField(
+        blank=True, null=True, verbose_name="Texto para la plantilla")
+    template_variables = JSONField(
+        blank=True, null=True, verbose_name="Variables de la plantilla")
+    request_template = models.ForeignKey(
+        RequestTemplate, related_name="petitions",
+        on_delete=models.CASCADE, null=True, blank=True)
     send_petition = models.DateField(
         verbose_name="Fecha de envío o recepción",
         blank=True, null=True)
@@ -210,23 +221,20 @@ class Petition(models.Model, PetitionTransformsMix):
     description_response = models.TextField(
         verbose_name="Respuesta texto",
         blank=True, null=True)
-    status_data = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_data",
-        verbose_name="Status de los datos entregados",
-        on_delete=models.CASCADE)
     status_petition = models.ForeignKey(
         StatusControl, null=True, blank=True,
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
+    status_data = models.ForeignKey(
+        StatusControl, null=True, blank=True,
+        related_name="petitions_data",
+        verbose_name="Status de los datos entregados",
+        on_delete=models.CASCADE)
     invalid_reason = models.ForeignKey(
         InvalidReason, null=True, blank=True,
         verbose_name="Razón de invalidez",
         on_delete=models.CASCADE)
-    id_inai_open_data = models.IntegerField(
-        verbose_name="Id en el sistema de INAI",
-        blank=True, null=True)
 
     # Complain data, needs to be moved to another model
     ask_extension = models.BooleanField(
@@ -289,7 +297,7 @@ class Petition(models.Model, PetitionTransformsMix):
         return orphan
 
     def months(self):
-        html_list = ''
+        # html_list = ''
         # start = self.petition_months.earliest().month_record.human_name
         start = self.month_records.earliest().year_month
         # end = self.petition_months.latest().month_record.human_name
@@ -317,7 +325,8 @@ class Petition(models.Model, PetitionTransformsMix):
     months_in_description.short_description = "Meses escritos"
 
     def __str__(self):
-        return "%s -- %s" % (self.agency, self.folio_petition or self.id)
+        return "solicitud"
+        # return "%s -- %s" % (self.agency, self.folio_petition or self.id)
 
     class Meta:
         verbose_name = "Solicitud - Petición"
@@ -452,3 +461,23 @@ class WeekRecord(models.Model):
         verbose_name = "Semana-proveedor"
         verbose_name_plural = "9. Semanas-proveedores"
         db_table = "inai_entityweek"
+
+
+class VariableValue(models.Model):
+    variable = models.ForeignKey(
+        Variable, related_name="values",
+        on_delete=models.CASCADE)
+    provider = models.ForeignKey(
+        Provider, related_name="variable_values",
+        on_delete=models.CASCADE, blank=True, null=True)
+    petition = models.ForeignKey(
+        Petition, related_name="variable_values",
+        on_delete=models.CASCADE, blank=True, null=True)
+    value = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.value
+
+    class Meta:
+        verbose_name = "Valor de variable"
+        verbose_name_plural = "Valores de variable"

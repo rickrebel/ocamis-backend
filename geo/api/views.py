@@ -58,7 +58,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
     def send_months(self, request, **kwargs):
         import threading
         import time
-        from inai.misc_mixins.month_record_mix import FromAws as EntityMonthMix
+        from inai.misc_mixins.month_record_mix import FromAws as MonthRecordMix
         from task.views import comprobate_status, build_task_params
         from inai.models import MonthRecord
         from respond.models import TableFile
@@ -129,7 +129,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             month_record.status_id = "created"
             month_record.save()
             month_errors = []
-            base_class = EntityMonthMix(month_record, task_params)
+            base_class = MonthRecordMix(month_record, task_params)
             function_name = "revert_stages" if is_revert else main_function_name
             main_method = getattr(base_class, function_name)
 

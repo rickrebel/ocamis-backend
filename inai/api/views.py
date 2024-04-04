@@ -6,8 +6,8 @@ from rest_framework import (permissions, status)
 from rest_framework.decorators import action
 
 from inai.models import (
-    Petition, PetitionBreak,
-    PetitionFileControl, MonthRecord)
+    Petition, PetitionBreak, PetitionFileControl, MonthRecord,
+    RequestTemplate)
 from respond.models import SheetFile, CrossingSheet
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
@@ -365,3 +365,51 @@ class MonthRecordViewSet(CreateRetrieveView):
         return Response(status=status.HTTP_200_OK)
 
 
+class RequestTemplateViewSet(ListRetrieveUpdateMix):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = serializers.RequestTemplateSerializer
+    queryset = RequestTemplate.objects.all()
+    action_serializers = {
+        "create": serializers.RequestTemplateSerializer,
+        "retrieve": serializers.RequestTemplateSerializer,
+        "update": serializers.RequestTemplateSerializer,
+    }
+
+    def create(self, request, **kwargs):
+        print("RequestTemplateViewSet.create")
+        data_template = request.data
+        print("data_template", data_template)
+        provider = data_template.get("provider", None)
+        version = data_template.get("version")
+        if version:
+            new_version = int(version) + 1
+        else:
+            last_template = RequestTemplate.objects.filter(
+                provider=provider).last()
+            if last_template:
+                new_version = int(last_template.version) + 1
+            else:
+                new_version = 1
+        data_template["version"] = new_version
+        new_template = RequestTemplate()
+        variables = data_template.pop("variables", [])
+        serializer_template = self.get_serializer_class()(
+            new_template, data=data_template)
+        if serializer_template.is_valid():
+            serializer_template.save()
+        else:
+            return Response({"errors": serializer_template.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        for variable in variables:
+            variable["request_template"] = new_template.id
+            serializer_variable = serializers.VariableSerializer(
+                data=variable)
+            if serializer_variable.is_valid():
+                serializer_variable.save()
+            else:
+                return Response({"errors": serializer_variable.errors},
+                                status=status.HTTP_400_BAD_REQUEST)
+        new_template = RequestTemplate.objects.get(id=new_template.id)
+        new_serializer_template = serializers.RequestTemplateSerializer(
+            new_template)
+        return Response(new_serializer_template.data, status=status.HTTP_201_CREATED)

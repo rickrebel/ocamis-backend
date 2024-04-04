@@ -60,12 +60,6 @@ class MonthRecordAdmin(admin.ModelAdmin):
     # inlines = [WeekRecordInline]
 
 
-# class EntityMonthInline(admin.TabularInline):
-#     model = MonthRecord
-#     raw_id_fields = ["provider"]
-#     extra = 0
-
-
 class PetitionAdmin(admin.ModelAdmin):
     list_display = [
         "folio_petition",
@@ -76,6 +70,32 @@ class PetitionAdmin(admin.ModelAdmin):
         "status_data",
         "status_petition",
     ]
+    fieldsets = (
+        (None, {
+            "fields": (
+                "folio_petition",
+                "id_inai_open_data",
+                "agency",
+                "real_provider",
+                "month_records",
+                # "notes",
+                # "template_text",
+                # "request_template",
+                # "send_petition",
+                # "send_response",
+                # "description_petition",
+                # "description_response",
+                # "status_petition",
+                # "status_data",
+                # "invalid_reason",
+                # "ask_extension",
+                # "description_complain",
+                # "status_complain",
+                # "folio_complain",
+            )
+        }),
+    )
+
     search_fields = [
         "folio_petition", "agency__acronym", "agency__name",
         "agency__state__short_name"]

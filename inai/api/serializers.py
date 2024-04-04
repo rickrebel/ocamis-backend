@@ -224,7 +224,7 @@ class VariableSerializer(serializers.ModelSerializer):
 
 
 class RequestTemplateSerializer(serializers.ModelSerializer):
-    variables = VariableSerializer(many=True)
+    variables = VariableSerializer(many=True, read_only=True)
 
     class Meta:
         model = RequestTemplate

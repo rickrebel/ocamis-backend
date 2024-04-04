@@ -50,6 +50,9 @@ class CatalogView(views.APIView):
         providers_query = Provider.objects.all().prefetch_related(
             "institution", "state", "ent_clues", "cut_offs")
         final_fields_query = FinalField.objects.filter(dashboard_hide=False)
+        last_template = RequestTemplate.objects.filter(provider__isnull=True)\
+            .first()
+
 
         data = {
             "agencies": AgencySerializer(agencies_query, many=True).data,
@@ -96,7 +99,7 @@ class CatalogView(views.APIView):
                 DateBreak.objects.all(), many=True).data,
             "offline_types": {k: v for k, v in OFFLINE_TYPES},
             "last_request_template": RequestTemplateSerializer(
-                RequestTemplate.objects.first()).data,
+                last_template).data,
         }
         return Response(data)
 

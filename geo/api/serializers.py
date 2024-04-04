@@ -258,6 +258,7 @@ class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializ
     month_records = MonthRecordSerializer(many=True)
     sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
     drugs_summarize = serializers.SerializerMethodField(read_only=True)
+    last_request_template = serializers.SerializerMethodField(read_only=True)
 
     def get_petitions(self, obj):
         from inai.api.serializers import PetitionSemiFullSerializer
@@ -280,6 +281,17 @@ class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializ
 
     def get_drugs_summarize(self, obj):
         return calc_drugs_summarize(obj)
+
+    def get_last_request_template(self, obj):
+        from inai.models import RequestTemplate
+        from inai.api.serializers import RequestTemplateSerializer
+        last_request_template = RequestTemplate.objects\
+            .filter(provider=obj)\
+            .order_by("-id")\
+            .first()
+        if last_request_template:
+            return RequestTemplateSerializer(last_request_template).data
+        return None
 
     class Meta:
         model = Provider

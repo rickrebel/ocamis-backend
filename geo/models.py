@@ -145,8 +145,7 @@ class Provider(models.Model):
         default=False, verbose_name="Es indirecto (entidad Real)")
     has_indirect = models.BooleanField(
         default=False, verbose_name="Tiene indirectos")
-    # Deprecated:
-    # is_pilot = models.BooleanField(default=False, verbose_name="Es piloto")
+    variables = JSONField(blank=True, null=True)
 
     @property
     def provider_type(self):
@@ -182,7 +181,7 @@ class Provider(models.Model):
     class Meta:
         ordering = ["state__name"]
         verbose_name = "Proveedor"
-        verbose_name_plural = "Proveedores (Entities)"
+        verbose_name_plural = "Proveedores"
         db_table = 'geo_entity'
 
 
