@@ -204,11 +204,11 @@ class Petition(models.Model, PetitionTransformsMix):
     notes = models.TextField(blank=True, null=True)
     template_text = models.TextField(
         blank=True, null=True, verbose_name="Texto para la plantilla")
-    template_variables = JSONField(
-        blank=True, null=True, verbose_name="Variables de la plantilla")
     request_template = models.ForeignKey(
         RequestTemplate, related_name="petitions",
         on_delete=models.CASCADE, null=True, blank=True)
+    template_variables = JSONField(
+        blank=True, null=True, verbose_name="Variables de la plantilla")
     send_petition = models.DateField(
         verbose_name="Fecha de envío o recepción",
         blank=True, null=True)
