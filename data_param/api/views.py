@@ -328,7 +328,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
     @action(methods=["post"], detail=True, url_path='columns')
     def columns(self, request, **kwargs):
-        from inai.models import FileControl
+        from data_param.models import FileControl
         columns_items = request.data.get("columns")
         file_control = self.get_object()
         # limiters = json.loads(limiters)

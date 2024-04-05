@@ -43,7 +43,7 @@ class FromAws:
 
     def save_merged_from_aws(self, **kwargs):
         from django.utils import timezone
-        from inai.models import TableFile
+        from respond.models import TableFile
         from data_param.models import Collection
         base_models = ["drug", "rx", "complement_drug", "complement_rx"]
         new_table_files = []
@@ -118,7 +118,7 @@ class FromAws:
         # )
 
     def save_crossing_sheets(self, month_pairs, sheets):
-        from inai.models import TableFile
+        from respond.models import TableFile
         all_errors = []
 
         table_files = self.week_record.table_files.filter(

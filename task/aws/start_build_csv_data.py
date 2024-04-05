@@ -952,7 +952,7 @@ class MatchAws:
                 else:
                     err = f"No se puede determinar el status de entrega; " \
                           f"No encontramos la cantidad {err_text}"
-            elif amount > 3000:
+            elif amount > 30000:
                 err = f"Existe una cantidad inusualmente alta; cantidad {err_text}"
             elif amount < 0:
                 err = f"Existe una cantidad negativa; cantidad {err_text}"

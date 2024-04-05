@@ -2,7 +2,7 @@
 def fetch_agencies(include_groups):
     from django.db.models import Prefetch
     from geo.models import Agency
-    from inai.models import (Petition)
+    from inai.models import Petition
     from data_param.models import NameColumn
     from data_param.models import FileControl
 

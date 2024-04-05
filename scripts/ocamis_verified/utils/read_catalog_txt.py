@@ -198,7 +198,7 @@ def delete_duplicates_week_records():
 
 
 def collection_to_snake_name():
-    from inai.models import Collection
+    from data_param.models import Collection
     all_collections = Collection.objects.all()
     for collection in all_collections:
         collection.save()
@@ -250,7 +250,7 @@ def save_month_records():
 
 
 def assign_entity_to_delegations():
-    from inai.models import Provider
+    from geo.models import Provider
     from geo.models import Delegation
     all_delegations = Delegation.objects.filter(
         provider__isnull=True, is_clues=False)
@@ -859,3 +859,8 @@ def insert_failed_weeks(failed_week_ids):
     connection.close()
     print("errors", errors)
 
+
+def change_month_stage():
+    from inai.models import MonthRecord
+    MonthRecord.objects.filter(
+        stage_id="explore").update(stage_id="init_month")

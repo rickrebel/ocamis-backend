@@ -107,7 +107,8 @@ class FromAws:
 
     def save_result_csv_prev(self, result_files):
         from data_param.models import Collection
-        from inai.models import TableFile, MonthRecord, WeekRecord
+        from respond.models import TableFile
+        from inai.models import MonthRecord, WeekRecord
         from django.utils import timezone
 
         all_new_files = []

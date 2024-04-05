@@ -6,8 +6,7 @@ from rest_framework import (permissions, status)
 from rest_framework.decorators import action
 
 from inai.api.common import send_response
-from inai.models import (
-    Petition, PetitionFileControl)
+from inai.models import Petition, PetitionFileControl
 from respond.models import DataFile
 
 from api.mixins import (

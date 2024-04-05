@@ -66,7 +66,7 @@ class MonthRecord(models.Model):
     month = models.SmallIntegerField(blank=True, null=True)
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
-        default='explore', verbose_name="Etapa actual")
+        default='init_month', verbose_name="Etapa actual")
     status = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, default='finished')
     error_process = JSONField(blank=True, null=True)

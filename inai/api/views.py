@@ -275,7 +275,7 @@ class PetitionFileControlViewSet(CreateRetrieveView):
     @action(methods=["put"], detail=True, url_path='move_massive')
     def move_massive(self, request, **kwargs):
         from respond.api.views_aws import move_and_duplicate
-        from inai.models import DataFile
+        from respond.models import DataFile
 
         petition_file_control = self.get_object()
         petition = petition_file_control.petition
