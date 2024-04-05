@@ -8,7 +8,7 @@ from task.models import AsyncTask
 
 from inai.misc_mixins.petition_mix import FromAws as Petition
 from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
-from inai.misc_mixins.month_record_mix import FromAws as EntityMonth
+from inai.misc_mixins.month_record_mix import FromAws as MonthRecord
 from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
 from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
 
