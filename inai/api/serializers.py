@@ -124,6 +124,7 @@ class FileControlFullSerializer(FileControlSerializer):
     petition_file_control = PetitionFileControlSerializer(
         many=True, read_only=True)
     columns = NameColumnSerializer(many=True)
+    real_columns = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = FileControl

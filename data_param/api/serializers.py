@@ -156,6 +156,7 @@ class FileControlSerializer(FileControlSimpleSerializer):
 
 class FileControlSemiFullSerializer(FileControlSerializer):
     columns = NameColumnSerializer(many=True)
+    real_columns = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = FileControl

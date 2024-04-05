@@ -162,6 +162,10 @@ class FileControl(models.Model):
     anomalies = models.ManyToManyField(
         Anomaly, verbose_name="Anomalías de los datos", blank=True)
 
+    @property
+    def real_columns(self):
+        return self.columns.filter(position_in_data__isnull=False).count()
+
     def save(self, *args, **kwargs):
         from respond.models import TableFile
         from respond.models import DataFile
