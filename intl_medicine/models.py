@@ -45,9 +45,27 @@ class GroupAnswer(models.Model):
     comments = models.TextField(blank=True, null=True)
     date_started = models.DateTimeField(blank=True, null=True)
     date_finished = models.DateTimeField(blank=True, null=True)
+    is_valid = models.BooleanField(default=False)
 
     def __str__(self):
         return "%s - %s" % (self.group, self.respondent or "General")
+
+    def check_valid(self, is_save=True):
+        if not self.date_finished:
+            return False
+
+        time_diff = self.date_finished - self.date_started
+
+        if time_diff.total_seconds() > 10:
+            self.is_valid = True
+        else:
+            self.is_valid = False
+
+        if is_save:
+
+            self.save()
+
+        return self.is_valid
 
     class Meta:
         verbose_name = "Grupo de respuestas"
