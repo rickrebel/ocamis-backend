@@ -450,6 +450,8 @@ class WeekRecord(models.Model):
     denied = models.IntegerField(blank=True, null=True)
     complete = models.IntegerField(blank=True, null=True)
     cancelled = models.IntegerField(blank=True, null=True)
+    big_denied = models.IntegerField(blank=True, null=True)
+    big_partial = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.provider} {self.year_month} - {self.iso_week} - {self.iso_delegation}"

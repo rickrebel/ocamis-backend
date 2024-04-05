@@ -952,7 +952,7 @@ class MatchAws:
                 else:
                     err = f"No se puede determinar el status de entrega; " \
                           f"No encontramos la cantidad {err_text}"
-            elif amount > 30000:
+            elif amount > 3000:
                 err = f"Existe una cantidad inusualmente alta; cantidad {err_text}"
             elif amount < 0:
                 err = f"Existe una cantidad negativa; cantidad {err_text}"
@@ -1012,10 +1012,17 @@ class MatchAws:
             delivered = "cancelled"
         else:
             return available_data, "No se puede determinar el status de entrega"
+
+        if prescribed_amount > 30:
+            if delivered == "denied":
+                delivered = "big_denied"
+            elif delivered == "partial":
+                delivered = "big_partial"
+
         available_data["delivered_id"] = delivered
-        if final_class:
-            if delivered != self.available_deliveries[final_class]:
-                error = (f"warning: El status escrito '{final_class}' no"
+        if class_med:
+            if delivered != self.available_deliveries[class_med]:
+                error = (f"warning: El status escrito '{class_med}' no"
                          f" coincide con el status calculado: '{delivered}'")
                 return available_data, error
         return available_data, None

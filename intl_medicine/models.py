@@ -71,6 +71,9 @@ class PrioritizedComponent(models.Model):
         verbose_name_plural = "Priorizaciones de componentes"
 
 
+# Componente (name) | Grupo Terapeútico (name) | Priorizado inicialmente (bool) | # de incluídos | # de excluídos
+
+
 class InternatinalTerapeticGroup(models.Model):
     name = models.CharField(max_length=255, verbose_name="Nombre")
     description = models.TextField(
