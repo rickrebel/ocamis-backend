@@ -251,11 +251,11 @@ def calculate_delivered_final(all_delivered, all_write=None):
 
     if len(all_delivered) == 1:
         return all_delivered.pop(), error
-    if "partial" in all_delivered:
+    if "partial" in all_delivered or "big_partial" in all_delivered:
         return "partial", error
     has_complete = "complete" in all_delivered
     has_over = "over_delivered" in all_delivered
-    has_denied = "denied" in all_delivered
+    has_denied = "denied" in all_delivered or "big_denied" in all_delivered
     has_cancelled = "cancelled" in all_delivered
     if (has_complete or has_over) and (has_denied or has_cancelled):
         return "partial", error
@@ -265,7 +265,10 @@ def calculate_delivered_final(all_delivered, all_write=None):
     if has_over and has_complete:
         all_delivered.remove("complete")
     if has_denied and has_cancelled:
-        all_delivered.remove("denied")
+        if "denied" in all_delivered:
+            all_delivered.remove("denied")
+        if "big_denied" in all_delivered:
+            all_delivered.remove("big_denied")
     if len(all_delivered) == 1:
         return next(iter(all_delivered)), error
     return "unknown", f"No se puede determinar el status de entrega; " \

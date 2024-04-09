@@ -99,7 +99,8 @@ class FromAws:
         new_task, errors, data = lap_sheet_aws.save_result_csv(final_paths)
 
         all_months = kwargs.get("all_months", []) or []
-
+        self.sheet_file.month_records.clear()
+        self.sheet_file.year_month = None
         if len(all_months) == 0:
             errors.append("No se encontraron meses")
         else:
@@ -118,3 +119,30 @@ class FromAws:
             self.sheet_file.year_month = f"{ym[0]}-{month}"
         self.sheet_file.save_stage(stage_id, errors)
         return new_task, errors, data
+
+
+def delete_extra_files():
+    from respond.models import SheetFile, MonthRecord
+    sheet_files = SheetFile.objects.filter(
+        data_file__provider_id=53)
+    all_month_records = MonthRecord.objects.filter(
+        provider_id=53).values("year_month", "id")
+    month_records_obj = {mr["year_month"]: mr["id"] for mr in all_month_records}
+    for sheet_file in sheet_files:
+        month_records = sheet_file.month_records.all()
+        if len(month_records) > 1:
+            if sheet_file.year_month:
+                month_record_id = month_records_obj.get(sheet_file.year_month, None)
+                if month_record_id:
+                    sheet_file.month_records.clear()
+                    sheet_file.month_records.add(month_record_id)
+                    sheet_file.save()
+                    continue
+                else:
+                    print("No se encontró el mes", sheet_file.year_month)
+            else:
+                # month_count = len(month_records)
+                print("No se encontró un solo mes", sheet_file.id)
+
+
+
