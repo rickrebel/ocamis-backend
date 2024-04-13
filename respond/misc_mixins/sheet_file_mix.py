@@ -81,11 +81,12 @@ class FromAws:
 
         error_fields = ["missing_rows", "missing_fields"]
         errors_count = sum([report_errors.get(field, 0) for field in error_fields])
-        total_rows = report_errors["total_count"] - report_errors["discarded_count"]
+        warnings_count = report_errors.get("warnings_fields", 0)
+        total_rows = report_errors.get("total_count", 0) - report_errors.get("discarded_count", 0)
         errors = []
         if not total_rows:
             errors.append("No se encontraron filas")
-        elif errors_count / total_rows > 0.05:
+        elif (errors_count - warnings_count) / total_rows > 0.05:
             errors.append("Se encontraron demasiados errores en filas/campos")
         stage_id = "prepare" if is_prepare else "transform"
 

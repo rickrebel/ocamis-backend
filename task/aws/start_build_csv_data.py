@@ -1201,6 +1201,8 @@ class Report:
             self.add_error("row", error_type, error_detail, original_data)
 
     def append_missing_field(self, name_column_id, original_value, error):
+        if "warning" in error:
+            self.add_count("warnings_fields")
         self.add_count("missing_fields")
         self.add_error("field", name_column_id, error, original_value)
 
