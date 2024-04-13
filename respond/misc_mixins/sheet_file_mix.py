@@ -79,7 +79,7 @@ class FromAws:
                 data_file.petition_file_control.file_control.decode = decode
                 data_file.petition_file_control.file_control.save()
 
-        error_fields = ["missing_rows", "missing_fields"]
+        error_fields = ["real_missing_rows", "missing_fields"]
         errors_count = sum([report_errors.get(field, 0) for field in error_fields])
         warnings_count = report_errors.get("warnings_fields", 0)
         total_rows = report_errors.get("total_count", 0) - report_errors.get("discarded_count", 0)
