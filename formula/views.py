@@ -26,7 +26,7 @@ def custom_constraint(constraint, year_month):
 
 def modify_constraints(is_create=True, is_rebuild=False, year_month=None):
     from task.models import Platform
-    from scripts.ocamis_verified.indexes.constrains import get_constraints
+    from scripts.verified.indexes.constrains import get_constraints
     from datetime import datetime
     create_constrains, delete_constrains = get_constraints(is_rebuild)
     if is_rebuild:

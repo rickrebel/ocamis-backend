@@ -57,6 +57,8 @@ class MonthRecordAdmin(admin.ModelAdmin):
     raw_id_fields = ["provider", "agency"]
     filter_horizontal = ["petition"]
     list_filter = ["provider__acronym", "year_month"]
+    search_fields = [
+        "provider__acronym", "provider__state__short_name", "year_month"]
     # inlines = [WeekRecordInline]
 
 

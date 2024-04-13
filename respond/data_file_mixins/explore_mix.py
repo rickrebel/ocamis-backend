@@ -176,7 +176,6 @@ class ExploreMix:
         from scripts.common import similar, text_normalizer
         from inai.models import PetitionFileControl
         from respond.models import DataFile
-        from data_param.models import NameColumn
         data_file = self
         already_cluster = not bool(file_ctrl)
         data, errors, new_task = data_file.transform_file_in_data(
@@ -198,6 +197,7 @@ class ExploreMix:
             # print("INTENTO GUARDAR current_sheets", current_sheets)
             data_file.filtered_sheets = current_sheets
             data_file.save()
+        # RICK BUGS
         is_match_ready = data_file.has_exact_matches(current_sheets)
         if is_match_ready:
             return data_file, True, []
@@ -208,8 +208,10 @@ class ExploreMix:
             .exclude(petition_file_control__file_control__data_group__name="orphan")
         for df in same_data_files:
             all_data_files[df.petition_file_control_id] = df
-        name_columns_simple = NameColumn.objects.filter(
-            file_control=file_ctrl, position_in_data__isnull=False)
+        # name_columns_simple = NameColumn.objects.filter(
+        #     file_control=file_ctrl, position_in_data__isnull=False)
+        name_columns_simple = file_ctrl.columns.filter(
+            position_in_data__isnull=False)
         sorted_sheet_names = current_sheets.copy()
         other_sheets = [sheet for sheet in structured_data.keys()
                         if sheet not in sorted_sheet_names]
@@ -239,7 +241,7 @@ class ExploreMix:
                     .values_list("std_name_in_data", flat=True)
                 name_columns = list(name_columns)
                 headers = structured_data[sheet_name]["headers"]
-                headers = [text_normalizer(head) for head in headers]
+                headers = [text_normalizer(head, True) for head in headers]
                 final_headers = headers
                 if only_cols_with_headers:
                     final_headers = [head for head in headers if head]

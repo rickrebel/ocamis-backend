@@ -101,6 +101,8 @@ class DataType(models.Model):
 class ParameterGroup(models.Model):
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True, null=True)
+    icon = models.CharField(max_length=40, blank=True, null=True)
+    order = models.IntegerField(default=1)
     data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE) 
 
@@ -108,6 +110,7 @@ class ParameterGroup(models.Model):
         return self.name
 
     class Meta:
+        ordering = ["order"]
         verbose_name = "Agrupación de campos finales"
         verbose_name_plural = "1.2 Agrupaciones de campos finales"
 
@@ -417,6 +420,10 @@ class NameColumn (models.Model):
         help_text="Número consecutivo para ordenación en dashboard")
     last_update = models.DateTimeField(
         auto_now=True, verbose_name="Última actualización")
+
+    manual_validation = models.BooleanField(
+        blank=True, null=True, verbose_name="Validación manual")
+    notes = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         from django.utils import timezone

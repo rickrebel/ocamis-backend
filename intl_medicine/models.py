@@ -46,23 +46,28 @@ class GroupAnswer(models.Model):
     date_started = models.DateTimeField(blank=True, null=True)
     date_finished = models.DateTimeField(blank=True, null=True)
     is_valid = models.BooleanField(default=False)
+    time_spent = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return "%s - %s" % (self.group, self.respondent or "General")
 
-    def check_valid(self, is_save=True):
+    def check_valid(self, is_save=True, seconds=10):
         if not self.date_finished:
             return False
 
-        time_diff = self.date_finished - self.date_started
+        if self.time_spent:
+            time_diff = self.time_spent
+        else:
+            time_diff = self.date_finished - self.date_started
+            time_diff = time_diff.total_seconds()
+            self.time_spent = time_diff
 
-        if time_diff.total_seconds() > 10:
+        if time_diff > seconds:
             self.is_valid = True
         else:
             self.is_valid = False
 
         if is_save:
-
             self.save()
 
         return self.is_valid
@@ -80,6 +85,7 @@ class PrioritizedComponent(models.Model):
     #     Group, on_delete=models.CASCADE, related_name="prioritized")
     is_prioritized = models.BooleanField(blank=True, null=True)
     is_low_priority = models.BooleanField(blank=True, null=True)
+    was_changed = models.BooleanField(blank=True, null=True)
 
     def __str__(self):
         return "%s - %s" % (self.component, self.group_answer)

@@ -1,7 +1,7 @@
-from scripts.ocamis_verified.catalogs.compendio import (
+from scripts.verified.catalogs.compendio import (
     ProcessPDF, is_every_upper)
-from scripts.ocamis_verified.catalogs.scrapper.start import Scrapper
-# from scripts.ocamis_verified.catalogs.standard import (
+from scripts.verified.catalogs.scrapper.start import Scrapper
+# from scripts.verified.catalogs.standard import (
 #     calculate_standard, some_is_standard)
 import json
 import io

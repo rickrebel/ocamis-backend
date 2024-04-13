@@ -1,0 +1,174 @@
+import re
+import time
+
+
+class RegexFormat:
+    limit_errors = 20
+
+    def __init__(self, re_format, cases=None, case=None, new_value='',
+                 measure_times=0):
+        if isinstance(re_format, list):
+            self.re_formats = re_format
+        elif isinstance(re_format, str):
+            print("Single format", re_format)
+            formats = re_format.split("°")
+            print("Formats", formats)
+            self.re_formats = [re.compile(r_format) for r_format in formats]
+        else:
+            self.re_formats = [re_format]
+        self.re_format = None
+        if len(self.re_formats) == 1:
+            self.re_format = self.re_formats[0]
+        self.cases = [case] if case else cases
+        self.new_value = new_value
+        self.show_success = True
+        self.show_errors = True
+        self.errors_count = 0
+        self.measure_times = measure_times
+
+    def execute(self, action='is_match', new_value=None):
+        for re_format in self.re_formats:
+            start_time = time.time()
+            print(f"\n----- {re_format} -----")
+            self.errors_count = 0
+            if action == 'is_match':
+                if self.measure_times:
+                    self.match_time(re_format, self.measure_times)
+                else:
+                    self.is_match(re_format)
+            elif action == 'replace':
+                self.replace(re_format, new_value)
+            else:
+                print("Action not found")
+                break
+            time_elapsed = time.time() - start_time
+            print(f"Time elapsed: {time_elapsed}")
+
+    def match_time(self, re_format, num_runs=1000):
+        import timeit
+        # run_time = timeit.timeit(my_function, number=num_runs)
+        self.show_errors = False
+        self.show_success = False
+        run_time = timeit.timeit(lambda: self.is_match(re_format), number=num_runs)
+        print(f"Time average: {run_time / num_runs}")
+
+    def is_match(self, re_format):
+        final_format = re_format or self.re_format
+        for case in self.cases:
+            if self.show_errors and self.errors_count > self.limit_errors:
+                print("Too many errors")
+                break
+            if not re.match(final_format, case):
+                if self.show_errors:
+                    print(f"No match: {case}")
+                self.errors_count += 1
+            elif self.show_success:
+                print(f"Match: {case}")
+        if not self.measure_times:
+            print(f"Errors: {self.errors_count} of {len(self.cases)} cases")
+
+    def replace(self, re_format, new_value=None):
+        if new_value:
+            self.new_value = new_value
+        final_format = re_format or self.re_format
+        for case in self.cases:
+            re_format = re.compile(final_format)
+            final_name = re.sub(re_format, self.new_value, case)
+            print(f"{case} -> {final_name}")
+
+
+def medicine_keys(measure_times=0):
+    from scripts.tests.all_medicines import all_keys
+    sep = r'[\.-]?'
+    keys_res = [
+        # re.compile(r'^\d?(\d{2}|HO|MH)[\.-]?\d{2,3}[\.-]?\d{4}[\.-]?\d{0,4}$'),
+        # re.compile(r'^\d?\d{2}[\.-]?\d{3}[\.-]?\d{4}[\.-]?\d{0,4}$'),
+        re.compile(r'^(\d{2,3}[\.-]?\d{3}[\.-]?\d{4}'
+                   r'|HO[\.-]?\d{2}[\.-]?\d{2}'
+                   r'|MH[\.-]?\d{2}[\.-]?\d{4})[\.-]?\d{0,4}$'),
+        re.compile(r'^(\d{2,3}[\.-]?\d{2,4}[\.-]?\d{3,4}'
+                   r'|HO[\.-]?\d{2}[\.-]?\d{2}'
+                   r'|MH[\.-]?\d{2}[\.-]?\d{4})[\.-]?\d{0,4}$'),
+        re.compile(r'^('
+                   r'\d{2,3}[\.-]?\d{3}[\.-]?\d{4}[\.-]?\d{0,4}'
+                   r'|\d{3}[\.-]?\d{2,4}[\.-]?\d{3,4}'
+                   r'|HO[\.-]?\d{2}[\.-]?\d{2}[\.-]?\d{3}'
+                   r'|MH[\.-]?\d{2}[\.-]?\d{4}[\.-]?\d{0,4})$'),
+        re.compile(r'^('
+                   r'\d{2,3}[\.-]?\d{3}[\.-]?\d{4}[\.-]?\d{0,4}'
+                   r'|\d{3}[\.-]?\d{2,4}[\.-]?\d{4}'
+                   r'|060[\.-]?463[\.-]?164'
+                   r'|HO[\.-]?\d{2}[\.-]?\d{2}[\.-]?\d{3}'
+                   r'|MH[\.-]?\d{2}[\.-]?\d{4}[\.-]?\d{0,4})$'),
+        re.compile(r'^('
+                   r'0?[1|2|3|4][0|5][\.-]?\d{3}[\.-]?\d{4}[\.-]?0?\d{0,3}'
+                   r'|\d{3}[\.-]?\d{2,4}[\.-]?\d{4}'
+                   r'|060[\.-]?463[\.-]?164'
+                   r'|HO[\.-]?\d{2}[\.-]?\d{2}[\.-]?\d{3}'
+                   r'|MH[\.-]?\d{2}[\.-]?\d{4}[\.-]?\d{0,4})$'),
+    ]
+
+    seq_cases = [
+        "123456",
+        "1234567",
+        "12345678",
+        "123456789",
+        "1234567890",
+        "12345678901",
+        "123456789012",
+        "1234567890123",
+        "12345678901234",
+        "123456789012345",
+        "1234567890123456",
+    ]
+
+    example_cases = [
+        "010000650702",
+        "10000650702",
+        "10.000.6507.02",
+        "35.157.0048",
+        "130.258.0400",
+        "606.908.0544",
+        "010.000.6507.02",
+
+        "060.463.164",  # 3 al final
+        "535.15.0022",  # 2 en medio
+        "513.9501.0119",  # 4 en medio
+        "537.8057.2253",  # 4 en medio
+
+        "HO.01.01.001",
+        "HO.02.06.001",
+        "MH.01.0001.00",
+        "HO0101001",
+        "MH010000100",
+    ]
+    # key_cases = all_keys + example_cases
+    # key_cases = example_cases + seq_cases
+    key_cases = seq_cases + all_keys
+
+    regex_format = RegexFormat(
+        keys_res, cases=key_cases, measure_times=measure_times)
+    regex_format.show_success = False
+    regex_format.show_errors = True
+    regex_format.limit_errors = 200
+    regex_format.execute(action='is_match')
+
+
+medicine_keys(0)
+
+
+def init_examples():
+    case_tests = [
+        "UNIDAD DE MEDICINA FAMILIAR NO.",
+        "UNIDAD DE MEDICINA FAMILIAR NO",
+        "U MEDICA FAMILIAR",
+    ]
+
+    re_no_point = re.compile(r'(\sNO.?)$')
+    regex_format = RegexFormat(re_no_point, cases=case_tests)
+    regex_format.replace()
+
+    re_consul = re.compile(r'( CONSULTA MEDICINA FAMILIAR)')
+    regex_format = RegexFormat(re_consul, cases=case_tests)
+    regex_format.replace(new_value='|CONSULTA MEDICINA FAMILIAR')
+

@@ -3,7 +3,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.pagination import PageNumberPagination
 
 
-from api.mixins import MultiSerializerModelViewSet
+from api.mixins import (
+    MultiSerializerModelViewSet, MultiSerializerListRetrieveUpdateMix)
 from inai.api.serializers import (
     PetitionSemiFullSerializer, PetitionFileControlDeepSerializer,
     FileControlFullSerializer, TransformationEditSerializer,
@@ -473,3 +474,13 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
         data["new_task"] = key_task.id
         return Response(data, status=status.HTTP_200_OK)
+
+
+class NameColumnViewSet(MultiSerializerListRetrieveUpdateMix):
+    permission_classes = (permissions.IsAdminUser,)
+    serializer_class = serializers.NameColumnSerializer
+    queryset = NameColumn.objects.all()
+
+    action_serializers = {
+        "patch": serializers.NameColumnSerializer,
+    }

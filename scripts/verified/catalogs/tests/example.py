@@ -1,7 +1,7 @@
 
-from scripts.ocamis_verified.catalogs.compendio import ProcessPDF
-from scripts.ocamis_verified.catalogs.nutri import ProcessNutri
-from scripts.ocamis_verified.catalogs.compendio2 import (
+from scripts.verified.catalogs.compendio import ProcessPDF
+from scripts.verified.catalogs.nutri import ProcessNutri
+from scripts.verified.catalogs.compendio2 import (
     BuildNewTable, get_pdf_data, main_files, nutri_files, anonymize_responses,
     common_path)
 from intl_medicine.models import GroupAnswer, Respondent

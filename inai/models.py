@@ -201,6 +201,8 @@ class Petition(models.Model, PetitionTransformsMix):
         on_delete=models.CASCADE, null=True, blank=True)
     month_records = models.ManyToManyField(
         MonthRecord, blank=True, verbose_name="Meses de la solicitud")
+    months_verified = models.BooleanField(
+        verbose_name="Meses verificados", default=False)
     notes = models.TextField(blank=True, null=True)
     template_text = models.TextField(
         blank=True, null=True, verbose_name="Texto para la plantilla")

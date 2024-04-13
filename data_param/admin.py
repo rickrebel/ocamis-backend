@@ -82,11 +82,12 @@ class ParameterGroupAdmin(admin.ModelAdmin):
     list_display = [
         "name",
         "data_group",
+        "order",
+        "icon",
         "description",
     ]
-    inlines = [
-        FinalFieldInLine,
-    ]
+    list_editable = ["order", "icon"]
+    inlines = [FinalFieldInLine]
 
 
 class CollectionInline(admin.TabularInline):

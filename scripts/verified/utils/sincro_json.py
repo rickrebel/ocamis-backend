@@ -89,7 +89,7 @@ def sincronize_entities(app_name, model_name, field_id="id"):
 
 print("HOLI")
 
-# from scripts.ocamis_verified.sincro_json import sincronize_entities, generate_file
+# from scripts.verified.sincro_json import sincronize_entities, generate_file
 
 # generate_file('data_param', 'Collection')
 # sincronize_entities('data_param', 'Collection')

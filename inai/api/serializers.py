@@ -104,7 +104,7 @@ class PetitionFileControlSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetitionFileControl
         fields = "__all__"
-        #read_only_fields = ["file_control", "petition"]
+        # read_only_fields = ["file_control", "petition"]
 
 
 class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
@@ -168,7 +168,7 @@ class PetitionNegativeReasonSerializer(PetitionNegativeReasonSimpleSerializer):
 
 class PetitionSmallSerializer(serializers.ModelSerializer):
     # petition_months = PetitionMonthSerializer(many=True)
-    month_records = MonthRecordSimpleSerializer(many=True)
+    # month_records = MonthRecordSimpleSerializer(many=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)
     months_in_description = serializers.CharField(read_only=True)
@@ -184,10 +184,14 @@ class PetitionSemiFullSerializer(PetitionSmallSerializer):
     negative_reasons = PetitionNegativeReasonSerializer(
         many=True, read_only=True)
     break_dates = PetitionBreakSerializer(many=True)
+    reply_files = ReplyFileSerializer(many=True)
+    # reply_files = serializers.SerializerMethodField(read_only=True)
+
+    def get_reply_files(self, obj):
+        return []
 
 
 class PetitionFullSerializer(PetitionSemiFullSerializer):
-    reply_files = ReplyFileSerializer(many=True)
     petition_file_controls = PetitionFileControlFullSerializer(
         many=True, source="file_controls")
 

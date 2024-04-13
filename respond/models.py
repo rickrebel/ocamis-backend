@@ -85,6 +85,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     petition_file_control = models.ForeignKey(
         PetitionFileControl, related_name="data_files", blank=True, null=True,
         on_delete=models.CASCADE)
+    # deprecated:
     status_process = models.ForeignKey(
         StatusControl, blank=True, null=True, on_delete=models.CASCADE)
 
@@ -94,11 +95,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     status = models.ForeignKey(
         StatusTask, blank=True, null=True, on_delete=models.CASCADE,
         default='finished', verbose_name="Status actual")
-
-    # file_type = models.ForeignKey(
-    #     FileType, blank=True, null=True, on_delete=models.CASCADE,
-    #     default='original_data',
-    #     verbose_name="Tipo de archivo")
 
     suffix = models.CharField(
         max_length=10, blank=True, null=True)
@@ -163,6 +159,15 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         if last_lap:
             lap_number = last_lap.lap + 1 if last_lap.inserted else last_lap.lap
         return lap_number if lap_number >= 0 else 0
+
+    @property
+    def has_explore(self):
+        explore_stage = Stage.objects.get(name="explore")
+        if self.stage.order > explore_stage.order:
+            return True
+        if self.stage_id == "explore" and self.status_id == "finished":
+            return True
+        return False
 
     @property
     def can_repeat(self):

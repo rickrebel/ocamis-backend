@@ -721,8 +721,6 @@ class MatchAws:
         return available_data
 
     def basic_available_data(self, available_data, row, field, some_date):
-        import re
-
         # for field in self.existing_fields:
         error = None
         if field.get("position"):

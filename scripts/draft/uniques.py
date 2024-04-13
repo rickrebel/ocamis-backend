@@ -525,11 +525,11 @@ def get_duplicates_folios(filters, is_explore):
     all_sheets = {}
     result_delivered = {}
     unique_counts = {"dupli": 0, "shared": 0, "total": 0}
-    # SPACE
+
     def process_week_explore(final_filters):
         pairs, sheets_totals, month_totals = build_pairs_sheets(final_filters)
         print("start process_week_explore", datetime.now())
-        # SPACE
+
         def add_to_dict(group_name):
             for pair, value in pairs[group_name].items():
                 if pair not in final_pairs[group_name]:
@@ -540,7 +540,7 @@ def get_duplicates_folios(filters, is_explore):
             add_to_dict(group)
             unique_counts[group] += month_totals[group]
         unique_counts["total"] += month_totals["total"]
-        # SPACE
+
         for sheet_id, sheet_value in sheets_totals.items():
             if sheet_id not in all_sheets:
                 all_sheets[sheet_id] = sheet_value
@@ -548,7 +548,7 @@ def get_duplicates_folios(filters, is_explore):
                 all_sheets[sheet_id]["total"] += sheet_value["total"]
                 all_sheets[sheet_id]["dupli"] += sheet_value["dupli"]
                 all_sheets[sheet_id]["shared"] += sheet_value["shared"]
-    # SPACE
+
     for year in all_years:
         filters["year"] = year
         if one_year:

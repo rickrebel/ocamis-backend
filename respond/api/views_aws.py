@@ -16,11 +16,11 @@ def move_and_duplicate(data_files, petition, request):
     from rest_framework.exceptions import ParseError
     from respond.models import ReplyFile
     from data_param.models import FileControl
+    from classify_task.models import Stage
 
     destination = request.data.get("destination")
     is_duplicate = request.data.get("duplicate")
-    #initial_status = StatusControl.objects.get(
-    #    name="initial", group="process")
+    # initial_stage = Stage.objects.get(name="initial")
     errors = []
     if destination == "reply_file":
         for data_file in data_files:
@@ -49,18 +49,14 @@ def move_and_duplicate(data_files, petition, request):
                 raise ParseError(detail=e)
         for data_file in data_files:
             if is_duplicate:
-                data_file_id = data_file.id
                 new_file = data_file
                 new_file.pk = None
                 new_file.petition_file_control = pet_file_ctrl
-                # new_file.save()
                 new_file.finished_stage('initial|finished')
-            # if not is_duplicate:
             else:
                 data_file.petition_file_control = pet_file_ctrl
-                data_file.save()
-                # data_file.delete()
-                # DataFile.objects.filter(id=data_file_id).delete()
+                data_file.reset_initial()
+
     else:
         raise ParseError(detail="No se especificó correctamente el destino")
 
@@ -170,15 +166,7 @@ class DataFileViewSet(CreateRetrieveView):
     def back_start(self, request, **kwargs):
         from respond.api.serializers import DataFileSerializer
         data_file = self.get_object()
-        data_file.sheet_files.all().delete()
-        data_file.stage_id = 'initial'
-        data_file.status_id = 'finished'
-        data_file.filtered_sheets = []
-        data_file.total_rows = 0
-        data_file.suffix = None
-        data_file.error_process = None
-        data_file.warnings = None
-        data_file.save()
+        data_file = data_file.reset_initial()
 
         data_file_full = DataFileSerializer(data_file)
 

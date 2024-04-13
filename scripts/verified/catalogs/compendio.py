@@ -1,7 +1,7 @@
 import pdfplumber
 import re
 import json
-from scripts.ocamis_verified.catalogs.standard import (
+from scripts.verified.catalogs.standard import (
     AssignKeys, is_content_title, count_content_titles)
 
 

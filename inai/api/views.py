@@ -24,6 +24,32 @@ class NormalResultsSetPagination(PageNumberPagination):
 # -----------------------------------------------------------------------------
 
 
+def update_negative_reasons(petition, main_reason, other_reasons):
+    from category.models import NegativeReason
+    from inai.models import PetitionNegativeReason
+    if main_reason == "empty":
+        return
+    saved_pnr_ids = [neg.id for neg in petition.negative_reasons.all()]
+
+    def get_or_create_pnr(reason_name, is_main):
+        negative_obj = NegativeReason.objects.get(name=reason_name)
+        pnr, created = PetitionNegativeReason.objects \
+            .get_or_create(petition=petition,
+                           negative_reason=negative_obj, is_main=is_main)
+        if not created:
+            saved_pnr_ids.remove(pnr.id)
+
+    for reason in other_reasons:
+        get_or_create_pnr(reason, False)
+
+    if main_reason:
+        get_or_create_pnr(main_reason, True)
+
+    if saved_pnr_ids:
+        PetitionNegativeReason.objects.filter(
+            petition=petition, id__in=saved_pnr_ids).delete()
+
+
 class PetitionViewSet(ListRetrieveUpdateMix):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.PetitionEditSerializer
@@ -96,8 +122,10 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         petition = self.get_object()
         data_petition = request.data
 
+        main_reason = data_petition.pop('main_reason', "empty")
         other_reasons = data_petition.pop('other_reasons', [])
-        main_reason = data_petition.pop('main_reason', None)
+        update_negative_reasons(petition, main_reason, other_reasons)
+
         petition_breaks = data_petition.pop('break_dates', [])
 
         serializer_petition = self.get_serializer_class()(
@@ -108,18 +136,6 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         else:
             return Response({ "errors": serializer_petition.errors },
                             status=status.HTTP_400_BAD_REQUEST)
-
-        for negative in other_reasons:
-            negative_obj = NegativeReason.objects.get(name=negative)
-            petition_negative_reason, created = PetitionNegativeReason.objects \
-                .get_or_create(petition=petition,
-                               negative_reason=negative_obj, is_main=False)
-
-        if main_reason:
-            negative_obj = NegativeReason.objects.get(name=main_reason)
-            petition_negative_reason, created = PetitionNegativeReason.objects \
-                .get_or_create(petition=petition,
-                               negative_reason=negative_obj, is_main=True)
 
         for pet_break in petition_breaks:
             if "id" in pet_break:
@@ -216,24 +232,18 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         # limiters = json.loads(limiters)
 
         petition = self.get_object()
-        # current_pet_months = PetitionMonth.objects.filter(petition=petition)
-        # current_pet_months.exclude(
-        #     month_agency__year_month__gte=limiters[0],
-        #     month_agency__year_month__lte=limiters[1],
-        # ).delete()
         new_month_record = MonthRecord.objects.filter(
             provider=petition.agency.provider,
             year_month__gte=limiters[0], year_month__lte=limiters[1])
-        # for mon_ent in new_entity_month:
-        #     PetitionMonth.objects.get_or_create(
-        #         petition=petition, month_record=mon_ent)
         petition.month_records.set(new_month_record)
+        petition.months_verified = True
+        petition.save()
 
-        # final_pet_months = PetitionMonth.objects.filter(petition=petition)
-        # new_serializer = serializers.PetitionMonthSerializer(
-        #     final_pet_months, many=True)
-        new_serializer = serializers.MonthRecordSimpleSerializer(
-            petition.month_records, many=True)
+        # new_serializer = serializers.MonthRecordSimpleSerializer(
+        #     petition.month_records, many=True)
+        new_serializer = serializers.PetitionFullSerializer(
+            petition, context={'request': request})
+
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 

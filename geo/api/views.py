@@ -56,12 +56,10 @@ class ProviderViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):
-        import threading
         import time
         from inai.misc_mixins.month_record_mix import FromAws as MonthRecordMix
         from task.views import comprobate_status, build_task_params
         from inai.models import MonthRecord
-        from respond.models import TableFile
         from classify_task.models import Stage
         month_records_ids = request.data.get("month_records", None)
         month_records_id = request.data.get("month_record", None)

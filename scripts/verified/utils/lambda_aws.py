@@ -140,7 +140,7 @@ def build_lambda_layer(
     create_lambda_layer(layer_name, layer_path, python_version)
 
 
-# from scripts.ocamis_verified.lambda import build_lambda_layer
+# from scripts.verified.lambda import build_lambda_layer
 # definitive_function_real()
 # build_lambda_layer("pandas_with_complements",
 #                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pandas",

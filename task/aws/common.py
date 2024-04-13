@@ -271,8 +271,11 @@ def calculate_delivered_final(all_delivered, all_write=None):
             all_delivered.remove("big_denied")
     if len(all_delivered) == 1:
         return next(iter(all_delivered)), error
-    return "unknown", f"No se puede determinar el status de entrega; " \
-                      f"{list(initial_list)}"
+    elif len(all_delivered) == 2:
+        if "denied" in initial_list and "big_denied" in initial_list:
+            return "denied", error
+    error = f"No se puede determinar el status de entrega; {list(initial_list)}"
+    return "unknown", error
 
 
 def convert_to_str(x):
