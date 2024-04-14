@@ -60,6 +60,10 @@ def move_and_duplicate(data_files, petition, request):
     else:
         raise ParseError(detail="No se especificó correctamente el destino")
 
+    return send_full_response(petition)
+
+
+def send_full_response(petition):
     petition_data = serializers.PetitionFullSerializer(petition).data
     data = {
         "petition": petition_data,

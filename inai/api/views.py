@@ -296,6 +296,20 @@ class PetitionFileControlViewSet(CreateRetrieveView):
 
         return move_and_duplicate(data_files, petition, request)
 
+    @action(methods=["put"], detail=True, url_path='back_start_massive')
+    def back_start_massive(self, request, **kwargs):
+        from respond.api.views_aws import send_full_response
+        from respond.models import DataFile
+
+        petition_file_control = self.get_object()
+        files_id = request.data.get("files")
+        data_files = DataFile.objects.filter(
+            petition_file_control=petition_file_control,
+            id__in=files_id)
+        for data_file in data_files:
+            data_file.reset_initial()
+        return send_full_response(petition_file_control.petition)
+
 
 class MonthRecordViewSet(CreateRetrieveView):
     queryset = MonthRecord.objects.all()

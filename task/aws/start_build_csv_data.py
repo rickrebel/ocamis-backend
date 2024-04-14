@@ -736,6 +736,17 @@ class MatchAws:
         delete_text = field.get("delete_text")
         if delete_text:
             value = re.sub(delete_text, "", value)
+        replace_text = field.get("replace_text")
+        if replace_text:
+            try:
+                replacements = replace_text.split(";")
+                for replacement in replacements:
+                    [old_text, new_text] = replacement.split("-->")
+                    old_text = old_text.strip()
+                    new_text = new_text.strip()
+                    value = value.replace(old_text, new_text)
+            except Exception as e:
+                error = f"No se pudo reemplazar 'parte el texto': {str(e)}"
         same_group_data = field.get("same_group_data")
         copied = False
         if not value and same_group_data and self.last_valid_row:
