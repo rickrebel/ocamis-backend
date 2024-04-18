@@ -30,6 +30,8 @@ class GroupAnswerAdmin(admin.ModelAdmin):
         'id',
         'group',
         'respondent',
+        'time_spent',
+        'is_valid',
         'date_started',
         'date_finished',
     )

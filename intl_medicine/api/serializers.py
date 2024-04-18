@@ -109,7 +109,7 @@ class GroupAnswerSerializer(serializers.ModelSerializer):
                 .filter(group=obj.group, respondent__isnull=False,
                         time_spent__isnull=False)\
                 .prefetch_related("respondent", "prioritized")\
-                .order_by("time_spent")
+                .order_by("-time_spent")
 
             return GroupAnswerReportSerializer(answer_groups, many=True).data
         else:

@@ -1,4 +1,4 @@
-from intl_medicine.models import PrioritizedComponent
+from intl_medicine.models import PrioritizedComponent, GroupAnswer
 from medicine.models import Group
 from scripts.csv_export.generic import CsvExporter
 from django.db.models import Count, Q
@@ -84,26 +84,32 @@ def get_prioritized_components():
 
     csv_ex.generate_csv()
 
-    # Como se calcula el # de incluídos y excluídos?
 
-    # query = Group.objects.annotate(
-    #     valid_responses_count=Count(
-    #         'responses',
-    #         filter=Q(responses__is_valid=True) & ~Q(responses__respondent=None)
-    #     )
-    # )
-    #
-    # csv_ex2 = CsvExporter(
-    #     query=[
-    #         [group.name, group.valid_responses_count]
-    #         for group in query
-    #     ],
-    #     headers=[
-    #         "Grupo terapeútico (name)",
-    #         "número de ejercicios efectivos",
-    #     ],
-    #     attributes=None,
-    #     file_path="Grupos_terapeuticos.csv",
-    # )
-    #
-    # csv_ex2.generate_csv()
+def get_groups():
+    query = GroupAnswer.objects\
+        .filter(respondent__isnull=False)\
+        .exclude(respondent__email="original@original.com")
+    query_data = []
+    for ga in query:
+        query_data += [
+            [ga.group.number, ga.group.name,
+             ga.respondent.first_name, ga.respondent.last_name,
+             ga.respondent.institution, ga.respondent.position,
+             ga.time_spent, ga.is_valid]
+        ]
+    csv_ex = CsvExporter(
+        query=query_data,
+        headers=[
+            "Grupo (number)",
+            "Grupo (name)",
+            "Nombre",
+            "Apellido",
+            "Institución",
+            "Cargo",
+            "Segundos",
+            "Es válida",
+        ],
+        attributes=None,
+        file_path="fixture/survey/Grupos.csv",
+    )
+    csv_ex.generate_csv()

@@ -10,8 +10,7 @@ class Command(BaseCommand):
         base_responses = PrioritizedComponent.objects.filter(
             group_answer__respondent__isnull=True)
         responses = PrioritizedComponent.objects.filter(
-            group_answer__respondent__isnull=False,
-            group_answer__is_valid=True)
+            group_answer__respondent__isnull=False)
 
         for base_response in base_responses:
             current_responses = responses\
