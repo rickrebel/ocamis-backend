@@ -91,8 +91,7 @@ class BuildComplexHeaders:
         for (position, header) in enumerate(df_headers, start=1):
             std_header = text_normalizer(header, True)
             found_match = self.find_match(std_header)
-            base_dict = {
-                "position_in_data": position, "name_in_data": header}
+            base_dict = {"position_in_data": position, "name_in_data": header}
             base_dict.update(found_match)
             self.complex_headers.append(base_dict)
 
@@ -109,8 +108,8 @@ class BuildComplexHeaders:
                     mode_key = mode(keys)
                     proportion = keys.count(mode_key) / count_vals
                     if proportion >= 0.5:
-                        first_match = [
-                            val for val in vals_matched if val[0] == mode_key]
+                        first_match = [val for val in vals_matched
+                                       if val[0] == mode_key]
                         return first_match[0][1]
         return {}
 

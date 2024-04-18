@@ -11,6 +11,12 @@ class ResponsesSerializer(serializers.ModelSerializer):
         return value.group_id
 
 
+class RespondentSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Respondent
+        fields = "__all__"
+
+
 class RespondentSerializer(serializers.ModelSerializer):
     responses = ResponsesSerializer(
         source="presentations", many=True, read_only=True)
@@ -35,11 +41,27 @@ class GroupAnswerSimpleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class GroupAnswerReportSerializer(serializers.ModelSerializer):
+    was_changed = serializers.SerializerMethodField()
+    respondent = RespondentSimpleSerializer()
+
+    def get_was_changed(self, obj):
+        # return obj.prioritized.filter(was_changed=True).count()
+        prioritizes = obj.prioritized.filter(was_changed=True)
+        return PrioritizedComponentSerializer(prioritizes, many=True).data
+
+    class Meta:
+        model = GroupAnswer
+        fields = "__all__"
+
+
 class GroupAnswerSerializer(serializers.ModelSerializer):
     components = serializers.SerializerMethodField()
     group = GroupSerializer()
     base = serializers.SerializerMethodField()
     prioritized = serializers.SerializerMethodField()
+    respondents = serializers.SerializerMethodField()
+    # changes = serializers.SerializerMethodField()
 
     def get_components(self, obj):
         presentations = obj.group.presentations.all()\
@@ -78,6 +100,20 @@ class GroupAnswerSerializer(serializers.ModelSerializer):
                 })
 
         return list(all_components.values())
+
+    def get_respondents(self, obj):
+        request = self.context.get("request")
+        user = request.user
+        if user.is_staff:
+            answer_groups = GroupAnswer.objects\
+                .filter(group=obj.group, respondent__isnull=False,
+                        time_spent__isnull=False)\
+                .prefetch_related("respondent", "prioritized")\
+                .order_by("time_spent")
+
+            return GroupAnswerReportSerializer(answer_groups, many=True).data
+        else:
+            return None
 
     def get_base(self, obj):
         prior_group_answer = GroupAnswer.objects.filter(

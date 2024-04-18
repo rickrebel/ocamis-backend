@@ -51,14 +51,16 @@ ocamis_admin_site.register(DateBreak, DateBreakAdmin)
 
 
 class NegativeReasonAdmin(admin.ModelAdmin):
-    list_display = ["name", "description"]
+    list_display = ["name", "description", "order"]
+    list_editable = ["order"]
 
 
 ocamis_admin_site.register(NegativeReason, NegativeReasonAdmin)
 
 
 class InvalidReasonAdmin(admin.ModelAdmin):
-    list_display = ["name", "description"]
+    list_display = ["name", "description", "order"]
+    list_editable = ["order"]
 
 
 ocamis_admin_site.register(InvalidReason, InvalidReasonAdmin)

@@ -105,6 +105,7 @@ class ColumnType(models.Model):
 
 class NegativeReason(models.Model):
     name = models.CharField(max_length=120)
+    order = models.IntegerField(default=1)
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
@@ -117,6 +118,7 @@ class NegativeReason(models.Model):
 
 class InvalidReason(models.Model):
     name = models.CharField(max_length=120)
+    order = models.IntegerField(default=1)
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
