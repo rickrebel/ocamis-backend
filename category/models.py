@@ -112,6 +112,7 @@ class NegativeReason(models.Model):
         return self.name
 
     class Meta:
+        ordering = ["order"]
         verbose_name = "Razón de negación de datos"
         verbose_name_plural = "Razones de negación de datos"
 
@@ -125,6 +126,7 @@ class InvalidReason(models.Model):
         return self.name
 
     class Meta:
+        ordering = ["order"]
         verbose_name = "Razón de invalidez de datos"
         verbose_name_plural = "Razones de invalidez de datos"
 
