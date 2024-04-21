@@ -343,15 +343,18 @@ class LapSheet(models.Model):
     missing_inserted = models.BooleanField(default=False, blank=True, null=True)
 
     general_error = models.CharField(max_length=255, blank=True, null=True)
+
     total_count = models.IntegerField(default=0)
     processed_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
     drugs_count = models.IntegerField(default=0)
+
     medical_unit_count = models.IntegerField(default=0)
     area_count = models.IntegerField(default=0)
     doctor_count = models.IntegerField(default=0)
     diagnosis_count = models.IntegerField(default=0)
     medicament_count = models.IntegerField(default=0)
+
     discarded_count = models.IntegerField(default=0)
     missing_rows = models.IntegerField(default=0)
     real_missing_rows = models.IntegerField(default=0)

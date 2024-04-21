@@ -30,12 +30,11 @@ class RxAdmin(admin.ModelAdmin):
         "medical_unit",
         "document_type",
         "doctor",
-        "diagnosis",
     ]
     inlines = [
         DrugInline,
     ]
-    raw_id_fields = ["provider", "medical_unit", "area", "doctor", "diagnosis"]
+    raw_id_fields = ["provider", "medical_unit", "doctor"]
     list_filter = ["provider", "iso_year", "month"]
     search_fields = ["folio_document", ]
 

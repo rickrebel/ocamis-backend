@@ -298,3 +298,15 @@ def convert_to_str(x):
     for k, v in undict.items():
         x = x.replace(k, v)
     return x
+
+
+def text_normalizer(text):
+    import unidecode
+    import re
+    text = text.upper().strip()
+    text = unidecode.unidecode(text)
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    return text.strip()
+
+
+

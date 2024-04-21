@@ -317,16 +317,17 @@ class Match(BaseTransform):
             duplicated_in = None
             for prev_field in self.existing_fields:
                 if prev_field.get("final_field_id") == final_field.id:
-                    if final_field.parameter_group.name != "Otros (no considerados)":
+                    snake_collection = final_field.collection.snake_name
+                    if snake_collection not in ["others", "diagnosis"]:
                         duplicated_in = prev_field
                         break
             collection_name = final_field.collection.model_name
             collection_name = camel_to_snake(collection_name)
             name_to_local = f"{collection_name}_{final_field.name}"
             new_name_column = build_column_data(name_column, name_to_local)
-            self.existing_fields.append(new_name_column)
             if duplicated_in:
-                self.existing_fields[-1]["duplicated_in"] = duplicated_in
+                new_name_column["duplicated_in"] = duplicated_in
+            self.existing_fields.append(new_name_column)
 
         if not self.existing_fields:
             error = "No se encontraron campos para crear las recetas"

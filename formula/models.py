@@ -47,21 +47,19 @@ class Rx(models.Model):
     iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
     medical_unit = models.ForeignKey(
         MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
-    area = models.ForeignKey(
-        Area, on_delete=models.CASCADE, blank=True, null=True)
+    # area = models.ForeignKey(
+    #     Area, on_delete=models.CASCADE, blank=True, null=True)
     delivered_final = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     # EXTENSION: COSAS NO TAN RELEVANTES:
-    # document_type = models.ForeignKey(
-    #     DocumentType, on_delete=models.CASCADE, blank=True, null=True)
     document_type = models.CharField(max_length=50, blank=True, null=True)
     date_release = models.DateTimeField(blank=True, null=True)
     date_visit = models.DateTimeField(blank=True, null=True)
     date_delivery = models.DateTimeField(blank=True, null=True)
     doctor = models.ForeignKey(
         Doctor, blank=True, null=True, on_delete=models.CASCADE)
-    diagnosis = models.ForeignKey(
-        Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
+    # diagnosis = models.ForeignKey(
+    #     Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = "Receta"
@@ -69,36 +67,6 @@ class Rx(models.Model):
 
     def __str__(self):
         return self.folio_ocamis
-
-#
-# class MiniRx(models.Model):
-#     from geo.models import CLUES, Delegation, Provider
-#     uuid_folio = models.UUIDField(
-#         primary_key=True, default=uuid_lib.uuid4, editable=False)
-#     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
-#     folio_ocamis = models.CharField(max_length=64)
-#     week_record = models.ForeignKey(
-#         "WeekRecord", on_delete=models.CASCADE, blank=True, null=True)
-#     medical_unit = models.ForeignKey(
-#         MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
-#     area = models.ForeignKey(
-#         Area, on_delete=models.CASCADE, blank=True, null=True)
-#     delivered_final = models.ForeignKey(
-#         Delivered, on_delete=models.CASCADE, blank=True, null=True)
-#     document_type = models.ForeignKey(
-#         "DocumentType", on_delete=models.CASCADE, blank=True, null=True)
-#     doctor = models.ForeignKey(
-#         Doctor, blank=True, null=True, on_delete=models.CASCADE)
-#     diagnosis = models.ForeignKey(
-#         Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
-#
-#     class Meta:
-#         verbose_name = "Receta"
-#         verbose_name_plural = "Recetas"
-#         db_table = 'formula_rx'
-#
-#     def __str__(self):
-#         return self.folio_ocamis
 
 
 class Drug(models.Model):
@@ -152,15 +120,32 @@ class ComplementRx(models.Model):
         max_length=30, blank=True, null=True, verbose_name='Género')
     area = models.ForeignKey(
         Area, on_delete=models.CASCADE, blank=True, null=True)
-    diagnosis = models.ForeignKey(
-        Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
+    # diagnosis = models.ForeignKey(
+    #     Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = "Complemento de Receta"
         verbose_name_plural = "Complementos de Receta"
 
     def __str__(self):
-        return str(self.uuid)
+        return str(self.uuid_comp_rx)
+
+
+class DiagnosisRx(models.Model):
+    uuid_diag_rx = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
+    rx = models.ForeignKey(
+        Rx, on_delete=models.CASCADE,
+        related_name='diagnoses')
+    diagnosis = models.ForeignKey(Diagnosis, on_delete=models.CASCADE)
+    is_main = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Diagnóstico por Receta"
+        verbose_name_plural = "Diagnósticos por Receta"
+
+    def __str__(self):
+        return str(self.uuid_diag_rx)
 
 
 class ComplementDrug(models.Model):
@@ -202,7 +187,7 @@ class MissingRow(models.Model):
     # !!! Por nada del mundo, poner más campos debajo de este comentario
 
     def __str__(self):
-        #return "%s -- %s" % (self.file, self.recipe_report or self.recipe_medicine)
+        # return "%s -- %s" % (self.file, self.recipe_report or self.recipe_medicine)
         return self.sheet_file
 
     class Meta:
