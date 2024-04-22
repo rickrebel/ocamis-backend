@@ -268,8 +268,8 @@ class MatchAws:
         self.buffers["missing_row"].writerows(self.all_missing_rows)
         all_final_paths = []
 
-        for elem_list in self.normal_models:
-            cat_name = elem_list["name"]
+        for cat_model in self.normal_models:
+            cat_name = cat_model["name"]
             if "missing" in cat_name:
                 cat_count = report_errors.get(f"{cat_name}s", 0)
             else:
@@ -278,7 +278,7 @@ class MatchAws:
                 continue
             only_name = self.final_path.replace("NEW_ELEM_NAME", cat_name)
             all_final_paths.append({
-                "model": elem_list["model"],
+                "model": cat_model["model"],
                 "path": only_name,
             })
             self.s3_utils.save_file_in_aws(self.csvs[cat_name].getvalue(), only_name)

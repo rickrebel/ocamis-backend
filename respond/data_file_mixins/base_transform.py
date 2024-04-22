@@ -55,7 +55,6 @@ class BaseTransform:
             sheet_name2 = sheet_name_to_file_name(sheet_file.sheet_name)
             init_data["final_path"] = self.final_path.replace(
                 "SHEET_NAME", sheet_name2)
-            self.task_params["models"] = [self.data_file, sheet_file]
             sheet = {
                 "params": {
                     "init_data": init_data,

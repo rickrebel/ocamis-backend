@@ -210,6 +210,7 @@ class Match(BaseTransform):
                 sheet_file=sheet_file, lap=final_lap)
             # init_data["lap_sheet_id"] = lap_sheet.id
             params["init_data"]["lap_sheet_id"] = lap_sheet.id
+            self.task_params["models"] = [self.data_file, sheet_file]
 
             if is_prepare:
                 dump_sample = json.dumps(sheet_file.sample_data)

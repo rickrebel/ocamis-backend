@@ -82,6 +82,9 @@ def cie_10_codes(measure_times=0):
         "B449",
         "R568",
         "I10X",
+        "M819",
+        "K40K",
+        "K746",
     ]
     keys_res = [
         re.compile(r'^[A-TV-Z][0-9]{2}(?:\.?[0-9]{1,2})?$'),
@@ -92,7 +95,7 @@ def cie_10_codes(measure_times=0):
     regex_format.execute(action='is_match')
 
 
-# cie_10_codes(0)
+cie_10_codes(0)
 
 
 
