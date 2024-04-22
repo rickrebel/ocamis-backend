@@ -45,7 +45,8 @@ class FromAws:
         from django.utils import timezone
         from respond.models import TableFile
         from data_param.models import Collection
-        base_models = ["drug", "rx", "complement_drug", "complement_rx"]
+        base_models = [
+            "drug", "rx", "complement_drug", "complement_rx", "diagnosis_rx"]
         new_table_files = []
         drugs_count = kwargs.get("drugs_count", 0)
         for model in base_models:

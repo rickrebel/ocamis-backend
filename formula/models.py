@@ -132,6 +132,7 @@ class ComplementRx(models.Model):
 
 
 class DiagnosisRx(models.Model):
+    # ⚠️¡No modificar estructura de los primeros 4 campos!
     uuid_diag_rx = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     rx = models.ForeignKey(
@@ -200,18 +201,14 @@ class MissingField(models.Model):
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     missing_row = models.ForeignKey(
         MissingRow, on_delete=models.CASCADE)
-    # name_column = models.IntegerField(blank=True, null=True)
-    name_column = models.ForeignKey(
-        NameColumn, on_delete=models.CASCADE)
-    # SIEMPRE EN POSICIÓN 3:
+    name_column = models.ForeignKey(NameColumn, on_delete=models.CASCADE)
+    # ⚠️SIEMPRE EN POSICIÓN 3:
     original_value = models.TextField(blank=True, null=True)
     final_value = models.TextField(blank=True, null=True)
     other_values = JSONField(blank=True, null=True)
     last_revised = models.DateTimeField()
-
-    # ¡ÚLTIMOS CAMPOS SIEMPRE!
+    # ⚠️¡ÚLTIMOS CAMPOS SIEMPRE!
     inserted = models.BooleanField(blank=True, null=True)
-    # errors = JSONField(blank=True, null=True)
     error = models.TextField(blank=True, null=True)
     # !!! Por nada del mundo, poner más campos debajo de este comentario
 

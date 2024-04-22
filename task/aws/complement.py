@@ -252,5 +252,3 @@ class Report:
         examples = elem[err_type][error]["examples"]
         if len(examples) < 6:
             elem[err_type][error]["examples"].append(original_data)
-
-

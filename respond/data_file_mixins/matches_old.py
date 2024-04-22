@@ -42,7 +42,7 @@ def field_of_models_all(model_data):
 
 class Match:
 
-    def __init__(self, data_file: DataFile, task_params=None):
+    def __init__(self, data_file: DataFile):
         from inai.models import set_upload_path
         from geo.models import Delegation
         from data_param.models import NameColumn
@@ -77,31 +77,7 @@ class Match:
                 "column_transformations__clean_function",
             )
 
-        original_columns = self.name_columns.filter(
-            position_in_data__isnull=False)
-        self.delimiter = self.file_control.delimiter or ','
-        self.columns_count = original_columns.count()
-
-        self.editable_models = [
-            {"name": "rx", "model": "Rx"},
-            {"name": "drug", "model": "Drug"},
-            {"name": "missing_field", "model": "MissingField"},
-            {"name": "missing_row", "model": "MissingRow"},
-
-            {"name": "doctor", "model": "Doctor", "app": "med_cat"},
-            {"name": "diagnosis", "model": "Diagnosis", "app": "med_cat"},
-            {"name": "area", "model": "Area", "app": "med_cat"},
-            {"name": "clues", "model": "CLUES", "app": "geo"},
-        ]
-        self.model_fields = {curr_list["name"]: field_of_models_all(curr_list)
-                             for curr_list in self.editable_models}
-
-        self.existing_fields = []
         self.catalogs = {}
-        # self.catalog_clues_by_id = None
-        # self.catalog_delegation_by_id = {}
-        # self.catalog_container = {}
-        self.task_params = task_params
 
         s3_client, dev_resource = start_session()
         self.s3_client = s3_client
@@ -111,250 +87,9 @@ class Match:
         # self.catalog_state = {}
 
     def build_csv_converted(self, is_prepare=False):
-        from task.serverless import async_in_lambda
-
-        string_date = self.get_date_format()
-        missing_criteria = self.calculate_minimals_criteria()
-        if not string_date:
-            missing_criteria.append("Sin formato de fecha")
-        if missing_criteria:
-            print("missing_criteria", missing_criteria)
-            error = f"No se encontraron todas las columnas esenciales; " \
-                f"Elementos faltantes: {missing_criteria}"
-            return [], [error], self.data_file
 
         self.build_all_catalogs()
-        self.build_existing_fields()
-
-        # print("string_date", string_date)
-        # unique_clues = {}
-        # for existing_field in self.existing_fields:
-        #     if existing_field["collection"] == "CLUES" and \
-        #             existing_field["is_unique"]:
-        #         unique_clues = existing_field
-        #         break
-
-        init_data = {
-            "data_file_id": self.data_file.id,
-            "file_name": self.data_file.file.name,
-            # "file_control_id": self.file_control.id,
-            "global_delegation_id": self.global_delegation.id if self.global_delegation else None,
-            "decode": self.file_control.decode,
-            "delimiter": self.delimiter,
-            "final_path": self.final_path,
-            "row_start_data": self.file_control.row_start_data,
-            "agency_id": self.agency.id if self.agency else None,
-            "institution_id": self.institution.id if self.institution else None,
-            "global_clues_id": self.global_clues.id if self.global_clues else None,
-            "columns_count": self.columns_count,
-            "editable_models": self.editable_models,
-            "model_fields": self.model_fields,
-            "existing_fields": self.existing_fields,
-            "catalogs": self.catalogs,
-            "is_prepare": is_prepare,
-            "lap": -1 if is_prepare else self.lap,
-            # "catalog_delegation": self.catalog_delegation_by_id,
-            # "catalog_clues_by_id": self.catalog_clues_by_id,
-            # "catalog_container": self.catalog_container,
-            "string_date": string_date,
-            # "unique_clues": unique_clues,
-        }
-        # result = start_build_csv_data(params, None)
-        self.task_params["function_after"] = "build_csv_data_from_aws"
-        all_tasks = []
-        # print("is_prepare", is_prepare)
-        for sheet_file in self.data_file.sheet_files.filter(matched=True):
-
-            if sheet_file.sheet_name not in self.data_file.filtered_sheets:
-                continue
-            self.task_params["models"] = [sheet_file]
-            params = {
-                "init_data": init_data,
-                "file": sheet_file.file.name,
-                "sheet_name": sheet_file.sheet_name,
-            }
-            if is_prepare:
-                dump_sample = json.dumps(sheet_file.sample_data)
-                final_path = f"catalogs/{self.agency.acronym}" \
-                             f"/sample_file_{self.data_file.id}.json"
-                file_sample, errors = create_file(
-                    dump_sample, self.s3_client, final_path=final_path)
-                if errors:
-                    return [], errors, self.data_file
-                params["file"] = file_sample
-                # init_data["sample_data"] = sheet_file.sample_data
-            async_task = async_in_lambda(
-                "start_build_csv_data", params, self.task_params)
-            if async_task:
-                all_tasks.append(async_task)
-        return all_tasks, [], self.data_file
-
-    def build_existing_fields(self):
-
-        if self.existing_fields:
-            return self.existing_fields
-
-        simple_fields = [
-            # Generales receta
-            ["date_release"],
-            ["date_visit"],
-            ["date_delivery"],
-            ["folio_document"],
-            ["document_type"],
-            ["prescribed_amount"],
-            ["delivered_amount"],
-            # Medicamento
-            ["key2:Container"],
-            ["price:Drug"],
-            # Geográficos
-            ["name:Delegation"],
-            # ["clues:CLUES"],
-            # ["key_issste:CLUES"],
-            # ["id_clues:CLUES"],
-            # # Diagnósticos
-            # ["motive"],
-            # ["cie10"],
-            # ["text:Diagnosis", "diagnosis"],
-            # # Doctores
-            # ["professional_license"],
-            # ["medical_speciality"],
-            # ["clave:Doctor"],
-            # ["full_name"],
-            # # Areas
-            # ["description:Area"],
-            # ["name:Area"],
-            # ["key:Area"],
-        ]
-
-        def build_column_data(column, final_name=None):
-            is_special_column = column.column_type.name != "original_column"
-            new_column = {
-                "name": final_name,
-                "name_column": column.id,
-                "position": column.position_in_data,
-                "required_row": column.required_row,
-                "name_field": column.final_field.name,
-                "final_field_id": column.final_field.id,
-                "collection": column.final_field.collection.model_name,
-                "is_unique": column.final_field.is_unique,
-                "data_type": column.final_field.data_type.name,
-                "regex_format": column.final_field.regex_format,
-                "is_special": is_special_column,
-                "column_type": column.column_type.name,
-                "parent": column.parent_column.id if column.parent_column else None,
-                "child": column.child_column.id if column.child_column else None,
-            }
-            # if is_special_column:
-            special_functions = [
-                "fragmented", "concatenated", "only_params_parent",
-                "only_params_child"]
-            transformation = column.column_transformations \
-                .filter(clean_function__in=special_functions).first()
-            if transformation:
-                new_column["clean_function"] = transformation.clean_function.name
-                new_column["t_value"] = transformation.addl_params.get("value")
-            return new_column
-
-        included_columns = []
-        for simple_field in simple_fields:
-            field_name = simple_field[0].split(":")
-            name_to_local = simple_field[1] \
-                if len(simple_field) > 1 else field_name[0]
-            query_fields = {"final_field__name": field_name[0]}
-            if len(field_name) > 1:
-                query_fields["final_field__collection__model_name"] = field_name[1]
-            name_column = self.name_columns.filter(**query_fields).first()
-            if name_column:
-                included_columns.append(name_column.id)
-                new_name_column = build_column_data(name_column, name_to_local)
-                self.existing_fields.append(new_name_column)
-
-        other_name_columns = self.name_columns\
-            .exclude(id__in=included_columns)
-        for name_column in other_name_columns:
-            final_field = name_column.final_field
-            collection_name = final_field.collection.model_name.lower()
-            name_to_local = f"{collection_name}_{final_field.name}"
-            new_name_column = build_column_data(name_column, name_to_local)
-            self.existing_fields.append(new_name_column)
-
-        if not self.existing_fields:
-            raise Exception("No se encontraron campos para crear las recetas")
-        return self.existing_fields
-
-    def calculate_minimals_criteria(self):
-
-        existing_fields = self.build_existing_fields()
-
-        def has_matching_dict(key, value):
-            for dict_item in existing_fields:
-                if dict_item[key] == value:
-                    return True
-            return False
-
-        has_delegation = bool(self.global_delegation)
-        if not has_delegation:
-            has_delegation = has_matching_dict("collection", "Delegation")
-        some_data_time = has_matching_dict("data_type", "Datetime")
-        has_folio = has_matching_dict("name", "folio_document")
-        some_amount = self.name_columns\
-            .filter(final_field__name__contains="amount").exists()
-        key_medicine = has_matching_dict("name", "key2")
-        some_medicine = has_matching_dict("name", "own_key")
-        if not some_medicine:
-            for field in existing_fields:
-                if field["name"] == "name" and field["collection"] == "Container":
-                    some_medicine = True
-
-        detailed_criteria = {
-            "Datos de delegación": has_delegation,
-            "Alguna fecha": some_data_time,
-            "Folio de receta": has_folio,
-            "Alguna cantidad": some_amount,
-            "Clave de medicamento": key_medicine,
-            # "Identificador de medicamento": some_medicine,
-        }
-        missing_criteria = []
-        for criteria_name, value in detailed_criteria.items():
-            if not value:
-                missing_criteria.append(criteria_name)
-        if not key_medicine:
-            if some_medicine:
-                missing_criteria.append(
-                    "Hay campos de medicamento, pero aún no los procesamos")
-            else:
-                missing_criteria.append("Algún medicamentos")
-        special_columns = self.name_columns.filter(
-            column_type__clean_functions__isnull=False,
-            column_transformations__isnull=True)
-        for column in special_columns:
-            transformation = column.column_transformations.first()
-            error_text = f"La columna de tipo {column.column_type.public_name}" \
-                f" no tiene la transformación {transformation.clean_function.public_name}"
-            missing_criteria.append(error_text)
-        valid_control_trans = [
-            "include_tabs_by_name", "exclude_tabs_by_name",
-            "include_tabs_by_index", "exclude_tabs_by_index",
-            "only_cols_with_headers", "no_valid_row_data"]
-        control_transformations = self.file_control.file_transformations\
-            .exclude(clean_function__name__in=valid_control_trans)
-        valid_column_trans = [
-            "fragmented", "concatenated", "format_date", "clean_key_container",
-            "get_ceil", "only_params_parent", "only_params_child",
-            "global_variable"]
-        column_transformations = self.name_columns\
-            .exclude(clean_function__name__in=valid_column_trans)
-
-        def add_transformation_error(transform):
-            public_name = transform.clean_function.public_name
-            error_txt = f"La transformación {public_name} aún no está soportada"
-            missing_criteria.append(error_txt)
-
-        for transformation in control_transformations:
-            add_transformation_error(transformation)
-        for transformation in column_transformations:
-            add_transformation_error(transformation)
-        return missing_criteria
+        return [], [], self.data_file
 
     def build_all_catalogs(self):
         catalogs = {
@@ -495,18 +230,6 @@ class Match:
         if errors:
             raise Exception(f"Error creando catálogo {catalog_name}: {errors}")
         return file_model
-
-    def get_date_format(self):
-        from data_param.models import Transformation
-        transformation = Transformation.objects.filter(
-            clean_function__name="format_date",
-            file_control=self.file_control).first()
-        if not transformation:
-            transformation = Transformation.objects.filter(
-                clean_function__name="format_date",
-                name_column__file_control=self.file_control).first()
-        return transformation.addl_params.get("value") \
-            if transformation else None  # '%Y-%m-%d %H:%M:%S.%fYYY'
 
     # def build_catalog_clues(self):
     #     from data_param.models import DictionaryFile

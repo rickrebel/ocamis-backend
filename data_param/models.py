@@ -324,10 +324,12 @@ class CleanFunction(models.Model):
     READY_CHOICES = (
         ("ready_alone", "✳️Listo, solo"),
         ("ready", "Listo PREVIO"),
+        ("ready_shared", "✳️Listo, compartido"),
         ("ready 1", "1️⃣Listo 1"),
         ("ready 2", "2️⃣Listo 2"),
         ("ready CAT", "✅Listo CAT"),
         ("ready EXT", "✅Listo Ext"),
+        ("need_value", "⚠️Necesita valor"),
         ("not_ready", "❌Not ready"))
 
     name = models.CharField(max_length=80)

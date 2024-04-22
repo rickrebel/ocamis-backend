@@ -25,9 +25,13 @@ def lambda_handler(event, context):
 class BuildWeekAws:
 
     def __init__(self, event: dict, context):
+        self.examples_count = 0
+        self.limit_examples = 30
 
         self.provider_id = event.get("provider_id")
         self.week_record_id = event.get("week_record_id")
+        self.is_example = self.week_record_id == 8738
+        print("is_example", self.is_example)
         self.week_table_files = event.get("week_table_files", [])
         self.all_inits = {
             "drug": {"field": "uuid", "basic_fields": ["week_record_id"]},
@@ -37,7 +41,7 @@ class BuildWeekAws:
             },
             "complement_drug": {"field": "uuid_comp_drug"},
             "complement_rx": {"field": "uuid_comp_rx"},
-            "diagnostic_rx": {"field": "uuid_diag_rx"},
+            "diagnosis_rx": {"field": "uuid_diag_rx"},
         }
 
         self.pos_uuid_folio = None
@@ -61,7 +65,7 @@ class BuildWeekAws:
             "sheet_file_id", "folio_ocamis", "uuid_folio",
             "delivered_final_id"]
         self.basic_models = [
-            "drug", "rx", "complement_drug", "complement_rx", "diagnostic_rx"]
+            "drug", "rx", "complement_drug", "complement_rx", "diagnosis_rx"]
         self.real_models = []
         self.csvs = {}
         self.buffers = {}
@@ -73,6 +77,16 @@ class BuildWeekAws:
         self.s3_utils = BotoUtils(event.get("s3"))
 
         self.context = context
+
+    def show_examples(self, draw_line=True):
+        if not self.is_example:
+            return False
+        in_limit = self.examples_count < self.limit_examples
+        if in_limit:
+            if draw_line:
+                print("")
+            self.examples_count += 1
+        return in_limit
 
     def build_week_csvs(self):
         alone_table_files = [table_file for table_file in self.week_table_files
@@ -90,7 +104,10 @@ class BuildWeekAws:
             "sums_by_delivered": self.sums_by_delivered,
             "drugs_count": self.drugs_count,
         }
+        self.limit_examples += 6
         for model in self.real_models:
+            if self.show_examples():
+                print(f"model: {model} \n\n{len(self.csvs[model].getvalue())}")
             name = self.final_path.replace("NEW_ELEM_NAME", model)
             self.s3_utils.save_file_in_aws(self.csvs[model].getvalue(), name)
             result[f"{model}_path"] = name
@@ -175,6 +192,7 @@ class BuildWeekAws:
         self.write_basic_tables(every_rows)
 
     def write_basic_tables(self, rows):
+        import uuid as uuid_lib
         every_folios = {}
 
         for row in rows:
@@ -188,15 +206,42 @@ class BuildWeekAws:
                     continue
                 basic_fields = values.get("basic_fields", [])
                 for basic_field in basic_fields:
-                    locals()[basic_field] = data[self.positions.get(basic_field)]
-                # if model == "drug":
-                #     data = data[:self.len_drug]
-                #     data.append(self.week_record_id)
+                    value = data[self.positions.get(basic_field)]
+                    if basic_field == "folio_ocamis":
+                        folio_ocamis = value
+                    elif basic_field == "uuid_folio":
+                        current_uuid = value
+                    elif basic_field == "delivered_final_id":
+                        current_delivered = value
+                    elif basic_field == "sheet_file_id":
+                        sheet_id = value
+
+                    # if self.show_examples():
+                    #     print("basic_field", basic_field, "|", data[self.positions.get(basic_field)])
+                    # locals()[basic_field] = data[self.positions.get(basic_field)]
+                    # setattr(locals(), basic_field, data[self.positions.get(basic_field)])
+                if model == "drug":
+                    # data = data[:self.len_drug]
+                    # data.append(self.week_record_id)
+                    data[-1] = self.week_record_id
                 final_row[model] = data
 
             def write_in_buffer(model_name):
                 if row_data := final_row.get(model_name):
                     self.buffers[model_name].writerow(row_data)
+
+            def write_diagnosis_rx(model_name="diagnosis_rx"):
+                if row_data := final_row.get(model_name):
+                    diagnosis_id = row_data[2]
+                    if not diagnosis_id:
+                        return
+                    rx_id = row_data[1]
+                    all_diagnosis = diagnosis_id.split(";")
+                    is_main = len(all_diagnosis) == 1
+                    for diag in all_diagnosis:
+                        uuid_diag_rx = str(uuid_lib.uuid4())
+                        diag_data = [uuid_diag_rx, rx_id, diag, is_main]
+                        self.buffers[model_name].writerow(diag_data)
 
             if folio_ocamis not in every_folios:
                 every_folios[folio_ocamis] = {
@@ -206,15 +251,15 @@ class BuildWeekAws:
                     "delivered": {current_delivered},
                     "rx_data": final_row["rx"],
                 }
-                self.buffers["drug"].writerow(final_row["drug"])
+                write_in_buffer("drug")
                 write_in_buffer("complement_drug")
                 write_in_buffer("complement_rx")
-                write_in_buffer("diagnostic_rx")
+                write_diagnosis_rx()
                 continue
             current_folio = every_folios[folio_ocamis]
             # rx_id = row[self.pos_rx_id]
-            rx_id = final_row["drug"][1]
-            if current_folio["first_uuid"] != rx_id:
+            prev_rx_id = final_row["drug"][1]
+            if current_folio["first_uuid"] != prev_rx_id:
                 final_row["drug"][1] = current_folio["first_uuid"]
             write_in_buffer("drug")
             write_in_buffer("complement_drug")
@@ -231,6 +276,8 @@ class BuildWeekAws:
                     current_folio["first_delivered"] = delivered
                     current_folio["rx_data"][self.pos_delivered] = delivered
             every_folios[folio_ocamis] = current_folio
+
+        self.limit_examples += 1
 
         for rx in every_folios.values():
             delivered_final = rx["rx_data"][self.pos_delivered]

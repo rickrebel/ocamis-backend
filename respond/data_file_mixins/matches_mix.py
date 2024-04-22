@@ -245,31 +245,36 @@ class Match(BaseTransform):
         ]
         all_errors = []
 
-        def build_column_data(column, final_name=None):
-            is_special_column = column.column_type.name != "original_column"
+        def build_column_data(name_col, final_name=None):
+
+            data_type = name_col.final_field.data_type.name if \
+                name_col.final_field.data_type else None
             new_column = {
                 "name": final_name,
-                "name_column": column.id,
-                "name_in_data": column.name_in_data,
-                "position": column.position_in_data,
-                "required_row": column.required_row,
-                "name_field": column.final_field.name,
-                "public_name": column.final_field.verbose_name,
-                "final_field_id": column.final_field.id,
-                "collection": column.final_field.collection.model_name,
-                "is_unique": column.final_field.is_unique,
-                "data_type": column.final_field.data_type.name if \
-                             column.final_field.data_type else None,
-                "regex_format": column.final_field.regex_format,
-                "is_special": is_special_column,
-                "column_type": column.column_type.name,
-                "parent": column.parent_column.id if column.parent_column else None,
-                "child": column.child_column.id if column.child_column else None,
+                "name_column": name_col.id,
+                "name_in_data": name_col.name_in_data,
+                "position": name_col.position_in_data,
+                "required_row": name_col.required_row,
+                "name_field": name_col.final_field.name,
+                "public_name": name_col.final_field.verbose_name,
+                "final_field_id": name_col.final_field.id,
+                "collection": name_col.final_field.collection.model_name,
+                "data_type": data_type,
+                "regex_format": name_col.final_field.regex_format,
+                "column_type": name_col.column_type.name,
+                "parent": name_col.parent_column.id if name_col.parent_column else None,
+                "child": name_col.child_column.id if name_col.child_column else None,
             }
+            if name_col.final_field.collection.model_name == "Diagnosis":
+                new_column["is_list"] = True
+            is_special_column = name_col.column_type.name != "original_column"
+            if is_special_column:
+                new_column["is_special"] = True
+            # if name_col.final_field.is_unique:
+            #     new_column["is_unique"] = True
 
-            valid_transformation = column.column_transformations.all() \
+            valid_transformation = name_col.column_transformations.all() \
                 .exclude(clean_function__ready_code="not_ready")
-            # .filter(clean_function__name__in=functions_alone)
             # ready_codes = valid_transformation.values_list(
             #     "clean_function__ready_code", flat=True)
             # unique_codes = set(ready_codes)
@@ -282,12 +287,15 @@ class Match(BaseTransform):
             #           f"la vez: {clean_functions}"
             #     all_errors.append(err)
             if valid_transformation.exists():
-                # first_t = valid_transformation.first()
-                # new_column["clean_function"] = first_t.clean_function.name
-                # new_column["t_value"] = first_t.addl_params.get("value")
                 for transformation in valid_transformation:
-                    new_column[transformation.clean_function.name] = \
-                        transformation.addl_params.get("value", True)
+                    clean_function = transformation.clean_function
+                    ready_code = clean_function.ready_code
+                    value = transformation.addl_params.get("value", True)
+                    if ready_code == "need_value" and not isinstance(value, str):
+                        all_errors.append(
+                            f"La transformación {clean_function} "
+                            f"necesita un valor, no puede estar vacía")
+                    new_column[clean_function.name] = value
             return new_column
 
         included_columns = []
@@ -304,26 +312,25 @@ class Match(BaseTransform):
                 new_name_column = build_column_data(name_column, name_to_local)
                 self.existing_fields.append(new_name_column)
 
-        other_name_columns = self.name_columns\
-            .exclude(id__in=included_columns)
+        other_name_columns = self.name_columns.exclude(id__in=included_columns)
         for name_column in other_name_columns:
             if not name_column.final_field:
                 name_in_data = get_name_in_data(name_column)
-                error = f"La columna {name_in_data} no tiene " \
-                        f"campo final referido"
-                all_errors.append(error)
+                all_errors.append(
+                    f"La columna {name_in_data} no tiene campo final referido")
                 continue
             final_field = name_column.final_field
             duplicated_in = None
+            collection_name = final_field.collection.model_name
+            snake_collection = camel_to_snake(collection_name)
+            # snake_collection = final_field.collection.snake_name
+
             for prev_field in self.existing_fields:
                 if prev_field.get("final_field_id") == final_field.id:
-                    snake_collection = final_field.collection.snake_name
                     if snake_collection not in ["others", "diagnosis"]:
                         duplicated_in = prev_field
                         break
-            collection_name = final_field.collection.model_name
-            collection_name = camel_to_snake(collection_name)
-            name_to_local = f"{collection_name}_{final_field.name}"
+            name_to_local = f"{snake_collection}_{final_field.name}"
             new_name_column = build_column_data(name_column, name_to_local)
             if duplicated_in:
                 new_name_column["duplicated_in"] = duplicated_in
@@ -389,13 +396,10 @@ class Match(BaseTransform):
             error_text = f"La columna de tipo {column.column_type.public_name}" \
                 f" no tiene la transformación que le corresponde"
             missing_criteria.append(error_text)
-        # control_transformations = self.file_control.file_transformations\
-        #     .exclude(clean_function__name__in=valid_control_trans)
+
         control_invalid_transformations = self.file_control.file_transformations\
             .filter(clean_function__ready_code="not_ready")
-        # invalid_transformations = Transformation.objects\
-        #     .filter(name_column__file_control=self.file_control)\
-        #     .exclude(clean_function__name__in=valid_column_trans)
+
         invalid_transformations = Transformation.objects.filter(
             name_column__file_control=self.file_control,
             clean_function__ready_code="not_ready")
