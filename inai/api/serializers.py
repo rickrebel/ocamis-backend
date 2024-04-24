@@ -4,7 +4,8 @@ from data_param.api.serializers import FileControlSerializer, NameColumnSerializ
 from inai.models import (
     Petition, PetitionFileControl, MonthRecord, RequestTemplate, Variable,
     PetitionBreak, PetitionNegativeReason, WeekRecord)
-from respond.api.serializers import ReplyFileSerializer, DataFileSerializer
+from respond.api.serializers import (
+    ReplyFileSerializer, DataFileSerializer, DataFileSimpleSerializer)
 from respond.models import TableFile
 from data_param.models import Transformation, NameColumn, FileControl
 
@@ -176,6 +177,11 @@ class PetitionSmallSerializer(serializers.ModelSerializer):
     class Meta:
         model = Petition
         fields = "__all__"
+
+
+class DataFileCountSerializer(serializers.ModelSerializer):
+    def to_representation(self, value):
+        return value.count()
 
 
 class PetitionSemiFullSerializer(PetitionSmallSerializer):

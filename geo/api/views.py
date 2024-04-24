@@ -48,11 +48,12 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         "send_months": serializers.ProviderSerializer,
     }
 
-    def get(self, request):
-        provider = self.get_object()
-        serializer = serializers.ProviderFullSerializer(
-            provider, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    # def retrieve(self, request, *args, **kwargs):
+    #     print("ESTOY EN RETRIEVE")
+    #     provider = self.get_object()
+    #     serializer = serializers.ProviderFullSerializer(
+    #         provider, context={'request': request})
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):

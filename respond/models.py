@@ -3,7 +3,7 @@ from django.db.models import JSONField
 
 from category.models import FileType, StatusControl
 from classify_task.models import Stage, StatusTask
-from data_param.models import Collection
+from data_param.models import Collection, FileControl
 from geo.models import Provider, Delegation
 from respond.data_file_mixins.explore_mix import ExploreMix
 from respond.data_file_mixins.get_data_mix import ExtractorsMix
@@ -85,6 +85,13 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     petition_file_control = models.ForeignKey(
         PetitionFileControl, related_name="data_files", blank=True, null=True,
         on_delete=models.CASCADE)
+
+    petition = models.ForeignKey(
+        Petition, related_name="data_files", blank=True, null=True,
+        on_delete=models.CASCADE)
+    file_control = models.ForeignKey(
+        FileControl, blank=True, null=True, on_delete=models.CASCADE)
+
     # deprecated:
     status_process = models.ForeignKey(
         StatusControl, blank=True, null=True, on_delete=models.CASCADE)

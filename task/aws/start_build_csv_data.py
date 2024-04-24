@@ -52,28 +52,13 @@ class MatchAws:
     models_to_save = ["drug", "rx"]
     med_cat_flat_fields = {}
     initial_data = {}
-    buffers = {}
-    csvs = {}
-    sample_count = 0
-
-    months = set()
-    last_revised = datetime.now()
 
     # Only to get_all_data
     delimiter = None
     columns_count = None
 
     provider_id = None
-    global_delegation = None
-    global_delivered = None
-    real_models = None
-    global_clues = None
-    model_fields = None
     existing_fields = None
-    cat_keys = {}
-    med_cat_models = []
-    rx_cats = []
-    required_cols = []
 
     special_cols = None
     sheet_file_id = None
@@ -83,29 +68,45 @@ class MatchAws:
     global_transformations = []
     decode = None
     row_start_data = 0
-    decode_final = 'utf-8'
     hash_null = None
+
     available_deliveries = {}
     delegation_cat = {}
-    is_prepare = False
     sheet_name = None
     file_name_simple = None
-    last_missing_row = None
-    all_missing_rows = []
-    all_missing_fields = []
-    last_date = None
-    last_valid_row = None
-    last_date_formatted = None
-
-    csvs_by_date = {}
-    all_rx = {}
-    buffers_by_date = {}
-    totals_by_date = {}
-    errors_count = 0
 
     def __init__(self, init_data: dict, context, s3):
         self.examples_count = 0
         self.limit_examples = 0
+
+        self.buffers = {}
+        self.csvs = {}
+        self.sample_count = 0
+        self.months = set()
+        self.last_revised = datetime.now()
+        self.rx_cats = []
+        self.required_cols = []
+        self.global_delegation = None
+        self.global_delivered = None
+        self.real_models = None
+        self.global_clues = None
+        self.model_fields = None
+        self.cat_keys = {}
+        self.med_cat_models = []
+        self.decode_final = 'utf-8'
+        self.last_missing_row = None
+        self.all_missing_rows = []
+        self.all_missing_fields = []
+        self.last_date = None
+        self.last_valid_row = None
+        self.last_date_formatted = None
+        self.csvs_by_date = {}
+        self.all_rx = {}
+        self.buffers_by_date = {}
+        self.totals_by_date = {}
+        self.errors_count = 0
+        self.is_prepare = False
+
         for key, value in init_data.items():
             setattr(self, key, value)
 

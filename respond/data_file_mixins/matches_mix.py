@@ -428,7 +428,8 @@ class Match(BaseTransform):
                          "formato especificado"
         elif transformation_count > 1:
             date_fields = [field for field in self.existing_fields
-                           if field["data_type"] == "Datetime"]
+                           if field["data_type"] == "Datetime"
+                           and not field.get("almost_empty")]
             if len(date_fields) == transformation_count:
                 return "MANY", None
             else:

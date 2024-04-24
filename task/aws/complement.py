@@ -13,6 +13,7 @@ class GetAllData:
         self.positioned_fields = [field for field in self.existing_fields
                                   if field["position"] is not None]
 
+        self.fill_columns = "fill_columns" in self.match_class.global_transformations
         self.is_prepare = match_class.is_prepare
         self.columns_count = match_class.columns_count
         self.string_date = match_class.string_date
@@ -66,6 +67,10 @@ class GetAllData:
 
             if current_count == self.columns_count:
                 row_final.insert(0, str(row_seq))
+                structured_data.append(row_final)
+            elif self.fill_columns:
+                row_final.insert(0, str(row_seq))
+                row_final.extend([None] * (self.columns_count - current_count))
                 structured_data.append(row_final)
             else:
                 error = "Conteo distinto de Columnas; %s de %s" % (

@@ -264,7 +264,7 @@ class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializ
         from inai.api.serializers import PetitionSemiFullSerializer
         from inai.models import Petition
         prefetch_related = [
-            "agency", "file_controls", "break_dates",
+            "file_controls", "agency", "break_dates",
             "negative_reasons", "negative_reasons__negative_reason",
             "reply_files"]
         if obj.is_indirect:
