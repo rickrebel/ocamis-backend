@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from med_cat.models import MedicalUnit, Delivered
+from med_cat.models import MedicalUnit, Delivered, Medicament
 is_big_active = getattr(settings, "IS_BIG_ACTIVE")
 is_managed = not is_big_active
 
@@ -63,6 +63,36 @@ class MotherDrug(models.Model):
     def __str__(self):
         return "%s -- %s -- %s -- %s" % (
             self.week_record, self.delivered, self.container, self.key)
+
+
+class MotherDrugEntity(models.Model):
+    from geo.models import CLUES, Delegation, Provider
+    from medicine.models import Container
+    iso_year = models.PositiveSmallIntegerField(
+        db_column="iso_year", primary_key=True)
+    iso_week = models.PositiveSmallIntegerField(
+        db_column="iso_week")
+    entity = models.ForeignKey(
+        Provider, on_delete=models.DO_NOTHING, db_column="provider_id")
+    year = models.PositiveSmallIntegerField(db_column="year")
+    month = models.PositiveSmallIntegerField(db_column="month")
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.DO_NOTHING, db_column="delivered_id")
+    medicament = models.ForeignKey(
+        Medicament, on_delete=models.DO_NOTHING, db_column="medicament_id")
+    prescribed_total = models.IntegerField(db_column="prescribed")
+    delivered_total = models.IntegerField(db_column="delivered")
+    total = models.IntegerField(db_column="total")
+
+    class Meta:
+        managed = False
+        db_table = 'mat_drug_entity'
+        verbose_name = "Entidad de Medicamentos"
+        verbose_name_plural = "Entidades de Medicamentos"
+
+    def __str__(self):
+        return "%s -- %s -- %s -- %s" % (
+            self.iso_year, self.iso_week, self.entity, self.medicament)
 
 
 # class MotherDrugExtended(models.Model):

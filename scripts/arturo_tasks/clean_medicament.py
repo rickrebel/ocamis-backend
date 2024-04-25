@@ -192,7 +192,7 @@
 # reporte_med_container()
 
 
-# Elimina los ultimos caracteres e intenta buscar los contenedores sin
+# Elimina los últimos caracteres e intenta buscar los contenedores sin
 # revisar cuales caracteres son. Además, intenta filtrar duplicados
 def update_med_container_id():
     from med_cat.models import Medicament

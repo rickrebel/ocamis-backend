@@ -68,6 +68,13 @@ class ComponentVizSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class ComponentVizAllSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Component
+        fields = "__all__"
+
+
 class ComponentSerializer(serializers.ModelSerializer):
 
     class Meta:

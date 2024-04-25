@@ -6,8 +6,10 @@ from rest_framework.decorators import action
 from api.mixins import (
     ListMix, MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix)
 
-from mat.models import MotherDrugPriority, MotherDrug, MotherDrugTotals
-from formula.models import MatDrugTotals, MatDrug, MatDrugPriority
+from mat.models import (
+    MotherDrugPriority, MotherDrug, MotherDrugTotals, MotherDrugEntity)
+from formula.models import (
+    MatDrugTotals, MatDrug, MatDrugPriority, MatDrugEntity)
 
 
 class DrugViewSet(ListRetrieveUpdateMix):
@@ -25,11 +27,12 @@ class DrugViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=False)
     def spiral(self, request):
-        print("Spiral")
+        # print("Spiral")
         from django.conf import settings
         from django.db.models import F, Sum
         from django.apps import apps
-        is_big_active = getattr(settings, "IS_BIG_ACTIVE")
+        from medicine.models import Component
+        is_big_active = getattr(settings, "IS_BIG_ACTIVE", False)
         provider_id = request.data.get('provider')
         delegation_id = request.data.get('delegation', None)
         by_delegation = request.data.get('by_delegation', False)
@@ -42,6 +45,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
         component_id = request.data.get('component', 96)
         presentation_id = request.data.get('presentation', None)
         container_id = request.data.get('container', None)
+        therapeutic_group_id = request.data.get('therapeutic_group', None)
 
         some_geo = clues_id or delegation_id or provider_id
         some_drug = container_id or presentation_id or component_id
@@ -56,26 +60,53 @@ class DrugViewSet(ListRetrieveUpdateMix):
             if not some_drug or not provider_id:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         elif group_by == 'component':
-            if not some_geo:
+            if not some_geo or not therapeutic_group_id:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        has_delegation = True
+        if component_id:
+            try:
+                component = Component.objects.get(id=component_id)
+                has_delegation = component.priority < 5
+            except Component.DoesNotExist:
+                has_delegation = False
+
+        if group_by == 'component':
+            has_delegation = False
+
+        if not has_delegation:
+            if clues_id or by_delegation or delegation_id:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={
+                    'errors': 'No se puede desagregar la información para este componente'
+                })
+
         def build_query(is_total=False):
             # is_complex = is_total or bool(clues_id)
             is_complex = True
+            is_mini = not is_total and not has_delegation
+            prefetches = []
+            if not is_mini:
+                prefetches = ['week_record']
 
-            prefetches = ['week_record'] if is_complex else []
-
-            prev_iso = "week_record__" if is_complex else ""
+            prev_iso = "" if is_mini else "week_record__"
 
             first_values = {
                 'iso_week': f'{prev_iso}iso_week',
                 'iso_year': f'{prev_iso}iso_year',
             }
-            field_ent = f"{prev_iso}provider_id"
-            field_comp = 'container__presentation__component_id' \
-                if is_complex else 'component_id'
+            comp_string = "medicament__container__presentation__component"
+            if is_mini:
+                field_ent = "entity_id"
+            else:
+                field_ent = f"{prev_iso}provider_id"
+            if is_mini:
+                field_comp = f"{comp_string}_id"
+            elif is_complex:
+                field_comp = 'container__presentation__component_id'
+            else:
+                field_comp = 'component_id'
 
             query_filter = {f"{prev_iso}iso_year__gte": 2017}
             if clues_id:
@@ -92,19 +123,33 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 first_values["delegation"] = "delegation_id"
             elif group_by == 'component':
                 if not is_total:
+                    query_filter[f'{comp_string}__groups__id'] = therapeutic_group_id
+                    query_filter[f'{comp_string}__priority__lt'] = 6
                     first_values['component'] = field_comp
 
+            prev_med = "medicament__" if is_mini else ""
+            # container__presentation__component
+            # container__presentation
             if is_total:
                 pass
+            # RICK Deshacer este orden
             elif container_id:
-                query_filter['container_id'] = container_id
+                query_filter[f'{prev_med}container_id'] = container_id
             elif presentation_id:
-                field = 'container__presentation_id' \
-                    if is_complex else 'presentation_id'
+                if is_mini:
+                    field = 'medicament__container__presentation_id'
+                elif is_complex:
+                    field = 'container__presentation_id'
+                else:
+                    field = 'presentation_id'
                 query_filter[field] = presentation_id
             elif component_id:
-                field = 'container__presentation__component_id' \
-                    if is_complex else 'component_id'
+                if is_mini:
+                    field = 'medicament__container__presentation__component_id'
+                elif is_complex:
+                    field = 'container__presentation__component_id'
+                else:
+                    field = 'component_id'
                 query_filter[field] = component_id
 
             annotates = {
@@ -122,7 +167,14 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 order_values.insert(0, "delegation")
 
             prev_model = "Mother" if is_big_active else "Mat"
-            model = "Totals" if is_total else "Priority"
+            # model = "Totals" if is_total else "Priority"
+            if is_total:
+                model = "Totals"
+            elif is_mini:
+                model = "Entity"
+            else:
+                model = "Priority"
+            # model = "Totals" if is_total else "Entity"
             model_name = f"{prev_model}Drug{model}"
             # if is_total:
             #     model_name = f"{prev_model}DrugTotals"

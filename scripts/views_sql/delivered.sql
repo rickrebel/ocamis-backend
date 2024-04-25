@@ -270,6 +270,8 @@ GROUP BY
 -- Query complete 00:00:19.862
 
 
+-- mother_drug_entity  MotherDrugEntity
+
 SELECT
 	week.iso_year,
 	week.iso_week,

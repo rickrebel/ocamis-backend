@@ -49,6 +49,8 @@ class Component(models.Model):
 
     group = models.ForeignKey(
         Group, blank=True, null=True, on_delete=models.CASCADE)
+    groups = models.ManyToManyField(
+        Group, related_name="components", blank=True)
     presentations_raw = models.TextField(blank=True, null=True)
 
     origen_cvmei = models.BooleanField(default=False)

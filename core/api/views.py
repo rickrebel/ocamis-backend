@@ -138,6 +138,28 @@ class CatalogViz(views.APIView):
         return Response(data)
 
 
+class CatalogShortageViz(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+
+    def get(self, request):
+        from medicine.api.serializers import (
+            ComponentVizAllSerializer, GroupSerializer)
+        from medicine.models import Component, Group
+
+        components = Component.objects\
+            .filter(priority__lt=10)\
+            .order_by("-frequency")
+
+        data = {
+            # CATÁLOGOS GENERALES:
+            "components": ComponentVizAllSerializer(
+                components, many=True).data,
+            "groups": GroupSerializer(
+                Group.objects.all(), many=True).data,
+        }
+        return Response(data)
+
+
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 500
     page_size_query_param = 'page_size'

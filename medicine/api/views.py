@@ -23,6 +23,8 @@ class ComponentList(MultiSerializerListRetrieveMix):
     action_serializers = {
         "retrieve": serializers.ComponentRetrieveSerializer,
         "priority": serializers.ComponentVizSerializer,
+        "full": serializers.ComponentVizSerializer,
+        "priority_all": serializers.ComponentVizAllSerializer,
     }
 
     def list(self, request):
@@ -82,6 +84,12 @@ class ComponentList(MultiSerializerListRetrieveMix):
             container.presentation.component)
         return Response(serializer.data)
 
+    @action(methods=['get'], detail=True, url_path='full')
+    def full(self, request, **kwargs):
+        component = self.get_object()
+        serializer = self.get_serializer_class()(component)
+        return Response(serializer.data)
+
     @action(methods=['get'], detail=False, url_path='priority')
     def priority(self, request, **kwargs):
         components = Component.objects\
@@ -93,6 +101,14 @@ class ComponentList(MultiSerializerListRetrieveMix):
             )\
             .order_by("priority")
         serializer = self.get_serializer_class()(components, many=True)
+        return Response(serializer.data)
+
+    @action(methods=['get'], detail=False, url_path='priority_all')
+    def priority_all(self, request, **kwargs):
+        self.queryset = Component.objects\
+            .filter(priority__lt=12)\
+            .order_by("-frequency")
+        serializer = self.get_serializer_class()(self.queryset, many=True)
         return Response(serializer.data)
 
 
