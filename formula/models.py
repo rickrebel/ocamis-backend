@@ -246,6 +246,54 @@ class MatDrugPriority(models.Model):
             self.week_record, self.delivered, self.container, self.key)
 
 
+# SELECT
+# 	week.iso_year,
+# 	week.iso_week,
+# 	week.entity_id,
+# 	week.year,
+# 	week.month,
+# 	drug.delivered_id,
+# 	drug.medicament_id,
+# 	SUM (drug.prescribed_amount) as prescribed,
+# 	SUM (drug.delivered_amount) as delivered,
+# 	COUNT(*) as total
+# FROM fm_55_201907_drug drug
+# JOIN inai_entityweek week ON drug.entity_week_id = week.id
+# GROUP BY
+#     week.iso_year,
+#     week.iso_week,
+#     week.entity_id,
+#     week.year,
+#     week.month,
+# 	drug.delivered_id,
+# 	drug.medicament_id;
+
+
+class MatDrugEntity(models.Model):
+    from geo.models import CLUES, Delegation, Provider
+    from medicine.models import Container
+    iso_year = models.PositiveSmallIntegerField()
+    iso_week = models.PositiveSmallIntegerField()
+    entity = models.ForeignKey(
+        Provider, on_delete=models.CASCADE)
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE)
+    medicament = models.ForeignKey(
+        Medicament, on_delete=models.CASCADE)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        db_table = 'mat_drug_entity'
+
+    def __str__(self):
+        return "%s -- %s -- %s -- %s" % (
+            self.iso_year, self.iso_week, self.delivered, self.medicament)
+
+
 class MatDrug(models.Model):
     from geo.models import CLUES, Delegation, Provider
     from inai.models import WeekRecord

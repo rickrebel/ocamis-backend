@@ -703,14 +703,21 @@ class MatchAws:
             elif field["data_type"] == "Float":
                 value = float(value)
             elif field.get("is_list"):
-                # if self.show_examples():
-                #     print("value of list", value, "type", type(value))
                 if not isinstance(value, list):
                     try:
                         value = json.loads(value)
                     except json.JSONDecodeError:
                         value = [value]
-                value = [val.strip() for val in value]
+                try:
+                    value = [val.strip() for val in value]
+                except TypeError:
+                    value = [str(value)]
+                except Exception as e:
+                    error = "No se pudo convertir a lista de valores"
+                    # if self.show_examples():
+                    #     print("error", error, "value", value, "\nerror:", e)
+                    #     print("row:\n", row)
+                    raise ValueProcessError(error, value, str(e))
             else:
                 value = str(value)
                 if self.not_unicode:

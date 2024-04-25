@@ -77,7 +77,6 @@ def identify_duplicates_names():
         #     name=F("name") + " (duplicado)"
 
 
-
 def propagate_low_priority(update=False):
     from medicine.models import Component
     from intl_medicine.models import PrioritizedComponent, Respondent

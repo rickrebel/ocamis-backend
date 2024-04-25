@@ -14,6 +14,9 @@ class Command(BaseCommand):
 
         for base_response in base_responses:
             current_responses = responses\
-                .filter(component=base_response.component)\
+                .filter(
+                    component=base_response.component,
+                    group_answer__group=base_response.group_answer.group
+                )\
                 .exclude(is_prioritized=base_response.is_prioritized)
             current_responses.update(was_changed=True)

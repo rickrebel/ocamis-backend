@@ -25,6 +25,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=False)
     def spiral(self, request):
+        print("Spiral")
         from django.conf import settings
         from django.db.models import F, Sum
         from django.apps import apps

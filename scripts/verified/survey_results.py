@@ -6,6 +6,7 @@ from django.db.models import Count, Q
 
 def get_prioritized_components():
     # count the total number of responses and if is_prioritized or not
+
     data = {}
     components = {}
     query_init = PrioritizedComponent.objects.filter(
@@ -18,7 +19,7 @@ def get_prioritized_components():
         return p_comp.component.name, f"{p_comp.component.name}|{group_name}"
 
     for pc in query_init:
-        final_name, name = build_name(pc)
+        name, final_name = build_name(pc)
         data[final_name] = {
             "prioritized": pc.is_prioritized,
             "priority": "low" if pc.is_low_priority else "high",
@@ -28,13 +29,14 @@ def get_prioritized_components():
         components.setdefault(name, {"included": 0, "excluded": 0})
 
     query = PrioritizedComponent.objects.filter(
-        group_answer__is_valid=True,
+        # group_answer__is_valid=True,
+        group_answer__time_spent__isnull=False,
         group_answer__respondent__isnull=False,
         is_prioritized__isnull=False
     ).distinct()
 
     for pc in query:
-        final_name, name = build_name(pc)
+        name, final_name = build_name(pc)
         if final_name not in data:
             data[final_name] = {
                 "prioritized": "XXXXX",
@@ -48,7 +50,10 @@ def get_prioritized_components():
         else:
             data[final_name]["excluded"] += 1
             components[name]["excluded"] += 1
+
+
     query_data = []
+
 
     for final_name, pc in data.items():
         component, group = final_name.split("|")
@@ -59,11 +64,11 @@ def get_prioritized_components():
         total = included + excluded
         all_included = components.get(component, {}).get("included", 0)
         all_excluded = components.get(component, {}).get("excluded", 0)
-
         query_data += [
             [group, component, pc["prioritized"], pc["priority"], included,
              excluded, total, all_included, all_excluded]
         ]
+
 
     csv_ex = CsvExporter(
         query=query_data,
@@ -79,7 +84,7 @@ def get_prioritized_components():
             "Excluidas mismo nombre",
         ],
         attributes=None,
-        file_path="fixture/survey/Priorizado.csv",
+        file_path="fixture/survey/Priorizado2.csv",
     )
 
     csv_ex.generate_csv()
