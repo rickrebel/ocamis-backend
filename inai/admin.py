@@ -117,9 +117,26 @@ class PetitionFileControlAdmin(admin.ModelAdmin):
     inlines = [DataFileInline]
 
 
+class VariableInline(admin.StackedInline):
+    model = Variable
+    extra = 0
+
+
+class RequestTemplateAdmin(admin.ModelAdmin):
+    list_display = [
+        "version",
+        "version_name",
+        "provider",
+    ]
+    inlines = [VariableInline]
+    search_fields = ["provider__acronym", "provider__state__short_name"]
+    raw_id_fields = ["provider"]
+
+
+
 ocamis_admin_site.register(Petition, PetitionAdmin)
 ocamis_admin_site.register(PetitionFileControl, PetitionFileControlAdmin)
 
 ocamis_admin_site.register(MonthRecord, MonthRecordAdmin)
 ocamis_admin_site.register(WeekRecord, WeekRecordAdmin)
-
+ocamis_admin_site.register(RequestTemplate, RequestTemplateAdmin)

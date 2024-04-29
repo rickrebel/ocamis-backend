@@ -48,12 +48,11 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         "send_months": serializers.ProviderSerializer,
     }
 
-    # def retrieve(self, request, *args, **kwargs):
-    #     print("ESTOY EN RETRIEVE")
-    #     provider = self.get_object()
-    #     serializer = serializers.ProviderFullSerializer(
-    #         provider, context={'request': request})
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
+    def retrieve(self, request, *args, **kwargs):
+        print("ESTOY EN RETRIEVE")
+        self.queryset = Provider.objects.prefetch_related(
+            "month_records", "request_templates")
+        return super().retrieve(request, *args, **kwargs)
 
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):

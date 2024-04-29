@@ -251,7 +251,8 @@ def calc_sheet_files_summarize(provider, month_record=None):
 
 
 class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializer):
-    from inai.api.serializers import MonthRecordSerializer
+    from inai.api.serializers import (
+        MonthRecordSerializer, RequestTemplateSerializer)
 
     # petitions = PetitionSemiFullSerializer(many=True)
     petitions = serializers.SerializerMethodField(read_only=True)
@@ -259,6 +260,8 @@ class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializ
     sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
     drugs_summarize = serializers.SerializerMethodField(read_only=True)
     last_request_template = serializers.SerializerMethodField(read_only=True)
+    provider_templates = RequestTemplateSerializer(
+        many=True, source="request_templates")
 
     def get_petitions(self, obj):
         from inai.api.serializers import PetitionSemiFullSerializer

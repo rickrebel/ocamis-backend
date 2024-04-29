@@ -144,18 +144,25 @@ class MonthRecord(models.Model):
 
 class RequestTemplate(models.Model):
     version = models.IntegerField()
+    version_name = models.CharField(max_length=100, blank=True, null=True)
     text = models.TextField()
     provider = models.ForeignKey(
         Provider, related_name="request_templates",
+        verbose_name="Proveedor",
         on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
-        return self.version
+        return self.version_name or str(self.version)
+
+    def save(self, *args, **kwargs):
+        if not self.version_name:
+            self.version_name = f"Versión {self.version}"
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Plantilla de solicitud"
-        verbose_name_plural = "Plantillas de solicitud"
-        ordering = ["-version"]
+        verbose_name_plural = "CAT. Plantillas de solicitud"
+        ordering = ["-id"]
 
 
 VARIABLE_TYPES = (
@@ -178,7 +185,7 @@ class Variable(models.Model):
     default_value = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return self.name or "Variable"
 
     class Meta:
         verbose_name = "Variable de plantilla"
