@@ -29,9 +29,9 @@ class HeavyResultsSetPagination(PageNumberPagination):
 def build_common_filters(limiters, available_filters):
     final_filters = {}
     for filter_item in available_filters:
-        if limiters.get(filter_item["name"]):
-            final_filters[filter_item["field"]] = \
-                limiters.get(filter_item["name"])
+        filter_name = filter_item["name"]
+        if limiters.get(filter_name):
+            final_filters[filter_item["field"]] = limiters.get(filter_name)
     if limiters.get("has_notes"):
         final_filters["notes__isnull"] = not limiters.get("has_notes")
     if limiters.get("status_task"):

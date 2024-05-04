@@ -9,7 +9,7 @@ from respond.models import ReplyFile, DataFile, SheetFile, TableFile
 from geo.models import Provider
 from data_param.models import FileControl
 from classify_task.models import StatusTask, TaskFunction, Stage
-from category.models import OldStatusControl, StatusControl
+from category.models import StatusControl
 
 
 class AsyncTask(models.Model):

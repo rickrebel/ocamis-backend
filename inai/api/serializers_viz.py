@@ -120,24 +120,15 @@ class PetitionFilesControlViz3Serializer(serializers.RelatedField):
         return (value.file_control_id)
 
 
-class StatusDataVizSerializer(serializers.RelatedField):
-    def to_representation(self, value):
-        return (value.name)
-
-
-"""
-    class Meta:
-        model = PetitionFileControl
-        fields = "__all__"
-        read_only_fields = ["file_control"]
-"""
+# class Meta:
+#     model = PetitionFileControl
+#     fields = "__all__"
+#     read_only_fields = ["file_control"]
 
 
 class PetitionVizSerializer(serializers.ModelSerializer):
     file_controls = PetitionFilesControlViz3Serializer(
         many=True, read_only=True)
-    status_data = StatusDataVizSerializer(read_only=True)
-    status_petition = StatusDataVizSerializer(read_only=True)
     # invalid_reason = InvalidReasonSimpleSerializer()
     negative_reasons = PetitionNegativeReasonSimpleSerializer(many=True)
     months = MonthAgencyVizSerializer(

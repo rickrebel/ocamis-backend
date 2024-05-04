@@ -11,8 +11,7 @@ def fetch_agencies(include_groups):
     prefetch_columns = Prefetch(
         "petitions__file_controls__file_control__columns",
         queryset=filter_columns)
-    filter_petitions = Petition.objects\
-        .exclude(status_petition__name__icontains="mistake", )
+    filter_petitions = Petition.objects.exclude(status_petition_id="mistake")
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
 
     # filter_petition_month = PetitionMonth.objects\
@@ -38,8 +37,6 @@ def fetch_agencies(include_groups):
             # prefetch_month,
             # "petitions",
             prefetch_petitions,
-            "petitions__status_data",
-            "petitions__status_petition",
             # prefetch_petition_month,
             # "petitions__petition_months",
             "petitions__month_records",

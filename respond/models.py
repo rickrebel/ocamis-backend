@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from category.models import FileType, OldStatusControl
+from category.models import FileType
 from classify_task.models import Stage, StatusTask
 from data_param.models import Collection, FileControl
 from geo.models import Provider, Delegation
@@ -122,9 +122,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True, verbose_name="Todos los resultados")
     notes = models.TextField(blank=True, null=True)
 
-    # deprecated:
-    status_process = models.ForeignKey(
-        OldStatusControl, blank=True, null=True, on_delete=models.CASCADE)
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(
