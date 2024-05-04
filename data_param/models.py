@@ -156,6 +156,10 @@ class FileControl(models.Model):
         verbose_name="Delimitador de columnas")
     decode = models.CharField(
         max_length=10, blank=True, null=True, verbose_name="Codificación")
+    # old_status_register = models.ForeignKey(
+    #     OldStatusControl, null=True, blank=True,
+    #     verbose_name="Status de los registro de variables",
+    #     on_delete=models.CASCADE)
     status_register = models.ForeignKey(
         StatusControl, null=True, blank=True,
         verbose_name="Status de los registro de variables",

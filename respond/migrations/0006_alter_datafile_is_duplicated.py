@@ -3,6 +3,11 @@
 from django.db import migrations, models
 
 
+def delete_status_process(apps, schema_editor):
+    StatusControl = apps.get_model('category', 'StatusControl')
+    StatusControl.objects.filter(group="process").delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -15,4 +20,5 @@ class Migration(migrations.Migration):
             name='is_duplicated',
             field=models.BooleanField(blank=True, null=True, verbose_name='Duplicado'),
         ),
+        migrations.RunPython(delete_status_process),
     ]

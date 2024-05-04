@@ -235,6 +235,11 @@ class Petition(models.Model, PetitionTransformsMix):
         related_name="petitions_petition",
         verbose_name="Status de la petición",
         on_delete=models.CASCADE)
+    # old_status_petition = models.ForeignKey(
+    #     OldStatusControl, null=True, blank=True,
+    #     related_name="petitions_petition",
+    #     verbose_name="Status de la petición",
+    #     on_delete=models.CASCADE)
     status_data = models.ForeignKey(
         StatusControl, null=True, blank=True,
         related_name="petitions_data",
@@ -262,6 +267,11 @@ class Petition(models.Model, PetitionTransformsMix):
         related_name="petitions_complain",
         verbose_name="Status de la queja",
         on_delete=models.CASCADE)
+    # old_status_complain = models.ForeignKey(
+    #     OldStatusControl, null=True, blank=True,
+    #     related_name="petitions_complain",
+    #     verbose_name="Status de la queja",
+    #     on_delete=models.CASCADE)
     folio_complain = models.IntegerField(
         verbose_name="Folio de la queja",
         blank=True, null=True)

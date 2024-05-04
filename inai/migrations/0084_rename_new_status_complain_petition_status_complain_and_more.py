@@ -3,6 +3,18 @@
 from django.db import migrations
 
 
+def copy_old_values(apps, schema_editor):
+    OldStatusControl = apps.get_model("category", "OldStatusControl")
+    Petition = apps.get_model("inai", "Petition")
+    for old_status in OldStatusControl.objects.all():
+        Petition.objects.filter(old_status_complain=old_status)\
+                .update(status_complain=old_status.name)
+        Petition.objects.filter(old_status_data=old_status)\
+                .update(status_data=old_status.name)
+        Petition.objects.filter(old_status_petition=old_status)\
+                .update(status_petition=old_status.name)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -25,4 +37,5 @@ class Migration(migrations.Migration):
             old_name='new_status_petition',
             new_name='status_petition',
         ),
+        migrations.RunPython(copy_old_values),
     ]
