@@ -118,13 +118,12 @@ class Stage(models.Model):
     def save(self, *args, **kwargs):
         from task.models import Step
         from geo.models import Provider
-        from category.models import StatusControl
+        # RICK 24: Revisar qué onda con esto, está raro
         if self.stage_group == "provider":
-            status_initial = StatusControl.objects.get(name="initial")
             for provider in Provider.objects.all():
                 Step.objects.get_or_create(
                     # provider=provider,
-                    stage=self, status_opera=status_initial)
+                    stage=self, status_operative_id="initial_register")
 
         super().save(*args, **kwargs)
 

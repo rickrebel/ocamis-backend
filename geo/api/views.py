@@ -293,8 +293,8 @@ class AgencyViewSet(ListRetrieveUpdateMix):
         # detailed_controls
         # .filter(petition_file_control="detailed")\
 
-        status_negative = [ "negative_response"]
-        status_delivered = ["with_data", "partial_data"]
+        status_negative = ["negative_response"]
+        status_delivered = ["with_data", "partial_data", "with_data_contained"]
         status_other = ["waiting", "pick_up",]
         # enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
         final_data = {"file_controls": detailed_controls, "agencies": []}

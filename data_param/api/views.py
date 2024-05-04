@@ -208,6 +208,9 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             data_files = data_files.filter(
                 Q(file__icontains=txt) |
                 Q(petition_file_control__petition__folio_petition=txt))
+        is_duplicated = limiters.get("is_duplicated", None)
+        if is_duplicated is not None:
+            data_files = data_files.filter(is_duplicated=is_duplicated)
         sts = limiters.get("status_built", [])
         final_files = None
         for status_built in sts:
@@ -220,22 +223,11 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             final_files = final_files.distinct().order_by("-id")
         else:
             final_files = data_files
-        sts_process = limiters.get("status_process", [])
-        print("STS_PROCESS", sts_process)
-        final_files2 = None
-        for status_process in sts_process:
-            current_files = data_files\
-                .filter(status_process_id=status_process)
-            final_files2 = current_files if not final_files2 \
-                else final_files2 | current_files
-        if final_files2:
-            final_files2 = final_files2.distinct().order_by("-id")
-        else:
-            final_files2 = final_files
-        total_count = final_files2.count()
+        # print("STS_PROCESS", sts_process)
+        total_count = final_files.count()
         page_size = limiters.get("page_size", 30)
         page = limiters.get("page", 1) - 1
-        final_files3 = final_files2[page * page_size:(page + 1) * page_size]
+        final_files3 = final_files[page * page_size:(page + 1) * page_size]
         serializer_files = DataFileSerializer(final_files3, many=True).data
         data = {
             "total_count": total_count,
@@ -268,10 +260,11 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             stage = limiters.get("stage", None)
             if stage is not None:
                 all_filters["petition_file_control__data_files__stage_id"] = stage
-            status_process = limiters.get("status_process", None)
-            has_status_process = status_process is not None
-            if has_status_process:
-                all_filters["petition_file_control__data_files__status_process_id"] = status_process
+            is_duplicated = limiters.get("is_duplicated", None)
+            print("IS_DUPLICATED", is_duplicated)
+            if is_duplicated is not None:
+                str_filter = "petition_file_control__data_files__is_duplicated"
+                all_filters[str_filter] = is_duplicated
             transformation = limiters.get("transformation", None)
             if transformation is not None:
                 clean_function = CleanFunction.objects.get(id=transformation)
@@ -284,8 +277,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             if status_id is not None:
                 all_filters["petition_file_control__data_files__status_id"] = status_id
 
-            order = ["agency__acronym", "name"]
-            order.insert(1 if has_status_process else 2, "data_group__name")
+            order = ["agency__acronym", "name", "data_group__name"]
             controls = FileControl.objects.all().prefetch_related(
                 "data_group",
                 "columns",

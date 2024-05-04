@@ -117,7 +117,6 @@ class FileControlSerializer(FileControlSimpleSerializer):
         queryset=DataGroup.objects.all(), required=False)
     summary_status = serializers.SerializerMethodField(read_only=True)
     example_file_id = serializers.SerializerMethodField(read_only=True)
-    failed_files = serializers.SerializerMethodField(read_only=True)
 
     def get_summary_status(self, obj):
         from respond.models import DataFile
@@ -143,15 +142,6 @@ class FileControlSerializer(FileControlSimpleSerializer):
         if last_sheet_file:
             return last_sheet_file.data_file_id
         return None
-
-    def get_failed_files(self, obj):
-        from respond.models import DataFile
-        from django.db.models import Count, F
-        files = DataFile.objects\
-            .filter(petition_file_control__file_control=obj)\
-            .values("status_process_id")\
-            .annotate(total=Count("id"))
-        return list(files)
 
 
 class FileControlSemiFullSerializer(FileControlSerializer):

@@ -9,7 +9,7 @@ from respond.models import ReplyFile, DataFile, SheetFile, TableFile
 from geo.models import Provider
 from data_param.models import FileControl
 from classify_task.models import StatusTask, TaskFunction, Stage
-from category.models import StatusControl
+from category.models import OldStatusControl, StatusControl
 
 
 class AsyncTask(models.Model):
@@ -223,7 +223,7 @@ class Step(models.Model):
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         verbose_name="Etapa")
-    status_opera = models.ForeignKey(
+    status_operative = models.ForeignKey(
         StatusControl, on_delete=models.CASCADE,
         verbose_name="Status", blank=True, null=True)
     notes = models.TextField(blank=True, null=True)

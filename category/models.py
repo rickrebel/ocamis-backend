@@ -15,11 +15,36 @@ GROUP_CHOICES = (
     ("data", "Datos entregados"),
     ("complain", "Quejas - Revisiones"),
     ("register", "Registro de variables"),
-    ("process", "Procesamiento de archivos (solo devs)"),
+    ("provider", "para Proveedores"),
+    ("priority", "Prioridad en Solicitudes"),
 )
 
 
 class StatusControl(models.Model):
+    name = models.CharField(max_length=120, primary_key=True)
+    group = models.CharField(
+        max_length=10, choices=GROUP_CHOICES,
+        verbose_name="grupo de status")
+    public_name = models.CharField(max_length=255)
+    official_name = models.CharField(max_length=255, blank=True, null=True)
+    color = models.CharField(
+        max_length=30, blank=True, null=True,
+        help_text="https://vuetifyjs.com/en/styles/colors/")
+    icon = models.CharField(max_length=40, blank=True, null=True)
+    order = models.IntegerField(default=4)
+    description = models.TextField(blank=True, null=True)
+    addl_params = JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return "%s - %s" % (self.group, self.public_name)
+
+    class Meta:
+        ordering = ["group", "order"]
+        verbose_name = "Status de control"
+        verbose_name_plural = "Status de control"
+
+
+class OldStatusControl(models.Model):
     group = models.CharField(
         max_length=10, choices=GROUP_CHOICES,
         verbose_name="grupo de status", default="petition")
@@ -34,12 +59,13 @@ class StatusControl(models.Model):
     addl_params = JSONField(blank=True, null=True)
 
     def __str__(self):
-        return "%s - %s"  % (self.group, self.public_name)
+        return "%s - %s" % (self.group, self.public_name)
 
     class Meta:
         ordering = ["group", "order"]
         verbose_name = "Status de control"
         verbose_name_plural = "Status de control (TODOS)"
+        db_table = "category_oldstatuscontrol"
 
 
 class FileType(models.Model):
@@ -121,6 +147,7 @@ class InvalidReason(models.Model):
     name = models.CharField(max_length=120)
     order = models.IntegerField(default=1)
     description = models.TextField(blank=True, null=True)
+    is_official = models.BooleanField(default=False, verbose_name="es oficial")
 
     def __str__(self):
         return self.name

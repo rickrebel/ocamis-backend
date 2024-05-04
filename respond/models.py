@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from category.models import FileType, StatusControl
+from category.models import FileType
 from classify_task.models import Stage, StatusTask
 from data_param.models import Collection, FileControl
 from geo.models import Provider, Delegation
@@ -70,6 +70,8 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         Provider, related_name="data_files", on_delete=models.CASCADE,
         blank=True, null=True)
     # zip_path = models.TextField(blank=True, null=True)
+    is_duplicated = models.BooleanField(
+        blank=True, null=True, verbose_name="Duplicado")
     date = models.DateTimeField(auto_now_add=True)
     # petition_month = models.ForeignKey(
     #     PetitionMonth, blank=True, null=True,
@@ -91,10 +93,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         on_delete=models.CASCADE)
     file_control = models.ForeignKey(
         FileControl, blank=True, null=True, on_delete=models.CASCADE)
-
-    # deprecated:
-    status_process = models.ForeignKey(
-        StatusControl, blank=True, null=True, on_delete=models.CASCADE)
 
     stage = models.ForeignKey(
         Stage, blank=True, null=True, on_delete=models.CASCADE,
@@ -122,6 +120,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True, verbose_name="Primeros datos, de exploración")
     all_results = JSONField(
         blank=True, null=True, verbose_name="Todos los resultados")
+    notes = models.TextField(blank=True, null=True)
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(

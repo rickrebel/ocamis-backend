@@ -150,8 +150,12 @@ class AWSMessage(generic.View):
 
         # print("HOLA POST")
         # print(request)
+        request_body = request.body
+        # replace True for true and False for false
+        # request_body = request_body.replace(b": True", b": true")
+        # request_body = request_body.replace(b": False", b": false")
         try:
-            body = json.loads(request.body)
+            body = json.loads(request_body)
         except Exception as e:
             print("ERROR AL LEER EL BODY: ", e)
             print("request original: \n", request)
@@ -163,6 +167,7 @@ class AWSMessage(generic.View):
         request_id = body.get("request_id")
         # print("request_id: ", request_id)
         result = body.get("result", {})
+
         errors = result.get("errors", [])
         try:
             current_task = AsyncTask.objects.get(request_id=str(request_id))

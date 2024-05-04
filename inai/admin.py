@@ -92,7 +92,7 @@ class PetitionAdmin(admin.ModelAdmin):
                 # "invalid_reason",
                 # "ask_extension",
                 # "description_complain",
-                # "status_complain",
+                # "old_status_complain",
                 # "folio_complain",
             )
         }),

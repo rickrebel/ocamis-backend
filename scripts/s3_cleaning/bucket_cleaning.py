@@ -60,7 +60,6 @@ def build_dict(only_data_files=False):
 def analyze_rep_files():
     from pprint import pprint
     from respond.models import DataFile
-    from category.models import StatusControl
     files_in_db = build_dict(True)
     rep_files2 = [rep for rep in files_in_db.values() if len(rep) >= 2]
     print("Archivos repetidos:", len(rep_files2))
@@ -69,7 +68,6 @@ def analyze_rep_files():
     counters = {}
     print_counter = 0
     duplicates_ids = []
-    status_duplicated = StatusControl.objects.get(name="duplicated")
     for file in rep_files2:
         models = [elem['model_name'] for elem in file]
         has_many_data_files = models.count('data_file') >= 2
@@ -90,19 +88,14 @@ def analyze_rep_files():
                 print("Distintos: ", file)
             counters[models] = counters.get(models, 0) + 1
     print("Duplicates ids: ", len(duplicates_ids))
-    DataFile.objects.filter(id__in=duplicates_ids)\
-        .update(status_process=status_duplicated)
+    DataFile.objects.filter(id__in=duplicates_ids).update(is_duplicated=True)
     print("Contadores:")
     pprint(counters)
 
 
-def revert_status_process():
+def revert_duplicated():
     from respond.models import DataFile
-    from category.models import StatusControl
-    status_initial = StatusControl.objects.get(
-        name="initial", group="process")
-    DataFile.objects.filter(status_process__name="duplicated")\
-        .update(status_process=status_initial)
+    DataFile.objects.filter(is_duplicated=True).update(is_duplicated=None)
 
 
 def get_bucket_files(limit=10000):

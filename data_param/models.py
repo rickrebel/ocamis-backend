@@ -3,7 +3,7 @@
 from django.db import models
 from django.db.models import JSONField
 
-from category.models import ColumnType, FileFormat, StatusControl
+from category.models import ColumnType, FileFormat, OldStatusControl, StatusControl
 from transparency.models import Anomaly
 from geo.models import Institution, Delegation, Agency, Provider
 
@@ -156,7 +156,6 @@ class FileControl(models.Model):
         verbose_name="Delimitador de columnas")
     decode = models.CharField(
         max_length=10, blank=True, null=True, verbose_name="Codificación")
-    # status_register = models.IntegerField(blank=True, null=True)
     status_register = models.ForeignKey(
         StatusControl, null=True, blank=True,
         verbose_name="Status de los registro de variables",

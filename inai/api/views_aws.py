@@ -215,7 +215,8 @@ class OpenDataInaiViewSet(ListRetrieveView):
             ("add_limit_complain", True),
         ]
         insert_from_json(
-            petitions, inai_fields, 'inai', 'Petition', 'inai_open_search',
+            petitions, columns=inai_fields, main_app='inai',
+            main_model='Petition', main_key='inai_open_search',
             special_functions=spec_functions)
 
         # if data.get("errors", False):
@@ -319,7 +320,8 @@ class OpenDataInaiViewSet(ListRetrieveView):
             # ("insert_between_months", False)
         ]
         insert_from_json(
-            petitions, inai_fields, 'inai', 'Petition', 'inai_open_search',
+            petitions, columns=inai_fields, main_app='inai',
+            main_model='Petition', main_key='inai_open_search',
             special_functions=spec_functions)
 
         if data.get("errors", False):

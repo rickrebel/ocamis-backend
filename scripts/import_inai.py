@@ -24,27 +24,42 @@ def to_json(val, petition):
 
 
 def get_status_obj(val, petition):
-    from category.models import StatusControl, InvalidReason
+    from category.models import InvalidReason, StatusControl
     status_found = None
     try:
-        status_found = StatusControl.objects.get(public_name=val, group="petition")
+        status_found = StatusControl.objects.get(
+            official_name=val, group="petition")
     except StatusControl.DoesNotExist:
         pass
     if not status_found:
         try:
-            status_found = StatusControl.objects.get(addl_params__icontains=val, group="petition")
+            status_found = StatusControl.objects.get(
+                addl_params__icontains=val, group="petition")
         except StatusControl.DoesNotExist:
             print("No encontramos el status: ", val)
     if val == "Desechada por falta de respuesta del ciudadano":
         invalid_reason = InvalidReason.objects.get(name="Desechada")
         petition.invalid_reason = invalid_reason
         petition.save()
+    elif val == "Desechada por falta de selección del medio de entrega":
+        try:
+            invalid_reason = InvalidReason.objects.get(name="Desechada 2")
+        except InvalidReason.DoesNotExist:
+            invalid_reason = InvalidReason.objects.create(
+                name="Desechada 2",
+                is_official=True,
+                public_name="Desechada por falta de selección del medio de entrega",
+            )
+        petition.invalid_reason = invalid_reason
+        petition.save()
     if not status_found:
         return petition.status_petition
     elif not petition.status_petition:
         return status_found
+    elif petition.status_petition.order > status_found.order:
+        return petition.status_petition
     else:
-        return petition.status_petition if petition.status_petition.order > status_found.order else status_found
+        return status_found
 
 
 def join_url(row, main):

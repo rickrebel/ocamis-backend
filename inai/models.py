@@ -3,8 +3,8 @@ from django.db.models import JSONField
 
 from geo.models import Agency, Provider, Delegation
 from category.models import (
-    StatusControl, FileType, ColumnType, NegativeReason,
-    DateBreak, InvalidReason, FileFormat)
+    OldStatusControl, FileType, ColumnType, NegativeReason,
+    DateBreak, InvalidReason, FileFormat, StatusControl)
 from classify_task.models import Stage, StatusTask
 from transparency.models import Anomaly
 from data_param.models import (
@@ -239,6 +239,11 @@ class Petition(models.Model, PetitionTransformsMix):
         StatusControl, null=True, blank=True,
         related_name="petitions_data",
         verbose_name="Status de los datos entregados",
+        on_delete=models.CASCADE)
+    status_priority = models.ForeignKey(
+        StatusControl, null=True, blank=True,
+        related_name="petitions_priority",
+        verbose_name="Status de prioridad",
         on_delete=models.CASCADE)
     invalid_reason = models.ForeignKey(
         InvalidReason, null=True, blank=True,

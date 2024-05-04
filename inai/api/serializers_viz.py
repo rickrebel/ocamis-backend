@@ -134,17 +134,12 @@ class StatusDataVizSerializer(serializers.RelatedField):
 
 
 class PetitionVizSerializer(serializers.ModelSerializer):
-    #file_controls = PetitionFileControlVizSerializer(many=True)
-    file_controls = PetitionFilesControlViz3Serializer(many=True, read_only=True)
-    #status_data = serializers.CharField(source="name", read_only=True)
+    file_controls = PetitionFilesControlViz3Serializer(
+        many=True, read_only=True)
     status_data = StatusDataVizSerializer(read_only=True)
     status_petition = StatusDataVizSerializer(read_only=True)
-    #status_petition = StatusControlSimpleSerializer()
-    #invalid_reason = InvalidReasonSimpleSerializer()
+    # invalid_reason = InvalidReasonSimpleSerializer()
     negative_reasons = PetitionNegativeReasonSimpleSerializer(many=True)
-    # petition_months = PetitionMonthSerializer(many=True)
-    # months = PetitionMonthVizSerializer(
-    #     many=True, read_only=True, source="petition_months")
     months = MonthAgencyVizSerializer(
         many=True, read_only=True, source="month_records")
 

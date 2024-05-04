@@ -9,7 +9,7 @@ from .models import (
 
 class StatusControlAdmin(admin.ModelAdmin):
     list_display = [
-        "public_name", "name", "group", "order",
+        "public_name", "name", "official_name", "group", "order",
         "color", "icon", "addl_params"]
     list_editable = ["order", "color"]
     list_filter = ["group"]

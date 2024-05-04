@@ -4,14 +4,9 @@ import django
 class DataUtilsMix:
     save: classmethod
     error_process: object
-    status_process: object
 
     def save_errors(self, errors, error_name):
-        from rest_framework.response import Response
-        from rest_framework import (permissions, views, status)
-        from category.models import StatusControl
 
-        #errors = ['No se pudo descomprimir el archivo gz']
         curr_errors = self.error_process or []
         curr_errors += errors
         curr_errors = list(set(curr_errors))
@@ -24,16 +19,14 @@ class DataUtilsMix:
             self.status_id = status
             self.stage_id = stage
         else:
-            current_status, created = StatusControl.objects.get_or_create(
-                name=error_name, group="process")
-            self.status_process = current_status
+            self.stage_id = 'initial'
+            self.status_id = 'with_errors'
         # print(curr_errors)
         self.save()
         return self
 
     def finished_stage(self, status_name):
         # print("change_status", status_name)
-        from category.models import StatusControl
         # self.error_process = list(set(self.error_process or []))
         self.error_process = []
         if "|" in status_name:
@@ -43,9 +36,9 @@ class DataUtilsMix:
             self.status_id = status
             self.stage_id = stage
         else:
-            new_status, created = StatusControl.objects.get_or_create(
-                    name=status_name, group="process")
-            self.status_process = new_status
+            self.stage_id = 'initial'
+            self.status_id = 'with_errors'
+            self.error_process = [f"No se encontró el status {status_name}"]
         self.save()
         return self
 

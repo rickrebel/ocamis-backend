@@ -1,6 +1,6 @@
 from django.db import models
 from django.db.models import JSONField
-from category.models import StatusControl
+from category.models import OldStatusControl, StatusControl
 from django.contrib.auth.models import User
 
 
@@ -135,7 +135,7 @@ class Provider(models.Model):
     assigned_to = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.CASCADE,
         verbose_name="Asignado a")
-    status_opera = models.ForeignKey(
+    status_operative = models.ForeignKey(
         StatusControl, null=True, blank=True,
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)

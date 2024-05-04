@@ -45,8 +45,7 @@ class ExploreMix:
             else:
                 sample_data = data_file.sample_data or {}
                 default_sheet = sample_data.get("default", {})
-                previous_explore = default_sheet and \
-                                   data_file.status_process.order > 6
+                previous_explore = default_sheet and data_file.has_explore
                 if previous_explore and default_sheet.get("tail_data"):
                     total_rows = default_sheet.pop("total_rows", 0)
                     SheetFile.objects.create(

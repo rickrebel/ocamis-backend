@@ -122,7 +122,6 @@ class CutOffViewSet(ListRetrieveView):
     def create(self, request, *args, **kwargs):
         from inai.models import MonthRecord
         from classify_task.models import Stage
-        from category.models import StatusControl
         year = request.data.get("year")
         month = request.data.get("month")
         year_month = f"{year}-{str(month).zfill(2)}"
@@ -134,11 +133,9 @@ class CutOffViewSet(ListRetrieveView):
         provider_stages = Stage.objects\
             .filter(stage_group__contains="provider-")\
             .order_by("-order")
-        initial_status = StatusControl.objects.get(
-            name="initial", group="register")
         for stage in provider_stages:
-            Step.objects.get_or_create(
-                cut_off=cut_off, stage=stage, status_opera=initial_status)
+            Step.objects.get_or_create(cut_off=cut_off, stage=stage,
+                                       status_operative_id="initial_register")
         new_cut_off = CutOff.objects.get(id=cut_off.id)
         serializer_cut_off = serializers.CutOffSerializer(new_cut_off).data
         return Response(serializer_cut_off, status=status.HTTP_201_CREATED)

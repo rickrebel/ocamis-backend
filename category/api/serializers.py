@@ -18,7 +18,9 @@ class StatusControlSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StatusControl
-        fields = "__all__"
+        fields = [
+            "name", "group", "public_name", "order", "color", "icon",
+            "addl_params", "description"]
 
 
 class ColumnTypeSimpleSerializer(serializers.ModelSerializer):

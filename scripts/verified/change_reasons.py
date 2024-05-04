@@ -90,6 +90,7 @@ def name_columns_to_upper():
             name.save()
 
 
+# Deprecated
 def recalculate_sheets():
     from scripts.common import explore_sheets
 
@@ -97,6 +98,7 @@ def recalculate_sheets():
     from data_param.models import FileControl
 
     all_controls = FileControl.objects.all()
+    # Esto no va a funcionar porque ya no existe status_process
     complete_controls = all_controls.filter(
         status_process__name="complete_counting")
     for file_control in complete_controls:
