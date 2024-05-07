@@ -12,7 +12,8 @@ from respond.models import SheetFile, CrossingSheet
 from rest_framework.pagination import PageNumberPagination
 from api.mixins import (
     MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix,
-    MultiSerializerCreateRetrieveMix as CreateRetrieveView)
+    MultiSerializerCreateRetrieveMix as CreateRetrieveView,
+    MultiSerializerModelViewSet as ModelViewSet)
 
 
 class NormalResultsSetPagination(PageNumberPagination):
@@ -50,7 +51,7 @@ def update_negative_reasons(petition, main_reason, other_reasons):
             petition=petition, id__in=saved_pnr_ids).delete()
 
 
-class PetitionViewSet(ListRetrieveUpdateMix):
+class PetitionViewSet(ModelViewSet):
     permission_classes = (permissions.AllowAny,)
     serializer_class = serializers.PetitionEditSerializer
     queryset = Petition.objects.all()
@@ -58,7 +59,7 @@ class PetitionViewSet(ListRetrieveUpdateMix):
         "create": serializers.PetitionEditSerializer,
         "retrieve": serializers.PetitionFullSerializer,
         "update": serializers.PetitionEditSerializer,
-        # "list": serializers.PetitionFilterSerializer,
+        "delete": serializers.PetitionEditSerializer,
         # "change_months": serializers.PetitionEditSerializer,
     }
 
@@ -159,6 +160,15 @@ class PetitionViewSet(ListRetrieveUpdateMix):
 
         # return Response(
         #    serializer_petition.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, **kwargs):
+        petition = self.get_object()
+        if petition.status_petition_id == "draft":
+            petition.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"error": "Solo se pueden eliminar peticiones en status borrador"},
+            status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["get"], detail=False, url_path='filter')
     def filter(self, request, **kwargs):
