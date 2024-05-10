@@ -208,8 +208,6 @@ class Petition(models.Model, PetitionTransformsMix):
         on_delete=models.CASCADE, null=True, blank=True)
     month_records = models.ManyToManyField(
         MonthRecord, blank=True, verbose_name="Meses de la solicitud")
-    months_verified = models.BooleanField(
-        verbose_name="Meses verificados", default=False)
     notes = models.TextField(blank=True, null=True)
     template_text = models.TextField(
         blank=True, null=True, verbose_name="Texto para la plantilla")
@@ -223,6 +221,9 @@ class Petition(models.Model, PetitionTransformsMix):
         blank=True, null=True)
     send_response = models.DateField(
         verbose_name="Fecha de última respuesta",
+        blank=True, null=True)
+    response_limit = models.DateField(
+        verbose_name="Fecha límite de respuesta",
         blank=True, null=True)
     description_petition = models.TextField(
         verbose_name="descripción enviada",
@@ -249,6 +250,13 @@ class Petition(models.Model, PetitionTransformsMix):
         InvalidReason, null=True, blank=True,
         verbose_name="Razón de invalidez",
         on_delete=models.CASCADE)
+    # Need to move to own model
+    months_verified = models.BooleanField(
+        verbose_name="Meses verificados", default=False)
+    reasons_verified = models.BooleanField(
+        verbose_name="Razones verificadas", default=False)
+    reply_files_verified = models.BooleanField(
+        verbose_name="Archivos de respuesta verificados", default=False)
 
     # Complain data, needs to be moved to another model
     ask_extension = models.BooleanField(

@@ -70,7 +70,7 @@ class ProviderCatSerializer(serializers.ModelSerializer):
         model = Provider
         fields = [
             "id", "institution", "state", "clues", "name", "provider_type",
-            "acronym", "notes", "assigned_to", "status_operative",
+            "acronym", "notes", "assigned_to", "status_priority",
             "cut_offs", "is_indirect", "has_indirect"]
 
 

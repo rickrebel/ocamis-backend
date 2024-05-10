@@ -135,7 +135,7 @@ class Provider(models.Model):
     assigned_to = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.CASCADE,
         verbose_name="Asignado a")
-    status_operative = models.ForeignKey(
+    status_priority = models.ForeignKey(
         StatusControl, null=True, blank=True,
         verbose_name="Status de los registro de variables",
         on_delete=models.CASCADE)
