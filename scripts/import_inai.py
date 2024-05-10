@@ -48,7 +48,7 @@ def get_status_obj(val, petition):
             invalid_reason = InvalidReason.objects.create(
                 name="Desechada 2",
                 is_official=True,
-                public_name="Desechada por falta de selección del medio de entrega",
+                description="Desechada por falta de selección del medio de entrega",
             )
         petition.invalid_reason = invalid_reason
         petition.save()

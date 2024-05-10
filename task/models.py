@@ -212,8 +212,8 @@ class CutOff(models.Model):
         return "%s - %s" % (self.provider, self.last_month_record)
 
     class Meta:
-        verbose_name = "Corte"
-        verbose_name_plural = "Cortes"
+        verbose_name = "Corte de pasos"
+        verbose_name_plural = "Cortes de pasos"
 
 
 class Step(models.Model):
