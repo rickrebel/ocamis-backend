@@ -43,6 +43,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
         # by_year = group_by == 'iso_year'
 
         component_id = request.data.get('component', 96)
+        components_ids = request.data.get('components', [])
         presentation_id = request.data.get('presentation', None)
         container_id = request.data.get('container', None)
         therapeutic_group_id = request.data.get('therapeutic_group', None)
@@ -60,8 +61,18 @@ class DrugViewSet(ListRetrieveUpdateMix):
             if not some_drug or not provider_id:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         elif group_by == 'component':
-            if not some_geo or not therapeutic_group_id:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+            if not some_geo or (not therapeutic_group_id and not components_ids):
+                required = []
+                if not some_geo:
+                    required.append('una institución')
+                if not therapeutic_group_id and not components_ids:
+                    required.append(
+                        'un grupo terapéutico o una selección de componentes')
+                error_message = 'Se requiere ' + ' y '.join(required)
+                error_message += ' para desplegar los datos por componente'
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={
+                    'warning': error_message
+                })
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -79,7 +90,8 @@ class DrugViewSet(ListRetrieveUpdateMix):
         if not has_delegation:
             if clues_id or by_delegation or delegation_id:
                 return Response(status=status.HTTP_400_BAD_REQUEST, data={
-                    'errors': 'No se puede desagregar la información para este componente'
+                    'errors': 'No se puede desagregar la información por '
+                              'delegación para este componente'
                 })
 
         def build_query(is_total=False):
@@ -123,8 +135,11 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 first_values["delegation"] = "delegation_id"
             elif group_by == 'component':
                 if not is_total:
-                    query_filter[f'{comp_string}__groups__id'] = therapeutic_group_id
-                    query_filter[f'{comp_string}__priority__lt'] = 6
+                    if components_ids:
+                        query_filter[f'{comp_string}__id__in'] = components_ids
+                    else:
+                        query_filter[f'{comp_string}__groups__id'] = therapeutic_group_id
+                        query_filter[f'{comp_string}__priority__lt'] = 6
                     first_values['component'] = field_comp
 
             prev_med = "medicament__" if is_mini else ""

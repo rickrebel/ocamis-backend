@@ -151,8 +151,8 @@ class CatalogShortageViz(views.APIView):
         from medicine.models import Component, Group
 
         components = Component.objects\
-            .filter(priority__lt=10)\
-            .order_by("-frequency")
+            .filter(priority__lte=10)\
+            .order_by("priority", "-frequency")
 
         data = {
             # CATÁLOGOS GENERALES:
