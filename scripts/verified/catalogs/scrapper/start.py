@@ -1,11 +1,20 @@
 import requests
 import json
 from bs4 import BeautifulSoup
+from django.conf import settings
 
 
 class Scrapper:
     base_url = "https://www.vademecum.es"
-    common_path = "G:/Mi unidad/YEEKO/Nosotrxs/Cero desabasto/Bases de datos/Medicamentos/"
+    # common_path = "G:/Mi unidad/YEEKO/Nosotrxs/Cero desabasto/Bases de datos/Medicamentos/"
+    # common_path = "G:/Mi unidad/YEEKO/Nosotrxs/Cero desabasto/Bases de datos/Medicamentos/"
+    is_local = settings.IS_LOCAL
+    base_dir = settings.BASE_DIR
+    if is_local:
+        common_path = f"{base_dir}\\fixture\\medicines\\"
+    else:
+        common_path = f"{base_dir}/fixture/medicines/"
+
     json_path = f"{common_path}vademecum.json"
     error_complements = {
         "/cnis/010.000.6239.00/3/Labetalol?cc=mx",
@@ -33,6 +42,7 @@ class Scrapper:
                 self.all_components = json.load(json_file)
         except Exception as e:
             print("error en load_json:", e)
+        print("len(all_components):", len(self.all_components))
         self.soup = None
         self.ready_urls = set()
         self.all_keys = {}

@@ -1,11 +1,8 @@
 
-from scripts.verified.catalogs.compendio import ProcessPDF
-from scripts.verified.catalogs.nutri import ProcessNutri
-from scripts.verified.catalogs.compendio2 import (
-    BuildNewTable, get_pdf_data, main_files, nutri_files, anonymize_responses,
-    common_path)
-from intl_medicine.models import GroupAnswer, Respondent
-
+from scripts.verified.catalogs.medicines.compendio import ProcessPDF
+from scripts.verified.catalogs.medicines.nutri import ProcessNutri
+from scripts.verified.catalogs.medicines.compendio2 import (
+    BuildNewTable, main_files)
 
 # get_pdf_data()
 
@@ -68,7 +65,7 @@ def propagate_prioritized(value=True, update=False):
 
 def identify_duplicates_names():
     from medicine.models import Component
-    from django.db.models import Count, F
+    from django.db.models import Count
     components = Component.objects.values("name")\
         .annotate(count=Count("id")).filter(count__gt=1)
     for comp in components:

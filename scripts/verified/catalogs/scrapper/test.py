@@ -1,5 +1,5 @@
 from scripts.verified.catalogs.scrapper.start import Scrapper
-from scripts.verified.catalogs.compendio2 import special_normalizer
+from scripts.verified.catalogs.medicines.compendio2 import special_normalizer
 
 
 scrapper = Scrapper()

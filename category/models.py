@@ -81,7 +81,7 @@ class FileType(models.Model):
     group = models.CharField(
         max_length=10, choices=GROUP_CHOICES,
         verbose_name="grupo", default="petition")
-    #default_format = models.ForeignKey(
+    # default_format = models.ForeignKey(
     #    FormatFile, on_delete=models.CASCADE, blank=True, null=True)
     addl_params = JSONField(blank=True, null=True)
 

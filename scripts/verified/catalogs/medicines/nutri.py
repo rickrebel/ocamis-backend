@@ -1,8 +1,8 @@
 
-from scripts.verified.catalogs.compendio import ProcessPDF
-from scripts.verified.catalogs.compendio2 import (
+from scripts.verified.catalogs.medicines.compendio import ProcessPDF
+from scripts.verified.catalogs.medicines.compendio2 import (
     nutri_files, special_normalizer)
-from intl_medicine.models import GroupAnswer, Respondent, PrioritizedComponent
+from intl_medicine.models import GroupAnswer, PrioritizedComponent
 from medicine.models import Component, Group
 
 

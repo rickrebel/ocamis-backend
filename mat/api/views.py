@@ -60,6 +60,11 @@ class DrugViewSet(ListRetrieveUpdateMix):
             by_delegation = True
             if not some_drug or not provider_id:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
+        elif group_by == 'therapeutic_group':
+            if not some_geo:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={
+                    'errors': 'Se requiere una institución para desplegar los datos por grupo terapéutico'
+                })
         elif group_by == 'component':
             if not some_geo or (not therapeutic_group_id and not components_ids):
                 required = []
@@ -84,7 +89,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
             except Component.DoesNotExist:
                 has_delegation = False
 
-        if group_by == 'component':
+        if group_by == 'component' or group_by == 'therapeutic_group':
             has_delegation = False
 
         if not has_delegation:
@@ -133,6 +138,10 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 first_values['provider'] = field_ent
             elif by_delegation:
                 first_values["delegation"] = "delegation_id"
+            elif group_by == 'therapeutic_group':
+                if not is_total:
+                    first_values['therapeutic_group'] = f"{comp_string}__groups__id"
+                    # query_filter[f'{comp_string}__groups__id'] = therapeutic_group_id
             elif group_by == 'component':
                 if not is_total:
                     if components_ids:

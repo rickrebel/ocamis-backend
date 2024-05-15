@@ -69,14 +69,10 @@ class Component(models.Model):
         verbose_name="Contraindicaciones y precauciones")
     interactions = models.TextField(
         blank=True, null=True, verbose_name="Interacciones")
-    groups_count = models.IntegerField(
-        default=0, verbose_name="Gpos")
-    groups_pc_count = models.IntegerField(
-        default=0, verbose_name="Gpos. priori")
-    presentations_count = models.IntegerField(
-        default=0, verbose_name="Pres.")
-    containers_count = models.IntegerField(
-        default=0, verbose_name="Cont.")
+    groups_count = models.IntegerField(default=0, verbose_name="Gpos")
+    groups_pc_count = models.IntegerField(default=0, verbose_name="Gpos. priori")
+    presentations_count = models.IntegerField(default=0, verbose_name="Pres.")
+    containers_count = models.IntegerField(default=0, verbose_name="Cont.")
 
     is_vaccine = models.BooleanField(default=False)
 

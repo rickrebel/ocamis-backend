@@ -1,4 +1,4 @@
-from scripts.verified.catalogs.compendio import (
+from scripts.verified.catalogs.medicines.compendio import (
     ProcessPDF, is_every_upper)
 from scripts.verified.catalogs.scrapper.start import Scrapper
 # from scripts.verified.catalogs.standard import (
@@ -76,7 +76,6 @@ def get_pdf_data():
 
 
 def move_components():
-    from report.models import Supply
     from medicine.models import Presentation, Component
     from intl_medicine.models import PrioritizedComponent
     comps = [
@@ -114,8 +113,6 @@ def move_components():
                 good_comp.alternative_names = list(all_names)
                 good_comp.save()
             Presentation.objects.filter(component=bad_comp) \
-                .update(component=good_comp)
-            Supply.objects.filter(component=bad_comp) \
                 .update(component=good_comp)
             bad_pc = PrioritizedComponent.objects.filter(
                 component=bad_comp).first()
