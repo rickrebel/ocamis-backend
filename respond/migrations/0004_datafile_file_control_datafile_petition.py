@@ -4,10 +4,10 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
-def assign_petition_file_control(apps, schema_editor):
-    PetitionFileControl = apps.get_model('inai', 'PetitionFileControl')
-    for pfc in PetitionFileControl.objects.all():
-        pfc.data_files.update(file_control=pfc.file_control, petition=pfc.petition)
+# def assign_petition_file_control(apps, schema_editor):
+#     PetitionFileControl = apps.get_model('inai', 'PetitionFileControl')
+#     for pfc in PetitionFileControl.objects.all():
+#         pfc.data_files.update(file_control=pfc.file_control, petition=pfc.petition)
 
 
 class Migration(migrations.Migration):
@@ -29,5 +29,5 @@ class Migration(migrations.Migration):
             name='petition',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='data_files', to='inai.petition'),
         ),
-        migrations.RunPython(assign_petition_file_control),
+        # migrations.RunPython(assign_petition_file_control),
     ]

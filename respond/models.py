@@ -88,12 +88,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         PetitionFileControl, related_name="data_files", blank=True, null=True,
         on_delete=models.CASCADE)
 
-    petition = models.ForeignKey(
-        Petition, related_name="data_files", blank=True, null=True,
-        on_delete=models.CASCADE)
-    file_control = models.ForeignKey(
-        FileControl, blank=True, null=True, on_delete=models.CASCADE)
-
     stage = models.ForeignKey(
         Stage, blank=True, null=True, on_delete=models.CASCADE,
         default='initial', verbose_name="Etapa actual")
