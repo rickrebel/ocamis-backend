@@ -3,7 +3,7 @@ from inai.admin import ocamis_admin_site
 from inai.models import PetitionFileControl
 
 from .models import (
-    DataGroup, Collection, FinalField, DataType, CleanFunction,
+    OldDataGroup, Collection, FinalField, DataType, CleanFunction,
     ParameterGroup, NameColumn, FileControl, Transformation, DictionaryFile)
 
 
@@ -202,7 +202,7 @@ class DictionaryFileAdmin(admin.ModelAdmin):
 ocamis_admin_site.register(FinalField, FinalFieldAdmin)
 ocamis_admin_site.register(Collection, CollectionAdmin)
 ocamis_admin_site.register(ParameterGroup, ParameterGroupAdmin)
-ocamis_admin_site.register(DataGroup, DataGroupAdmin)
+ocamis_admin_site.register(OldDataGroup, DataGroupAdmin)
 ocamis_admin_site.register(DataType, DataTypeAdmin)
 ocamis_admin_site.register(CleanFunction, CleanFunctionAdmin)
 ocamis_admin_site.register(NameColumn, NameColumnAdmin)

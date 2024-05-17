@@ -28,13 +28,13 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     def retrieve(self, request, *args, **kwargs):
         from respond.models import ReplyFile
         from data_param.models import FileControl
-        from data_param.models import DataGroup
+        from data_param.models import OldDataGroup
 
         petition = self.get_object()
         current_file_ctrl = request.query_params.get("file_ctrl", False)
         file_id = request.query_params.get("file_id", False)
 
-        orphan_group = DataGroup.objects.get(name="orphan")
+        orphan_group = OldDataGroup.objects.get(name="orphan")
         name_control = "Archivos por agrupar. Solicitud %s" % (
             petition.folio_petition)
         prev_file_controls = FileControl.objects.filter(

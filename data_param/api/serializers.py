@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from data_param.models import (
-    DataGroup, Collection, FinalField, DataType, CleanFunction,
+    OldDataGroup, Collection, FinalField, DataType, CleanFunction,
     ParameterGroup, Transformation, NameColumn, FileControl)
 
 
@@ -31,14 +31,14 @@ class FinalFieldVizSerializer(serializers.ModelSerializer):
 class DataGroupSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = DataGroup
+        model = OldDataGroup
         fields = "__all__"
 
 
 class DataGroupFullSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = DataGroup
+        model = OldDataGroup
         fields = "__all__"
 
 
@@ -108,13 +108,13 @@ class FileControlSimpleSerializer(serializers.ModelSerializer):
 
 class FileControlSerializer(FileControlSimpleSerializer):
     # from category.models import FileType
-    from data_param.models import DataGroup
+    from data_param.models import OldDataGroup
     name = serializers.CharField(required=False)
     transformations = TransformationSerializer(
         many=True, source="file_transformations", read_only=True)
     data_group_id = serializers.PrimaryKeyRelatedField(
         write_only=True, source="data_group",
-        queryset=DataGroup.objects.all(), required=False)
+        queryset=OldDataGroup.objects.all(), required=False)
     summary_status = serializers.SerializerMethodField(read_only=True)
     example_file_id = serializers.SerializerMethodField(read_only=True)
 

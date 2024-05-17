@@ -9,7 +9,7 @@ from classify_task.models import Stage, StatusTask
 from transparency.models import Anomaly
 from data_param.models import (
     DataType, FinalField, CleanFunction,
-    DataGroup, Collection, ParameterGroup, FileControl)
+    OldDataGroup, Collection, ParameterGroup, FileControl)
 
 # from .data_file_mixins.matches_mix import MatchesMix
 
@@ -288,7 +288,7 @@ class Petition(models.Model, PetitionTransformsMix):
 
     @property
     def orphan_pet_control(self):
-        orphan_group = DataGroup.objects.get(name="orphan")
+        orphan_group = OldDataGroup.objects.get(name="orphan")
         orphan = self.file_controls\
             .filter(file_control__data_group=orphan_group)\
             .first()

@@ -5,7 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from data_param.models import (
-    DataGroup, Collection, FinalField, DataType, CleanFunction,
+    OldDataGroup, Collection, FinalField, DataType, CleanFunction,
     ParameterGroup, FileControl)
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
@@ -59,7 +59,7 @@ class CatalogView(views.APIView):
             "providers": ProviderCatSerializer(providers_query, many=True).data,
             # CATÁLOGOS DE PARÁMETROS:
             "data_groups": DataGroupSimpleSerializer(
-                DataGroup.objects.all(), many=True).data,
+                OldDataGroup.objects.all(), many=True).data,
             "collections": CollectionSimpleSerializer(
                 Collection.objects.all(), many=True).data,
             "parameter_groups": ParameterGroupSimpleSerializer(

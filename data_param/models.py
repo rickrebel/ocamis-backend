@@ -8,7 +8,7 @@ from transparency.models import Anomaly
 from geo.models import Institution, Delegation, Agency, Provider
 
 
-class DataGroup(models.Model):
+class OldDataGroup(models.Model):
     name = models.CharField(
         max_length=40, verbose_name="Nombre (devs)", blank=True, null=True)
     public_name = models.CharField(
@@ -37,10 +37,40 @@ class DataGroup(models.Model):
         ordering = ['order']
 
 
+class DataGroup(models.Model):
+    name = models.CharField(
+        max_length=40, verbose_name="Nombre (devs)", primary_key=True)
+    public_name = models.CharField(
+        max_length=80, verbose_name="Nombre público")
+    is_default = models.BooleanField(default=False)
+    color = models.CharField(max_length=20, default="lime")
+    order = models.IntegerField(default=5)
+
+    def delete(self, *args, **kwargs):
+        from respond.models import LapSheet
+        some_lap_inserted = LapSheet.objects.filter(
+            sheet_file__data_file__petition_file_control__file_control__data_group=self,
+            inserted=True).exists()
+        if some_lap_inserted:
+            raise Exception("No se puede eliminar un archivo con datos insertados")
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return self.public_name
+
+    class Meta:
+        verbose_name = "Grupo de datos solicitados"
+        verbose_name_plural = "1.1 Grupos de datos solicitados"
+        ordering = ['order']
+
+
 class Collection(models.Model):
     data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE,
+        OldDataGroup, on_delete=models.CASCADE,
         verbose_name="Conjunto de datos")
+    new_data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE,
+        verbose_name="Conjunto de datos nuevo", blank=True, null=True)
     name = models.CharField(
         max_length=225, verbose_name="verbose_name_plural",
         help_text="Nombre del Modelo público (Meta.verbose_name_plural)")
@@ -104,7 +134,9 @@ class ParameterGroup(models.Model):
     icon = models.CharField(max_length=40, blank=True, null=True)
     order = models.IntegerField(default=1)
     data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE) 
+        OldDataGroup, on_delete=models.CASCADE)
+    new_data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -123,7 +155,9 @@ class FileControl(models.Model):
 
     name = models.CharField(max_length=255)
     data_group = models.ForeignKey(
-        DataGroup, on_delete=models.CASCADE)
+        OldDataGroup, on_delete=models.CASCADE)
+    new_data_group = models.ForeignKey(
+        DataGroup, on_delete=models.CASCADE, blank=True, null=True)
     # data_group = models.IntegerField()
     agency = models.ForeignKey(
         Agency, on_delete=models.CASCADE,
