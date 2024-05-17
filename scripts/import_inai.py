@@ -8,7 +8,7 @@ def add_br(val, petition):
     return val.replace("\n", "<br>")
 
 
-def date_mex(val, petition):
+def date_mex(val, petition=None):
     from datetime import datetime
     try:
         return datetime.strptime(val, "%d/%m/%Y")
@@ -18,9 +18,32 @@ def date_mex(val, petition):
         return None
 
 
-def to_json(val, petition):
+def to_json_old(val, petition):
     import json
     return json.loads(val)
+
+
+def to_json(row, petition):
+    from inai.models import Complaint
+    import json
+    value = row.get("informacionQueja")
+    if not value:
+        return
+    try:
+        val = json.loads(value)
+    except Exception as e:
+        print("Error en la conversión a JSON")
+        print(e)
+        return
+    folio_complaint = val.get("EXPEDIENTE", False)
+    if not folio_complaint:
+        return
+    try:
+        complaint = petition.complaints.get(folio_complaint=folio_complaint)
+    except Complaint.DoesNotExist:
+        complaint = Complaint.objects.create(
+            folio_complaint=folio_complaint, petition=petition)
+    complaint.save_json_data(val)
 
 
 def get_status_obj(val, petition):
@@ -241,3 +264,9 @@ def insert_from_json(
         for function in special_functions:
             if created or function[1]:
                 globals()[function[0]](row, main)
+
+
+def recover_complain_data():
+    from inai.models import Complaint
+    for complaint in Complaint.objects.all():
+        complaint.save_json_data(complaint.info_queja_inai)

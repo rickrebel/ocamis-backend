@@ -3,7 +3,7 @@ from rest_framework import serializers
 from data_param.api.serializers import FileControlSerializer, NameColumnSerializer
 from inai.models import (
     Petition, PetitionFileControl, MonthRecord, RequestTemplate, Variable,
-    PetitionBreak, PetitionNegativeReason, WeekRecord)
+    PetitionBreak, PetitionNegativeReason, WeekRecord, Complaint)
 from respond.api.serializers import (
     ReplyFileSerializer, DataFileSerializer, DataFileSimpleSerializer)
 from respond.models import TableFile
@@ -184,6 +184,13 @@ class DataFileCountSerializer(serializers.ModelSerializer):
         return value.count()
 
 
+class ComplaintSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Complaint
+        fields = "__all__"
+
+
 class PetitionSemiFullSerializer(PetitionSmallSerializer):
     petition_file_controls = PetitionFileControlSerializer(
         many=True, source="file_controls")
@@ -191,6 +198,7 @@ class PetitionSemiFullSerializer(PetitionSmallSerializer):
         many=True, read_only=True)
     break_dates = PetitionBreakSerializer(many=True)
     reply_files = ReplyFileSerializer(many=True)
+    complaints = ComplaintSerializer(many=True)
     # reply_files = serializers.SerializerMethodField(read_only=True)
 
     def get_reply_files(self, obj):

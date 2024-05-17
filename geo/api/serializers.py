@@ -269,7 +269,7 @@ class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializ
         prefetch_related = [
             "file_controls", "agency", "break_dates",
             "negative_reasons", "negative_reasons__negative_reason",
-            "reply_files"]
+            "reply_files", "complaints"]
         if obj.is_indirect:
             petitions = Petition.objects\
                 .filter(real_provider=obj)\

@@ -49,7 +49,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
     }
 
     def retrieve(self, request, *args, **kwargs):
-        print("ESTOY EN RETRIEVE")
+        # print("ESTOY EN RETRIEVE")
         self.queryset = Provider.objects.prefetch_related(
             "month_records", "request_templates")
         return super().retrieve(request, *args, **kwargs)

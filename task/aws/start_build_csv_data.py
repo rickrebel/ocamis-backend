@@ -146,7 +146,7 @@ class MatchAws:
         check_rows = "no_valid_row_data" in self.global_transformations
         if check_rows:
             self.required_cols = [col for col in self.existing_fields
-                             if col["required_row"]]
+                                  if col["required_row"]]
         self.copy_invalid_rows = "copy_invalid_rows" in self.global_transformations
 
         if len(amount_fields) == 1:

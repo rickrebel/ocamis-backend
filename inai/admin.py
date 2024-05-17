@@ -3,7 +3,7 @@ from django.contrib.admin import AdminSite
 
 from .models import (
     Petition, PetitionFileControl, MonthRecord, WeekRecord, RequestTemplate,
-    Variable)
+    Variable, Complaint)
 
 
 class OcamisAdminSite(AdminSite):
@@ -62,13 +62,17 @@ class MonthRecordAdmin(admin.ModelAdmin):
     # inlines = [WeekRecordInline]
 
 
+class ComplaintInline(admin.StackedInline):
+    model = Complaint
+    extra = 0
+
+
 class PetitionAdmin(admin.ModelAdmin):
     list_display = [
         "folio_petition",
         "agency",
         "months",
         "months_in_description",
-        "folio_complain",
         "status_data",
         "status_petition",
     ]
@@ -80,20 +84,16 @@ class PetitionAdmin(admin.ModelAdmin):
                 "agency",
                 "real_provider",
                 "month_records",
-                # "notes",
+                "notes",
                 # "template_text",
                 # "request_template",
-                # "send_petition",
-                # "send_response",
-                # "description_petition",
-                # "description_response",
-                # "status_petition",
-                # "status_data",
-                # "invalid_reason",
-                # "ask_extension",
-                # "description_complain",
-                # "old_status_complain",
-                # "folio_complain",
+                "send_petition",
+                "send_response",
+                "description_petition",
+                "description_response",
+                "status_petition",
+                "status_data",
+                "invalid_reason",
             )
         }),
     )
@@ -102,7 +102,7 @@ class PetitionAdmin(admin.ModelAdmin):
         "folio_petition", "agency__acronym", "agency__name",
         "agency__state__short_name"]
     raw_id_fields = ["month_records"]
-    # inlines = [EntityMonthInline]
+    inlines = [ComplaintInline]
     list_filter = ["agency"]
 
 

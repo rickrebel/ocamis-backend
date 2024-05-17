@@ -170,6 +170,15 @@ class PetitionViewSet(ModelViewSet):
             {"error": "Solo se pueden eliminar peticiones en status borrador"},
             status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=["put"], detail=True, url_path='update_valid')
+    def update_valid(self, request, **kwargs):
+        field_to_update = request.data
+        print("field_to_update", field_to_update)
+        petition = self.get_object()
+        setattr(petition, field_to_update, True)
+        petition.save()
+        return Response(status=status.HTTP_200_OK)
+
     @action(methods=["get"], detail=False, url_path='filter')
     def filter(self, request, **kwargs):
         from data_param.models import FileControl

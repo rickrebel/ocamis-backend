@@ -40,8 +40,8 @@ class StatusControl(models.Model):
 
     class Meta:
         ordering = ["group", "order"]
-        verbose_name = "Status de control"
-        verbose_name_plural = "Status de control"
+        verbose_name = "1. Status de control"
+        verbose_name_plural = "1. Status de control"
 
 
 class OldStatusControl(models.Model):

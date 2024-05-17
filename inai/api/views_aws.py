@@ -306,17 +306,18 @@ class OpenDataInaiViewSet(ListRetrieveView):
                 "model_name": "Petition",
                 "final_field": "id_inai_open_data",
             },
-            {
-                "inai_open_search": "informacionQueja",
-                "app_name": "inai",
-                "model_name": "Petition",
-                "final_field": "info_queja_inai",
-                "transform": "to_json",
-            },
+            # {
+            #     "inai_open_search": "informacionQueja",
+            #     "app_name": "inai",
+            #     "model_name": "Petition",
+            #     "final_field": "info_queja_inai",
+            #     "transform": "to_json",
+            # },
         ]
         spec_functions = [
             ("join_url", True),
             ("join_lines", True),
+            ("to_json", True),
             # ("insert_between_months", False)
         ]
         insert_from_json(

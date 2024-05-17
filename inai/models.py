@@ -208,14 +208,12 @@ class Petition(models.Model, PetitionTransformsMix):
         on_delete=models.CASCADE, null=True, blank=True)
     month_records = models.ManyToManyField(
         MonthRecord, blank=True, verbose_name="Meses de la solicitud")
-    notes = models.TextField(blank=True, null=True)
-    template_text = models.TextField(
-        blank=True, null=True, verbose_name="Texto para la plantilla")
-    request_template = models.ForeignKey(
-        RequestTemplate, related_name="petitions",
-        on_delete=models.CASCADE, null=True, blank=True)
-    template_variables = JSONField(
-        blank=True, null=True, verbose_name="Variables de la plantilla")
+    description_petition = models.TextField(
+        verbose_name="descripción enviada",
+        blank=True, null=True)
+    description_response = models.TextField(
+        verbose_name="Respuesta texto",
+        blank=True, null=True)
     send_petition = models.DateField(
         verbose_name="Fecha de envío o recepción",
         blank=True, null=True)
@@ -224,12 +222,6 @@ class Petition(models.Model, PetitionTransformsMix):
         blank=True, null=True)
     response_limit = models.DateField(
         verbose_name="Fecha límite de respuesta",
-        blank=True, null=True)
-    description_petition = models.TextField(
-        verbose_name="descripción enviada",
-        blank=True, null=True)
-    description_response = models.TextField(
-        verbose_name="Respuesta texto",
         blank=True, null=True)
     status_petition = models.ForeignKey(
         StatusControl, null=True, blank=True,
@@ -250,6 +242,15 @@ class Petition(models.Model, PetitionTransformsMix):
         InvalidReason, null=True, blank=True,
         verbose_name="Razón de invalidez",
         on_delete=models.CASCADE)
+    notes = models.TextField(blank=True, null=True)
+    template_text = models.TextField(
+        blank=True, null=True, verbose_name="Texto para la plantilla")
+    request_template = models.ForeignKey(
+        RequestTemplate, related_name="petitions",
+        on_delete=models.CASCADE, null=True, blank=True)
+    template_variables = JSONField(
+        blank=True, null=True, verbose_name="Variables de la plantilla")
+
     # Need to move to own model
     months_verified = models.BooleanField(
         verbose_name="Meses verificados", default=False)
@@ -259,24 +260,10 @@ class Petition(models.Model, PetitionTransformsMix):
         verbose_name="Archivos de respuesta verificados", default=False)
 
     # Complain data, needs to be moved to another model
-    ask_extension = models.BooleanField(
-        blank=True, null=True,
-        verbose_name="Se solicitó extensión")
-    description_complain = models.TextField(
-        verbose_name="Texto de la queja",
-        blank=True, null=True)
-    status_complain = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_complain",
-        verbose_name="Status de la queja",
-        on_delete=models.CASCADE)
-    folio_complain = models.IntegerField(
-        verbose_name="Folio de la queja",
-        blank=True, null=True)
-    info_queja_inai = JSONField(
-        verbose_name="Datos de queja",
-        help_text="Información de la queja en INAI Search",
-        blank=True, null=True)
+    # info_queja_inai = JSONField(
+    #     verbose_name="Datos de queja",
+    #     help_text="Información de la queja en INAI Search",
+    #     blank=True, null=True)
 
     def delete(self, *args, **kwargs):
         from respond.models import LapSheet
@@ -353,6 +340,76 @@ class Petition(models.Model, PetitionTransformsMix):
     class Meta:
         verbose_name = "Solicitud - Petición"
         verbose_name_plural = "1. Solicitudes (Peticiones)"
+
+
+class Complaint(models.Model):
+    petition = models.ForeignKey(
+        Petition, related_name="complaints",
+        on_delete=models.CASCADE)
+    folio_complaint = models.CharField(
+        max_length=50, blank=True, null=True,
+        verbose_name="Expediente")
+    info_queja_inai = JSONField(
+        verbose_name="Datos de queja",
+        help_text="Información de la queja en INAI Search",
+        blank=True, null=True)
+    description = models.TextField(
+        verbose_name="Texto de la queja",
+        blank=True, null=True)
+    status_complaint = models.ForeignKey(
+        StatusControl, related_name="complaints",
+        on_delete=models.CASCADE, blank=True, null=True)
+    date_complaint = models.DateField(
+        verbose_name="Fecha de envío",
+        blank=True, null=True)
+    relevant_data = JSONField(
+        verbose_name="Datos relevantes",
+        help_text="Datos relevantes de la queja",
+        blank=True, null=True)
+
+    def save_json_data(self, data):
+        from scripts.import_inai import date_mex
+        from category.models import StatusControl
+        self.info_queja_inai = data
+        description = data.get("ACTO_RECURRIDO", "")
+        if description:
+            self.description = description
+        date_complaint = data.get("FECHA_OFICIAL")
+        if date_complaint:
+            self.date_complaint = date_mex(date_complaint)
+        status_name = data.get("SENTIDO_RESOLUCION")
+        if status_name:
+            status_lower = status_name.lower()
+            try:
+                status_complaint = StatusControl.objects.get(
+                    name=status_lower, group="complain")
+            except StatusControl.DoesNotExist:
+                description_status = f"Nombre oficial: {status_name}"
+                status_complaint = StatusControl.objects.create(
+                    name=status_lower,
+                    public_name=status_name,
+                    official_name=status_name,
+                    description=description_status,
+                    color="pink accent-4",
+                    group="complain")
+            self.status_complaint = status_complaint
+        irrelevant_fields = [
+            "EXPEDIENTE", "FECHA_OFICIAL", "FOLIO_SOLICITUD", "SUJETO_OBLIGADO",
+            "ID_ORGANO_GARANTE", "ID_MEDIO_IMPUGNACION", "SENTIDO_RESOLUCION",
+            "TIPO_MEDIO_IMPUGNACION", "ACTO_RECURRIDO", "ID_SUJETO_OBLIGADO"]
+        relevant_data = {}
+        for key, value in data.items():
+            if value and key not in irrelevant_fields:
+                relevant_data[key] = value
+        self.relevant_data = relevant_data
+        self.save()
+
+    def __str__(self):
+        return f"{self.folio_complaint} - {self.petition}"
+
+    class Meta:
+        verbose_name = "Queja"
+        verbose_name_plural = "2. Quejas"
 
 
 class PetitionBreak(models.Model):
