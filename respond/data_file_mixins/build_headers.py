@@ -40,7 +40,7 @@ class BuildComplexHeaders:
         try:
             df_headers = first_valid_sheet["headers"]
             file_control = self.data_file.petition_file_control.file_control
-            data_groups = [file_control.data_group.name, 'catalogs']
+            data_groups = [file_control.data_group_id, 'catalogs']
             # print(data_groups)
             std_names_headers = [
                 text_normalizer(head, True) for head in df_headers]
@@ -48,7 +48,7 @@ class BuildComplexHeaders:
                 final_field__isnull=False,
                 name_in_data__isnull=False,
                 std_name_in_data__in=std_names_headers,
-                final_field__parameter_group__data_group__name__in=data_groups
+                final_field__parameter_group__data_group_id__in=data_groups
             ).prefetch_related(
                 'final_field__parameter_group', 'column_transformations',
                 'file_control__agency')

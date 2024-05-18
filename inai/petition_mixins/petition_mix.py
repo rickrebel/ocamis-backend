@@ -12,7 +12,7 @@ class PetitionTransformsMix:
         agency_file_controls = FileControl.objects.filter(
             petition_file_control__petition__agency=self.agency,
             file_format__isnull=False) \
-            .exclude(data_group__name="orphan") \
+            .exclude(data_group_id="orphan") \
             .prefetch_related("columns") \
             .distinct()
         all_errors = []

@@ -23,7 +23,7 @@ def fetch_agencies(include_groups):
     #     .filter(year_month__lte="2023-02")
     # prefetch_month = Prefetch("months", queryset=filter_month)
     filter_file_control = FileControl.objects\
-        .filter(data_group__name__in=include_groups)
+        .filter(data_group_id__in=include_groups)
     prefetch_file_control = Prefetch(
         "petitions__file_controls__file_control",
         queryset=filter_file_control)
@@ -44,7 +44,7 @@ def fetch_agencies(include_groups):
             # "petitions__petition_months__month_agency",
             # prefetch_file_control,
             "petitions__file_controls__file_control",
-            "petitions__file_controls__file_control__data_group",
+            "petitions__file_controls__file_control",
             prefetch_columns,
             "petitions__file_controls__file_control__columns__final_field",
             "petitions__file_controls__file_control"

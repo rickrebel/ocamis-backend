@@ -131,9 +131,8 @@ class AgencyFileControlsSerializer(serializers.ModelSerializer):
         queryset = FileControl.objects\
             .filter(agency=obj)\
             .distinct()\
-            .order_by("data_group", "id")\
+            .order_by("data_group__order", "id")\
             .prefetch_related(
-                "data_group",
                 "columns",
                 "columns__column_transformations",
             )
@@ -150,19 +149,18 @@ class ProviderFileControlsSerializer(serializers.ModelSerializer):
     def get_file_controls(self, obj):
         from data_param.models import FileControl
         from data_param.api.serializers import FileControlSemiFullSerializer
-        prefetch_related = [
-            "data_group", "columns", "columns__column_transformations"]
+        prefetch_related = ["columns", "columns__column_transformations"]
         if obj.is_indirect:
             queryset = FileControl.objects\
                 .filter(real_provider=obj)\
                 .distinct()\
-                .order_by("data_group", "id")\
+                .order_by("data_group__order", "id")\
                 .prefetch_related(*prefetch_related)
         else:
             queryset = FileControl.objects\
                 .filter(agency__provider=obj)\
                 .distinct()\
-                .order_by("data_group", "id")\
+                .order_by("data_group__order", "id")\
                 .prefetch_related(*prefetch_related)
         return FileControlSemiFullSerializer(queryset, many=True).data
 

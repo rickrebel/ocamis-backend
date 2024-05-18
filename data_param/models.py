@@ -19,15 +19,6 @@ class OldDataGroup(models.Model):
         default=False, verbose_name="Puede tener porcentajes")
     order = models.IntegerField(default=5)
 
-    def delete(self, *args, **kwargs):
-        from respond.models import LapSheet
-        some_lap_inserted = LapSheet.objects.filter(
-            sheet_file__data_file__petition_file_control__file_control__data_group=self,
-            inserted=True).exists()
-        if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
-        super().delete(*args, **kwargs)
-
     def __str__(self):
         return self.public_name
 
@@ -66,9 +57,6 @@ class DataGroup(models.Model):
 
 class Collection(models.Model):
     data_group = models.ForeignKey(
-        OldDataGroup, on_delete=models.CASCADE,
-        verbose_name="Conjunto de datos")
-    new_data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE,
         verbose_name="Conjunto de datos nuevo", blank=True, null=True)
     name = models.CharField(
@@ -134,8 +122,6 @@ class ParameterGroup(models.Model):
     icon = models.CharField(max_length=40, blank=True, null=True)
     order = models.IntegerField(default=1)
     data_group = models.ForeignKey(
-        OldDataGroup, on_delete=models.CASCADE)
-    new_data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
@@ -155,10 +141,7 @@ class FileControl(models.Model):
 
     name = models.CharField(max_length=255)
     data_group = models.ForeignKey(
-        OldDataGroup, on_delete=models.CASCADE)
-    new_data_group = models.ForeignKey(
         DataGroup, on_delete=models.CASCADE, blank=True, null=True)
-    # data_group = models.IntegerField()
     agency = models.ForeignKey(
         Agency, on_delete=models.CASCADE,
         verbose_name="Entidad", blank=True, null=True)
@@ -230,14 +213,10 @@ class FileControl(models.Model):
         super().delete(*args, **kwargs)
 
     def __str__(self):
-        #all_agencies = Agency.objects.filter(
-        #    petitions__file_controls__petition__agency=self).distinct()\
-        #        .value_list("acronym", flat=True)
         return f"{self.id}. {self.name}"
-        #return self.name
 
     class Meta:
-        #unique_together = ["data_group", "name"]
+        # unique_together = ["data_group", "name"]
         verbose_name = "Grupo de control de archivos"
         verbose_name_plural = "3.1 Grupos de control de archivos"
 

@@ -42,8 +42,8 @@ def build_dict(only_data_files=False):
                 'file_name': file_name,
             }
             if only_data_files and model_obj.petition_file_control:
-                current_elem['data_group'] = \
-                    model_obj.petition_file_control.file_control.data_group.name
+                current_elem['data_group_id'] = \
+                    model_obj.petition_file_control.file_control.data_group_id
             if files_in_db.get(file_name):
                 files_in_db[file_name].append(current_elem)
                 continue
@@ -71,7 +71,7 @@ def analyze_rep_files():
     for file in rep_files2:
         models = [elem['model_name'] for elem in file]
         has_many_data_files = models.count('data_file') >= 2
-        detailed = [elem for elem in file if elem['data_group'] == 'detailed']
+        detailed = [elem for elem in file if elem['data_group_id'] == 'detailed']
         has_many_detailed = len(detailed) >= 2
         if has_many_data_files and has_many_detailed:
             # print("Data files: ", file)

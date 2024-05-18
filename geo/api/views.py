@@ -241,7 +241,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
             all_agencies, many=True, context={'request': request})
         detailed_controls_query = FileControl.objects\
             .filter(
-                data_group__name="detailed",
+                data_group_id="detailed",
                 petition_file_control__isnull=False
             )\
             .prefetch_related(

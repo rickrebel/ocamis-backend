@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from data_param.models import (
-    OldDataGroup, Collection, FinalField, DataType, CleanFunction,
+    DataGroup, Collection, FinalField, DataType, CleanFunction,
     ParameterGroup, Transformation, NameColumn, FileControl)
 
 
@@ -31,14 +31,14 @@ class FinalFieldVizSerializer(serializers.ModelSerializer):
 class DataGroupSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = OldDataGroup
+        model = DataGroup
         fields = "__all__"
 
 
 class DataGroupFullSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = OldDataGroup
+        model = DataGroup
         fields = "__all__"
 
 
@@ -98,23 +98,15 @@ class NameColumnHeadersSerializer(serializers.ModelSerializer):
                   "transformations", "std_name_in_data", "provider"]
 
 
-class FileControlSimpleSerializer(serializers.ModelSerializer):
-    data_group = DataGroupSimpleSerializer(read_only=True)
-
-    class Meta:
-        model = FileControl
-        fields = "__all__"
-
-
-class FileControlSerializer(FileControlSimpleSerializer):
+class FileControlSerializer(serializers.ModelSerializer):
     # from category.models import FileType
-    from data_param.models import OldDataGroup
+    # from data_param.models import DataGroup
     name = serializers.CharField(required=False)
     transformations = TransformationSerializer(
         many=True, source="file_transformations", read_only=True)
-    data_group_id = serializers.PrimaryKeyRelatedField(
-        write_only=True, source="data_group",
-        queryset=OldDataGroup.objects.all(), required=False)
+    # data_group_id = serializers.PrimaryKeyRelatedField(
+    #     write_only=True, source="data_group",
+    #     queryset=DataGroup.objects.all(), required=False)
     summary_status = serializers.SerializerMethodField(read_only=True)
     example_file_id = serializers.SerializerMethodField(read_only=True)
 
@@ -142,6 +134,10 @@ class FileControlSerializer(FileControlSimpleSerializer):
         if last_sheet_file:
             return last_sheet_file.data_file_id
         return None
+
+    class Meta:
+        model = FileControl
+        fields = "__all__"
 
 
 class FileControlSemiFullSerializer(FileControlSerializer):

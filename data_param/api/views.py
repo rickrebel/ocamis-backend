@@ -277,7 +277,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             if status_id is not None:
                 all_filters["petition_file_control__data_files__status_id"] = status_id
 
-            order = ["agency__acronym", "name", "data_group__name"]
+            order = ["agency__acronym", "name", "data_group"]
             controls = FileControl.objects.all().prefetch_related(
                 "data_group",
                 "columns",
@@ -388,7 +388,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         petition = file_control.petition_file_control.petition
         orphan_files = DataFile.objects.filter(
             petition_file_control__petition=petition,
-            petition_file_control__file_control__data_group__name="orphan",
+            petition_file_control__file_control__data_group_id="orphan",
         )
         if orphan_files.exists():
             key_task, task_params = build_task_params(

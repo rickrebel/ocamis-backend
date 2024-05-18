@@ -15,7 +15,7 @@ class ExtractorsMix:
         status_error = 'explore|with_errors' if is_explore else 'extraction|with_errors'
         if not file_control:
             file_control = data_file.petition_file_control.file_control
-        is_orphan = file_control.data_group.name == "orphan"
+        is_orphan = file_control.data_group_id == "orphan"
         new_task = None
         current_sheets = ["default"]
         same_suffix = True
@@ -216,7 +216,7 @@ class ExtractorsMix:
         decode = kwargs.get("decode")
         if decode:
             file_control = self.petition_file_control.file_control
-            if not file_control.decode and file_control.data_group.name != 'orphan':
+            if not file_control.decode and file_control.data_group_id != 'orphan':
                 file_control.decode = decode
                 file_control.save()
         return [], [], self
@@ -242,7 +242,7 @@ class ExtractorsMix:
         decode = kwargs.get("decode")
         if decode:
             file_control = self.petition_file_control.file_control
-            if not file_control.decode and file_control.data_group.name != 'orphan':
+            if not file_control.decode and file_control.data_group_id != 'orphan':
                 file_control.decode = decode
                 file_control.save()
         if self.stage_id == "explore":

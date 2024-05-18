@@ -288,16 +288,15 @@ class Petition(models.Model, PetitionTransformsMix):
 
     @property
     def orphan_pet_control(self):
-        orphan_group = OldDataGroup.objects.get(name="orphan")
         orphan = self.file_controls\
-            .filter(file_control__data_group=orphan_group)\
+            .filter(file_control__data_group_id="orphan")\
             .first()
         if not orphan:
             name_control = "Archivos por agrupar. Solicitud %s" % (
                 self.folio_petition)
             file_control, created = FileControl.objects.get_or_create(
                 name=name_control,
-                data_group=orphan_group,
+                data_group_id="orphan",
                 final_data=False,
                 agency=self.agency,
             )

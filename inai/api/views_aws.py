@@ -34,11 +34,10 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         current_file_ctrl = request.query_params.get("file_ctrl", False)
         file_id = request.query_params.get("file_id", False)
 
-        orphan_group = OldDataGroup.objects.get(name="orphan")
         name_control = "Archivos por agrupar. Solicitud %s" % (
             petition.folio_petition)
         prev_file_controls = FileControl.objects.filter(
-            data_group=orphan_group,
+            data_group_id='orphan',
             petition_file_control__petition=petition)
         created = False
         if prev_file_controls.exists():
@@ -46,7 +45,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         else:
             file_control, created = FileControl.objects.get_or_create(
                 name=name_control,
-                data_group=orphan_group,
+                data_group_id='orphan',
                 final_data=False,
                 agency=petition.agency,
             )
@@ -73,7 +72,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                     filter(reply_file=reply_file)
                 if children_files.exists():
                     if not children_files.filter(
-                        petition_file_control__file_control__data_group__name='orphan'
+                        petition_file_control__file_control__data_group_id='orphan'
                     ).exists():
                         continue
                     new_tasks, new_errors = petition.find_matches_in_children(

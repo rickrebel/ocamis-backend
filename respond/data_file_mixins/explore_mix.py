@@ -204,7 +204,7 @@ class ExploreMix:
         all_data_files = {}
         same_data_files = DataFile.objects\
             .filter(file=self.file)\
-            .exclude(petition_file_control__file_control__data_group__name="orphan")
+            .exclude(petition_file_control__file_control__data_group_id="orphan")
         for df in same_data_files:
             all_data_files[df.petition_file_control_id] = df
         # name_columns_simple = NameColumn.objects.filter(
