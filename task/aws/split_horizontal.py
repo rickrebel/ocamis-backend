@@ -25,12 +25,12 @@ def lambda_handler(event, context):
 
 
 class SplitAws:
-    destinations = []
-    final_path = ""
 
     def __init__(self, init_data: dict, context, s3):
         for key, value in init_data.items():
             setattr(self, key, value)
+        self.destinations = []
+        self.final_path = ""
 
         self.s3_utils = BotoUtils(s3)
         self.context = context

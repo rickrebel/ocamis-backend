@@ -433,6 +433,25 @@ def comprobate_brothers(current_task, status_task_id):
     return current_task
 
 
+def has_enough_balance(task_function) -> bool:
+    raise NotImplementedError
+
+
+def comprobate_waiting_balance():
+    from task.models import AsyncTask
+    from task.serverless import execute_async
+    waiting_balance_task = AsyncTask.objects\
+        .filter(status_task_id="queue", task_function__ebs_percent__gt=0)\
+        .order_by("id").first()
+    if waiting_balance_task:
+        if has_enough_balance(waiting_balance_task.task_function):
+            execute_async(
+                waiting_balance_task, waiting_balance_task.original_request)
+        else:
+            # Volver a enviar la misma tarea en 5 minutos
+            return
+
+
 def comprobate_queue(current_task):
     from task.serverless import execute_async
     # from django.conf import settings
@@ -452,10 +471,17 @@ def comprobate_queue(current_task):
         if task_function.ebs_percent:
             pending_rds_tasks = AsyncTask.objects.filter(
                 task_function__ebs_percent__gt=0,
-                status_task__is_completed=False)
+                status_task_id="queue")
             if pending_rds_tasks.exists():
-                next_task = pending_rds_tasks.order_by("id").first()
-                execute_async(next_task, next_task.original_request)
+                has_balance = has_enough_balance(task_function)
+                if has_balance:
+                    next_task = pending_rds_tasks.order_by("id").first()
+                    execute_async(next_task, next_task.original_request)
+                else:
+                    # Aquí me quedé en qué deberíamos hacer, tal vez enviar
+                    # la tarea comprobate_waiting_balance para que se ejecute
+                    # dentro de 5 minutos
+                    return
             return
         queue_tasks = AsyncTask.objects.filter(
             task_function=task_function,
