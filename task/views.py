@@ -1,7 +1,11 @@
+import boto3
+import threading
+import time
+
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from classify_task.models import TaskFunction
 from task.models import AsyncTask
@@ -11,6 +15,7 @@ from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
 from inai.misc_mixins.month_record_mix import FromAws as MonthRecord
 from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
 from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
+from scripts.common import build_s3
 
 
 def calculate_special_function(special_function):
@@ -179,7 +184,8 @@ class AWSMessage(generic.View):
             new_result.update(current_task.params_after or {})
             current_task.save()
             function_after = current_task.function_after
-            execute_function_aws(current_task, function_after, new_result, errors)
+            execute_function_aws(
+                current_task, function_after, new_result, errors)
             response = "success"
         except Exception as e:
             print("ERROR AL GUARDAR 1: ", e)
@@ -434,7 +440,63 @@ def comprobate_brothers(current_task, status_task_id):
 
 
 def has_enough_balance(task_function) -> bool:
-    raise NotImplementedError
+
+    service = 'cloudwatch'
+    credentials = build_s3()
+    boto_client = boto3.client(
+        service,
+        aws_access_key_id=credentials["aws_access_key_id"],
+        aws_secret_access_key=credentials["aws_secret_access_key"],
+        region_name=credentials["region_aws"],
+    )
+
+    start_time_30_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+    response = boto_client.get_metric_data(
+        MetricDataQueries=[
+            {
+                'Id': 'm1',
+                'MetricStat': {
+                    'Metric': {
+                        'Namespace': 'AWS/RDS',
+                        'MetricName': 'EBSByteBalance%',
+                        'Dimensions': [
+                            {
+                                'Name': 'DBInstanceIdentifier',
+                                'Value': 'alldatabases'
+                            },
+                        ]
+                    },
+                    'Period': 60,
+                    'Stat': 'Average'
+                },
+                'ReturnData': True,
+            },
+        ],
+        StartTime=start_time_30_minutes_ago.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        EndTime=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+
+    if not type(response) == dict:
+        return False
+
+    MetricDataResults = response.get("MetricDataResults", [])
+    if not MetricDataResults or not type(MetricDataResults) == list:
+        return False
+    metric_data = MetricDataResults[0].get("Values", [])
+
+    if not metric_data or not type(metric_data) == list:
+        return False
+
+    ebs_percent = metric_data[0]
+
+    return ebs_percent >= 80
+
+
+def delayed_execution(method, delay):
+    def wrapper():
+        time.sleep(delay)
+        method()
+    threading.Thread(target=wrapper).start()
 
 
 def comprobate_waiting_balance():
@@ -448,7 +510,7 @@ def comprobate_waiting_balance():
             execute_async(
                 waiting_balance_task, waiting_balance_task.original_request)
         else:
-            # Volver a enviar la misma tarea en 5 minutos
+            delayed_execution(comprobate_waiting_balance, 300)
             return
 
 
@@ -478,9 +540,7 @@ def comprobate_queue(current_task):
                     next_task = pending_rds_tasks.order_by("id").first()
                     execute_async(next_task, next_task.original_request)
                 else:
-                    # Aquí me quedé en qué deberíamos hacer, tal vez enviar
-                    # la tarea comprobate_waiting_balance para que se ejecute
-                    # dentro de 5 minutos
+                    delayed_execution(comprobate_waiting_balance, 300)
                     return
             return
         queue_tasks = AsyncTask.objects.filter(
@@ -606,6 +666,3 @@ def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):
 
 
 # resend_error_tasks("save_csv_in_db", "e04f5607-5542-4fee-a7c7-1badb598447a")
-
-
-
