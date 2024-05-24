@@ -489,7 +489,7 @@ def has_enough_balance(task_function) -> bool:
 
     ebs_percent = metric_data[0]
 
-    return ebs_percent >= 80
+    return ebs_percent >= task_function.ebs_percent
 
 
 def delayed_execution(method, delay):
