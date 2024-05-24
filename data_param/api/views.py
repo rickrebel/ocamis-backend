@@ -9,9 +9,9 @@ from inai.api.serializers import (
     PetitionSemiFullSerializer, PetitionFileControlDeepSerializer,
     FileControlFullSerializer, TransformationEditSerializer,
     NameColumnEditSerializer)
-from respond.api.serializers import DataFileSerializer
+from respond.api.serializers import DataFileSerializer, SheetFileSerializer
 from inai.models import PetitionFileControl
-from respond.models import DataFile
+from respond.models import DataFile, SheetFile
 from task.views import build_task_params, comprobate_status
 from . import serializers
 from rest_framework.response import Response
@@ -187,7 +187,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         data_files = DataFile.objects\
             .filter(petition_file_control__file_control=file_control) \
             .order_by("-id")\
-            .prefetch_related("sheet_files", "petition_file_control")
+            .prefetch_related(
+                "sheet_files", "petition_file_control", "sheet_files__laps")
         limiters = request.query_params.get("limiters", None)
         limiters = json.loads(limiters)
         available_filters = [
@@ -232,6 +233,30 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         data = {
             "total_count": total_count,
             "data_files": serializer_files,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], detail=True, url_path='sheet_files')
+    def sheet_files(self, request, **kwargs):
+        import json
+        from django.db.models import Q
+        file_control = self.get_object()
+        sheet_files = SheetFile.objects\
+            .filter(data_file__petition_file_control__file_control=file_control) \
+            .order_by("-id")\
+            .prefetch_related("laps")
+        limiters = request.query_params.get("limiters", None)
+        limiters = json.loads(limiters)
+
+        # print("STS_PROCESS", sts_process)
+        total_count = sheet_files.count()
+        page_size = limiters.get("page_size", 30)
+        page = limiters.get("page", 1) - 1
+        final_sheets = sheet_files[page * page_size:(page + 1) * page_size]
+        serializer_files = SheetFileSerializer(final_sheets, many=True).data
+        data = {
+            "total_count": total_count,
+            "sheet_files": serializer_files,
         }
         return Response(data, status=status.HTTP_200_OK)
 

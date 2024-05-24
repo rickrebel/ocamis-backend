@@ -39,6 +39,7 @@ def execute_async(current_task, params):
         # payload_response = json.loads(response['Payload'].read())
         # print("payload_response", payload_response)
         print("function_name", function_name)
+
         def run_in_thread():
             class Context:
                 def __init__(self, request_id):
