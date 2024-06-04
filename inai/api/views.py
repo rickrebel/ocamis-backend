@@ -341,6 +341,8 @@ class MonthRecordViewSet(CreateRetrieveView):
     def retrieve(self, request, **kwargs):
         from respond.api.serializers import SheetFileMonthSerializer
         from task.models import ClickHistory
+        from data_param.models import FileControl
+
         month_record = self.get_object()
         ClickHistory.objects.create(
             month_record=month_record, user=request.user)
@@ -375,10 +377,15 @@ class MonthRecordViewSet(CreateRetrieveView):
 
         serializer_crossing_sheets = respond.api.serializers.CrossingSheetSimpleSerializer(
             all_crossing_sheets, many=True)
+        file_controls = FileControl.objects.filter(
+            petition_file_control__data_files__sheet_files__laps__table_files__week_record__month_record=month_record)\
+            .distinct()
+        file_controls_ids = file_controls.values_list("id", flat=True)
         return Response({
             "sheet_files": serializer_sheet_files.data,
             "related_sheets": serializer_related_files.data,
-            "crossing_sheets": serializer_crossing_sheets.data
+            "crossing_sheets": serializer_crossing_sheets.data,
+            "file_controls": file_controls_ids,
         })
 
     @action(detail=True, methods=["post"], url_path="change_behavior")

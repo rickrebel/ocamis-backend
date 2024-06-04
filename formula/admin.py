@@ -46,7 +46,6 @@ class DrugAdmin(admin.ModelAdmin):
         "sheet_file_id",
         "prescribed_amount",
         "delivered_amount",
-        "price",
     ]
     readonly_fields = [
         "rx", "sheet_file_id", "lap_sheet_id", "medicament", "delivered"]
@@ -63,5 +62,5 @@ class DeliveredAdmin(admin.ModelAdmin):
 
 admin.site.register(DocumentType, DocumentTypeAdmin)
 admin.site.register(Rx, RxAdmin)
-admin.site.register(Drug, DrugAdmin)
+# admin.site.register(Drug, DrugAdmin)
 admin.site.register(Delivered, DeliveredAdmin)

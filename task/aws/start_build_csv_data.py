@@ -49,7 +49,7 @@ def lambda_handler(event, context):
 
 
 class MatchAws:
-    models_to_save = ["drug", "rx"]
+    models_to_save = ["drug", "rx", "unique_helpers"]
     med_cat_flat_fields = {}
     initial_data = {}
 
@@ -90,7 +90,7 @@ class MatchAws:
         self.global_delivered = None
         self.real_models = None
         self.global_clues = None
-        self.model_fields = None
+        self.model_fields = {}
         self.cat_keys = {}
         self.med_cat_models = []
         self.decode_final = 'utf-8'
@@ -106,9 +106,17 @@ class MatchAws:
         self.totals_by_date = {}
         self.errors_count = 0
         self.is_prepare = False
+        # self.unique_helpers = ["medicament_key", "medical_unit_key"]
 
         for key, value in init_data.items():
             setattr(self, key, value)
+
+        self.model_fields["unique_helpers"] = [
+            {"name": "medicament_key", "is_relation": False},
+            {"name": "medical_unit_key", "is_relation": False},
+        ]
+
+
 
         self.report = Report()
         self.string_date = init_data["string_date"].strip()
@@ -201,7 +209,6 @@ class MatchAws:
                 if field_name == "hex_hash":
                     continue
                 value = None
-                field["name"] = field_name
                 field["default_value"] = None
                 if field["is_relation"]:
                     if field_name == "provider_id" and not is_medicament:
@@ -554,10 +561,14 @@ class MatchAws:
                     origin_values.append(row[origin_col["position"]])
                 elif origin_col.get("final_value"):
                     origin_values.append(origin_col["final_value"])
+                elif origin_col.get("global_variable"):
+                    origin_values.append(origin_col["global_variable"])
                 else:
                     raise Exception("No se puede construir la columna")
             # concat_char = built_col.get("t_value", "")
             concat_char = built_col.get("only_params_child")
+            if concat_char is True:
+                concat_char = ""
             built_value = concat_char.join(origin_values)
             available_data[built_col["name"]] = built_value
 
@@ -757,6 +768,7 @@ class MatchAws:
         is_medicament = cat_name == "medicament"
         is_diagnosis = cat_name == "diagnosis"
         own_key_alt = None
+        medicament_key = None
         for flat_field in flat_fields:
             field_name = flat_field["name"]
             value = available_data.get(f"{cat_name}_{field_name}", None)
@@ -775,8 +787,11 @@ class MatchAws:
             if value and is_medicament:
                 if field_name == "key2":
                     value = value.replace(".", "")
+                    medicament_key = value
                 if field_name == "own_key2":
-                    all_values[0] = self.provider_id
+                    all_values.insert(0, self.provider_id)
+                    if not medicament_key:
+                        medicament_key = value
             elif is_med_unit and not value:
                 value = flat_field["default_value"]
             if value is not None:
@@ -824,12 +839,18 @@ class MatchAws:
             value_string = value_string.encode(self.decode_final)
             hash_id = hashlib.md5(value_string).hexdigest()
             add_hash_to_cat(hash_id, all_values)
+
+        if medicament_key:
+            available_data["medicament_key"] = medicament_key
         available_data[f"{cat_name}_id"] = hash_id
         return available_data
 
     def build_headers(self, cat_name, need_return=False):
-        fields = self.model_fields[cat_name]
-        headers = [field["name"] for field in fields]
+        if cat_name == "unique_helpers":
+            headers = ["medicament_key", "medical_unit_key"]
+        else:
+            fields = self.model_fields[cat_name]
+            headers = [field["name"] for field in fields]
         if need_return:
             return headers
         else:

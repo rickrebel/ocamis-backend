@@ -94,7 +94,7 @@ class Drug(models.Model):
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
     date_created = models.DateTimeField(blank=True, null=True)
     date_closed = models.DateTimeField(blank=True, null=True)
-    price = models.FloatField(blank=True, null=True)
+    # price = models.FloatField(blank=True, null=True)
     week_record_id = models.IntegerField(blank=True, null=True)
 
     class Meta:
@@ -159,6 +159,7 @@ class ComplementDrug(models.Model):
         max_length=80, blank=True, null=True, verbose_name='Lote')
     expiration_date = models.DateField(
         blank=True, null=True, verbose_name='Fecha de caducidad')
+    price = models.FloatField(blank=True, null=True)
     total_price = models.FloatField(blank=True, null=True)
 
     class Meta:

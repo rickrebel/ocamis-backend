@@ -193,6 +193,7 @@ class FromAws:
     def send_analysis(self):
         # import time
         from respond.models import TableFile
+        from data_param.models import FileControl, NameColumn
 
         all_tasks = []
         insert_stage = Stage.objects.get(name="insert")
@@ -204,6 +205,27 @@ class FromAws:
                 week_record__month_record=self.month_record,
                 collection__isnull=True,
             ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
+
+        laps = "petition_file_control__data_files__sheet_files__laps"
+        months = "__table_files__week_record__month_record"
+        filter_fc = {f"{laps}{months}": self.month_record}
+        file_controls = FileControl.objects.filter(**filter_fc).distinct()
+        unique_medicines = set()
+        medicine_key = None
+        for file_control in file_controls:
+            medicine_field = file_control.columns\
+                .filter(
+                    final_field__is_unique=True,
+                    final_field__collection__model_name="Medicament")\
+                .order_by("final_field__is_common", "final_field__name")\
+                .first()
+            if not medicine_field:
+                return all_tasks, ["No se encontró campo de medicamento"], True
+            unique_medicines.add(medicine_field.final_field_id)
+        if len(unique_medicines) > 1:
+            return all_tasks, ["Más de un campo de medicamento"], True
+        elif len(unique_medicines) == 1:
+            medicine_key = unique_medicines.pop()
 
         for week in self.month_record.weeks.all():
             # if week.last_crossing and week.last_transformation:
@@ -217,7 +239,8 @@ class FromAws:
             file_names = table_files.values_list("file", flat=True)
             params = {
                 "provider_id": week.provider_id,
-                "table_files": list(file_names)
+                "table_files": list(file_names),
+                "has_medicine_key": bool(medicine_key),
             }
             self.task_params["models"] = [week, self.month_record]
             self.task_params["function_after"] = "analyze_uniques_after"
