@@ -127,8 +127,8 @@ class CrossingSheetSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CrossingSheet
-        fields = [
-            "sheet_file_1", "sheet_file_2", "duplicates_count", "shared_count"]
+        fields = ["sheet_file_1", "sheet_file_2", "duplicates_count",
+                  "shared_count", "month_record"]
 
 
 class DataFileSimpleSerializer(serializers.ModelSerializer):
@@ -197,6 +197,7 @@ class SheetFileMonthSerializer(SheetFileSimpleSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
     table_sums = serializers.SerializerMethodField(read_only=True)
+    month_table_sums = serializers.SerializerMethodField(read_only=True)
     data_file = DataFileSerializer(read_only=True)
     file_control = serializers.IntegerField(
         source="data_file.petition_file_control.file_control_id")
@@ -216,6 +217,19 @@ class SheetFileMonthSerializer(SheetFileSimpleSerializer):
         result_with_init_names = {
             field: result_sums[f"{field}__sum"] for field in sum_fields}
         return result_with_init_names
+
+    def get_month_table_sums(self, obj):
+        from django.db.models import Sum, F
+        month_record = self.context.get("month_record")
+        sum_fields = [
+            "rx_count", "duplicates_count", "shared_count", "drugs_count"]
+        query_sums = [Sum(field) for field in sum_fields]
+        last_lap = obj.laps.filter(lap=0).first()
+        result_sums = last_lap.table_files\
+            .filter(collection__isnull=True,
+                    week_record__month_record=month_record)\
+            .aggregate(*query_sums)
+        return {field: result_sums[f"{field}__sum"] for field in sum_fields}
 
     class Meta:
         model = SheetFile

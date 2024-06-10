@@ -1073,9 +1073,9 @@ class MatchAws:
                      "year", "month"]
         for variable in variables:
             available_data[variable] = locals().get(variable)
-        available_data["date_created"] = available_data.get(
-            "date_release") or available_data.get("date_visit")
-        available_data["date_closed"] = available_data.get("date_delivery")
+        # available_data["date_created"] = available_data.get(
+        #     "date_release") or available_data.get("date_visit")
+        # available_data["date_closed"] = available_data.get("date_delivery")
         folio_document = available_data.get("folio_document")
         if not folio_document:
             raise NotImplementedError("No se encontró folio documento; sin ejemplo")

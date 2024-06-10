@@ -1,22 +1,23 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
-import respond.api
 from api.mixins import MultiSerializerModelViewSet, MultiSerializerCreateRetrieveMix as CreateRetrieveView, \
     MultiSerializerListRetrieveUpdateMix as ListRetrieveUpdateMix
 from inai.models import Petition, PetitionFileControl
 from respond.models import ReplyFile, DataFile, SheetFile
+from . import serializers
 
 
 class ReplyFileViewSet(MultiSerializerModelViewSet):
     queryset = ReplyFile.objects.all()
-    serializer_class = respond.api.serializers.ReplyFileSerializer
+    serializer_class = serializers.ReplyFileSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "list": respond.api.serializers.ReplyFileSerializer,
-        "retrieve": respond.api.serializers.ReplyFileSerializer,
-        "create": respond.api.serializers.ReplyFileSerializer,
-        "delete": respond.api.serializers.ReplyFileEditSerializer,
+        "list": serializers.ReplyFileSerializer,
+        "retrieve": serializers.ReplyFileSerializer,
+        "create": serializers.ReplyFileSerializer,
+        "delete": serializers.ReplyFileEditSerializer,
     }
 
     def get_queryset(self):
@@ -56,14 +57,14 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
 
 class AscertainableViewSet(CreateRetrieveView):
     queryset = DataFile.objects.all()
-    serializer_class = respond.api.serializers.DataFileSerializer
+    serializer_class = serializers.DataFileSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "list": respond.api.serializers.DataFileSerializer,
-        "retrieve": respond.api.serializers.DataFileEditSerializer,
-        "create": respond.api.serializers.DataFileSerializer,
-        "update": respond.api.serializers.DataFileEditSerializer,
-        "delete": respond.api.serializers.DataFileSerializer,
+        "list": serializers.DataFileSerializer,
+        "retrieve": serializers.DataFileEditSerializer,
+        "create": serializers.DataFileSerializer,
+        "update": serializers.DataFileEditSerializer,
+        "delete": serializers.DataFileSerializer,
     }
 
     def get_queryset(self):
@@ -128,14 +129,12 @@ class AscertainableViewSet(CreateRetrieveView):
 
 class SheetFileViewSet(ListRetrieveUpdateMix):
     queryset = SheetFile.objects.all()
-    serializer_class = respond.api.serializers.SheetFileEditSerializer
+    serializer_class = serializers.SheetFileEditSerializer
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
-        "update": respond.api.serializers.SheetFileEditSerializer,
+        "update": serializers.SheetFileEditSerializer,
+        "list": serializers.SheetFileSerializer,
     }
-
-    def get_queryset(self):
-        return SheetFile.objects.all()
 
     def update(self, request, **kwargs):
 
@@ -149,7 +148,36 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
             # control = serializer_data_file.save()
             serializer_sheet_file.save()
         else:
-            return Response({ "errors": serializer_sheet_file.errors },
+            return Response({"errors": serializer_sheet_file.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
             serializer_sheet_file.data, status=status.HTTP_206_PARTIAL_CONTENT)
+
+    @action(methods=["put"], detail=True, url_path='change_behavior')
+    def change_behavior(self, request, **kwargs):
+        from django.utils import timezone
+        from inai.api.views import get_related_months
+        from respond.models import Behavior
+        sheet_file = self.get_object()
+        data = request.data
+        new_behavior = data.get("behavior")
+        new_behavior = Behavior.objects.get(name=new_behavior)
+        old_behavior = sheet_file.behavior
+        sheet_file.behavior = new_behavior
+        is_merge_changed = new_behavior.is_merge != old_behavior.is_merge
+        is_discarded_changed = new_behavior.is_discarded != old_behavior.is_discarded
+        if new_behavior.is_discarded:
+            sheet_file.duplicates_count = 0
+            sheet_file.shared_count = 0
+        sheet_file.save()
+        if is_merge_changed or is_discarded_changed:
+            if related_months := sheet_file.month_records.all():
+                data_response = get_related_months(
+                    all_related_months=related_months)
+                return Response(data_response, status=status.HTTP_200_OK)
+        return Response(
+            {"behavior_counts": [],"drugs_summarize": {},},
+            status=status.HTTP_200_OK)
+
+
+

@@ -3,14 +3,14 @@ from django.contrib import admin
 from .models import (
     Drug,
     Rx,
-    DocumentType,
+    # DocumentType,
 )
 from med_cat.models import Doctor, Delivered
 
 
-class DocumentTypeAdmin(admin.ModelAdmin):
-    list_display = ["name"]
-    search_fields = ["name"]
+# class DocumentTypeAdmin(admin.ModelAdmin):
+#     list_display = ["name"]
+#     search_fields = ["name"]
 
 
 class DrugInline(admin.TabularInline):
@@ -60,7 +60,7 @@ class DeliveredAdmin(admin.ModelAdmin):
     ]
 
 
-admin.site.register(DocumentType, DocumentTypeAdmin)
+# admin.site.register(DocumentType, DocumentTypeAdmin)
 admin.site.register(Rx, RxAdmin)
 # admin.site.register(Drug, DrugAdmin)
 admin.site.register(Delivered, DeliveredAdmin)

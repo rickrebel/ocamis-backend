@@ -21,17 +21,6 @@ class MedicalSpeciality(models.Model):
         return self.name
 
 
-class DocumentType(models.Model):
-    name = models.CharField(max_length=50, primary_key=True)
-
-    class Meta:
-        verbose_name = "Tipo de Documento"
-        verbose_name_plural = "Tipos de Documento"
-
-    def __str__(self):
-        return self.name
-
-
 class Rx(models.Model):
     from geo.models import CLUES, Delegation, Provider
     uuid_folio = models.UUIDField(
@@ -56,6 +45,7 @@ class Rx(models.Model):
     date_release = models.DateTimeField(blank=True, null=True)
     date_visit = models.DateTimeField(blank=True, null=True)
     date_delivery = models.DateTimeField(blank=True, null=True)
+    days_between = models.PositiveSmallIntegerField(blank=True, null=True)
     doctor = models.ForeignKey(
         Doctor, blank=True, null=True, on_delete=models.CASCADE)
     # diagnosis = models.ForeignKey(
@@ -92,8 +82,8 @@ class Drug(models.Model):
         blank=True, null=True)
     delivered = models.ForeignKey(
         Delivered, on_delete=models.CASCADE, blank=True, null=True)
-    date_created = models.DateTimeField(blank=True, null=True)
-    date_closed = models.DateTimeField(blank=True, null=True)
+    # date_created = models.DateTimeField(blank=True, null=True)
+    # date_closed = models.DateTimeField(blank=True, null=True)
     # price = models.FloatField(blank=True, null=True)
     week_record_id = models.IntegerField(blank=True, null=True)
 

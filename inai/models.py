@@ -10,6 +10,7 @@ from transparency.models import Anomaly
 from data_param.models import (
     DataType, FinalField, CleanFunction,
     OldDataGroup, Collection, ParameterGroup, FileControl)
+from med_cat.models import Delivered
 
 # from .data_file_mixins.matches_mix import MatchesMix
 
@@ -78,6 +79,7 @@ class MonthRecord(models.Model):
     shared_count = models.IntegerField(default=0)
     last_transformation = models.DateTimeField(blank=True, null=True)
     last_crossing = models.DateTimeField(blank=True, null=True)
+    last_behavior = models.DateTimeField(blank=True, null=True)
     last_merge = models.DateTimeField(blank=True, null=True)
     last_pre_insertion = models.DateTimeField(blank=True, null=True)
     last_validate = models.DateTimeField(blank=True, null=True)
@@ -541,6 +543,23 @@ class WeekRecord(models.Model):
         verbose_name = "Semana-proveedor"
         verbose_name_plural = "9. Semanas-proveedores"
         db_table = "inai_entityweek"
+
+
+class DeliveredWeek(models.Model):
+    week_record = models.ForeignKey(
+        WeekRecord, related_name="deliveries",
+        on_delete=models.CASCADE)
+    delivered = models.ForeignKey(
+        Delivered, related_name="weeks",
+        on_delete=models.CASCADE)
+    value = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.week_record} - {self.delivered} - {self.value}"
+
+    class Meta:
+        verbose_name = "Clasificación de entrega por semana"
+        verbose_name_plural = "Clasificaciones de entrega por semana"
 
 
 class VariableValue(models.Model):

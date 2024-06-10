@@ -71,9 +71,12 @@ class FromAws:
                 table_file.drugs_count = drugs_count
             table_file.save()
             new_table_files.append(table_file)
+        self.week_record.deliveries.all().delete()
         sums_by_delivered = kwargs.get("sums_by_delivered", {})
         for delivered, count in sums_by_delivered.items():
-            setattr(self.week_record, delivered, count)
+            self.week_record.deliveries.create(
+                delivered=delivered, count=count)
+            # setattr(self.week_record, delivered, count)
         self.week_record.last_merge = timezone.now()
         self.week_record.drugs_count = drugs_count
         self.week_record.save()
