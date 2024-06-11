@@ -211,8 +211,8 @@ class InsertMonth:
         sql_queries = []
         temp_table = f"temp_{model_in_db}"
         sql_queries.append(f"""
-            CREATE TEMP TABLE {temp_table} AS SELECT * 
-            FROM {model_in_db} WITH NO DATA;
+            CREATE TEMP TABLE public.{temp_table} AS SELECT * 
+            FROM public.{model_in_db} WITH NO DATA;
         """)
         sql_queries.append(build_copy_sql_aws(
             path, temp_table, columns_join))

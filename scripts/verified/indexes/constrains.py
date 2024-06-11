@@ -1,5 +1,5 @@
 import io
-from task.models import Platform
+from rds.models import Platform
 from django.apps import apps
 from django.db.models import Index
 from django.db import connection

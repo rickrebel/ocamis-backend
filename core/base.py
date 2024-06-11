@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "category.apps.CategoryConfig",
     "classify_task.apps.ClassifyTaskConfig",
     "task.apps.TaskConfig",
+    "rds.apps.RdsConfig",
     'ckeditor',
     'rest_framework.authtoken',
 ]

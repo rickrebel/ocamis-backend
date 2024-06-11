@@ -1,6 +1,5 @@
 from django.conf import settings
 from respond.models import DataFile, LapSheet
-from task.models import Platform
 
 
 def build_copy_sql_aws(table_file, model_in_db, columns_join):
