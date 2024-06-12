@@ -326,11 +326,11 @@ class FromAws:
         for table_name in formula_tables:
             temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
             queries["create"].append(f"""
-                CREATE TABLE tmp.{temp_table}
+                CREATE TABLE {temp_table}
                 (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
             """)
             queries["drop"].append(f"""
-                DROP TABLE IF EXISTS tmp.{temp_table} CASCADE; 
+                DROP TABLE IF EXISTS {temp_table} CASCADE; 
             """)
         # for operation in ["create", "drop"]:
         if not exists_temp_tables:
