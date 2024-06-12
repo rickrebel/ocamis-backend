@@ -25,7 +25,7 @@ def lambda_handler(event, context):
         try:
             cursor.execute(query_content)
         except Exception as e:
-            errors.append(f"Hubo un error al guardar 6; {str(e)}")
+            errors.append(f"Hubo un error al guardar 6; \n{query_content}; \n{str(e)}")
 
     # print("before first_query", datetime.now())
     if first_query:

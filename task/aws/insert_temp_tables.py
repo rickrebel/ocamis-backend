@@ -31,7 +31,7 @@ def lambda_handler(event, context):
             str_e = str(e)
             if "current transaction is aborted" in str_e:
                 return
-            errors.append(f"Hubo un error al guardar; {str(e)}")
+            errors.append(f"Hubo un error al guardar; \n{query_content}; \n{str(e)}")
 
     if create_base_tables:
         for create_base_table in create_base_tables:
