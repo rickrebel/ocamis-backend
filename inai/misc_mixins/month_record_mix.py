@@ -586,11 +586,17 @@ class FromAws:
         create_base_tables = []
         insert_queries = []
         drop_queries = []
+        try:
+            base_table = self.month_record.base_table
+        except Exception as e:
+            errors.append(f"El proveedor no está asociado a ningún cluster")
+            return [], errors, False
+
         for table_name in ["rx", "drug", "missingrow", "missingfield"]:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table, "tmp")
-            base_table = f"frm_{self.month_record.base_table}_{table_name}"
-            exists_base_table = exist_temp_table(base_table, "base")
+            base_table_name = f"frm_{self.month_record.base_table}_{table_name}"
+            exists_base_table = exist_temp_table(base_table_name, "base")
             if not exists_temp_tables:
                 if table_name in ["rx", "drug"]:
                     errors.append(f"No existe la tabla esencial {temp_table}")
@@ -598,7 +604,7 @@ class FromAws:
                     continue
             if not exists_base_table:
                 create_base_tables.append(f"""
-                    CREATE TABLE base.{base_table}
+                    CREATE TABLE base.{base_table_name}
                     (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
                 """)
             insert_queries.append(f"""
