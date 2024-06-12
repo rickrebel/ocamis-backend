@@ -5,13 +5,14 @@ from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
 
-def exist_temp_table(table_name):
+def exist_temp_table(table_name, schema="public"):
     from django.db import connection
     query_if_exists = f"""
         SELECT EXISTS(
             SELECT 1
             FROM pg_class c
-            WHERE c.relname = '{table_name}'
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relname = '{table_name}' AND n.nspname = '{schema}'
         );
     """
     cursor = connection.cursor()
@@ -69,7 +70,7 @@ class FromAws:
             base_table_files.update(inserted=False)
             cursor = connection.cursor()
             for table_name in ["rx", "drug", "missingrow", "missingfield"]:
-                temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+                temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
                 cursor.execute(f"""
                     DROP TABLE IF EXISTS {temp_table} CASCADE;
                 """)
@@ -318,12 +319,12 @@ class FromAws:
 
         drug_table = f"fm_{self.month_record.temp_table}_drug"
         cursor = connection.cursor()
-        exists_temp_tables = exist_temp_table(drug_table)
+        exists_temp_tables = exist_temp_table(drug_table, "tmp")
 
         formula_tables = ["rx", "drug", "missingrow", "missingfield",
                           "complementrx", "complementdrug"]
         for table_name in formula_tables:
-            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+            temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
             queries["create"].append(f"""
                 CREATE TABLE tmp.{temp_table}
                 (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
@@ -446,7 +447,7 @@ class FromAws:
 
         for table_name in ["rx", "drug"]:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table)
+            exists_temp_tables = exist_temp_table(temp_table, "tmp")
             if not exists_temp_tables:
                 errors.append(f"No existe la tabla esencial {temp_table}")
         if errors:
@@ -462,7 +463,7 @@ class FromAws:
                     "drug": "uuid",
                 }
                 for table_name, field in models.items():
-                    temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+                    temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
                     clean_queries.append(f"""
                         DELETE FROM {temp_table}
                         WHERE {field} IN (
@@ -498,7 +499,7 @@ class FromAws:
             self.month_record.status_id = "with_errors"
             self.month_record.save()
             return [], [error], True
-        temp_drug = f"fm_{self.month_record.temp_table}_drug"
+        temp_drug = f"tmp.fm_{self.month_record.temp_table}_drug"
         count_query = f"""
             SELECT week_record_id,
             COUNT(*)
@@ -536,7 +537,7 @@ class FromAws:
 
         for table_name in ["rx", "drug"]:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table)
+            exists_temp_tables = exist_temp_table(temp_table, "tmp")
             if not exists_temp_tables:
                 errors.append(f"No existe la tabla esencial {temp_table}")
         if errors:
@@ -582,16 +583,24 @@ class FromAws:
         # counts_object = {}
         # for table_file in table_files:
         #     counts_object[table_file["id"]] = table_file["drugs_count"]
+        create_base_tables = []
         insert_queries = []
         drop_queries = []
         for table_name in ["rx", "drug", "missingrow", "missingfield"]:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table)
+            exists_temp_tables = exist_temp_table(temp_table, "tmp")
+            base_table = f"frm_{self.month_record.base_table}_{table_name}"
+            exists_base_table = exist_temp_table(base_table, "base")
             if not exists_temp_tables:
                 if table_name in ["rx", "drug"]:
                     errors.append(f"No existe la tabla esencial {temp_table}")
                 else:
                     continue
+            if not exists_base_table:
+                create_base_tables.append(f"""
+                    CREATE TABLE base.{base_table}
+                    (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
+                """)
             insert_queries.append(f"""
                 INSERT INTO formula_{table_name}
                 SELECT *
@@ -619,6 +628,7 @@ class FromAws:
             "month_record_id": self.month_record.id,
             "temp_table": self.month_record.temp_table,
             "db_config": ocamis_db,
+            "create_base_tables": create_base_tables,
             "first_query": first_query,
             "insert_queries": insert_queries,
             "drop_queries": drop_queries,

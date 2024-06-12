@@ -690,7 +690,7 @@ def insert_failed_weeks(failed_week_ids):
     current_temp_table = "55_temps"
     errors = []
     for table_name in ["rx", "drug"]:
-        temp_table = f"fm_{current_temp_table}_{table_name}"
+        temp_table = f"tmp.fm_{current_temp_table}_{table_name}"
         queries["create"].append(f"""
             CREATE TABLE {temp_table}
             (LIKE formula_{table_name} INCLUDING CONSTRAINTS);
@@ -747,7 +747,7 @@ def insert_failed_weeks(failed_week_ids):
         error = "No se encontraron semanas con medicamentos"
         errors.append(error)
 
-    temp_drug = f"fm_{current_temp_table}_drug"
+    temp_drug = f"tmp.fm_{current_temp_table}_drug"
 
     count_query = f"""
         SELECT week_record_id,
@@ -834,7 +834,7 @@ def insert_failed_weeks(failed_week_ids):
     insert_queries = []
     drop_queries = []
     for table_name in ["rx", "drug"]:
-        temp_table = f"fm_{current_temp_table}_{table_name}"
+        temp_table = f"tmp.fm_{current_temp_table}_{table_name}"
         insert_queries.append(f"""
             INSERT INTO formula_{table_name}
             SELECT *

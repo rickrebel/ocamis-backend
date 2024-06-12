@@ -136,6 +136,12 @@ class MonthRecord(models.Model):
         year_month = self.year_month.replace("-", "")
         return f"{self.provider_id}_{year_month}"
 
+    @property
+    def base_table(self):
+        cluster = self.provider.clusters.first()
+        year = self.year_month.split("-")[0]
+        return f"{cluster.name}_{year}"
+
     class Meta:
         get_latest_by = "year_month"
         db_table = "inai_entitymonth"

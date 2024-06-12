@@ -37,6 +37,8 @@ class TaskFunction(models.Model):
         # ("3entity_month", "Mes Proveedor"),
         ("month_record", "Mes Proveedor"),
         ("provider", "Proveedor"),
+        ("cluster_year", "Cluster y año"),
+        ("mat_view", "Materialized View"),
     )
 
     name = models.CharField(max_length=100, primary_key=True)

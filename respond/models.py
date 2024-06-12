@@ -12,7 +12,6 @@ from inai.models import Petition, set_upload_path, PetitionFileControl, MonthRec
 from respond.reply_file_mixins.process_mix import ReplyFileMix
 
 
-# Create your models here.
 class ReplyFile(models.Model, ReplyFileMix):
 
     petition = models.ForeignKey(
