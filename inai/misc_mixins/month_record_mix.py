@@ -610,7 +610,7 @@ class FromAws:
             insert_queries.append(f"""
                 INSERT INTO base.{base_table_name}
                 SELECT *
-                FROM {temp_table};
+                FROM tmp.{temp_table};
             """)
             drop_queries.append(f"""
                 DROP TABLE IF EXISTS {temp_table} CASCADE;
