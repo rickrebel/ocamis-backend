@@ -332,7 +332,7 @@ def build_task_params(model, function_name, request, **kwargs):
         task_function.save()
     # print("build_task_params 4: ", datetime.now())
     if model_name == "data_file":
-        stage = task_function.stages.first()
+        stage = task_function.stages.last()
         if stage:
             model.stage = stage
             model.status_id = "pending"

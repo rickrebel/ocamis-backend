@@ -176,7 +176,6 @@ class AgencyViewSet(ListRetrieveUpdateMix):
     serializer_class = serializers.AgencySerializer
     queryset = Agency.objects.all().prefetch_related(
             "petitions",
-            # "petitions__petition_months",
             "petitions__month_records",
             "petitions__file_controls",
             "petitions__break_dates",

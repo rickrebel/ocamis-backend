@@ -265,7 +265,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         from data_param.models import FileControl, CleanFunction
         from inai.models import Petition
         import json
-        limiters = request.query_params.get("limiters", None)
+        limiters = request.query_params.get("limiters", "{}")
         limiters = json.loads(limiters)
         total_count = 0
         available_filters = [
@@ -274,50 +274,50 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             {"name": "file_format", "field": "file_format_id"},
             # {"name": "final_field", "field": "columns__final_field_id"},
         ]
-        if limiters:
-            all_filters = build_common_filters(limiters, available_filters)
-            final_field = limiters.get("final_field", None)
-            if final_field is not None:
-                if final_field == 0:
-                    all_filters["columns__final_field__isnull"] = True
-                else:
-                    all_filters["columns__final_field_id"] = limiters["final_field"]
-            stage = limiters.get("stage", None)
-            if stage is not None:
-                all_filters["petition_file_control__data_files__stage_id"] = stage
-            is_duplicated = limiters.get("is_duplicated", None)
-            print("IS_DUPLICATED", is_duplicated)
-            if is_duplicated is not None:
-                str_filter = "petition_file_control__data_files__is_duplicated"
-                all_filters[str_filter] = is_duplicated
-            transformation = limiters.get("transformation", None)
-            if transformation is not None:
-                clean_function = CleanFunction.objects.get(id=transformation)
-                if clean_function.for_all_data:
-                    text = "file_transformations__clean_function_id"
-                else:
-                    text = "columns__column_transformations__clean_function_id"
-                all_filters[text] = transformation
-            status_id = limiters.get("status", None)
-            if status_id is not None:
-                all_filters["petition_file_control__data_files__status_id"] = status_id
+        # if limiters:
+        all_filters = build_common_filters(limiters, available_filters)
+        final_field = limiters.get("final_field", None)
+        if final_field is not None:
+            if final_field == 0:
+                all_filters["columns__final_field__isnull"] = True
+            else:
+                all_filters["columns__final_field_id"] = limiters["final_field"]
+        stage = limiters.get("stage", None)
+        if stage is not None:
+            all_filters["petition_file_control__data_files__stage_id"] = stage
+        is_duplicated = limiters.get("is_duplicated", None)
+        print("IS_DUPLICATED", is_duplicated)
+        if is_duplicated is not None:
+            str_filter = "petition_file_control__data_files__is_duplicated"
+            all_filters[str_filter] = is_duplicated
+        transformation = limiters.get("transformation", None)
+        if transformation is not None:
+            clean_function = CleanFunction.objects.get(id=transformation)
+            if clean_function.for_all_data:
+                text = "file_transformations__clean_function_id"
+            else:
+                text = "columns__column_transformations__clean_function_id"
+            all_filters[text] = transformation
+        status_id = limiters.get("status", None)
+        if status_id is not None:
+            all_filters["petition_file_control__data_files__status_id"] = status_id
 
-            order = ["agency__acronym", "name", "data_group"]
-            controls = FileControl.objects.all().prefetch_related(
-                "data_group",
-                "columns",
-                "columns__column_transformations",
-                "columns__column_transformations__clean_function",
-                "file_transformations",
-                "file_transformations__clean_function",
-                "agency",
-            ).order_by(*order)
-            if all_filters:
-                controls = controls.filter(**all_filters).distinct()
-            total_count = controls.count()
-            page_size = limiters.get("page_size", 40)
-            page = limiters.get("page", 1) - 1
-            controls = controls[page * page_size:(page + 1) * page_size]
+        order = ["agency__acronym", "name", "data_group"]
+        controls = FileControl.objects.all().prefetch_related(
+            "data_group",
+            "columns",
+            "columns__column_transformations",
+            "columns__column_transformations__clean_function",
+            "file_transformations",
+            "file_transformations__clean_function",
+            "agency",
+        ).order_by(*order)
+        if all_filters:
+            controls = controls.filter(**all_filters).distinct()
+        total_count = controls.count()
+        page_size = limiters.get("page_size", 40)
+        page = limiters.get("page", 1) - 1
+        controls = controls[page * page_size:(page + 1) * page_size]
 
         if not total_count:
             total_count = controls.count()

@@ -94,9 +94,6 @@ class PetitionViewSet(ModelViewSet):
             year_month__gte=range_months[0],
             year_month__lte=range_months[1])
 
-        # for month_record in month_records:
-        #     PetitionMonth.objects.create(
-        #         petition=petition, month_record=month_record)
         month_records_ids = month_records.values_list('id', flat=True)
         petition.month_records.set(month_records_ids)
 
@@ -191,7 +188,6 @@ class PetitionViewSet(ModelViewSet):
         limiters = json.loads(limiters)
 
         petitions = Petition.objects.all().prefetch_related(
-            # "petition_months",
             "month_records",
             "file_controls",
             "break_dates",
@@ -212,13 +208,9 @@ class PetitionViewSet(ModelViewSet):
 
             if limiters.get("selected_year"):
                 if limiters.get("selected_month"):
-                    # all_filters["petition_months__month_agency__year_month"] =\
-                    #     f"{limiters.get('selected_year')}-{limiters.get('selected_month')}"
                     all_filters["month_records__year_month"] =\
                         f"{limiters.get('selected_year')}-{limiters.get('selected_month')}"
                 else:
-                    # all_filters["petition_months__month_agency__year_month__icontains"] =\
-                    #     limiters.get("selected_year")
                     all_filters["month_records__year_month__icontains"] =\
                         limiters.get("selected_year")
             if all_filters:

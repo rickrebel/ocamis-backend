@@ -128,7 +128,7 @@ class MatchAws:
         self.editable_models = init_data["editable_models"]
         self.normal_models = [model for model in self.editable_models
                               if model["name"] not in ["drug", "rx"]]
-        print("normal_models", self.normal_models)
+        # print("normal_models", self.normal_models)
 
         for model in self.normal_models:
             model_name = model["name"]

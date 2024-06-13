@@ -39,10 +39,20 @@ class FromAws:
             self.month_record.status_id = "finished"
         else:
             self.month_record.status_id = "created"
+        # last_validate
+        # last_indexing
+        # last_insertion
+
+        # last_transformation
+        # last_crossing
+        # last_behavior
+        # last_merge
+        # last_pre_insertion
 
         self.month_record.last_validate = None
         self.month_record.last_indexing = None
         self.month_record.last_insertion = None
+
         self.month_record.error_process = None
         week_records = self.month_record.weeks.all()
         base_table_files = TableFile.objects.filter(
@@ -53,8 +63,7 @@ class FromAws:
         stage_pre_insert = Stage.objects.get(name="pre_insert")
         if final_stage.order <= stage_pre_insert.order:
             self.month_record.last_pre_insertion = None
-            week_records.update(
-                last_pre_insertion=None)
+            week_records.update(last_pre_insertion=None)
 
             related_lap_sheets = LapSheet.objects \
                 .filter(sheet_file__in=sheet_files, lap=0)

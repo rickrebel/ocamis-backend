@@ -142,7 +142,7 @@ class TableFileAdmin(admin.ModelAdmin):
         "file",
     ]
     list_filter = [
-        "inserted", "provider__acronym", "collection", "year", "month",
+        "inserted", "collection", "provider__acronym", "year", "month",
         "iso_delegation"]
     search_fields = ["year_month", "year_week"]
     raw_id_fields = ["provider", "lap_sheet", "week_record", "iso_delegation"]

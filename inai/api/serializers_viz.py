@@ -10,11 +10,6 @@ from data_param.api.serializers import (
 from inai.api.serializers import PetitionNegativeReasonSimpleSerializer
 
 
-# class PetitionMonthVizSerializer(serializers.RelatedField):
-#     def to_representation(self, value):
-#         return value.month_record.year_month
-#
-
 class MonthAgencyVizSerializer(serializers.RelatedField):
     def to_representation(self, value):
         return value.year_month

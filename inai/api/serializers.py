@@ -169,7 +169,6 @@ class PetitionNegativeReasonSerializer(PetitionNegativeReasonSimpleSerializer):
 
 
 class PetitionSmallSerializer(serializers.ModelSerializer):
-    # petition_months = PetitionMonthSerializer(many=True)
     # month_records = MonthRecordSimpleSerializer(many=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)

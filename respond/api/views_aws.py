@@ -115,9 +115,9 @@ class DataFileViewSet(CreateRetrieveView):
         after_aws = "find_coincidences_from_aws" if \
             target_name == "cluster" else "build_sample_data_after"
         curr_kwargs = {"after_if_empty": after_aws}
-        for stage in target_stage.re_process_stages.all():
-            current_function = stage.main_function.name
-            print("stage", stage.name, current_function)
+        for re_stage in target_stage.re_process_stages.all():
+            current_function = re_stage.main_function.name
+            print("stage", re_stage.name, current_function)
             task_params["models"] = [data_file]
             method = getattr(data_file, current_function)
             if not method:
@@ -127,10 +127,12 @@ class DataFileViewSet(CreateRetrieveView):
                 if all_errors:
                     print("all_errors", all_errors)
                     data_file.save_errors(
-                        all_errors, f"{stage.name}|with_errors")
+                        all_errors, f"{re_stage.name}|with_errors")
+                else:
+                    print("\nnew_tasks", new_tasks, "<--\n")
                 return comprobate_status(
                     key_task, all_errors, new_tasks, want_http_response=True)
-            elif stage.name == target_name:
+            elif re_stage.name == target_name:
                 data_file = data_file.finished_stage(f"{target_name}|finished")
                 comprobate_status(key_task, all_errors, new_tasks)
                 data = respond.api.serializers.DataFileSerializer(data_file).data

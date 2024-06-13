@@ -66,20 +66,11 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     file = models.FileField(max_length=150, upload_to=set_upload_path)
     provider = models.ForeignKey(
-        Provider, related_name="data_files", on_delete=models.CASCADE,
-        blank=True, null=True)
+        Provider, related_name="data_files", on_delete=models.CASCADE)
     # zip_path = models.TextField(blank=True, null=True)
     is_duplicated = models.BooleanField(
         blank=True, null=True, verbose_name="Duplicado")
     date = models.DateTimeField(auto_now_add=True)
-    # petition_month = models.ForeignKey(
-    #     PetitionMonth, blank=True, null=True,
-    #     on_delete=models.CASCADE)
-    # notes = models.TextField(blank=True, null=True)
-    # is_final = models.BooleanField(default= True)
-    # origin_file = models.ForeignKey(
-    #     "DataFile", blank=True, null=True, related_name="child_files",
-    #     verbose_name="archivo origen", on_delete=models.CASCADE)
     reply_file = models.ForeignKey(
         ReplyFile, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="archivo base", related_name="data_file_childs")
@@ -114,7 +105,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     all_results = JSONField(
         blank=True, null=True, verbose_name="Todos los resultados")
     notes = models.TextField(blank=True, null=True)
-
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(
