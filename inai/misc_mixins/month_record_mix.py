@@ -608,7 +608,7 @@ class FromAws:
                     (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
                 """)
             insert_queries.append(f"""
-                INSERT INTO formula_{table_name}
+                INSERT INTO base.{base_table_name}
                 SELECT *
                 FROM {temp_table};
             """)

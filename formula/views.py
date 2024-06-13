@@ -64,13 +64,16 @@ def modify_constraints(is_create=True, is_rebuild=False, prov_year_month=None):
             for valid_table in valid_tables:
                 final_valid_string = valid_string.replace(
                     "TABLE", f"formula_{valid_table}")
+                print(f"final_valid_string >{final_valid_string}<")
                 if final_valid_string in constraint:
+                    print("valid_constraint", constraint)
                     valid_constraint = True
         if is_create and valid_constraint:
             for invalid_field in invalid_fields:
                 if invalid_field in constraint:
                     valid_constraint = False
         if not valid_constraint:
+            print("invalid_constraint", constraint, "\n\n")
             continue
         try:
             if prov_year_month:
