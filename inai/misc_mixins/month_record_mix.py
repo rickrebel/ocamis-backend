@@ -322,7 +322,7 @@ class FromAws:
         exists_temp_tables = exist_temp_table(drug_table, "tmp")
 
         formula_tables = ["rx", "drug", "missingrow", "missingfield",
-                          "complementrx", "complementdrug"]
+                          "complementrx", "complementdrug", "diagnosisrx"]
         for table_name in formula_tables:
             temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
             queries["create"].append(f"""

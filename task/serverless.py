@@ -126,12 +126,12 @@ def async_in_lambda(function_name, params, task_params):
                 task_function__ebs_percent__gt=0,
                 status_task__is_completed=False) \
             .exclude(id=final_task.id).count()
-        if pending_count >= 0:
-            return save_and_send(True)
+        if pending_count > 0:
+            return save_and_send(in_queue=True)
         elif has_enough_balance(task_function):
-            return save_and_send(False)
+            return save_and_send(in_queue=False)
         else:
-            return save_and_send(True)
+            return save_and_send(in_queue=True)
 
     elif task_function.is_queueable:
         pending_tasks = AsyncTask.objects\

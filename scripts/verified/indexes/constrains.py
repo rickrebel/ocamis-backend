@@ -6,7 +6,7 @@ from django.db import connection
 
 
 def build_constraints_and_indexes(use_complement=False):
-    file_sql = 'scripts/ocamis_verified/indexes/ddl_editables2.sql'
+    file_sql = 'scripts/verified/indexes/origins/ddl_editables3.sql'
     complement_path = "//"
     final_path = f"{complement_path}{file_sql}" if use_complement else file_sql
     print(final_path)

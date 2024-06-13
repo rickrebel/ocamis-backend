@@ -75,6 +75,23 @@ def reverse_insert(hard=False):
 # reverse_insert(True)
 
 
+def delete_pending_tasks(run_delete=False):
+    from task.models import AsyncTask
+    pending_tasks = AsyncTask.objects.filter(
+        status_task__macro_status__in=["pending", "created"])
+    print("Pending tasks: ", pending_tasks.count())
+    if run_delete:
+        pending_tasks.delete()
+
+
+def update_parent_tasks(run_update=False):
+    from task.models import AsyncTask
+    parent_tasks = AsyncTask.objects.filter(status_task_id="children_tasks")
+    print("Pending tasks: ", parent_tasks.count())
+    if run_update:
+        parent_tasks.update(status_task_id="not_executed")
+
+
 def save_success_params_after():
     from task.models import AsyncTask
     from respond.models import TableFile

@@ -1,14 +1,21 @@
 from django.db import connection
 
 
-def custom_constraint(constraint, prov_year_month):
+def custom_constraint(constraint, prov_year_month, schema="tmp"):
+    abbrev = "fm" if schema == "tmp" else "frm"
+    init_table_name = f"{schema}.{abbrev}_{prov_year_month}_"
     constraint = constraint.replace(
-        " on formula_", f" on tmp.fm_{prov_year_month}_")
+        " on formula_", f" on {init_table_name}_")
     constraint = constraint.replace(
-        "alter table formula_", f" alter table tmp.fm_{prov_year_month}_")
-    constraint = constraint.replace(
-        "references formula_", f"references tmp.fm_{prov_year_month}_")
+        "alter table formula_", f" alter table {init_table_name}_")
+    if "references formula_" in constraint:
+        constraint = constraint.replace(
+            "references formula_", f"references {init_table_name}_")
+    elif "references " in constraint:
+        constraint = constraint.replace(
+            "references ", f"references public.")
     clean_constraint = constraint.replace("\n", " \n")
+
     if "add constraint " in clean_constraint:
         original_constraint_name = clean_constraint.split(
             "add constraint ")[1].split(" ")[0]
@@ -25,22 +32,29 @@ def custom_constraint(constraint, prov_year_month):
 
 
 def modify_constraints(is_create=True, is_rebuild=False, prov_year_month=None):
-    # from task.models import Platform
+    from rds.models import Operation
     from scripts.verified.indexes.constrains import get_constraints
     from datetime import datetime
-    create_constrains, delete_constrains = get_constraints(is_rebuild)
     if is_rebuild:
+        get_constraints(is_rebuild)
         return
-    with_change = False
+
+    # create_constrains, delete_constrains = get_constraints(is_rebuild)
+    main_field = "script" if is_create else "drop_script"
+    order_by = "order" if is_create else "-order"
+    constraint_list = Operation.objects\
+        .filter(operation_type__in=["constraint", "index"], is_active=True)\
+        .order_by(order_by)\
+        .values_list(main_field, flat=True)
+    # with_change = False
     cursor = connection.cursor()
     print("START", datetime.now())
     valid_strings = [" on TABLE ", " table TABLE ", " index if exists TABLE"]
-    valid_tables = [
-        "rx", "drug", "missingrow", "missingfield",
-        "complementrx", "complementdrug"]
+    valid_tables = ["rx", "drug", "missingrow", "missingfield",
+                    "complementrx", "complementdrug", "diagnosisrx"]
     invalid_fields = ["lap_sheet_id", "sheet_file_id", "_like"]
-    constraint_list = create_constrains if is_create \
-        else reversed(delete_constrains)
+    # constraint_list = create_constrains if is_create \
+    #     else reversed(delete_constrains)
     new_constraints = []
     # and platform.has_constrains:
     print("is_create", is_create)
