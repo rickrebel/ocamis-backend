@@ -3,7 +3,7 @@ from django.db import connection
 
 def custom_constraint(constraint, prov_year_month, schema="tmp"):
     abbrev = "fm" if schema == "tmp" else "frm"
-    init_table_name = f"{schema}.{abbrev}_{prov_year_month}_"
+    init_table_name = f"{schema}.{abbrev}_{prov_year_month}"
     constraint = constraint.replace(
         " on formula_", f" on {init_table_name}_")
     constraint = constraint.replace(
