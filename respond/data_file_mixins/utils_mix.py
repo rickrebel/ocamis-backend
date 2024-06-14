@@ -62,12 +62,9 @@ class DataUtilsMix:
             self.save()
 
     def comprobate_sheets(self, stage):
-        print("comprobate_sheets", stage)
         stage_sheets = self.sheet_files.filter(stage_id=stage)
 
         def save_new_status(new_st):
-            print("new_status", new_st)
-            print("self.status_id", self.status_id)
             if self.status_id != new_st:
                 self.status_id = new_st
                 self.error_process = []

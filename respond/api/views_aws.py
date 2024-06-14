@@ -125,11 +125,8 @@ class DataFileViewSet(CreateRetrieveView):
             new_tasks, all_errors, data_file = method(task_params, **curr_kwargs)
             if all_errors or new_tasks:
                 if all_errors:
-                    print("all_errors", all_errors)
                     data_file.save_errors(
                         all_errors, f"{re_stage.name}|with_errors")
-                else:
-                    print("\nnew_tasks", new_tasks, "<--\n")
                 return comprobate_status(
                     key_task, all_errors, new_tasks, want_http_response=True)
             elif re_stage.name == target_name:

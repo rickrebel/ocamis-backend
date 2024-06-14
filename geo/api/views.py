@@ -84,9 +84,9 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 provider, main_function_name, request, keep_tasks=True)
 
         stage = Stage.objects\
-            .filter(main_function__name=main_function_name).first()
+            .filter(main_function__name=main_function_name).last()
         if not stage and stage_name:
-            stage = Stage.objects.filter(name=stage_name).first()
+            stage = Stage.objects.filter(name=stage_name).last()
         if not stage:
             return Response(
                 {"error": f"No se encontró la función {main_function_name}"},
@@ -102,25 +102,26 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             month_task, task_params = build_task_params(
                 month_record, main_function_name, request, **kwargs)
             all_tasks.append(month_task)
-            prev_stage = month_record.stage
+            current_stage = month_record.stage
             if month_records_ids:
-                if prev_stage.next_stage == stage:
+                if current_stage.next_stage == stage:
                     pass
-                elif prev_stage == stage:
+                elif current_stage == stage:
+                    pass
+                elif stage in current_stage.available_next_stages.all():
                     pass
                 else:
-                    error_msg = f"""
-                        El mes {month_record.year_month} está en la etapa 
-                        {prev_stage.public_name} y no puede pasar a la etapa 
-                        {stage.public_name}
-                    """
+                    error_msg = (
+                        f"El mes {month_record.year_month} está en la etapa"
+                        f"{current_stage.public_name} y no puede pasar a la etapa"
+                        f"{stage.public_name}")
                     comprobate_status(month_task, [error_msg], [])
                     all_errors.append(error_msg)
                     continue
 
-            # print("prev_stage", prev_stage)
+            # print("current_stage", current_stage)
             # print("stage", stage)
-            is_revert = prev_stage.order > stage.order
+            is_revert = current_stage.order > stage.order
             if main_function_name == "revert_stages":
                 is_revert = True
             month_record.stage = stage

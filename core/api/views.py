@@ -164,6 +164,30 @@ class CatalogShortageViz(views.APIView):
         return Response(data)
 
 
+class CatalogComponents(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+
+    def get(self, request):
+        from medicine.api.serializers import (
+            ComponentStoryBlokSerializer, GroupStoryBlokSerializer)
+        from medicine.models import Component, Group
+
+        field_in_params = request.GET.get("field", None)
+
+        if field_in_params == "group":
+            groups = Group.objects.all()
+            serializer = GroupStoryBlokSerializer(groups, many=True)
+            return Response(serializer.data)
+        elif field_in_params == "component":
+            pass
+
+        components = Component.objects\
+            .filter(priority__lte=10)\
+            .order_by("priority", "-frequency")
+        serializer = ComponentStoryBlokSerializer(components, many=True)
+        return Response(serializer.data)
+
+
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 500
     page_size_query_param = 'page_size'

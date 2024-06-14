@@ -172,9 +172,7 @@ def rename_task_function(original_name, new_name):
 def send_data_files_to_re_insert(update=False):
     from respond.models import DataFile
     data_files = DataFile.objects\
-        .filter(
-            sheet_files__laps__table_files__id__lt=936396,
-            status_id="finished", stage_id="transform")\
+        .filter(status_id="finished", stage_id="transform")\
         .distinct()
     data_files = data_files.exclude(provider__acronym="ISSSTE")
     print("data_files", data_files.count())

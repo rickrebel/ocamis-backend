@@ -33,25 +33,18 @@ class FromAws:
         from respond.models import LapSheet
         from respond.models import CrossingSheet
         from django.db import connection
+        from task.views import comprobate_brothers
 
         self.month_record.stage = final_stage
         if final_stage.name == "revert_stages":
             self.month_record.status_id = "finished"
         else:
             self.month_record.status_id = "created"
-        # last_validate
-        # last_indexing
-        # last_insertion
-
-        # last_transformation
-        # last_crossing
-        # last_behavior
-        # last_merge
-        # last_pre_insertion
 
         self.month_record.last_validate = None
         self.month_record.last_indexing = None
         self.month_record.last_insertion = None
+        # self.month_record.last_behavior = None
 
         self.month_record.error_process = None
         week_records = self.month_record.weeks.all()
@@ -78,7 +71,10 @@ class FromAws:
 
             base_table_files.update(inserted=False)
             cursor = connection.cursor()
-            for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+            formula_models = [
+                "rx", "drug", "missingrow", "missingfield",
+                "complementrx", "complementdrug", "diagnosisrx"]
+            for table_name in formula_models:
                 temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
                 cursor.execute(f"""
                     DROP TABLE IF EXISTS {temp_table} CASCADE;
@@ -118,6 +114,8 @@ class FromAws:
             self.save_sums(all_sheet_ids)
 
         self.month_record.save()
+        # current_task = self.task_params.get("parent_task")
+        # comprobate_brothers(current_task, "finished")
 
         return [], [], True
 
@@ -600,8 +598,9 @@ class FromAws:
         except Exception as e:
             errors.append(f"El proveedor no está asociado a ningún cluster")
             return [], errors, False
-
-        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+        formula_tables = ["rx", "drug", "missingrow", "missingfield",
+                          "complementrx", "complementdrug", "diagnosisrx"]
+        for table_name in formula_tables:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table, "tmp")
             base_table_name = f"frm_{self.month_record.base_table}_{table_name}"
