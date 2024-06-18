@@ -60,9 +60,11 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         from inai.misc_mixins.month_record_mix import FromAws as MonthRecordMix
         from task.views import comprobate_status, build_task_params
         from inai.models import MonthRecord
+        from inai.api.views import get_related_months
+        from inai.api.serializers import MonthRecordSerializer
         from classify_task.models import Stage
         month_records_ids = request.data.get("month_records", None)
-        month_records_id = request.data.get("month_record", None)
+        month_record_id = request.data.get("month_record", None)
         main_function_name = request.data.get("function_name", None)
         stage_name = request.data.get("stage", None)
         # query_stage = request.data.get("stage", None)
@@ -70,18 +72,21 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         if month_records_ids:
             month_records = MonthRecord.objects.filter(
                 id__in=month_records_ids)
-        elif month_records_id:
-            month_records = MonthRecord.objects.filter(id=month_records_id)
+            current_stages = month_records.values_list("stage", flat=True)
+            all_months_are_same = len(set(current_stages)) == 1
+            if not all_months_are_same:
+                return Response(
+                    {"error": "Los meses enviados no están en la misma etapa"},
+                    status=status.HTTP_400_BAD_REQUEST)
+        elif month_record_id:
+            month_records = MonthRecord.objects.filter(id=month_record_id)
         else:
-            month_records = MonthRecord.objects.filter(provider=provider)
-        print("month_records", month_records)
-        all_tasks = []
-        all_errors = []
-        if month_records_id:
-            key_task = None
-        else:
-            key_task, task_params = build_task_params(
-                provider, main_function_name, request, keep_tasks=True)
+            return Response(
+                {"error": "No se especificaron meses a procesar"},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        current_stage = month_records.first().stage
+        # print("month_records", month_records)
 
         stage = Stage.objects\
             .filter(main_function__name=main_function_name).last()
@@ -91,6 +96,34 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             return Response(
                 {"error": f"No se encontró la función {main_function_name}"},
                 status=status.HTTP_400_BAD_REQUEST)
+
+        if month_records_ids:
+            if current_stage.next_stage == stage:
+                pass
+            elif current_stage == stage:
+                pass
+            elif stage in current_stage.available_next_stages.all():
+                pass
+            else:
+                error_msg = (
+                    f"Los meses enviados están en la etapa"
+                    f"{current_stage.public_name} y no puede pasar a la etapa"
+                    f"{stage.public_name}")
+                return Response(
+                    {"error": error_msg},
+                    status=status.HTTP_400_BAD_REQUEST)
+
+        is_revert = (current_stage.order > stage.order
+                     or main_function_name == "revert_stages")
+
+        all_tasks = []
+        all_errors = []
+
+        if month_record_id:
+            key_task = None
+        else:
+            key_task, task_params = build_task_params(
+                provider, main_function_name, request, keep_tasks=True)
 
         kwargs = {
             "parent_task": key_task,
@@ -102,41 +135,17 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             month_task, task_params = build_task_params(
                 month_record, main_function_name, request, **kwargs)
             all_tasks.append(month_task)
-            current_stage = month_record.stage
-            if month_records_ids:
-                if current_stage.next_stage == stage:
-                    pass
-                elif current_stage == stage:
-                    pass
-                elif stage in current_stage.available_next_stages.all():
-                    pass
-                else:
-                    error_msg = (
-                        f"El mes {month_record.year_month} está en la etapa"
-                        f"{current_stage.public_name} y no puede pasar a la etapa"
-                        f"{stage.public_name}")
-                    comprobate_status(month_task, [error_msg], [])
-                    all_errors.append(error_msg)
-                    continue
-
             # print("current_stage", current_stage)
             # print("stage", stage)
-            is_revert = current_stage.order > stage.order
-            if main_function_name == "revert_stages":
-                is_revert = True
             month_record.stage = stage
             month_record.status_id = "created"
             month_record.save()
             month_errors = []
             base_class = MonthRecordMix(month_record, task_params)
-            function_name = "revert_stages" if is_revert else main_function_name
-            main_method = getattr(base_class, function_name)
 
             def run_in_thread():
-                if is_revert:
-                    new_tasks, errors, s = main_method(stage)
-                else:
-                    new_tasks, errors, s = main_method()
+                main_method = getattr(base_class, main_function_name)
+                new_tasks, errors, s = main_method()
                 all_tasks.extend(new_tasks)
                 all_errors.extend(errors)
                 comprobate_status(month_task, errors, new_tasks)
@@ -149,26 +158,38 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                     month_errors.append(
                         f"Hay pestañas pendientes de clasificar para el mes "
                         f"{month_record.year_month}")
+
             if month_errors:
-                print("month_errors", month_errors)
-                month_record.save_stage(stage, month_errors)
+                # print("month_errors", month_errors)
+                month_record.save_stage(stage.name, month_errors)
                 comprobate_status(month_task, month_errors, [])
-            elif provider.split_by_delegation:
-                run_in_thread()
+            elif is_revert:
+                base_class.revert_stages(stage)
+                month_record.save_stage(stage.name)
+                comprobate_status(month_task, [], [])
+            else:
                 # t = threading.Thread(target=run_in_thread)
                 # t.start()
-                time.sleep(10)
-            else:
+                seconds_sleep = 10 if provider.split_by_delegation else 1
                 run_in_thread()
-                time.sleep(1)
-            # seconds_sleep = 10 if provider.split_by_delegation else 1
-            # time.sleep(seconds_sleep)
+                time.sleep(seconds_sleep)
 
         if (all_tasks or all_errors) and key_task:
             return comprobate_status(
                 key_task, all_errors, all_tasks, want_http_response=True)
+        elif is_revert and key_task:
+            comprobate_status(key_task, [], [])
 
-        return Response({}, status=status.HTTP_202_ACCEPTED)
+        if not month_records_ids:
+            month_records_ids = [month_record_id]
+        new_month_records = MonthRecord.objects.filter(
+            id__in=month_records_ids)
+        extra_data = get_related_months(all_related_months=new_month_records)
+        month_data = MonthRecordSerializer(new_month_records, many=True).data
+        extra_data["month_records"] = month_data
+        return Response(extra_data, status=status.HTTP_200_OK)
+
+        # return Response({}, status=status.HTTP_202_ACCEPTED)
 
 
 class AgencyViewSet(ListRetrieveUpdateMix):

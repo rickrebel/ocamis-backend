@@ -350,6 +350,7 @@ def build_task_params(model, function_name, request, **kwargs):
 
 def comprobate_status(
         current_task, errors=None, new_tasks=None, want_http_response=False):
+    print("comprobate_status", current_task, current_task.id)
     from rest_framework.response import Response
     from rest_framework import status
     if not current_task:
@@ -364,6 +365,7 @@ def comprobate_status(
         status_task_id = "children_tasks"
     else:
         status_task_id = "finished"
+    print("status_task_id: ", status_task_id)
     current_task = comprobate_brothers(current_task, status_task_id)
     if want_http_response:
         body_response = {"new_task": current_task.id}

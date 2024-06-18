@@ -112,7 +112,7 @@ class MonthRecord(models.Model):
         self.save()
         return all_errors
 
-    def save_stage(self, stage_id, errors):
+    def save_stage(self, stage_id: str, errors=None):
         self.stage_id = stage_id
         if errors:
             self.status_id = "with_errors"
