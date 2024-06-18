@@ -465,7 +465,7 @@ def has_enough_balance(task_function) -> bool:
                         'Dimensions': [
                             {
                                 'Name': 'DBInstanceIdentifier',
-                                'Value': 'alldatabases'
+                                'Value': 'new-alldatabases'
                             },
                         ]
                     },
@@ -598,6 +598,7 @@ def debug_queue():
                 task.sheet_file.save_stage('transform', errors)
     every_completed = AsyncTask.objects.filter(
         status_task__is_completed=True,
+        status_task_id="queue",
         task_function__is_queueable=True)
     pending_tasks = AsyncTask.objects.filter(
         status_task_id="queue", task_function__is_queueable=True)
