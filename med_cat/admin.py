@@ -27,6 +27,8 @@ class MedicamentAdmin(admin.ModelAdmin):
         "key2", "own_key2", "component_name",
         "presentation_description", "container_name", "provider"]
     list_filter = ["provider"]
+    search_fields = [
+        "key2", "own_key2", "component_name", "presentation_description"]
     raw_id_fields = ["provider", "component", "presentation", "container"]
 
 

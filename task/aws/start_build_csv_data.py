@@ -789,7 +789,8 @@ class MatchAws:
                     value = value.replace(".", "")
                     medicament_key = value
                 if field_name == "own_key2":
-                    all_values.insert(0, self.provider_id)
+                    initial_all_values[0] = self.provider_id
+                    # all_values.insert(0, self.provider_id)
                     if not medicament_key:
                         medicament_key = value
             elif is_med_unit and not value:

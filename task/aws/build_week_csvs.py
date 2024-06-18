@@ -204,7 +204,16 @@ class BuildWeekAws:
                     continue
                 basic_fields = values.get("basic_fields", [])
                 for basic_field in basic_fields:
-                    value = data[self.positions.get(basic_field)]
+                    try:
+                        value = data[self.positions.get(basic_field)]
+                    except Exception as e:
+                        print("positions", self.positions)
+                        print("basic_field", basic_field)
+                        print("data", data)
+                        print("model", model)
+                        print("values", values)
+                        print("Error", e)
+                        raise e
                     if basic_field == "folio_ocamis":
                         folio_ocamis = value
                     elif basic_field == "uuid_folio":

@@ -599,6 +599,8 @@ def debug_queue():
     every_completed = AsyncTask.objects.filter(
         status_task__is_completed=True,
         task_function__is_queueable=True)
+    pending_tasks = AsyncTask.objects.filter(
+        status_task_id="queue", task_function__is_queueable=True)
     if every_completed.exists():
         next_task = AsyncTask.objects.filter(
             status_task_id="queue").order_by("id").first()
@@ -606,6 +608,9 @@ def debug_queue():
             execute_async(next_task, next_task.original_request)
         # else:
         #     modify_constraints(is_create=True)
+    elif pending_tasks.exists():
+        next_task = pending_tasks.order_by("id").first()
+        execute_async(next_task, next_task.original_request)
 
 
 def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):
