@@ -448,7 +448,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         function_name = target_stage.main_function.name
         after_aws = "find_coincidences_from_aws" if \
             target_stage.name == "cluster" else "build_sample_data_after"
-        curr_kwargs = { "after_if_empty": after_aws }
+        curr_kwargs = {"after_if_empty": after_aws}
         subgroup = f"{stage_init}|{status_init}"
         key_task, task_params = build_task_params(
             file_control, function_name, request, subgroup=subgroup)

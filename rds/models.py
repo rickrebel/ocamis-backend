@@ -31,23 +31,6 @@ class Cluster(models.Model):
     public_name = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name="Nombre público")
-    providers = models.ManyToManyField(
-        Provider, related_name="clusters", blank=True)
-
-    def __str__(self):
-        return f"{self.name} ({self.public_name})"
-
-    def display_providers(self):
-        return ', '.join([provider.acronym for provider in self.providers.all()])
-
-    class Meta:
-        verbose_name = "Cluster"
-        verbose_name_plural = "Clusters"
-
-
-class ClusterYear(models.Model):
-    cluster = models.ForeignKey(Cluster, on_delete=models.CASCADE)
-    year = models.IntegerField()
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         default='init_cluster', verbose_name="Etapa actual")
@@ -55,11 +38,11 @@ class ClusterYear(models.Model):
         StatusTask, on_delete=models.CASCADE, default='finished')
 
     def __str__(self):
-        return f"{self.cluster} - {self.year}"
+        return f"{self.name} ({self.public_name})"
 
     class Meta:
-        verbose_name = "Cluster por año"
-        verbose_name_plural = "Clusters por año"
+        verbose_name = "Cluster"
+        verbose_name_plural = "Clusters"
 
 
 class MatView(models.Model):

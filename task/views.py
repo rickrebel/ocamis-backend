@@ -15,7 +15,7 @@ from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
 from inai.misc_mixins.month_record_mix import FromAws as MonthRecord
 from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
 from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
-from rds.misc_mixins.cluster_year_mix import FromAws as ClusterYear
+from rds.misc_mixins.cluster_mix import FromAws as Cluster
 from rds.misc_mixins.mat_view_mix import FromAws as MatView
 from scripts.common import build_s3
 
@@ -75,7 +75,7 @@ def calculate_special_function(special_function):
 def find_task_model(async_task):
     task_models = [
         "petition", "file_control", "reply_file", "sheet_file",
-        "data_file", "week_record", "month_record", "cluster_year",
+        "data_file", "week_record", "month_record", "cluster",
         "mat_view"]
     for model in task_models:
         current_obj = getattr(async_task, model)

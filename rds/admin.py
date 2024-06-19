@@ -6,7 +6,7 @@ from inai.admin import ocamis_admin_site
 
 @register(Cluster, site=ocamis_admin_site)
 class ClusterAdmin(admin.ModelAdmin):
-    list_display = ["name", "public_name", "display_providers"]
+    list_display = ["name", "public_name"]
 
 
 @register(OperationGroup, site=ocamis_admin_site)

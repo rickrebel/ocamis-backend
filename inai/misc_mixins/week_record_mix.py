@@ -22,7 +22,7 @@ class FromAws:
         month_pairs = kwargs.get("month_pairs", {})
         month_sheets = kwargs.get("month_sheets", {})
         self.save_week_record(unique_counts, month_pairs)
-        errors = self.save_crossing_sheets(month_pairs, month_sheets)
+        errors = self.save_crossing_sheets(month_sheets)
         all_errors += errors
 
         return all_tasks, all_errors, True
@@ -121,7 +121,7 @@ class FromAws:
         #     drugs_count=month_counts["drugs_count"]
         # )
 
-    def save_crossing_sheets(self, month_pairs, sheets):
+    def save_crossing_sheets(self, sheets):
         from respond.models import TableFile
         all_errors = []
 

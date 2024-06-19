@@ -9,7 +9,7 @@ from geo.models import Provider
 from data_param.models import FileControl, Collection
 from classify_task.models import StatusTask, TaskFunction, Stage
 from category.models import StatusControl
-from rds.models import ClusterYear, MatView, Operation
+from rds.models import Cluster, MatView, Operation
 
 
 class AsyncTask(models.Model):
@@ -44,8 +44,8 @@ class AsyncTask(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    # cluster_year = models.ForeignKey(
-    #     ClusterYear, related_name="async_tasks",
+    # cluster = models.ForeignKey(
+    #     Cluster, related_name="async_tasks",
     #     on_delete=models.CASCADE, blank=True, null=True)
     # operation = models.ForeignKey(
     #     Operation, related_name="async_tasks",

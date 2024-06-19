@@ -38,6 +38,7 @@ class MonthRecordSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
+            "cluster",
             "error_process", "last_indexing", "last_behavior",
             "last_insertion", "stage", "status", "provider_id", ]
 
@@ -68,6 +69,7 @@ class MonthRecordFullSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
+            "cluster",
             "error_process", "last_indexing", "last_behavior",
             "last_insertion", "stage", "status", "provider_id",
             "behavior_counts", "drugs_counts"]

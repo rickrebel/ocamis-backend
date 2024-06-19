@@ -11,6 +11,7 @@ from data_param.models import (
     DataType, FinalField, CleanFunction,
     OldDataGroup, Collection, ParameterGroup, FileControl)
 from med_cat.models import Delivered
+from rds.models import Cluster
 
 # from .data_file_mixins.matches_mix import MatchesMix
 
@@ -62,6 +63,8 @@ class MonthRecord(models.Model):
         related_name="month_records",
         verbose_name="Proveedor de servicios de salud",
         on_delete=models.CASCADE, blank=True, null=True)
+    cluster = models.ForeignKey(
+        Cluster, on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10)
     year = models.SmallIntegerField(blank=True, null=True)
     month = models.SmallIntegerField(blank=True, null=True)
@@ -100,7 +103,14 @@ class MonthRecord(models.Model):
                     status_task__macro_status="with_errors")
                 for g_child in g_children:
                     if g_child:
-                        current_errors += g_child.errors or []
+                        try:
+                            current_errors += g_child.errors or []
+                        except Exception as e:
+                            message = (
+                                f"Error en MonthRecord.end_stage: {e}"
+                                f"g_child.errors: {g_child.errors}"
+                                f"current_errors: {current_errors}")
+                            raise Exception(message)
             all_errors += current_errors or []
         self.stage_id = stage_id
         if child_task_errors.exists():
@@ -138,9 +148,9 @@ class MonthRecord(models.Model):
 
     @property
     def base_table(self):
-        cluster = self.provider.clusters.first()
-        year = self.year_month.split("-")[0]
-        return f"{cluster.name}_{year}"
+        # cluster = self.provider.clusters.first()
+        # year = self.year_month.split("-")[0]
+        return f"{self.cluster.name}"
 
     class Meta:
         get_latest_by = "year_month"

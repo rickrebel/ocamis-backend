@@ -116,7 +116,10 @@ class GetAllData:
             if simple_regex is True:
                 regex_string = f"{self.sep}(){self.sep}"
             elif simple_regex is not None:
-                regex_string = f"{self.sep}({simple_regex}){self.sep}"
+                if "(" in simple_regex:
+                    regex_string = f"{self.sep}{simple_regex}{self.sep}"
+                else:
+                    regex_string = f"{self.sep}({simple_regex}){self.sep}"
             elif field["data_type"] == "Datetime":
                 if self.string_date == "MANY":
                     date_regex = field.get("format_date")

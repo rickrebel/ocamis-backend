@@ -594,7 +594,7 @@ class FromAws:
         insert_queries = []
         drop_queries = []
         try:
-            base_table = self.month_record.base_table
+            base_table = self.month_record.cluster.name
         except Exception as e:
             errors.append(f"El proveedor no está asociado a ningún cluster")
             return [], errors, False
@@ -603,7 +603,7 @@ class FromAws:
         for table_name in formula_tables:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table, "tmp")
-            base_table_name = f"frm_{self.month_record.base_table}_{table_name}"
+            base_table_name = f"frm_{base_table}_{table_name}"
             exists_base_table = exist_temp_table(base_table_name, "base")
             if not exists_temp_tables:
                 if table_name in ["rx", "drug"]:

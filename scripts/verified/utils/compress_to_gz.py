@@ -23,7 +23,7 @@ def transform_gz(file_name):
     csv_to_gz(origin_path, final_path)
 
 
-transform_gz("archivo_chih_2022.txt")
+transform_gz("2017_chih.txt")
 
 # february_files = [
 #     "Febrero 2022-Chihuahua.xlsx",

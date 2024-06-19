@@ -9,6 +9,7 @@ from api.mixins import (
 from core.api.views import StandardResultsSetPagination
 
 from geo.models import Institution, State, CLUES, Agency, Provider
+from inai.models import MonthRecord
 
 
 class StateViewSet(ListRetrieveUpdateMix):
@@ -54,12 +55,27 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             "month_records", "request_templates")
         return super().retrieve(request, *args, **kwargs)
 
+    @action(methods=["post"], detail=True, url_path='move_months')
+    def move_months(self, request, **kwargs):
+        from rds.models import Cluster
+        month_records_ids = request.data.get("month_records", None)
+        cluster_id = request.data.get("cluster", None)
+        cluster = Cluster.objects.get(name=cluster_id)
+        if not month_records_ids:
+            return Response(
+                {"error": "No se especificaron meses a mover"},
+                status=status.HTTP_400_BAD_REQUEST)
+        month_records = MonthRecord.objects.filter(id__in=month_records_ids)
+        month_records.update(cluster=cluster)
+        return Response(
+            {"cluster": cluster_id, "month_records": month_records_ids},
+            status=status.HTTP_200_OK)
+
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):
         import time
         from inai.misc_mixins.month_record_mix import FromAws as MonthRecordMix
         from task.views import comprobate_status, build_task_params
-        from inai.models import MonthRecord
         from inai.api.views import get_related_months
         from inai.api.serializers import MonthRecordSerializer
         from classify_task.models import Stage

@@ -37,7 +37,7 @@ class TaskFunction(models.Model):
         # ("3entity_month", "Mes Proveedor"),
         ("month_record", "Mes Proveedor"),
         ("provider", "Proveedor"),
-        ("cluster_year", "Cluster y año"),
+        ("cluster", "Cluster"),
         ("mat_view", "Materialized View"),
     )
 
@@ -85,6 +85,7 @@ STAGE_GROUP_CHOICES = (
     ("provider-petition", "Proveedor (Solicitud)"),
     ("provider-control", "Proveedor (Grupos de control)"),
     ("provider-month", "Proveedor (Meses)"),
+    ("cluster", "Cluster"),
 )
 
 

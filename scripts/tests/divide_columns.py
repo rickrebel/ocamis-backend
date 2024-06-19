@@ -1,7 +1,5 @@
 from fixture.pruebas.request_join import initial
-from task.aws.common import (
-    calculate_delivered_final, send_simple_response, BotoUtils,
-    convert_to_str, text_normalizer)
+from task.aws.common import (BotoUtils)
 from task.aws.complement import GetAllData
 import re
 

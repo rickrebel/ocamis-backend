@@ -38,6 +38,9 @@ from geo.models import Agency, Provider
 from geo.api.serializers import (
     AgencySerializer, ProviderSerializer, ProviderCatSerializer)
 
+from rds.models import Cluster
+from rds.api.serializers import ClusterSerializer
+
 
 class CatalogView(views.APIView):
     permission_classes = (permissions.AllowAny, )
@@ -98,6 +101,8 @@ class CatalogView(views.APIView):
             "date_breaks": DateBreakSimpleSerializer(
                 DateBreak.objects.all(), many=True).data,
             "offline_types": {k: v for k, v in OFFLINE_TYPES},
+            # RDS:
+            "clusters": ClusterSerializer(Cluster.objects.all(), many=True).data,
             # RICK TEMPLATES
             "last_request_template": RequestTemplateSerializer(
                 last_template).data,
