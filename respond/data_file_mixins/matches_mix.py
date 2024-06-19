@@ -106,9 +106,6 @@ class Match(BaseTransform):
         # print("global_delegation", self.global_delegation)
         # only_name = f"NEW_ELEM_NAME/{self.data_file.id}_SHEET_NAME_lap{self.lap}.csv"
         file_name = self.file_name
-        reply_file_id = self.data_file.reply_file_id
-        if reply_file_id:
-            file_name = f"{reply_file_id}_{file_name}"
         only_name = f"NEW_ELEM_NAME/{file_name}_SHEET_NAME_NEW_ELEM_NAME" \
                     f"_lap{self.lap}.csv"
         self.final_path = set_upload_path(self.data_file, only_name)
