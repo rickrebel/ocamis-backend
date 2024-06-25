@@ -388,7 +388,7 @@ class Agency(models.Model):
         blank=True, null=True)
     nombreSujetoObligado = models.CharField(
         max_length=160,
-        verbose_name="nombreSujetoObligado)",
+        verbose_name="nombreSujetoObligado",
         help_text="nombreSujetoObligado del INAI",
         blank=True, null=True)
     institution = models.ForeignKey(

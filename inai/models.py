@@ -290,11 +290,11 @@ class Petition(models.Model, PetitionTransformsMix):
     send_petition = models.DateField(
         verbose_name="Fecha de envío o recepción",
         blank=True, null=True)
-    send_response = models.DateField(
-        verbose_name="Fecha de última respuesta",
-        blank=True, null=True)
     response_limit = models.DateField(
         verbose_name="Fecha límite de respuesta",
+        blank=True, null=True)
+    send_response = models.DateField(
+        verbose_name="Fecha de última respuesta",
         blank=True, null=True)
     status_petition = models.ForeignKey(
         StatusControl, null=True, blank=True,
@@ -402,7 +402,7 @@ class Petition(models.Model, PetitionTransformsMix):
     months_in_description.short_description = "Meses escritos"
 
     def __str__(self):
-        return "solicitud"
+        return f"solicitud {self.folio_petition or 'draft'} - {self.agency}"
         # return "%s -- %s" % (self.agency, self.folio_petition or self.id)
 
     class Meta:

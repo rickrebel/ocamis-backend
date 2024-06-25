@@ -206,3 +206,12 @@ def init_examples():
     regex_format = RegexFormat(re_consul, cases=case_tests)
     regex_format.replace(new_value='|CONSULTA MEDICINA FAMILIAR')
 
+
+def inai_examples():
+    import re
+    example = '"cosas iniciales":"cosas iniciales","DescripcionSolicitud":"cosas "intermedias"","FechaRespuesta":"cosas finales"'
+    second_pattern = r'^(.*?)"DescripcionSolicitud":"(.*?)","FechaRespuesta":"(.*)"$'
+    second_pattern = re.compile(second_pattern)
+    line_matches = second_pattern.findall(example)
+    print(len(line_matches[0]))
+

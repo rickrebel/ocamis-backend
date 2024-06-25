@@ -24,7 +24,7 @@ def hydrateCol(row, all_headers):
 
 
 def getFileJson(file_path):
-    #import io
+    # import io
     with open(file_path, "r") as file:
         rr_data_rows = json.load(file)
         headers = rr_data_rows.pop(0)

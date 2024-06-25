@@ -23,12 +23,9 @@ def to_json_old(val, petition):
     return json.loads(val)
 
 
-def to_json(row, petition):
+def to_json(value, petition):
     from inai.models import Complaint
     import json
-    value = row.get("informacionQueja")
-    if not value:
-        return
     try:
         val = json.loads(value)
     except Exception as e:
@@ -85,31 +82,23 @@ def get_status_obj(val, petition):
         return status_found
 
 
-def join_url(row, main):
+def join_url(value, petition):
     from respond.models import ReplyFile
-    from category.models import FileType
-    default_url = "https://descarga.plataformadetransparencia.org.mx/buscador-ws/descargaArchivo/SISAI/"
-    compl_hash = row.get("archivoAdjuntoRespuesta", False)
-    if compl_hash:
-        try:
-            default_type = FileType.objects.get(name="no_final_info")
-        except Exception as e:
-            print("No se encontró el tipo de archivo")
-            print(e)
-            return
-        final_url = "%s%s" % (default_url, row["archivoAdjuntoRespuesta"])
-        try:
-            ReplyFile.objects.get_or_create(
-                petition=main, file_type=default_type, url_download=final_url)
-        except Exception as e:
-            print("No se pudo crear el archivo")
-            print(e)
-        #main.update()
+    # if ReplyFile.objects.filter(petition=petition, url_download__isnull=False)
+    # .exists():
+    #     return
+    if "https" not in value:
+        default_url = "https://descarga.plataformadetransparencia.org.mx/buscador-ws/descargaArchivo/SISAI/"
+        value = "%s%s" % (default_url, value)
+    try:
+        ReplyFile.objects.get_or_create(petition=petition, url_download=value)
+    except Exception as e:
+        print("No se pudo crear el archivo")
+        print(e)
 
 
 def add_limit_complain(row, main):
     from inai.models import PetitionBreak
-    from respond.models import ReplyFile
     from category.models import DateBreak
 
     try:
@@ -128,8 +117,6 @@ def add_limit_complain(row, main):
         print("No se pudo crear la fecha", main)
         print(e)
         pass
-
-    #main.update()
 
 
 def join_lines(row, main):
@@ -194,24 +181,32 @@ def insert_between_months(row, petition):
 
 def insert_from_json(
         all_array, columns, main_app, main_model, main_key, 
-        special_functions=[]):
+        special_functions=None):
     from django.apps import apps
+    if not special_functions:
+        special_functions = []
+    agency_name_field = None
+    agency_name_fields = [d for d in columns
+                          if d.get('final_field', False) == "nombreSujetoObligado"]
+    if agency_name_fields:
+        agency_name_field = agency_name_fields[0].get("inai_open_search", False)
     for row in all_array:
         # from inai.models import Petition, ReplyFile
         from geo.models import Agency
         MainModel = apps.get_model(main_app, main_model)
         related_elem = None
+
         if "idSujetoObligado" in row:
             try:
                 related_elem = Agency.objects.get(
                     idSujetoObligado=row["idSujetoObligado"])
             except Exception as e:
                 print(e)
-        if "Institución" in row:
-            upper_inst = row["Institución"].replace("\r\n", "").strip().upper()
+        if agency_name_field and not related_elem:
+            # upper_inst = row["Institución"].replace("\r\n", "").strip().upper()
+            upper_inst = row.get(agency_name_field, "").replace("\r\n", "").strip().upper()
             try:
-                related_elem = Agency.objects.get(
-                    nombreSujetoObligado=upper_inst)
+                related_elem = Agency.objects.get(nombreSujetoObligado=upper_inst)
             except Agency.MultipleObjectsReturned:
                 try:
                     related_elem = Agency.objects.get(
@@ -228,14 +223,13 @@ def insert_from_json(
         if not related_elem:
             continue
         if not related_elem.nombreSujetoObligado:
-            related_elem.nombreSujetoObligado = row["nombreSujetoObligado"]
+            # related_elem.nombreSujetoObligado = row["nombreSujetoObligado"]
+            related_elem.nombreSujetoObligado = row.get(agency_name_field, "")
             related_elem.save()
         main_columns = [d for d in columns
                         if d.get('model_name', False) == main_model]
         # unique_columns = [d for d in main_columns if d.get('unique', False)]
         unique_query = {
-            # Item["final_field"]:row.get(Item[main_key], related_elem)
-            #    for Item in unique_columns }
             Item["final_field"]: row.get(Item[main_key], related_elem)
             for Item in main_columns if Item.get('unique', False)}
         # list(filter(lambda d: d['unique'] in keyValList, exampleSet))
@@ -245,19 +239,31 @@ def insert_from_json(
             print(e)
             print(unique_query)
             raise e
-        other_cols = [
+        other_main_cols = [
             item for item in main_columns if not item.get('unique', False)]
         final_query = {}
-        for col in other_cols:
-            curr_value = row.get(col[main_key], False)
+        for col in other_main_cols:
+            curr_value = row.get(col.get(main_key, "inai_open_search"), False)
             if curr_value:
                 transform = col.get("transform", False)
                 if transform:
                     curr_value = globals()[transform](curr_value, main)
-                final_query[col["final_field"]] = curr_value
+                if final_field := col.get("final_field", False):
+                    final_query[final_field] = curr_value
+
         main_obj = MainModel.objects.filter(id=main.id)
         main_obj.update(**final_query)
         main = main_obj.first()
+
+        direct_transforms = [d for d in columns
+                             if not d.get('model_name') and d.get('transform')]
+        for col in direct_transforms:
+            transform = col.get("transform")
+            field = col.get(main_key, "inai_open_search")
+            value = row.get(field, False)
+            if value:
+                globals()[transform](value, main)
+
         for function in special_functions:
             if created or function[1]:
                 globals()[function[0]](row, main)

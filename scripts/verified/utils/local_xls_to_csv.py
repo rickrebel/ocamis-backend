@@ -70,7 +70,8 @@ def execute_local_xls_to_csv(file_name):
     # s3_utils.save_file_in_aws(csv_buffer.getvalue(), final_name)
 
 
-# execute_local_xls_to_csv("Febrero 2022-Zacatecas.xlsx")
+# execute_local_xls_to_csv("Recetas enero a diciembre 2022.xlsx")
+# execute_local_xls_to_csv("Recetas enero a diciembre 2023.xlsx")
 # execute_local_xls_to_csv("Febrero 2022-Sonora.xlsx")
 # execute_local_xls_to_csv("Febrero 2022-Especialidades Jalisco.xlsx")
 #

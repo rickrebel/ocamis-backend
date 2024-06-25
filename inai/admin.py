@@ -88,6 +88,7 @@ class PetitionAdmin(admin.ModelAdmin):
                 # "template_text",
                 # "request_template",
                 "send_petition",
+                "response_limit",
                 "send_response",
                 "description_petition",
                 "description_response",
