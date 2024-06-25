@@ -1,4 +1,26 @@
 
+def move_data_files_to_real_provider():
+    from respond.models import DataFile
+    bad_data_files = DataFile.objects.filter(
+        petition_file_control__petition__real_provider_id=57,
+        petition_file_control__file_control__real_provider_id=57,
+        stage_id="transform",
+        provider_id=55)
+    print("bad_data_files", bad_data_files.count())
+    bad_data_files.update(provider_id=57, stage_id="pre_transform")
+
+
+def move_data_files_to_real_provider2():
+    from respond.models import DataFile
+    bad_data_files = DataFile.objects.filter(
+        petition_file_control__petition__real_provider_id=57,
+        petition_file_control__file_control__real_provider_id=57,
+        provider_id=55)\
+        .exclude(stage_id="transform")
+    print("bad_data_files", bad_data_files.count())
+    bad_data_files.update(provider_id=57, stage_id="explore", status_id="not_sent")
+
+
 def reverse_transform(only_count=False, provider=None, every_files=False):
     from respond.models import LapSheet
     from respond.models import DataFile

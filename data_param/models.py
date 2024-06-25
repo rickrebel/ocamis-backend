@@ -196,8 +196,9 @@ class FileControl(models.Model):
                 data_files.update(provider=final_real_provider)
                 table_files.update(provider=final_real_provider)
             else:
-                data_files.update(provider=self.agency.provider)
-                table_files.update(provider=self.agency.provider)
+                provider = self.real_provider or self.agency.provider
+                data_files.update(provider=provider)
+                table_files.update(provider=provider)
 
         super().save(*args, **kwargs)
 

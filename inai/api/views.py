@@ -88,9 +88,10 @@ class PetitionViewSet(ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
 
         data_petition["petition"] = petition.id
+        provider = petition.real_provider or petition.agency.provider
 
         month_records = MonthRecord.objects.filter(
-            provider=petition.agency.provider,
+            provider=provider,
             year_month__gte=range_months[0],
             year_month__lte=range_months[1])
 

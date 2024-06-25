@@ -159,11 +159,12 @@ def insert_between_months(row, petition):
         month = month - 1
 
     curr_year_month = f"{year}-{month:02d}"
-    month_records = MonthRecord.objects.filter(provider=petition.agency.provider)
+    provider = petition.real_provider or petition.agency.provider
+    month_records = MonthRecord.objects.filter(provider=provider)
     month_record = month_records.filter(year_month=curr_year_month).first()
     if not month_record:
         month_record = MonthRecord.objects.create(
-            provider=petition.agency.provider, year_month=curr_year_month)
+            provider=provider, year_month=curr_year_month)
     petition.month_records.add(month_record)
     # if months_agency:
     #     # last_pet_mon = pet_months.latest('month_agency__year_month')
