@@ -243,8 +243,9 @@ class PetitionViewSet(ModelViewSet):
         # limiters = json.loads(limiters)
 
         petition = self.get_object()
+        provider = petition.real_provider or petition.agency.provider
         new_month_record = MonthRecord.objects.filter(
-            provider=petition.agency.provider,
+            provider=provider,
             year_month__gte=limiters[0], year_month__lte=limiters[1])
         petition.month_records.set(new_month_record)
         petition.months_verified = True
