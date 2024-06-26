@@ -402,7 +402,7 @@ class ExploreMix:
         elif (len(suffixes) == 1 and
               not self.sheet_files.filter(file_type_id='split').exists()):
             file_size = self.file.size
-            if file_size > 400000000:
+            if file_size > 440000000:
                 real_suffix = suffixes[0]
                 xls_format = FileFormat.objects.get(short_name="xls")
                 if real_suffix not in xls_format.suffixes:
