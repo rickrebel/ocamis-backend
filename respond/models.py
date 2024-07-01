@@ -15,12 +15,10 @@ from respond.reply_file_mixins.process_mix import ReplyFileMix
 class ReplyFile(models.Model, ReplyFileMix):
 
     petition = models.ForeignKey(
-        Petition,
-        related_name="reply_files",
-        on_delete=models.CASCADE)
+        Petition, related_name="reply_files", on_delete=models.CASCADE)
     file = models.FileField(
         verbose_name="archivo",
-        max_length=150, upload_to=set_upload_path,
+        max_length=255, upload_to=set_upload_path,
         blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     file_type = models.ForeignKey(
@@ -64,7 +62,7 @@ class ReplyFile(models.Model, ReplyFileMix):
 
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
-    file = models.FileField(max_length=150, upload_to=set_upload_path)
+    file = models.FileField(max_length=255, upload_to=set_upload_path)
     provider = models.ForeignKey(
         Provider, related_name="data_files", on_delete=models.CASCADE)
     # zip_path = models.TextField(blank=True, null=True)
