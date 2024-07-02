@@ -29,9 +29,9 @@ class ExploreMix:
             if data_file and suffix:
                 data_file.suffix = suffix
                 data_file.save()
-            elif first_task:
+            if first_task:
                 return [first_task], errors, self
-            else:
+            elif errors:
                 self.save_errors(errors, 'explore|with_errors')
                 return [], errors, self
         forced_save = kwargs.get("forced_save", False)
@@ -428,12 +428,12 @@ class ExploreMix:
         for suffix in list(readable_suffixes):
             final_readeable += suffix
         # final_readeable = [suffix for suffix in list(readable_suffixes)]
-
+        first_suffix = list(real_suffixes)[0]
         if not real_suffixes.issubset(final_readeable):
             errors = ["Formato no legible", "%s" % suffixes]
-            return (None, errors, None), None
+            return (self, errors, first_suffix), None
         # print("Parece que todo está bien")
-        return (self, [], list(real_suffixes)[0]), None
+        return (self, [], first_suffix), None
 
     def corroborate_save_data(self, task_params=None, **kwargs):
         from_aws = kwargs.get("from_aws", False)

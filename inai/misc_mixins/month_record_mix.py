@@ -212,7 +212,7 @@ class FromAws:
             .filter(
                 week_record__month_record=self.month_record,
                 collection__isnull=True,
-            ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
+            ).exclude(lap_sheet__sheet_file__behavior__is_discarded=True)
 
         laps = "petition_file_control__data_files__sheet_files__laps"
         months = "__table_files__week_record__month_record"
@@ -280,8 +280,8 @@ class FromAws:
         all_table_files = TableFile.objects \
             .filter(
                 week_record__month_record=self.month_record,
-                lap_sheet__lap=0,
-            ).exclude(lap_sheet__sheet_file__behavior_id="invalid") \
+                lap_sheet__lap=0)\
+            .exclude(lap_sheet__sheet_file__behavior__is_discarded=True)\
             .values(
                 "week_record_id", "id", "file", "collection", "year",
                 "month", "year_month", "iso_week", "iso_year", "year_week",
@@ -355,7 +355,7 @@ class FromAws:
 
         related_lap_sheets = LapSheet.objects\
             .filter(sheet_file__in=related_sheet_files)\
-            .exclude(sheet_file__behavior_id="invalid")
+            .exclude(sheet_file__behavior__is_discarded=True)
 
         pending_lap_sheets = related_lap_sheets.filter(
             cat_inserted=False, lap=0)

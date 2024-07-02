@@ -68,8 +68,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             reply_files = ReplyFile.objects.filter(
                 petition=petition, has_data=True)
             for reply_file in reply_files:
-                children_files = DataFile.objects. \
-                    filter(reply_file=reply_file)
+                children_files = DataFile.objects.filter(reply_file=reply_file)
                 if children_files.exists():
                     if not children_files.filter(
                         petition_file_control__file_control__data_group_id='orphan'

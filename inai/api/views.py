@@ -385,6 +385,7 @@ class MonthRecordViewSet(CreateRetrieveView):
 
     @action(detail=True, methods=["post"], url_path="change_behavior")
     def change_behavior(self, request, **kwargs):
+        from respond.models import Behavior
         month_record = self.get_object()
 
         behavior = request.data.get("behavior")
@@ -395,15 +396,16 @@ class MonthRecordViewSet(CreateRetrieveView):
         sheet_files = month_record.sheet_files.filter(
             laps__rx_count__gt=0,
             laps__lap=0).distinct()
-        is_invalid = behavior_group == "invalid"
+        behavior_obj = Behavior.objects.get(id=behavior)
+        is_invalid = behavior_obj.is_discarded
         # sheet_files = SheetFile.objects.filter(
         #     laps__table_files__week_record__month_record=month_record,
         #     rx_count__gt=0,
         #     laps__lap=0)
         if is_invalid:
-            sheet_files = sheet_files.filter(behavior_id='invalid')
+            sheet_files = sheet_files.filter(behavior__is_discarded=True)
         else:
-            sheet_files = sheet_files.exclude(behavior_id='invalid')
+            sheet_files = sheet_files.exclude(behavior__is_discarded=True)
             if behavior_group == "dupli":
                 sheet_files = sheet_files.exclude(
                     duplicates_count=0,
@@ -415,9 +417,9 @@ class MonthRecordViewSet(CreateRetrieveView):
                     duplicates_count=0,
                     shared_count=0,
                 ).distinct()
-        if behavior == 'invalid':
+        if is_invalid:
             sheet_files.update(duplicates_count=0, shared_count=0)
-        sheet_files.update(behavior_id=behavior)
+        sheet_files.update(behavior=behavior_obj)
         data_response = get_related_months(sheet_files)
         return Response(
             status=status.HTTP_200_OK,

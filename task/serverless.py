@@ -9,6 +9,7 @@ from task.aws.insert_temp_tables import lambda_handler as insert_temp_tables
 from task.aws.xls_to_csv import lambda_handler as xls_to_csv
 from task.aws.decompress_gz import lambda_handler as decompress_gz
 from task.aws.analyze_uniques import lambda_handler as analyze_uniques
+from task.aws.decompress_zip_aws import lambda_handler as decompress_zip_aws
 from task.aws.build_week_csvs import lambda_handler as build_week_csvs
 from task.aws.rebuild_week_csv import lambda_handler as rebuild_week_csv
 
@@ -29,6 +30,7 @@ def execute_async(current_task, params):
 
     s3_client, dev_resource = start_session("lambda")
     use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
+    print("SE VA A EJECUTAR:", function_name)
     if globals().get(function_name, False) and use_local_lambda:
         print("SE EJECUTA EN LOCAL:", function_name)
         request_id = current_task.id

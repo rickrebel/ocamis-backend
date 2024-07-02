@@ -58,7 +58,7 @@ def obtain_names_from_s3(
 
 
 obtain_names_from_s3(
-    "data_files/nacional/imss_imss-bienestar/330018024006508/2021-1.zip",
+    "data_files/nacional/imss_imss-bienestar/330018024006508/dvd2/",
     "330018024006508", True)
 
 # obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)

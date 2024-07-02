@@ -649,7 +649,7 @@ def get_period_report(
     else:
         behaviors = ["invalid", "pending", "not_merge"]
     excluded_sheets = SheetFile.objects.filter(
-        data_file__provider_id=provider_id,behavior_id__in=behaviors)\
+        data_file__provider_id=provider_id, behavior_id__in=behaviors)\
         .values_list("id", flat=True)
     excluded_sheets = set(list(excluded_sheets))
     print("excluded_sheets", excluded_sheets)
