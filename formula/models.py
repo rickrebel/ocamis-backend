@@ -26,7 +26,7 @@ class Rx(models.Model):
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
-    folio_ocamis = models.CharField(max_length=64)
+    folio_ocamis = models.CharField(max_length=70)
     folio_document = models.CharField(max_length=46)
     year = models.PositiveSmallIntegerField(blank=True, null=True)
     month = models.PositiveSmallIntegerField()

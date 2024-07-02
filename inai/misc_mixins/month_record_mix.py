@@ -225,7 +225,7 @@ class FromAws:
                 .filter(
                     final_field__is_unique=True,
                     final_field__collection__model_name="Medicament")\
-                .order_by("final_field__is_common", "final_field__name")\
+                .order_by("-final_field__is_common", "final_field__name")\
                 .first()
             if not medicine_field:
                 return all_tasks, ["No se encontró campo de medicamento"], True

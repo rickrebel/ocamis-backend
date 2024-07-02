@@ -8,6 +8,7 @@ class ExploreMix:
         # from task.models import AsyncTask
         from category.models import FileFormat
         from respond.models import SheetFile
+        from scripts.common import get_readeable_suffixes
         data_file = self
         task_params = task_params or {}
         data_file.error_process = []
@@ -34,6 +35,12 @@ class ExploreMix:
             elif errors:
                 self.save_errors(errors, 'explore|with_errors')
                 return [], errors, self
+        else:
+            readable_suffixes = get_readeable_suffixes()
+            if data_file.suffix not in readable_suffixes:
+                errors = ["Formato no legible", "%s" % data_file.suffix]
+                return [], errors, data_file
+
         forced_save = kwargs.get("forced_save", False)
         sheet_names = data_file.sheet_names_list
         if not sheet_names:
@@ -377,8 +384,9 @@ class ExploreMix:
 
     def decompress_file(self, task_params=None, **kwargs):
         import pathlib
-        from category.models import FileFormat
         import re
+        from category.models import FileFormat
+        from scripts.common import get_readeable_suffixes
         # Se obienen todos los tipos del archivo inicial:
         # print("final_path: ", self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
@@ -422,14 +430,10 @@ class ExploreMix:
                        " podemos reconocer: %s" % real_suffixes)]
             return (None, errors, None), None
         real_suffixes = set(real_suffixes)
-        readable_suffixes = FileFormat.objects.filter(readable=True)\
-            .values_list("suffixes", flat=True)
-        final_readeable = []
-        for suffix in list(readable_suffixes):
-            final_readeable += suffix
         # final_readeable = [suffix for suffix in list(readable_suffixes)]
+        readable_suffixes = get_readeable_suffixes()
         first_suffix = list(real_suffixes)[0]
-        if not real_suffixes.issubset(final_readeable):
+        if not real_suffixes.issubset(readable_suffixes):
             errors = ["Formato no legible", "%s" % suffixes]
             return (self, errors, first_suffix), None
         # print("Parece que todo está bien")

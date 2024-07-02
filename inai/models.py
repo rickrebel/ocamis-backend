@@ -216,9 +216,10 @@ class WeekRecord(models.Model):
 
 
 class RequestTemplate(models.Model):
-    version = models.IntegerField()
+    version = models.IntegerField(blank=True, null=True)
     version_name = models.CharField(max_length=100, blank=True, null=True)
     text = models.TextField()
+    description = models.TextField(blank=True, null=True)
     provider = models.ForeignKey(
         Provider, related_name="request_templates",
         verbose_name="Proveedor",
