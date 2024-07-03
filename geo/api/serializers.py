@@ -187,7 +187,7 @@ def calc_drugs_summarize(obj=None, table_files=None, month_records=None):
         table_files = obj.table_files \
             .filter(week_record__isnull=False)
 
-    exclude_collections = ["Drug", "DiagnosisRx", "ComplementRx", "ComplementDrug"]
+    exclude_collections = ["Rx", "DiagnosisRx", "ComplementRx", "ComplementDrug"]
     drugs_count_by_drug = table_files \
         .exclude(collection__model_name__in=exclude_collections) \
         .prefetch_related("collection", "lap_sheet__sheet_file__behavior") \
