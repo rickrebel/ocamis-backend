@@ -113,7 +113,6 @@ class ExtractorsMix:
 
         return []
 
-
     def decompress_file_gz(self, task_params=None):
         from task.serverless import async_in_lambda
         from inai.models import set_upload_path

@@ -4,8 +4,7 @@ from typing import Any, Dict
 
 def build_dict(only_data_files=False):
     import time
-    from inai.models import (
-        set_upload_path)
+    from inai.models import set_upload_path
     from respond.models import TableFile
     from respond.models import SheetFile
     from respond.models import DataFile

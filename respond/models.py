@@ -12,16 +12,13 @@ from inai.models import Petition, set_upload_path, PetitionFileControl, MonthRec
 from respond.reply_file_mixins.process_mix import ReplyFileMix
 
 
-# Create your models here.
 class ReplyFile(models.Model, ReplyFileMix):
 
     petition = models.ForeignKey(
-        Petition,
-        related_name="reply_files",
-        on_delete=models.CASCADE)
+        Petition, related_name="reply_files", on_delete=models.CASCADE)
     file = models.FileField(
         verbose_name="archivo",
-        max_length=150, upload_to=set_upload_path,
+        max_length=255, upload_to=set_upload_path,
         blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     file_type = models.ForeignKey(
@@ -78,22 +75,13 @@ class ReplyFile(models.Model, ReplyFileMix):
 
 class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
-    file = models.FileField(max_length=150, upload_to=set_upload_path)
+    file = models.FileField(max_length=255, upload_to=set_upload_path)
     provider = models.ForeignKey(
-        Provider, related_name="data_files", on_delete=models.CASCADE,
-        blank=True, null=True)
+        Provider, related_name="data_files", on_delete=models.CASCADE)
     # zip_path = models.TextField(blank=True, null=True)
     is_duplicated = models.BooleanField(
         blank=True, null=True, verbose_name="Duplicado")
     date = models.DateTimeField(auto_now_add=True)
-    # petition_month = models.ForeignKey(
-    #     PetitionMonth, blank=True, null=True,
-    #     on_delete=models.CASCADE)
-    # notes = models.TextField(blank=True, null=True)
-    # is_final = models.BooleanField(default= True)
-    # origin_file = models.ForeignKey(
-    #     "DataFile", blank=True, null=True, related_name="child_files",
-    #     verbose_name="archivo origen", on_delete=models.CASCADE)
     reply_file = models.ForeignKey(
         ReplyFile, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="archivo base", related_name="data_file_childs")

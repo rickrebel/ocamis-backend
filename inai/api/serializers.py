@@ -38,8 +38,9 @@ class MonthRecordSerializer(serializers.ModelSerializer):
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
-            "last_indexing",
-            "last_insertion", "stage", "status", "provider_id", "error_process"]
+            "cluster",
+            "error_process", "last_indexing", "last_behavior",
+            "last_insertion", "stage", "status", "provider_id", ]
 
 
 class MonthRecordFullSerializer(serializers.ModelSerializer):
@@ -60,16 +61,18 @@ class MonthRecordFullSerializer(serializers.ModelSerializer):
 
     def get_behavior_counts(self, obj):
         from geo.api.serializers import calc_sheet_files_summarize
-        return calc_sheet_files_summarize(None, obj)
+        return calc_sheet_files_summarize(month_records=[obj])
 
     class Meta:
         model = MonthRecord
         fields = [
             "id", "year_month", "human_name", "rx_count", "drugs_count",
             "duplicates_count", "shared_count", "last_transformation",
-            "last_crossing", "last_merge", "last_pre_insertion", "error_process",
-            "last_indexing", "last_insertion", "behavior_counts",
-            "stage", "status", "drugs_counts", "provider_id"]
+            "last_crossing", "last_merge", "last_pre_insertion",
+            "cluster",
+            "error_process", "last_indexing", "last_behavior",
+            "last_insertion", "stage", "status", "provider_id",
+            "behavior_counts", "drugs_counts"]
 
 
 class MonthRecordSimpleSerializer(serializers.ModelSerializer):
@@ -85,7 +88,7 @@ class WeekRecordSimpleSerializer(serializers.ModelSerializer):
         model = WeekRecord
         exclude = [
             "rx_count", "duplicates_count", "shared_count",
-            "last_transformation", "last_crossing"]
+            "last_transformation", "last_crossing", "last_behavior"]
 
 
 class PetitionFileControlCreateSerializer(serializers.ModelSerializer):
@@ -168,7 +171,6 @@ class PetitionNegativeReasonSerializer(PetitionNegativeReasonSimpleSerializer):
 
 
 class PetitionSmallSerializer(serializers.ModelSerializer):
-    # petition_months = PetitionMonthSerializer(many=True)
     # month_records = MonthRecordSimpleSerializer(many=True)
     last_year_month = serializers.CharField(read_only=True)
     first_year_month = serializers.CharField(read_only=True)

@@ -65,7 +65,7 @@ class DataUtilsMix:
         stage_sheets = self.sheet_files.filter(stage_id=stage)
 
         def save_new_status(new_st):
-            if not self.status_id == new_st:
+            if self.status_id != new_st:
                 self.status_id = new_st
                 self.error_process = []
                 self.warnings = None

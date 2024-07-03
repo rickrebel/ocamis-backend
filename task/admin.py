@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from django.contrib.admin.filters import SimpleListFilter
 
 from .models import (
-    AsyncTask, Platform, CutOff, Step, ClickHistory, OfflineTask)
+    AsyncTask, CutOff, Step, ClickHistory, OfflineTask)
+from rds.models import Platform
 from classify_task.models import StatusTask, TaskFunction, Stage, UserProfile
 
 

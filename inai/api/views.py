@@ -88,15 +88,13 @@ class PetitionViewSet(ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
 
         data_petition["petition"] = petition.id
+        provider = petition.real_provider or petition.agency.provider
 
         month_records = MonthRecord.objects.filter(
-            provider=petition.agency.provider,
+            provider=provider,
             year_month__gte=range_months[0],
             year_month__lte=range_months[1])
 
-        # for month_record in month_records:
-        #     PetitionMonth.objects.create(
-        #         petition=petition, month_record=month_record)
         month_records_ids = month_records.values_list('id', flat=True)
         petition.month_records.set(month_records_ids)
 
@@ -191,7 +189,6 @@ class PetitionViewSet(ModelViewSet):
         limiters = json.loads(limiters)
 
         petitions = Petition.objects.all().prefetch_related(
-            # "petition_months",
             "month_records",
             "file_controls",
             "break_dates",
@@ -212,13 +209,9 @@ class PetitionViewSet(ModelViewSet):
 
             if limiters.get("selected_year"):
                 if limiters.get("selected_month"):
-                    # all_filters["petition_months__month_agency__year_month"] =\
-                    #     f"{limiters.get('selected_year')}-{limiters.get('selected_month')}"
                     all_filters["month_records__year_month"] =\
                         f"{limiters.get('selected_year')}-{limiters.get('selected_month')}"
                 else:
-                    # all_filters["petition_months__month_agency__year_month__icontains"] =\
-                    #     limiters.get("selected_year")
                     all_filters["month_records__year_month__icontains"] =\
                         limiters.get("selected_year")
             if all_filters:
@@ -251,8 +244,9 @@ class PetitionViewSet(ModelViewSet):
         # limiters = json.loads(limiters)
 
         petition = self.get_object()
+        provider = petition.real_provider or petition.agency.provider
         new_month_record = MonthRecord.objects.filter(
-            provider=petition.agency.provider,
+            provider=provider,
             year_month__gte=limiters[0], year_month__lte=limiters[1])
         petition.month_records.set(new_month_record)
         petition.months_verified = True
@@ -336,11 +330,14 @@ class MonthRecordViewSet(CreateRetrieveView):
     permission_classes = [permissions.IsAuthenticated]
     action_serializers = {
         "retrieve": serializers.MonthRecordSerializer,
+        "change_months": serializers.MonthRecordSerializer,
     }
 
     def retrieve(self, request, **kwargs):
         from respond.api.serializers import SheetFileMonthSerializer
         from task.models import ClickHistory
+        from data_param.models import FileControl
+
         month_record = self.get_object()
         ClickHistory.objects.create(
             month_record=month_record, user=request.user)
@@ -350,7 +347,7 @@ class MonthRecordViewSet(CreateRetrieveView):
         #     laps__table_files__week_record__month_record=month_record)\
         #     .distinct()
         serializer_sheet_files = SheetFileMonthSerializer(
-            sheet_files, many=True)
+            sheet_files, many=True, context={'month_record': month_record})
         crossing_sheets_1 = CrossingSheet.objects.filter(
             sheet_file_1__in=sheet_files)
         crossing_sheets_2 = CrossingSheet.objects.filter(
@@ -375,37 +372,90 @@ class MonthRecordViewSet(CreateRetrieveView):
 
         serializer_crossing_sheets = respond.api.serializers.CrossingSheetSimpleSerializer(
             all_crossing_sheets, many=True)
+        file_controls = FileControl.objects.filter(
+            petition_file_control__data_files__sheet_files__laps__table_files__week_record__month_record=month_record)\
+            .distinct()
+        file_controls_ids = file_controls.values_list("id", flat=True)
         return Response({
             "sheet_files": serializer_sheet_files.data,
             "related_sheets": serializer_related_files.data,
-            "crossing_sheets": serializer_crossing_sheets.data
+            "crossing_sheets": serializer_crossing_sheets.data,
+            "file_controls": file_controls_ids,
         })
 
     @action(detail=True, methods=["post"], url_path="change_behavior")
     def change_behavior(self, request, **kwargs):
+        from respond.models import Behavior
         month_record = self.get_object()
 
         behavior = request.data.get("behavior")
-        for_all = request.data.get("all", False)
+        # print("behavior", behavior)
+        behavior_group = request.data.get("behavior_group")
+        # print("behavior_group", behavior_group)
+        # for_all = request.data.get("all", False)
         sheet_files = month_record.sheet_files.filter(
             laps__rx_count__gt=0,
             laps__lap=0).distinct()
+        behavior_obj = Behavior.objects.get(id=behavior)
+        is_invalid = behavior_obj.is_discarded
         # sheet_files = SheetFile.objects.filter(
         #     laps__table_files__week_record__month_record=month_record,
         #     rx_count__gt=0,
         #     laps__lap=0)
-        if for_all:
-            sheet_files = sheet_files.exclude(
-                duplicates_count=0,
-                shared_count=0,
-            ).distinct()
+        if is_invalid:
+            sheet_files = sheet_files.filter(behavior__is_discarded=True)
         else:
-            sheet_files = sheet_files.filter(
-                duplicates_count=0,
-                shared_count=0,
-            ).distinct()
-        sheet_files.update(behavior_id=behavior)
-        return Response(status=status.HTTP_200_OK)
+            sheet_files = sheet_files.exclude(behavior__is_discarded=True)
+            if behavior_group == "dupli":
+                sheet_files = sheet_files.exclude(
+                    duplicates_count=0,
+                    shared_count=0,
+                ).distinct()
+                print("sheet_files", sheet_files)
+            else:
+                sheet_files = sheet_files.filter(
+                    duplicates_count=0,
+                    shared_count=0,
+                ).distinct()
+        if is_invalid:
+            sheet_files.update(duplicates_count=0, shared_count=0)
+        sheet_files.update(behavior=behavior_obj)
+        data_response = get_related_months(sheet_files)
+        return Response(
+            status=status.HTTP_200_OK,
+            data=data_response
+        )
+
+
+def get_related_months(sheet_files=None, all_related_months=None):
+    from django.utils import timezone
+    from respond.models import TableFile
+    from geo.api.serializers import (
+        calc_sheet_files_summarize, calc_drugs_summarize)
+
+    if not all_related_months and not sheet_files:
+        raise ValueError("sheet_files or all_related_months must be provided")
+    if not all_related_months:
+        all_related_months = MonthRecord.objects \
+            .filter(sheet_files__in=sheet_files) \
+            .distinct()
+    time_now = timezone.now()
+    all_related_months.update(last_behavior=time_now)
+    # .exclude(id=month_record.id)\
+    behavior_counts = calc_sheet_files_summarize(
+        month_records=all_related_months)
+    table_files = TableFile.objects.filter(
+        week_record__month_record__in=all_related_months)
+
+    drugs_summarize = calc_drugs_summarize(
+        table_files=table_files, month_records=all_related_months)
+    # related_month_ids = all_related_months.values_list("id", flat=True)
+
+    return {
+        "behavior_counts": behavior_counts,
+        "drugs_summarize": drugs_summarize,
+        "time_now": time_now,
+    }
 
 
 class RequestTemplateViewSet(ListRetrieveUpdateMix):

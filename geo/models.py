@@ -146,6 +146,8 @@ class Provider(models.Model):
     has_indirect = models.BooleanField(
         default=False, verbose_name="Tiene indirectos")
     variables = JSONField(blank=True, null=True)
+    strategy = models.TextField(
+        blank=True, null=True, verbose_name="Estrategia para solicitudes")
 
     @property
     def provider_type(self):
@@ -176,7 +178,7 @@ class Provider(models.Model):
             weeks_gen.generate_weeks()
 
     def __str__(self):
-        return self.short_name or self.name
+        return f"{self.acronym} ({self.short_name or self.name})"
 
     class Meta:
         ordering = ["state__name"]
@@ -388,7 +390,7 @@ class Agency(models.Model):
         blank=True, null=True)
     nombreSujetoObligado = models.CharField(
         max_length=160,
-        verbose_name="nombreSujetoObligado)",
+        verbose_name="nombreSujetoObligado",
         help_text="nombreSujetoObligado del INAI",
         blank=True, null=True)
     institution = models.ForeignKey(

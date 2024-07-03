@@ -35,6 +35,8 @@ class DecompressZip:
         for zip_elem in zip_file.infolist():
             if zip_elem.is_dir():
                 continue
+            if "desktop.ini" in zip_elem.filename:
+                continue
             pos_slash = zip_elem.filename.rfind("/")
             # only_name = zip_elem.filename[pos_slash + 1:]
             directory = (zip_elem.filename[:pos_slash]

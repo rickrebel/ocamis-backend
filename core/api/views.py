@@ -38,6 +38,9 @@ from geo.models import Agency, Provider
 from geo.api.serializers import (
     AgencySerializer, ProviderSerializer, ProviderCatSerializer)
 
+from rds.models import Cluster
+from rds.api.serializers import ClusterSerializer
+
 
 class CatalogView(views.APIView):
     permission_classes = (permissions.AllowAny, )
@@ -98,6 +101,8 @@ class CatalogView(views.APIView):
             "date_breaks": DateBreakSimpleSerializer(
                 DateBreak.objects.all(), many=True).data,
             "offline_types": {k: v for k, v in OFFLINE_TYPES},
+            # RDS:
+            "clusters": ClusterSerializer(Cluster.objects.all(), many=True).data,
             # RICK TEMPLATES
             "last_request_template": RequestTemplateSerializer(
                 last_template).data,
@@ -162,6 +167,30 @@ class CatalogShortageViz(views.APIView):
                 Group.objects.all(), many=True).data,
         }
         return Response(data)
+
+
+class CatalogComponents(views.APIView):
+    permission_classes = (permissions.AllowAny, )
+
+    def get(self, request):
+        from medicine.api.serializers import (
+            ComponentStoryBlokSerializer, GroupStoryBlokSerializer)
+        from medicine.models import Component, Group
+
+        field_in_params = request.GET.get("field", None)
+
+        if field_in_params == "group":
+            groups = Group.objects.all()
+            serializer = GroupStoryBlokSerializer(groups, many=True)
+            return Response(serializer.data)
+        elif field_in_params == "component":
+            pass
+
+        components = Component.objects\
+            .filter(priority__lte=10)\
+            .order_by("priority", "-frequency")
+        serializer = ComponentStoryBlokSerializer(components, many=True)
+        return Response(serializer.data)
 
 
 class StandardResultsSetPagination(PageNumberPagination):

@@ -1,12 +1,12 @@
 import io
-from task.models import Platform
+from rds.models import Platform
 from django.apps import apps
 from django.db.models import Index
 from django.db import connection
 
 
 def build_constraints_and_indexes(use_complement=False):
-    file_sql = 'scripts/ocamis_verified/indexes/ddl_editables2.sql'
+    file_sql = 'scripts/verified/indexes/origins/ddl_editables3.sql'
     complement_path = "//"
     final_path = f"{complement_path}{file_sql}" if use_complement else file_sql
     print(final_path)
@@ -259,30 +259,30 @@ def delete_constraints_and_indexes_prev(model_name, app_label):
 
     return alter_statements
 
-
-def modify_constraints_prev(create=True):
-    all_models = [
-        {"model": "MissingField", "order": 0, "app": "formula"},
-        {"model": "MissingRow", "order": 1, "app": "formula"},
-        {"model": "Drug", "order": 2, "app": "formula"},
-        {"model": "Rx", "order": 3, "app": "formula"},
-        {"model": "Delivered", "order": 4, "app": "med_cat"},
-        {"model": "Doctor", "order": 5, "app": "med_cat"},
-        {"model": "MedicalUnit", "order": 6, "app": "med_cat"},
-        {"model": "Area", "order": 7, "app": "med_cat"},
-        {"model": "Medicament", "order": 8, "app": "med_cat"},
-        {"model": "Diagnosis", "order": 9, "app": "med_cat"},
-    ]
-    all_models = sorted(
-        all_models, key=lambda k: -k["order"] if create else k["order"])
-    for model in all_models:
-        if create:
-            create_constraints_and_indexes_prev(model["model"], model["app"])
-        else:
-            delete_constraints_and_indexes_prev(model["model"], model["app"])
-    if not create:
-        for model in all_models:
-            delete_constraints_and_indexes_prev(model["model"], model["app"])
-    Platform.objects.all().update(has_constrains=create)
+#
+# def modify_constraints_prev(create=True):
+#     all_models = [
+#         {"model": "MissingField", "order": 0, "app": "formula"},
+#         {"model": "MissingRow", "order": 1, "app": "formula"},
+#         {"model": "Drug", "order": 2, "app": "formula"},
+#         {"model": "Rx", "order": 3, "app": "formula"},
+#         {"model": "Delivered", "order": 4, "app": "med_cat"},
+#         {"model": "Doctor", "order": 5, "app": "med_cat"},
+#         {"model": "MedicalUnit", "order": 6, "app": "med_cat"},
+#         {"model": "Area", "order": 7, "app": "med_cat"},
+#         {"model": "Medicament", "order": 8, "app": "med_cat"},
+#         {"model": "Diagnosis", "order": 9, "app": "med_cat"},
+#     ]
+#     all_models = sorted(
+#         all_models, key=lambda k: -k["order"] if create else k["order"])
+#     for model in all_models:
+#         if create:
+#             create_constraints_and_indexes_prev(model["model"], model["app"])
+#         else:
+#             delete_constraints_and_indexes_prev(model["model"], model["app"])
+#     if not create:
+#         for model in all_models:
+#             delete_constraints_and_indexes_prev(model["model"], model["app"])
+#     Platform.objects.all().update(has_constrains=create)
 
 

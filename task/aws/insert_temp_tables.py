@@ -6,6 +6,8 @@ def lambda_handler(event, context):
     from datetime import datetime
     # print("model_name", event.get("model_name"))
     db_config = event.get("db_config")
+
+    create_base_tables = event.get("create_base_tables")
     first_query = event.get("first_query")
     last_query = event.get("last_query")
 
@@ -29,7 +31,11 @@ def lambda_handler(event, context):
             str_e = str(e)
             if "current transaction is aborted" in str_e:
                 return
-            errors.append(f"Hubo un error al guardar; {str(e)}")
+            errors.append(f"Hubo un error al guardar; \n{query_content}; \n{str(e)}")
+
+    if create_base_tables:
+        for create_base_table in create_base_tables:
+            execute_query(create_base_table)
 
     if first_query:
         cursor.execute(first_query)

@@ -15,6 +15,8 @@ from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
 from inai.misc_mixins.month_record_mix import FromAws as MonthRecord
 from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
 from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
+from rds.misc_mixins.cluster_mix import FromAws as Cluster
+from rds.misc_mixins.mat_view_mix import FromAws as MatView
 from scripts.common import build_s3
 
 
@@ -73,7 +75,8 @@ def calculate_special_function(special_function):
 def find_task_model(async_task):
     task_models = [
         "petition", "file_control", "reply_file", "sheet_file",
-        "data_file", "week_record", "month_record"]
+        "data_file", "week_record", "month_record", "cluster",
+        "mat_view"]
     for model in task_models:
         current_obj = getattr(async_task, model)
         if current_obj:
@@ -329,7 +332,7 @@ def build_task_params(model, function_name, request, **kwargs):
         task_function.save()
     # print("build_task_params 4: ", datetime.now())
     if model_name == "data_file":
-        stage = task_function.stages.first()
+        stage = task_function.stages.last()
         if stage:
             model.stage = stage
             model.status_id = "pending"
@@ -347,6 +350,7 @@ def build_task_params(model, function_name, request, **kwargs):
 
 def comprobate_status(
         current_task, errors=None, new_tasks=None, want_http_response=False):
+    print("comprobate_status", current_task, current_task.id)
     from rest_framework.response import Response
     from rest_framework import status
     if not current_task:
@@ -361,6 +365,7 @@ def comprobate_status(
         status_task_id = "children_tasks"
     else:
         status_task_id = "finished"
+    print("status_task_id: ", status_task_id)
     current_task = comprobate_brothers(current_task, status_task_id)
     if want_http_response:
         body_response = {"new_task": current_task.id}
@@ -462,7 +467,7 @@ def has_enough_balance(task_function) -> bool:
                         'Dimensions': [
                             {
                                 'Name': 'DBInstanceIdentifier',
-                                'Value': 'alldatabases'
+                                'Value': 'new-alldatabases'
                             },
                         ]
                     },
@@ -595,7 +600,10 @@ def debug_queue():
                 task.sheet_file.save_stage('transform', errors)
     every_completed = AsyncTask.objects.filter(
         status_task__is_completed=True,
+        status_task_id="queue",
         task_function__is_queueable=True)
+    pending_tasks = AsyncTask.objects.filter(
+        status_task_id="queue", task_function__is_queueable=True)
     if every_completed.exists():
         next_task = AsyncTask.objects.filter(
             status_task_id="queue").order_by("id").first()
@@ -603,6 +611,9 @@ def debug_queue():
             execute_async(next_task, next_task.original_request)
         # else:
         #     modify_constraints(is_create=True)
+    elif pending_tasks.exists():
+        next_task = pending_tasks.order_by("id").first()
+        execute_async(next_task, next_task.original_request)
 
 
 def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):

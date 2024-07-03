@@ -104,7 +104,7 @@ class InsertMonth:
                 if model_data["app"] == "formula":
                     if complement:
                         model_in_db = model_in_db.replace(
-                            "formula_", f"fm_{complement}_")
+                            "formula_", f"tmp.fm_{complement}_")
                     query_base = build_copy_sql_aws(
                         "PATH_URL", model_in_db, columns_join)
                     alternative_query = build_alternative_query(

@@ -2,14 +2,14 @@ from django.db import models
 from django.db.models import JSONField
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
-
 from django.contrib.auth.models import User
 from inai.models import Petition, MonthRecord, WeekRecord
 from respond.models import ReplyFile, DataFile, SheetFile, TableFile
 from geo.models import Provider
-from data_param.models import FileControl
+from data_param.models import FileControl, Collection
 from classify_task.models import StatusTask, TaskFunction, Stage
 from category.models import StatusControl
+from rds.models import Cluster, MatView, Operation
 
 
 class AsyncTask(models.Model):
@@ -44,6 +44,15 @@ class AsyncTask(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
+    # cluster = models.ForeignKey(
+    #     Cluster, related_name="async_tasks",
+    #     on_delete=models.CASCADE, blank=True, null=True)
+    # operation = models.ForeignKey(
+    #     Operation, related_name="async_tasks",
+    #     on_delete=models.CASCADE, blank=True, null=True)
+    # mat_view = models.ForeignKey(
+    #     MatView, related_name="async_tasks",
+    #     on_delete=models.CASCADE, blank=True, null=True)
 
     status_task = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, blank=True, null=True,
@@ -91,10 +100,10 @@ class AsyncTask(models.Model):
                 name=self.status_task_id, is_completed=True).exists()
             if is_completed and not self.date_end:
                 self.date_end = datetime.now()
-            self.save()
             # if self.status_task_id == "finished":
             #     self.is_current = False
             #     self.save()
+        self.save()
         return self
 
     @property
@@ -162,42 +171,6 @@ def async_task_post_delete(sender, instance, **kwargs):
             }
         },
     )
-
-
-class Platform(models.Model):
-    version = models.CharField(max_length=10)
-    has_constrains = models.BooleanField(default=True)
-    # has_mini_constrains = models.BooleanField(default=False)
-    create_constraints = JSONField(blank=True, null=True)
-    delete_constraints = JSONField(blank=True, null=True)
-
-    class Meta:
-        verbose_name = u"Plataforma"
-        verbose_name_plural = "Plataformas"
-        ordering = ["-version"]
-
-    def __str__(self):
-        return self.version
-
-
-class FilePath(models.Model):
-    reply_file = models.ForeignKey(
-        ReplyFile, on_delete=models.CASCADE, blank=True, null=True,
-        related_name="file_paths")
-    data_file = models.ForeignKey(
-        DataFile, on_delete=models.CASCADE, blank=True, null=True)
-    sheet_file = models.ForeignKey(
-        SheetFile, on_delete=models.CASCADE, blank=True, null=True)
-    table_file = models.ForeignKey(
-        TableFile, on_delete=models.CASCADE, blank=True, null=True)
-    path_to_file = models.CharField(
-        max_length=400, verbose_name="Ruta al archivo deseable")
-    path_in_bucket = models.CharField(
-        max_length=400, verbose_name="Ruta al archivo actual")
-    size = models.IntegerField(blank=True, null=True)
-    is_correct_path = models.BooleanField(blank=True, null=True)
-    # status = models.CharField(
-    #     max_length=100, blank=True, null=True)
 
 
 class CutOff(models.Model):
@@ -296,3 +269,32 @@ class OfflineTask(models.Model):
         verbose_name = "Tarea offline"
         verbose_name_plural = "Tareas offline"
         ordering = ["-date_start"]
+
+
+class FilePath(models.Model):
+    reply_file = models.ForeignKey(
+        ReplyFile, on_delete=models.CASCADE, blank=True, null=True,
+        related_name="file_paths")
+    data_file = models.ForeignKey(
+        DataFile, on_delete=models.CASCADE, blank=True, null=True)
+    sheet_file = models.ForeignKey(
+        SheetFile, on_delete=models.CASCADE, blank=True, null=True)
+    table_file = models.ForeignKey(
+        TableFile, on_delete=models.CASCADE, blank=True, null=True)
+    path_to_file = models.CharField(
+        max_length=400, verbose_name="Ruta al archivo deseable")
+    path_in_bucket = models.CharField(
+        max_length=400, verbose_name="Ruta al archivo actual")
+    size = models.IntegerField(blank=True, null=True)
+    is_correct_path = models.BooleanField(blank=True, null=True)
+    # status = models.CharField(
+    #     max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return self.path_to_file
+
+    class Meta:
+        verbose_name = "Ruta de archivo"
+        verbose_name_plural = "Rutas de archivo"
+        ordering = ["-id"]
+

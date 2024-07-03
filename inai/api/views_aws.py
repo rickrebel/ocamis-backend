@@ -68,8 +68,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             reply_files = ReplyFile.objects.filter(
                 petition=petition, has_data=True)
             for reply_file in reply_files:
-                children_files = DataFile.objects. \
-                    filter(reply_file=reply_file)
+                children_files = DataFile.objects.filter(reply_file=reply_file)
                 if children_files.exists():
                     if not children_files.filter(
                         petition_file_control__file_control__data_group_id='orphan'
@@ -305,18 +304,19 @@ class OpenDataInaiViewSet(ListRetrieveView):
                 "model_name": "Petition",
                 "final_field": "id_inai_open_data",
             },
-            # {
-            #     "inai_open_search": "informacionQueja",
-            #     "app_name": "inai",
-            #     "model_name": "Petition",
-            #     "final_field": "info_queja_inai",
-            #     "transform": "to_json",
-            # },
+            {
+                "inai_open_search": "archivoAdjuntoRespuesta",
+                "transform": "join_url",
+            },
+            {
+                "inai_open_search": "informacionQueja",
+                "transform": "to_json",
+            },
         ]
         spec_functions = [
-            ("join_url", True),
+            # ("join_url", True),
             ("join_lines", True),
-            ("to_json", True),
+            # ("to_json", True),
             # ("insert_between_months", False)
         ]
         insert_from_json(
@@ -330,3 +330,160 @@ class OpenDataInaiViewSet(ListRetrieveView):
 
         return Response(
             data, status=status.HTTP_201_CREATED)
+
+    @action(methods=["post"], detail=False, url_path='insert_json_email')
+    def insert_json_email(self, request, **kwargs):
+        import json
+        import re
+        import zipfile
+        from datetime import datetime
+        from scripts.import_inai import insert_from_json
+
+        all_folios = Petition.objects.values_list('folio_petition', flat=True)
+        all_folios = set(all_folios)
+
+        pattern_lines = r'{"Folio":(.*?)}'
+        pattern_lines = re.compile(pattern_lines)
+        # second_pattern = r'^(.*?)"DescripcionSolicitud":"(.*?)","FechaRespuesta":"(.*)"$'
+        second_pattern = (r'^(.*)"DescripcionSolicitud":"(.*)'
+                          r'","OtrosDatos":"(.*)'
+                          r'","TextoRespuesta":"(.*?)'
+                          r'","FechaRespuesta":"(.*)"$')
+        second_pattern = re.compile(second_pattern)
+        final_petitions = []
+
+        def clean_content(content):
+            try:
+                all_lines = pattern_lines.findall(content)
+            except Exception as e:
+                print(f"Error en content: {e}")
+                # print(content)
+                raise e
+            for line in all_lines:
+                try:
+                    line_matches = second_pattern.findall(line)[0]
+                    between = line_matches[1]
+                    between = between.replace("\"", "*")
+                    between2 = line_matches[3]
+                    between2 = between2.replace("\"", "*")
+                    final_line = (f'"Folio":{line_matches[0]}'
+                                  f'"DescripcionSolicitud":"{between}",'
+                                  f'"OtrosDatos":"{line_matches[2]}",'
+                                  f'"TextoRespuesta":"{between2}",'
+                                  f'"FechaRespuesta":"{line_matches[4]}"')
+                    # final_petitions.append("{" + final_line + "}")
+                except Exception as e:
+                    print(f"Error extraño: {e}")
+                    print(line)
+                    example = line
+                    break
+                try:
+                    json_line = json.loads('{' + final_line + '}')
+                    folio = json_line["Folio"]
+                    # print(f"folio: {folio}")
+                    if folio in all_folios:
+                        final_petitions.append(json_line)
+                except Exception as e:
+                    print(f"Error en json: {e}")
+                    print(final_line)
+                    break
+
+        # print("FILES", request.FILES)
+        zip_file = zipfile.ZipFile(request.FILES['file'])
+        data = None
+        for zip_elem in zip_file.infolist():
+            file_bytes = zip_file.open(zip_elem).read()
+            file_content = file_bytes.decode("latin-1")
+            clean_content(file_content)
+        print("final_petitions", len(final_petitions))
+        # return Response(
+        #     {"success": True}, status=status.HTTP_201_CREATED)
+
+        for pet in final_petitions:
+            val = pet["FechaSolicitud"]
+            pet["fecha_orden"] = datetime.strptime(val, '%d/%m/%Y')
+
+        petitions = sorted(final_petitions, key=lambda i: i['fecha_orden'])
+
+        inai_json_fields = [
+            {
+                "inai_open_search": "Dependencia",
+                "model_name": "Agency",
+                "app_name": "geo",
+                "final_field": "nombreSujetoObligado",
+                # "insert": True,
+                "related": 'agency',
+            },
+            {
+                "inai_open_search": "Folio",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "folio_petition",
+                "unique": True,
+            },
+            {
+                "inai_open_search": False,
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "agency",
+                "unique": True,
+            },
+            {
+                "inai_open_search": "Estatus",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "status_petition",
+                "related": "status_petition",
+                "transform": "get_status_obj",
+            },
+            {
+                "inai_open_search": "DescripcionSolicitud",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "description_petition",
+                "transform": "unescape",
+            },
+            {
+                "inai_open_search": "FechaSolicitud",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "send_petition",
+                "transform": "date_mex",
+            },
+            {
+                "inai_open_search": "FechaLimite",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "response_limit",
+                "transform": "date_mex",
+            },
+            {
+                "inai_open_search": "FechaRespuesta",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "send_response",
+                "transform": "date_mex",
+            },
+            {
+                "inai_open_search": "TextoRespuesta",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "description_response",
+                "transform": "unescape",
+            },
+            {
+                "inai_open_search": "id",
+                "app_name": "inai",
+                "model_name": "Petition",
+                "final_field": "id_inai_open_data",
+            },
+            {
+                "inai_open_search": "ArchivosAdjuntos",
+                "transform": "join_url",
+            },
+        ]
+        insert_from_json(
+            petitions, columns=inai_json_fields, main_app='inai',
+            main_model='Petition', main_key='inai_open_search')
+
+        return Response(data, status=status.HTTP_201_CREATED)

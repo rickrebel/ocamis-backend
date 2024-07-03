@@ -174,3 +174,17 @@ class Delivered(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class DocumentType(models.Model):
+    name = models.CharField(max_length=50, primary_key=True)
+    aggregate_to = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE)
+    is_aggregate = models.BooleanField(default=False, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Tipo de Documento"
+        verbose_name_plural = "Tipos de Documento"
+
+    def __str__(self):
+        return self.name

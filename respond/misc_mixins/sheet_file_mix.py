@@ -13,7 +13,7 @@ class FromAws:
         if not errors:
             # self.save_csv_in_db_after(**kwargs)
             self.save_lap_cat_tables_after(**kwargs)
-        self.sheet_file.save_stage('insert', errors)
+        # self.sheet_file.save_stage('insert', errors)
         return [], errors, True
 
     # def save_csv_in_db_after(self, **kwargs):

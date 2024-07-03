@@ -9,9 +9,9 @@ from inai.api.serializers import (
     PetitionSemiFullSerializer, PetitionFileControlDeepSerializer,
     FileControlFullSerializer, TransformationEditSerializer,
     NameColumnEditSerializer)
-from respond.api.serializers import DataFileSerializer
+from respond.api.serializers import DataFileSerializer, SheetFileSerializer
 from inai.models import PetitionFileControl
-from respond.models import DataFile
+from respond.models import DataFile, SheetFile
 from task.views import build_task_params, comprobate_status
 from . import serializers
 from rest_framework.response import Response
@@ -187,7 +187,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         data_files = DataFile.objects\
             .filter(petition_file_control__file_control=file_control) \
             .order_by("-id")\
-            .prefetch_related("sheet_files", "petition_file_control")
+            .prefetch_related(
+                "sheet_files", "petition_file_control", "sheet_files__laps")
         limiters = request.query_params.get("limiters", None)
         limiters = json.loads(limiters)
         available_filters = [
@@ -235,12 +236,36 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+    @action(methods=["get"], detail=True, url_path='sheet_files')
+    def sheet_files(self, request, **kwargs):
+        import json
+        from django.db.models import Q
+        file_control = self.get_object()
+        sheet_files = SheetFile.objects\
+            .filter(data_file__petition_file_control__file_control=file_control) \
+            .order_by("-id")\
+            .prefetch_related("laps")
+        limiters = request.query_params.get("limiters", None)
+        limiters = json.loads(limiters)
+
+        # print("STS_PROCESS", sts_process)
+        total_count = sheet_files.count()
+        page_size = limiters.get("page_size", 30)
+        page = limiters.get("page", 1) - 1
+        final_sheets = sheet_files[page * page_size:(page + 1) * page_size]
+        serializer_files = SheetFileSerializer(final_sheets, many=True).data
+        data = {
+            "total_count": total_count,
+            "sheet_files": serializer_files,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
     @action(methods=["get"], detail=False, url_path='filter')
     def filter(self, request, **kwargs):
         from data_param.models import FileControl, CleanFunction
         from inai.models import Petition
         import json
-        limiters = request.query_params.get("limiters", None)
+        limiters = request.query_params.get("limiters", "{}")
         limiters = json.loads(limiters)
         total_count = 0
         available_filters = [
@@ -249,50 +274,50 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             {"name": "file_format", "field": "file_format_id"},
             # {"name": "final_field", "field": "columns__final_field_id"},
         ]
-        if limiters:
-            all_filters = build_common_filters(limiters, available_filters)
-            final_field = limiters.get("final_field", None)
-            if final_field is not None:
-                if final_field == 0:
-                    all_filters["columns__final_field__isnull"] = True
-                else:
-                    all_filters["columns__final_field_id"] = limiters["final_field"]
-            stage = limiters.get("stage", None)
-            if stage is not None:
-                all_filters["petition_file_control__data_files__stage_id"] = stage
-            is_duplicated = limiters.get("is_duplicated", None)
-            print("IS_DUPLICATED", is_duplicated)
-            if is_duplicated is not None:
-                str_filter = "petition_file_control__data_files__is_duplicated"
-                all_filters[str_filter] = is_duplicated
-            transformation = limiters.get("transformation", None)
-            if transformation is not None:
-                clean_function = CleanFunction.objects.get(id=transformation)
-                if clean_function.for_all_data:
-                    text = "file_transformations__clean_function_id"
-                else:
-                    text = "columns__column_transformations__clean_function_id"
-                all_filters[text] = transformation
-            status_id = limiters.get("status", None)
-            if status_id is not None:
-                all_filters["petition_file_control__data_files__status_id"] = status_id
+        # if limiters:
+        all_filters = build_common_filters(limiters, available_filters)
+        final_field = limiters.get("final_field", None)
+        if final_field is not None:
+            if final_field == 0:
+                all_filters["columns__final_field__isnull"] = True
+            else:
+                all_filters["columns__final_field_id"] = limiters["final_field"]
+        stage = limiters.get("stage", None)
+        if stage is not None:
+            all_filters["petition_file_control__data_files__stage_id"] = stage
+        is_duplicated = limiters.get("is_duplicated", None)
+        print("IS_DUPLICATED", is_duplicated)
+        if is_duplicated is not None:
+            str_filter = "petition_file_control__data_files__is_duplicated"
+            all_filters[str_filter] = is_duplicated
+        transformation = limiters.get("transformation", None)
+        if transformation is not None:
+            clean_function = CleanFunction.objects.get(id=transformation)
+            if clean_function.for_all_data:
+                text = "file_transformations__clean_function_id"
+            else:
+                text = "columns__column_transformations__clean_function_id"
+            all_filters[text] = transformation
+        status_id = limiters.get("status", None)
+        if status_id is not None:
+            all_filters["petition_file_control__data_files__status_id"] = status_id
 
-            order = ["agency__acronym", "name", "data_group"]
-            controls = FileControl.objects.all().prefetch_related(
-                "data_group",
-                "columns",
-                "columns__column_transformations",
-                "columns__column_transformations__clean_function",
-                "file_transformations",
-                "file_transformations__clean_function",
-                "agency",
-            ).order_by(*order)
-            if all_filters:
-                controls = controls.filter(**all_filters).distinct()
-            total_count = controls.count()
-            page_size = limiters.get("page_size", 40)
-            page = limiters.get("page", 1) - 1
-            controls = controls[page * page_size:(page + 1) * page_size]
+        order = ["agency__acronym", "name", "data_group"]
+        controls = FileControl.objects.all().prefetch_related(
+            "data_group",
+            "columns",
+            "columns__column_transformations",
+            "columns__column_transformations__clean_function",
+            "file_transformations",
+            "file_transformations__clean_function",
+            "agency",
+        ).order_by(*order)
+        if all_filters:
+            controls = controls.filter(**all_filters).distinct()
+        total_count = controls.count()
+        page_size = limiters.get("page_size", 40)
+        page = limiters.get("page", 1) - 1
+        controls = controls[page * page_size:(page + 1) * page_size]
 
         if not total_count:
             total_count = controls.count()
@@ -423,7 +448,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         function_name = target_stage.main_function.name
         after_aws = "find_coincidences_from_aws" if \
             target_stage.name == "cluster" else "build_sample_data_after"
-        curr_kwargs = { "after_if_empty": after_aws }
+        curr_kwargs = {"after_if_empty": after_aws}
         subgroup = f"{stage_init}|{status_init}"
         key_task, task_params = build_task_params(
             file_control, function_name, request, subgroup=subgroup)

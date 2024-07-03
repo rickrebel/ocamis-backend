@@ -286,6 +286,16 @@ def explore_sheets(file_control):
     return include_names, exclude_names, include_idx, exclude_idx
 
 
+def get_readeable_suffixes():
+    from category.models import FileFormat
+    readable_suffixes = FileFormat.objects.filter(readable=True) \
+        .values_list("suffixes", flat=True)
+    final_readeable = []
+    for suffix in list(readable_suffixes):
+        final_readeable += suffix
+    return final_readeable
+
+
 """
 python ./manage.py dumpdata --exclude auth --exclude contenttypes --exclude authtoken --exclude admin.LogEntry --exclude sessions --indent 2 -v 2  > fixture/todo_desabasto.json 
 """

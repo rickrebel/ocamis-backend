@@ -8,6 +8,7 @@ class ExploreMix:
         # from task.models import AsyncTask
         from category.models import FileFormat
         from respond.models import SheetFile
+        from scripts.common import get_readeable_suffixes
         data_file = self
         task_params = task_params or {}
         data_file.error_process = []
@@ -29,11 +30,17 @@ class ExploreMix:
             if data_file and suffix:
                 data_file.suffix = suffix
                 data_file.save()
-            elif first_task:
+            if first_task:
                 return [first_task], errors, self
-            else:
+            elif errors:
                 self.save_errors(errors, 'explore|with_errors')
                 return [], errors, self
+        else:
+            readable_suffixes = get_readeable_suffixes()
+            if data_file.suffix not in readable_suffixes:
+                errors = ["Formato no legible", "%s" % data_file.suffix]
+                return [], errors, data_file
+
         forced_save = kwargs.get("forced_save", False)
         sheet_names = data_file.sheet_names_list
         if not sheet_names:
@@ -377,8 +384,9 @@ class ExploreMix:
 
     def decompress_file(self, task_params=None, **kwargs):
         import pathlib
-        from category.models import FileFormat
         import re
+        from category.models import FileFormat
+        from scripts.common import get_readeable_suffixes
         # Se obienen todos los tipos del archivo inicial:
         # print("final_path: ", self.final_path)
         suffixes = pathlib.Path(self.final_path).suffixes
@@ -402,7 +410,7 @@ class ExploreMix:
         elif (len(suffixes) == 1 and
               not self.sheet_files.filter(file_type_id='split').exists()):
             file_size = self.file.size
-            if file_size > 400000000:
+            if file_size > 440000000:
                 real_suffix = suffixes[0]
                 xls_format = FileFormat.objects.get(short_name="xls")
                 if real_suffix not in xls_format.suffixes:
@@ -422,18 +430,14 @@ class ExploreMix:
                        " podemos reconocer: %s" % real_suffixes)]
             return (None, errors, None), None
         real_suffixes = set(real_suffixes)
-        readable_suffixes = FileFormat.objects.filter(readable=True)\
-            .values_list("suffixes", flat=True)
-        final_readeable = []
-        for suffix in list(readable_suffixes):
-            final_readeable += suffix
         # final_readeable = [suffix for suffix in list(readable_suffixes)]
-
-        if not real_suffixes.issubset(final_readeable):
+        readable_suffixes = get_readeable_suffixes()
+        first_suffix = list(real_suffixes)[0]
+        if not real_suffixes.issubset(readable_suffixes):
             errors = ["Formato no legible", "%s" % suffixes]
-            return (None, errors, None), None
+            return (self, errors, first_suffix), None
         # print("Parece que todo está bien")
-        return (self, [], list(real_suffixes)[0]), None
+        return (self, [], first_suffix), None
 
     def corroborate_save_data(self, task_params=None, **kwargs):
         from_aws = kwargs.get("from_aws", False)

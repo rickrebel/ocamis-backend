@@ -42,19 +42,60 @@ def get_data_from_file_txt(
             error_number_columns += 1
     return final_data, headers, error_number_columns
 
+
 def intento_de_limpieza():
     import io
+    import re
     import csv
     import json
     data = None
-    path_json = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_0.json"
+    rr_data_rows = None
+    # path_json = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_0.json"
+    path_json = "fixture/pruebas/SOLICITUDES_AGS.json"
     with io.open(path_json, "r", encoding="latin-1") as file:
         data = file.read()
         file.close()
-    #data_json = data.replace('\r', '').replace('\n', '')
-    #Enmedio de DescripcionSolicitud y FechaRespuesta
-    data_file = data.replace("\n","\\n")
-    #Lo que está fuera
+
+    # data_json = data.replace('\r', '').replace('\n', '')
+    # between { and }
+    final_lines = []
+    pattern_lines = r'{"Folio":(.*?)}'
+    # Between DescripcionSolicitud & FechaRespuesta
+    matches = re.findall(pattern_lines, data)
+    second_pattern = r'^(.*?)"DescripcionSolicitud":"(.*?)","FechaRespuesta":"(.*)"$'
+    second_pattern = re.compile(second_pattern)
+    example = None
+    json_data = []
+
+    for match in matches:
+        # print(match)
+        try:
+            line_matches = second_pattern.findall(match)[0]
+            between = line_matches[1]
+            between = between.replace("\"", "*")
+            final_line = (f'"Folio":{line_matches[0]}'
+                          f'"DescripcionSolicitud":"{between}",'
+                          f'"FechaRespuesta":"{line_matches[2]}"')
+            # final_lines.append("{" + final_line + "}")
+        except Exception as e:
+            print(f"Error extraño: {e}")
+            print(match)
+            example = match
+            break
+        try:
+            json_line = json.loads('{' + final_line + '}')
+            json_data.append(json_line)
+        except Exception as e:
+            print(f"Error en json: {e}")
+            print(final_line)
+            break
+
+    final_data = "[" + ",".join(final_lines) + "]"
+    json_data = json.loads(final_data)
+
+    data_file = data.replace("\n", "\\n")
+    # Lo que está fuera
+    # rr_data_rows = json.load(file)
     data_file = data_file.replace('\n', '')
     csv_path2 = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_1.json"
     with open(csv_path2, 'w', encoding="latin-1") as outfile:

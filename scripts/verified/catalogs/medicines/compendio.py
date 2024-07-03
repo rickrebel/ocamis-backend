@@ -119,7 +119,7 @@ class ProcessPDF:
         if pages_range:
             first_p, last_p = pages_range
         left_limit = 92.3 if self.is_nutrition else 90
-        with (pdfplumber.open(self.path_file) as pdf):
+        with pdfplumber.open(self.path_file) as pdf:
             component = None
             last_is_title = False
             next_is_left = False

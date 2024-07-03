@@ -1,7 +1,5 @@
 from intl_medicine.models import PrioritizedComponent, GroupAnswer
-from medicine.models import Group
 from scripts.csv_export.generic import CsvExporter
-from django.db.models import Count, Q
 
 
 def get_prioritized_components():
@@ -51,9 +49,7 @@ def get_prioritized_components():
             data[final_name]["excluded"] += 1
             components[name]["excluded"] += 1
 
-
     query_data = []
-
 
     for final_name, pc in data.items():
         component, group = final_name.split("|")
@@ -68,7 +64,6 @@ def get_prioritized_components():
             [group, component, pc["prioritized"], pc["priority"], included,
              excluded, total, all_included, all_excluded]
         ]
-
 
     csv_ex = CsvExporter(
         query=query_data,

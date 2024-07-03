@@ -14,6 +14,14 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class GroupStoryBlokSerializer(serializers.ModelSerializer):
+    value = serializers.IntegerField(source="id")
+
+    class Meta:
+        model = Group
+        fields = ["name", "value"]
+
+
 class PresentationTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -73,6 +81,14 @@ class ComponentVizAllSerializer(serializers.ModelSerializer):
     class Meta:
         model = Component
         fields = "__all__"
+
+
+class ComponentStoryBlokSerializer(serializers.ModelSerializer):
+    value = serializers.IntegerField(source="id")
+
+    class Meta:
+        model = Component
+        fields = ["name", "value"]
 
 
 class ComponentSerializer(serializers.ModelSerializer):

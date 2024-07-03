@@ -14,6 +14,7 @@ def fetch_agencies(include_groups):
     filter_petitions = Petition.objects.exclude(status_petition_id="mistake")
     prefetch_petitions = Prefetch("petitions", queryset=filter_petitions)
 
+    # RICK Otros Este filtro por mes ya no lo estamos haciendo
     # filter_petition_month = PetitionMonth.objects\
     #     .filter(month_agency__year_month__lte="2023-02")
     # prefetch_petition_month = Prefetch(
@@ -38,10 +39,10 @@ def fetch_agencies(include_groups):
             # "petitions",
             prefetch_petitions,
             # prefetch_petition_month,
-            # "petitions__petition_months",
             "petitions__month_records",
+            # RICK Otros checar si es to es necesario
+            # "petitions__month_records__month_record",
             "petitions__negative_reasons",
-            # "petitions__petition_months__month_agency",
             # prefetch_file_control,
             "petitions__file_controls__file_control",
             "petitions__file_controls__file_control",

@@ -22,6 +22,16 @@ def lambda_handler(event, context):
     return send_simple_response(event, context, result=final_result)
 
 
+def get_data_from_row(row, table_file, idx):
+    inits = table_file["inits"]
+    start = inits[idx]
+    try:
+        end = inits[idx + 1]
+    except IndexError:
+        end = None
+    return row[start:end]
+
+
 class BuildWeekAws:
 
     def __init__(self, event: dict, context):
@@ -39,6 +49,7 @@ class BuildWeekAws:
                 "field": "uuid_folio",
                 "basic_fields": ["folio_ocamis", "uuid_folio", "delivered_final_id"]
             },
+            "unique_helpers": {"field": "medicament_key", "jump": True},
             "complement_drug": {"field": "uuid_comp_drug"},
             "complement_rx": {"field": "uuid_comp_rx"},
             "diagnosis_rx": {"field": "uuid_diag_rx"},
@@ -129,20 +140,15 @@ class BuildWeekAws:
                 index = row.index(field)
                 table_file["inits"].append(index)
                 table_file["real_models"].append(model)
+                if values.get("jump"):
+                    continue
                 if model not in self.real_models:
                     self.real_models.append(model)
                     table_file["needs_added"].append(model)
 
         needs_added = table_file["needs_added"]
-        real_models = table_file["real_models"]
-        inits = table_file["inits"]
-        for (idx, model) in enumerate(real_models):
-            start = inits[idx]
-            try:
-                end = inits[idx + 1]
-            except IndexError:
-                end = None
-            headers = row[start:end]
+        for (idx, model) in enumerate(table_file["real_models"]):
+            headers = get_data_from_row(row, table_file, idx)
             if model in needs_added:
                 # if model == "drug":
                 #     headers = [field for field in headers
@@ -151,11 +157,11 @@ class BuildWeekAws:
                 #     headers.append("week_record_id")
                 self.buffers[model].writerow(headers)
                 basic_fields = self.all_inits[model].get("basic_fields", [])
-                for b_field in basic_fields:
-                    if b_field in headers:
-                        self.positions[b_field] = headers.index(b_field)
+                for basic_field in basic_fields:
+                    if basic_field in headers:
+                        self.positions[basic_field] = headers.index(basic_field)
                     else:
-                        print("b_field", b_field, headers)
+                        print("basic_field", basic_field, headers)
         # second_init = table_file["inits"][1]
         # self.pos_delivered = \
         #     self.positions.get("delivered_final_id") - second_init
@@ -169,24 +175,16 @@ class BuildWeekAws:
         for table_file in table_files:
             file = table_file["file"]
             csv_content = self.s3_utils.get_object_file(file)
-            real_models = None
+            real_models = []
             inits = None
             for idx_row, row in enumerate(csv_content):
                 current_row = {}
                 if not idx_row:
                     table_file = self.build_headers_and_positions(table_file, row)
                     real_models = table_file["real_models"]
-                    inits = table_file["inits"]
                     continue
                 for (idx, model) in enumerate(real_models):
-                    start = table_file["inits"][idx]
-                    try:
-                        end = table_file["inits"][idx + 1]
-                    except IndexError:
-                        end = None
-                    data = row[start:end]
-                    # current_row.setdefault(model, [])
-                    current_row[model] = data
+                    current_row[model] = get_data_from_row(row, table_file, idx)
                 every_rows.append(current_row)
 
         self.write_basic_tables(every_rows)
@@ -206,7 +204,16 @@ class BuildWeekAws:
                     continue
                 basic_fields = values.get("basic_fields", [])
                 for basic_field in basic_fields:
-                    value = data[self.positions.get(basic_field)]
+                    try:
+                        value = data[self.positions.get(basic_field)]
+                    except Exception as e:
+                        print("positions", self.positions)
+                        print("basic_field", basic_field)
+                        print("data", data)
+                        print("model", model)
+                        print("values", values)
+                        print("Error", e)
+                        raise e
                     if basic_field == "folio_ocamis":
                         folio_ocamis = value
                     elif basic_field == "uuid_folio":
@@ -215,7 +222,7 @@ class BuildWeekAws:
                         current_delivered = value
                     elif basic_field == "sheet_file_id":
                         sheet_id = value
-
+                        
                     # if self.show_examples():
                     #     print("basic_field", basic_field, "|", data[self.positions.get(basic_field)])
                     # locals()[basic_field] = data[self.positions.get(basic_field)]

@@ -10,6 +10,8 @@ from transparency.models import Anomaly
 from data_param.models import (
     DataType, FinalField, CleanFunction,
     OldDataGroup, Collection, ParameterGroup, FileControl)
+from med_cat.models import Delivered
+from rds.models import Cluster
 
 # from .data_file_mixins.matches_mix import MatchesMix
 
@@ -61,6 +63,8 @@ class MonthRecord(models.Model):
         related_name="month_records",
         verbose_name="Proveedor de servicios de salud",
         on_delete=models.CASCADE, blank=True, null=True)
+    cluster = models.ForeignKey(
+        Cluster, on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=10)
     year = models.SmallIntegerField(blank=True, null=True)
     month = models.SmallIntegerField(blank=True, null=True)
@@ -78,6 +82,7 @@ class MonthRecord(models.Model):
     shared_count = models.IntegerField(default=0)
     last_transformation = models.DateTimeField(blank=True, null=True)
     last_crossing = models.DateTimeField(blank=True, null=True)
+    last_behavior = models.DateTimeField(blank=True, null=True)
     last_merge = models.DateTimeField(blank=True, null=True)
     last_pre_insertion = models.DateTimeField(blank=True, null=True)
     last_validate = models.DateTimeField(blank=True, null=True)
@@ -98,7 +103,14 @@ class MonthRecord(models.Model):
                     status_task__macro_status="with_errors")
                 for g_child in g_children:
                     if g_child:
-                        current_errors += g_child.errors or []
+                        try:
+                            current_errors += g_child.errors or []
+                        except Exception as e:
+                            message = (
+                                f"Error en MonthRecord.end_stage: {e}"
+                                f"g_child.errors: {g_child.errors}"
+                                f"current_errors: {current_errors}")
+                            raise Exception(message)
             all_errors += current_errors or []
         self.stage_id = stage_id
         if child_task_errors.exists():
@@ -110,7 +122,7 @@ class MonthRecord(models.Model):
         self.save()
         return all_errors
 
-    def save_stage(self, stage_id, errors):
+    def save_stage(self, stage_id: str, errors=None):
         self.stage_id = stage_id
         if errors:
             self.status_id = "with_errors"
@@ -134,6 +146,12 @@ class MonthRecord(models.Model):
         year_month = self.year_month.replace("-", "")
         return f"{self.provider_id}_{year_month}"
 
+    @property
+    def base_table(self):
+        # cluster = self.provider.clusters.first()
+        # year = self.year_month.split("-")[0]
+        return f"{self.cluster.name}"
+
     class Meta:
         get_latest_by = "year_month"
         db_table = "inai_entitymonth"
@@ -142,10 +160,66 @@ class MonthRecord(models.Model):
         verbose_name_plural = "8. Meses-proveedores"
 
 
+class WeekRecord(models.Model):
+    provider = models.ForeignKey(
+        Provider,
+        related_name="weeks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    month_record = models.ForeignKey(
+        MonthRecord,
+        related_name="weeks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    year_week = models.CharField(max_length=8, blank=True, null=True)
+    iso_year = models.SmallIntegerField(blank=True, null=True)
+    iso_week = models.SmallIntegerField(blank=True, null=True)
+    # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
+    iso_delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
+    year_month = models.CharField(max_length=10, blank=True, null=True)
+    year = models.SmallIntegerField(blank=True, null=True)
+    month = models.SmallIntegerField(blank=True, null=True)
+
+    drugs_count = models.IntegerField(default=0)
+    rx_count = models.IntegerField(default=0)
+    duplicates_count = models.IntegerField(default=0)
+    shared_count = models.IntegerField(default=0)
+    crosses = JSONField(blank=True, null=True)
+
+    last_crossing = models.DateTimeField(blank=True, null=True)
+    last_transformation = models.DateTimeField(blank=True, null=True)
+    last_merge = models.DateTimeField(blank=True, null=True)
+    last_pre_insertion = models.DateTimeField(blank=True, null=True)
+
+    # PROVISIONAL HARDCODED
+    zero = models.IntegerField(blank=True, null=True)
+    unknown = models.IntegerField(blank=True, null=True)
+    unavailable = models.IntegerField(blank=True, null=True)
+    partial = models.IntegerField(blank=True, null=True)
+    over_delivered = models.IntegerField(blank=True, null=True)
+    error = models.IntegerField(blank=True, null=True)
+    denied = models.IntegerField(blank=True, null=True)
+    complete = models.IntegerField(blank=True, null=True)
+    cancelled = models.IntegerField(blank=True, null=True)
+    big_denied = models.IntegerField(blank=True, null=True)
+    big_partial = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.provider} {self.year_month} - {self.iso_week} - {self.iso_delegation}"
+
+    class Meta:
+        get_latest_by = ["year_month", "year_week"]
+        unique_together = (
+            "provider", "year_week", "iso_delegation", "year_month")
+        verbose_name = "Semana-proveedor"
+        verbose_name_plural = "9. Semanas-proveedores"
+        db_table = "inai_entityweek"
+
+
 class RequestTemplate(models.Model):
-    version = models.IntegerField()
+    version = models.IntegerField(blank=True, null=True)
     version_name = models.CharField(max_length=100, blank=True, null=True)
     text = models.TextField()
+    description = models.TextField(blank=True, null=True)
     provider = models.ForeignKey(
         Provider, related_name="request_templates",
         verbose_name="Proveedor",
@@ -217,11 +291,11 @@ class Petition(models.Model, PetitionTransformsMix):
     send_petition = models.DateField(
         verbose_name="Fecha de envío o recepción",
         blank=True, null=True)
-    send_response = models.DateField(
-        verbose_name="Fecha de última respuesta",
-        blank=True, null=True)
     response_limit = models.DateField(
         verbose_name="Fecha límite de respuesta",
+        blank=True, null=True)
+    send_response = models.DateField(
+        verbose_name="Fecha de última respuesta",
         blank=True, null=True)
     status_petition = models.ForeignKey(
         StatusControl, null=True, blank=True,
@@ -275,13 +349,11 @@ class Petition(models.Model, PetitionTransformsMix):
         super().delete(*args, **kwargs)
 
     def first_year_month(self):
-        # return self.petition_months.earliest().month_record.year_month
         if self.month_records.exists():
             return self.month_records.earliest().year_month
         return None
 
     def last_year_month(self):
-        # return self.petition_months.latest().month_record.year_month
         if self.month_records.exists():
             return self.month_records.latest().year_month
         return None
@@ -306,9 +378,7 @@ class Petition(models.Model, PetitionTransformsMix):
 
     def months(self):
         # html_list = ''
-        # start = self.petition_months.earliest().month_record.human_name
         start = self.month_records.earliest().year_month
-        # end = self.petition_months.latest().month_record.human_name
         end = self.month_records.latest().year_month
         return " ".join(list({start, end}))
     months.short_description = "Meses"
@@ -333,7 +403,7 @@ class Petition(models.Model, PetitionTransformsMix):
     months_in_description.short_description = "Meses escritos"
 
     def __str__(self):
-        return "solicitud"
+        return f"solicitud {self.folio_petition or 'draft'} - {self.agency}"
         # return "%s -- %s" % (self.agency, self.folio_petition or self.id)
 
     class Meta:
@@ -445,6 +515,26 @@ class PetitionNegativeReason(models.Model):
         verbose_name_plural = "Peticiones - razones negativas (m2m)"
 
 
+class VariableValue(models.Model):
+    variable = models.ForeignKey(
+        Variable, related_name="values",
+        on_delete=models.CASCADE)
+    provider = models.ForeignKey(
+        Provider, related_name="variable_values",
+        on_delete=models.CASCADE, blank=True, null=True)
+    petition = models.ForeignKey(
+        Petition, related_name="variable_values",
+        on_delete=models.CASCADE, blank=True, null=True)
+    value = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.value
+
+    class Meta:
+        verbose_name = "Valor de variable"
+        verbose_name_plural = "Valores de variable"
+
+
 class PetitionFileControl(models.Model):
     petition = models.ForeignKey(
         Petition,
@@ -472,92 +562,18 @@ class PetitionFileControl(models.Model):
         verbose_name_plural = "7. Relacional: Petición -- Grupos de Control"
 
 
-class PetitionMonth(models.Model):
-    petition = models.ForeignKey(
-        Petition,
-        related_name="petition_months",
+class DeliveredWeek(models.Model):
+    week_record = models.ForeignKey(
+        WeekRecord, related_name="deliveries",
         on_delete=models.CASCADE)
-    month_record = models.ForeignKey(MonthRecord, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return "%s-> %s, %s" % (self.id, self.petition, self.month_record)
-
-    class Meta:
-        get_latest_by = "month_agency__year_month"
-        verbose_name = "Mes de solicitud"
-        verbose_name_plural = "Meses de solicitud"
-
-
-class WeekRecord(models.Model):
-    provider = models.ForeignKey(
-        Provider,
-        related_name="weeks",
-        on_delete=models.CASCADE, blank=True, null=True)
-    month_record = models.ForeignKey(
-        MonthRecord,
-        related_name="weeks",
-        on_delete=models.CASCADE, blank=True, null=True)
-    year_week = models.CharField(max_length=8, blank=True, null=True)
-    iso_year = models.SmallIntegerField(blank=True, null=True)
-    iso_week = models.SmallIntegerField(blank=True, null=True)
-    # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
-    iso_delegation = models.ForeignKey(
-        Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    year_month = models.CharField(max_length=10, blank=True, null=True)
-    year = models.SmallIntegerField(blank=True, null=True)
-    month = models.SmallIntegerField(blank=True, null=True)
-
-    drugs_count = models.IntegerField(default=0)
-    rx_count = models.IntegerField(default=0)
-    duplicates_count = models.IntegerField(default=0)
-    shared_count = models.IntegerField(default=0)
-    crosses = JSONField(blank=True, null=True)
-
-    last_crossing = models.DateTimeField(blank=True, null=True)
-    last_transformation = models.DateTimeField(blank=True, null=True)
-    last_merge = models.DateTimeField(blank=True, null=True)
-    last_pre_insertion = models.DateTimeField(blank=True, null=True)
-
-    # PROVISIONAL HARDCODED
-    zero = models.IntegerField(blank=True, null=True)
-    unknown = models.IntegerField(blank=True, null=True)
-    unavailable = models.IntegerField(blank=True, null=True)
-    partial = models.IntegerField(blank=True, null=True)
-    over_delivered = models.IntegerField(blank=True, null=True)
-    error = models.IntegerField(blank=True, null=True)
-    denied = models.IntegerField(blank=True, null=True)
-    complete = models.IntegerField(blank=True, null=True)
-    cancelled = models.IntegerField(blank=True, null=True)
-    big_denied = models.IntegerField(blank=True, null=True)
-    big_partial = models.IntegerField(blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.provider} {self.year_month} - {self.iso_week} - {self.iso_delegation}"
-
-    class Meta:
-        get_latest_by = ["year_month", "year_week"]
-        unique_together = (
-            "provider", "year_week", "iso_delegation", "year_month")
-        verbose_name = "Semana-proveedor"
-        verbose_name_plural = "9. Semanas-proveedores"
-        db_table = "inai_entityweek"
-
-
-class VariableValue(models.Model):
-    variable = models.ForeignKey(
-        Variable, related_name="values",
+    delivered = models.ForeignKey(
+        Delivered, related_name="weeks",
         on_delete=models.CASCADE)
-    provider = models.ForeignKey(
-        Provider, related_name="variable_values",
-        on_delete=models.CASCADE, blank=True, null=True)
-    petition = models.ForeignKey(
-        Petition, related_name="variable_values",
-        on_delete=models.CASCADE, blank=True, null=True)
-    value = models.CharField(max_length=255)
+    value = models.IntegerField()
 
     def __str__(self):
-        return self.value
+        return f"{self.week_record} - {self.delivered} - {self.value}"
 
     class Meta:
-        verbose_name = "Valor de variable"
-        verbose_name_plural = "Valores de variable"
+        verbose_name = "Clasificación de entrega por semana"
+        verbose_name_plural = "Clasificaciones de entrega por semana"

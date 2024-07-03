@@ -5,13 +5,14 @@ from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
 
-def exist_temp_table(table_name):
+def exist_temp_table(table_name, schema="public"):
     from django.db import connection
     query_if_exists = f"""
         SELECT EXISTS(
             SELECT 1
             FROM pg_class c
-            WHERE c.relname = '{table_name}'
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relname = '{table_name}' AND n.nspname = '{schema}'
         );
     """
     cursor = connection.cursor()
@@ -32,6 +33,7 @@ class FromAws:
         from respond.models import LapSheet
         from respond.models import CrossingSheet
         from django.db import connection
+        from task.views import comprobate_brothers
 
         self.month_record.stage = final_stage
         if final_stage.name == "revert_stages":
@@ -42,6 +44,8 @@ class FromAws:
         self.month_record.last_validate = None
         self.month_record.last_indexing = None
         self.month_record.last_insertion = None
+        # self.month_record.last_behavior = None
+
         self.month_record.error_process = None
         week_records = self.month_record.weeks.all()
         base_table_files = TableFile.objects.filter(
@@ -52,8 +56,7 @@ class FromAws:
         stage_pre_insert = Stage.objects.get(name="pre_insert")
         if final_stage.order <= stage_pre_insert.order:
             self.month_record.last_pre_insertion = None
-            week_records.update(
-                last_pre_insertion=None)
+            week_records.update(last_pre_insertion=None)
 
             related_lap_sheets = LapSheet.objects \
                 .filter(sheet_file__in=sheet_files, lap=0)
@@ -68,8 +71,11 @@ class FromAws:
 
             base_table_files.update(inserted=False)
             cursor = connection.cursor()
-            for table_name in ["rx", "drug", "missingrow", "missingfield"]:
-                temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+            formula_models = [
+                "rx", "drug", "missingrow", "missingfield",
+                "complementrx", "complementdrug", "diagnosisrx"]
+            for table_name in formula_models:
+                temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
                 cursor.execute(f"""
                     DROP TABLE IF EXISTS {temp_table} CASCADE;
                 """)
@@ -108,6 +114,8 @@ class FromAws:
             self.save_sums(all_sheet_ids)
 
         self.month_record.save()
+        # current_task = self.task_params.get("parent_task")
+        # comprobate_brothers(current_task, "finished")
 
         return [], [], True
 
@@ -193,6 +201,7 @@ class FromAws:
     def send_analysis(self):
         # import time
         from respond.models import TableFile
+        from data_param.models import FileControl, NameColumn
 
         all_tasks = []
         insert_stage = Stage.objects.get(name="insert")
@@ -203,7 +212,28 @@ class FromAws:
             .filter(
                 week_record__month_record=self.month_record,
                 collection__isnull=True,
-            ).exclude(lap_sheet__sheet_file__behavior_id="invalid")
+            ).exclude(lap_sheet__sheet_file__behavior__is_discarded=True)
+
+        laps = "petition_file_control__data_files__sheet_files__laps"
+        months = "__table_files__week_record__month_record"
+        filter_fc = {f"{laps}{months}": self.month_record}
+        file_controls = FileControl.objects.filter(**filter_fc).distinct()
+        unique_medicines = set()
+        medicine_key = None
+        for file_control in file_controls:
+            medicine_field = file_control.columns\
+                .filter(
+                    final_field__is_unique=True,
+                    final_field__collection__model_name="Medicament")\
+                .order_by("-final_field__is_common", "final_field__name")\
+                .first()
+            if not medicine_field:
+                return all_tasks, ["No se encontró campo de medicamento"], True
+            unique_medicines.add(medicine_field.final_field_id)
+        if len(unique_medicines) > 1:
+            return all_tasks, ["Más de un campo de medicamento"], True
+        elif len(unique_medicines) == 1:
+            medicine_key = unique_medicines.pop()
 
         for week in self.month_record.weeks.all():
             # if week.last_crossing and week.last_transformation:
@@ -217,7 +247,8 @@ class FromAws:
             file_names = table_files.values_list("file", flat=True)
             params = {
                 "provider_id": week.provider_id,
-                "table_files": list(file_names)
+                "table_files": list(file_names),
+                "has_medicine_key": bool(medicine_key),
             }
             self.task_params["models"] = [week, self.month_record]
             self.task_params["function_after"] = "analyze_uniques_after"
@@ -249,8 +280,8 @@ class FromAws:
         all_table_files = TableFile.objects \
             .filter(
                 week_record__month_record=self.month_record,
-                lap_sheet__lap=0,
-            ).exclude(lap_sheet__sheet_file__behavior_id="invalid") \
+                lap_sheet__lap=0)\
+            .exclude(lap_sheet__sheet_file__behavior__is_discarded=True)\
             .values(
                 "week_record_id", "id", "file", "collection", "year",
                 "month", "year_month", "iso_week", "iso_year", "year_week",
@@ -295,15 +326,15 @@ class FromAws:
 
         drug_table = f"fm_{self.month_record.temp_table}_drug"
         cursor = connection.cursor()
-        exists_temp_tables = exist_temp_table(drug_table)
+        exists_temp_tables = exist_temp_table(drug_table, "tmp")
 
         formula_tables = ["rx", "drug", "missingrow", "missingfield",
-                          "complementrx", "complementdrug"]
+                          "complementrx", "complementdrug", "diagnosisrx"]
         for table_name in formula_tables:
-            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+            temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
             queries["create"].append(f"""
                 CREATE TABLE {temp_table}
-                (LIKE formula_{table_name} INCLUDING CONSTRAINTS);
+                (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
             """)
             queries["drop"].append(f"""
                 DROP TABLE IF EXISTS {temp_table} CASCADE; 
@@ -324,7 +355,7 @@ class FromAws:
 
         related_lap_sheets = LapSheet.objects\
             .filter(sheet_file__in=related_sheet_files)\
-            .exclude(sheet_file__behavior_id="invalid")
+            .exclude(sheet_file__behavior__is_discarded=True)
 
         pending_lap_sheets = related_lap_sheets.filter(
             cat_inserted=False, lap=0)
@@ -423,7 +454,7 @@ class FromAws:
 
         for table_name in ["rx", "drug"]:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table)
+            exists_temp_tables = exist_temp_table(temp_table, "tmp")
             if not exists_temp_tables:
                 errors.append(f"No existe la tabla esencial {temp_table}")
         if errors:
@@ -439,7 +470,7 @@ class FromAws:
                     "drug": "uuid",
                 }
                 for table_name, field in models.items():
-                    temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+                    temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
                     clean_queries.append(f"""
                         DELETE FROM {temp_table}
                         WHERE {field} IN (
@@ -475,7 +506,7 @@ class FromAws:
             self.month_record.status_id = "with_errors"
             self.month_record.save()
             return [], [error], True
-        temp_drug = f"fm_{self.month_record.temp_table}_drug"
+        temp_drug = f"tmp.fm_{self.month_record.temp_table}_drug"
         count_query = f"""
             SELECT week_record_id,
             COUNT(*)
@@ -513,7 +544,7 @@ class FromAws:
 
         for table_name in ["rx", "drug"]:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table)
+            exists_temp_tables = exist_temp_table(temp_table, "tmp")
             if not exists_temp_tables:
                 errors.append(f"No existe la tabla esencial {temp_table}")
         if errors:
@@ -559,20 +590,35 @@ class FromAws:
         # counts_object = {}
         # for table_file in table_files:
         #     counts_object[table_file["id"]] = table_file["drugs_count"]
+        create_base_tables = []
         insert_queries = []
         drop_queries = []
-        for table_name in ["rx", "drug", "missingrow", "missingfield"]:
+        try:
+            base_table = self.month_record.cluster.name
+        except Exception as e:
+            errors.append(f"El proveedor no está asociado a ningún cluster")
+            return [], errors, False
+        formula_tables = ["rx", "drug", "missingrow", "missingfield",
+                          "complementrx", "complementdrug", "diagnosisrx"]
+        for table_name in formula_tables:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table)
+            exists_temp_tables = exist_temp_table(temp_table, "tmp")
+            base_table_name = f"frm_{base_table}_{table_name}"
+            exists_base_table = exist_temp_table(base_table_name, "base")
             if not exists_temp_tables:
                 if table_name in ["rx", "drug"]:
                     errors.append(f"No existe la tabla esencial {temp_table}")
                 else:
                     continue
+            if not exists_base_table:
+                create_base_tables.append(f"""
+                    CREATE TABLE base.{base_table_name}
+                    (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
+                """)
             insert_queries.append(f"""
-                INSERT INTO formula_{table_name}
+                INSERT INTO base.{base_table_name}
                 SELECT *
-                FROM {temp_table};
+                FROM tmp.{temp_table};
             """)
             drop_queries.append(f"""
                 DROP TABLE IF EXISTS {temp_table} CASCADE;
@@ -596,6 +642,7 @@ class FromAws:
             "month_record_id": self.month_record.id,
             "temp_table": self.month_record.temp_table,
             "db_config": ocamis_db,
+            "create_base_tables": create_base_tables,
             "first_query": first_query,
             "insert_queries": insert_queries,
             "drop_queries": drop_queries,

@@ -169,17 +169,27 @@ class ProviderFileControlsSerializer(serializers.ModelSerializer):
         fields = ["file_controls"]
 
 
-def calc_drugs_summarize(obj, table_files=None):
+def calc_drugs_summarize(obj=None, table_files=None, month_records=None):
     from django.db.models import Sum, F
-    drugs_counts_by_week = obj.weeks \
+    from inai.models import WeekRecord
+    if month_records and table_files:
+        weeks = WeekRecord.objects.filter(month_record__in=month_records)
+    elif obj:
+        weeks = obj.weeks
+    else:
+        raise ValueError("No month_records or obj provided")
+
+    drugs_counts_by_week = weeks \
         .values("month_record") \
         .annotate(drugs_count=Sum(F("drugs_count"))) \
         .values("month_record", "drugs_count")
     if not table_files:
         table_files = obj.table_files \
             .filter(week_record__isnull=False)
+
+    exclude_collections = ["Rx", "DiagnosisRx", "ComplementRx", "ComplementDrug"]
     drugs_count_by_drug = table_files \
-        .exclude(collection__model_name="Rx") \
+        .exclude(collection__model_name__in=exclude_collections) \
         .prefetch_related("collection", "lap_sheet__sheet_file__behavior") \
         .values(
             "week_record__month_record",
@@ -224,12 +234,12 @@ def calc_drugs_summarize(obj, table_files=None):
     return final_result
 
 
-def calc_sheet_files_summarize(provider, month_record=None):
+def calc_sheet_files_summarize(provider=None, month_records=None):
     from django.db.models import Count
     from inai.models import MonthRecord
     count_by_year_month_and_behavior = []
-    if month_record:
-        all_month_records = [month_record]
+    if month_records:
+        all_month_records = month_records
     else:
         all_month_records = MonthRecord.objects\
             .filter(provider=provider)\

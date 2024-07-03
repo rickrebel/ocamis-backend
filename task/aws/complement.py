@@ -13,14 +13,14 @@ class GetAllData:
         self.positioned_fields = [field for field in self.existing_fields
                                   if field["position"] is not None]
 
-        self.fill_columns = "fill_columns" in self.match_class.global_transformations
+        self.fill_columns = "fill_columns" in match_class.global_transformations
         self.is_prepare = match_class.is_prepare
         self.columns_count = match_class.columns_count
         self.string_date = match_class.string_date
 
-        self.regex_fields = self.build_regex_and_dates()
         self.delimit = match_class.delimiter or "|"
         self.sep = "\|" if self.delimit == "|" else self.delimit
+        self.regex_fields = self.build_regex_and_dates()
 
     def __call__(self, file):
 
@@ -37,6 +37,7 @@ class GetAllData:
         return self.divide_rows(data_rows)
 
     def divide_rows(self, data_rows):
+        import json
         structured_data = []
         sample = data_rows[:50]
         self.match_class.decode = self.match_class.decode or obtain_decode(sample)
@@ -52,7 +53,7 @@ class GetAllData:
             self.match_class.last_missing_row = None
             if self.is_prepare:
                 row_final = [col.replace('\r\n', '').strip() for col in row]
-                row_data = row_final
+                row_data = json.dumps(row_final).replace('\r\n', '')
             else:
                 row_decode = row.decode(decoded) if decoded != "str" else str(row)
                 # .replace('\r\n', '')
@@ -107,17 +108,18 @@ class GetAllData:
             return []
         regex_fields = []
         for field in self.existing_fields:
-            # separator = field.get("separator")
             regex_string = None
             if field["regex_format"] and len(field["regex_format"]) > 10:
                 regex_string = field["regex_format"][1:-1]
                 regex_string = f"{self.sep}?({regex_string}){self.sep}?"
-            # if field.get("clean_function") == "simple_regex":
-            #     regex_string = field["t_value"]
-            #     regex_string = f"{self.sep}({regex_string}){self.sep}"
             simple_regex = field.get("simple_regex")
-            if simple_regex:
-                regex_string = f"{self.sep}({simple_regex}){self.sep}"
+            if simple_regex is True:
+                regex_string = f"{self.sep}(){self.sep}"
+            elif simple_regex is not None:
+                if "(" in simple_regex:
+                    regex_string = f"{self.sep}{simple_regex}{self.sep}"
+                else:
+                    regex_string = f"{self.sep}({simple_regex}){self.sep}"
             elif field["data_type"] == "Datetime":
                 if self.string_date == "MANY":
                     date_regex = field.get("format_date")
@@ -148,7 +150,10 @@ class GetAllData:
             # print("regex", regex)
             results = re.split(regex, remain_data, 1)
             if len(results) == 1:
-                results.extend(["", ""])
+                if remain_data.startswith(self.delimit):
+                    results = ["", "", remain_data[1:]]
+                else:
+                    results.extend([None, ""])
             elif len(results) == 2:
                 results.append("")
             return results, re_field["position"]
@@ -160,18 +165,25 @@ class GetAllData:
             prev_pos = next_pos if prev_pos is not None else 0
             res, next_pos = build_blocks(regex_field, remain_block)
 
-            [current_block, same, remain_block] = res
+            try:
+                [current_block, same, remain_block] = res
+            except Exception as e:
+                # print("Error", e)
+                print("res", res)
+                # print("row_data", row_data)
+                print("regex_field", regex_field)
+                print("remain_block", remain_block)
+                raise e
             block_fields = [field for field in self.positioned_fields
                             if prev_pos < field["position"] < next_pos]
             len_block_fields = len(block_fields)
             if len_block_fields == 0:
-                if same:
+                if same is not None:
                     fragments.append(same)
                 continue
             position_separator = None
             for idx_block, block_field in enumerate(block_fields):
                 same_separator = block_field.get("same_separator")
-                # if block_field.get("clean_function") == "same_separator":
                 if same_separator:
                     if position_separator is None:
                         position_separator = idx_block
@@ -205,7 +217,7 @@ class GetAllData:
                         return row_data
                 block_values.insert(normal_way_count, current_block)
             fragments.extend(block_values)
-            if same:
+            if same or regex_field.get("simple_regex") is not None:
                 fragments.append(same)
 
         return fragments

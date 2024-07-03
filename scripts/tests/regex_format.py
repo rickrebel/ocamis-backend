@@ -95,8 +95,19 @@ def cie_10_codes(measure_times=0):
     regex_format.execute(action='is_match')
 
 
-cie_10_codes(0)
+# cie_10_codes(0)
 
+
+def clues_chihuahua(measure_times=0):
+    # from scripts.tests.regex_format import RegexFormat
+    examples = [
+        "CHSSA000664",
+    ]
+    keys_res = [
+        re.compile(r'^[A-Z][^AEIOU](?:IMS|IST|SSA|IMO)\d{6}$'),
+    ]
+    regex_format = RegexFormat(keys_res, cases=examples, measure_times=measure_times)
+    regex_format.execute(action='is_match')
 
 
 def medicine_keys(measure_times=0):
@@ -194,4 +205,13 @@ def init_examples():
     re_consul = re.compile(r'( CONSULTA MEDICINA FAMILIAR)')
     regex_format = RegexFormat(re_consul, cases=case_tests)
     regex_format.replace(new_value='|CONSULTA MEDICINA FAMILIAR')
+
+
+def inai_examples():
+    import re
+    example = '"cosas iniciales":"cosas iniciales","DescripcionSolicitud":"cosas "intermedias"","FechaRespuesta":"cosas finales"'
+    second_pattern = r'^(.*?)"DescripcionSolicitud":"(.*?)","FechaRespuesta":"(.*)"$'
+    second_pattern = re.compile(second_pattern)
+    line_matches = second_pattern.findall(example)
+    print(len(line_matches[0]))
 

@@ -88,6 +88,7 @@ class PetitionAdmin(admin.ModelAdmin):
                 # "template_text",
                 # "request_template",
                 "send_petition",
+                "response_limit",
                 "send_response",
                 "description_petition",
                 "description_response",
@@ -124,14 +125,13 @@ class VariableInline(admin.StackedInline):
 
 class RequestTemplateAdmin(admin.ModelAdmin):
     list_display = [
-        "version",
         "version_name",
         "provider",
+        "description",
     ]
     inlines = [VariableInline]
     search_fields = ["provider__acronym", "provider__state__short_name"]
     raw_id_fields = ["provider"]
-
 
 
 ocamis_admin_site.register(Petition, PetitionAdmin)

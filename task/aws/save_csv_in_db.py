@@ -14,8 +14,9 @@ def lambda_handler(event, context):
     sql_queries = event.get("sql_queries", [])
     queries_by_model = event.get("queries_by_model", {})
     s3_utils = BotoUtils(event.get("s3"))
-    # print("start", datetime.now())
+    print("start", datetime.now())
     connection = create_connection(db_config)
+    print("connection", datetime.now())
     errors = []
     cursor = connection.cursor()
     first_query = event.get("first_query")
@@ -25,19 +26,22 @@ def lambda_handler(event, context):
         try:
             cursor.execute(query_content)
         except Exception as e:
-            errors.append(f"Hubo un error al guardar 6; {str(e)}")
+            errors.append(f"Hubo un error al guardar 6; \n{query_content}; \n{str(e)}")
 
     # print("before first_query", datetime.now())
     if first_query:
+        print("before first_query", datetime.now())
         cursor.execute(first_query)
         result = cursor.fetchone()
         if result[0]:
             errors.append(f"Ya se había insertado la pestaña y su lap")
     # print("after first_query", datetime.now())
     if not errors:
+        print("before sql_queries", datetime.now())
         for sql_query in sql_queries:
             execute_query(sql_query)
     if not errors:
+        print("before queries_by_model", datetime.now())
         for model_name, content in queries_by_model.items():
             base_queries = content["base_queries"]
             alternative_query = content.get("alternative_query")
