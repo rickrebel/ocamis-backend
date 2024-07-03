@@ -1,4 +1,5 @@
 
+from datetime import datetime
 from typing import Any, Dict
 
 
@@ -186,12 +187,14 @@ class CleanBucket:
         self.excluded_dirs = [
             "admin/", "aws_errors/", "cat_images/", "ckeditor/", "experiment/",
             "logos/", "mat_views/", "profile_images/", "rest_framework/"]
-
         self.get_files_in_db()
         self.get_files_in_s3()
         self.find_orphans()
+        print("Orphans found: ", datetime.now().strftime("%H:%M:%S"))
+        self.report_orphans()
 
     def get_files_in_db(self):
+        print("Getting files in db: ", datetime.now().strftime("%H:%M:%S"))
         from respond.models import TableFile
         from respond.models import SheetFile
         from respond.models import DataFile
@@ -209,12 +212,11 @@ class CleanBucket:
                 model_file_query.values_list('file', flat=True)[i:i+1000])
 
     def get_files_in_s3(self):
+        print("Getting files in s3: ", datetime.now().strftime("%H:%M:%S"))
         all_bucket_files = self.my_bucket.objects.filter(
             Prefix=self.aws_location)
         for bucket_obj in all_bucket_files:
             bucket_obj_key = bucket_obj.key.replace(self.aws_location, '')
-            if bucket_obj_key in self.files_in_s3:
-                continue
             if any(
                 excluded_dir in bucket_obj_key
                 for excluded_dir in self.excluded_dirs
@@ -223,15 +225,19 @@ class CleanBucket:
             self.files_in_s3.append((bucket_obj_key, bucket_obj.size))
 
     def find_orphans(self):
+        print("Finding orphans: ", datetime.now().strftime("%H:%M:%S"))
+        files_in_db = set(self.files_in_db)
         self.orphans = [
-            (file, size) for file, size in self.files_in_s3 if file not in self.files_in_db
+            (file, size) for file, size in self.files_in_s3 if file not in files_in_db
         ]
 
     def report_orphans(self):
         total_size = sum(size for _, size in self.orphans)
+        print("Total files in db: ", len(self.files_in_db))
+        print("Total files in s3: ", len(self.files_in_s3))
+        print(f"Total orphans: {len(self.orphans)}")
         print(f"Total size of orphans: {total_size} bytes")
         print(f"Total size of orphans: {total_size/(1024*1024)} MB")
-        print(f"Total orphans: {len(self.orphans)}")
 
     def clean_orphans(self, delete_lote=1000):
         for i in range(0, len(self.orphans), delete_lote):
