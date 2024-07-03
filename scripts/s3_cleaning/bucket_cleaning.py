@@ -1,4 +1,7 @@
 
+from typing import Any, Dict
+
+
 def build_dict(only_data_files=False):
     import time
     from inai.models import (
@@ -71,7 +74,8 @@ def analyze_rep_files():
     for file in rep_files2:
         models = [elem['model_name'] for elem in file]
         has_many_data_files = models.count('data_file') >= 2
-        detailed = [elem for elem in file if elem['data_group_id'] == 'detailed']
+        detailed = [
+            elem for elem in file if elem['data_group_id'] == 'detailed']
         has_many_detailed = len(detailed) >= 2
         if has_many_data_files and has_many_detailed:
             # print("Data files: ", file)
@@ -161,6 +165,85 @@ def get_bucket_files(limit=10000):
     print(f"Tiempo de ejecución creación modelo: {execution_time} segundos")
 
 
+class CleanBucket:
+    my_bucket: Any
+    files_models_in_db: Dict[str, list] = {}
+    aws_location: str = "data_files/"
+    files_in_s3: list = []
+    files_in_db: list = []
+    orphans: list = []
+
+    def __init__(self, only_data_files=False, limit=10000, aws_location=""):
+        import boto3
+        from django.conf import settings
+        bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+        aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
+        aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
+        s3 = boto3.resource(
+            's3', aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key)
+        self.my_bucket = s3.Bucket(bucket_name)
+        self.aws_location = aws_location or self.aws_location
+        self.excluded_dirs = [
+            "admin/", "aws_errors/", "cat_images/", "ckeditor/", "experiment/",
+            "logos/", "mat_views/", "profile_images/", "rest_framework/"]
+
+        self.get_files_in_db()
+        self.get_files_in_s3()
+        self.find_orphans()
+
+    def get_files_in_db(self):
+        from respond.models import TableFile
+        from respond.models import SheetFile
+        from respond.models import DataFile
+        from respond.models import ReplyFile
+        model_files = [TableFile, SheetFile, DataFile, ReplyFile]
+        for model in model_files:
+            self.get_files_in_model(model)
+        self.files_in_db = list(set(self.files_in_db))
+
+    def get_files_in_model(self, model):
+        model_file_query = model.objects.filter(file__isnull=False)
+        model_count = model_file_query.count()
+        for i in range(0, model_count, 1000):
+            self.files_in_db.extend(
+                model_file_query.values_list('file', flat=True)[i:i+1000])
+
+    def get_files_in_s3(self):
+        all_bucket_files = self.my_bucket.objects.filter(
+            Prefix=self.aws_location)
+        for bucket_obj in all_bucket_files:
+            bucket_obj_key = bucket_obj.key.replace(self.aws_location, '')
+            if bucket_obj_key in self.files_in_s3:
+                continue
+            if any(
+                excluded_dir in bucket_obj_key
+                for excluded_dir in self.excluded_dirs
+            ):
+                continue
+            self.files_in_s3.append((bucket_obj_key, bucket_obj.size))
+
+    def find_orphans(self):
+        self.orphans = [
+            (file, size) for file, size in self.files_in_s3 if file not in self.files_in_db
+        ]
+
+    def report_orphans(self):
+        total_size = sum(size for _, size in self.orphans)
+        print(f"Total size of orphans: {total_size} bytes")
+        print(f"Total size of orphans: {total_size/(1024*1024)} MB")
+        print(f"Total orphans: {len(self.orphans)}")
+
+    def clean_orphans(self, delete_lote=1000):
+        for i in range(0, len(self.orphans), delete_lote):
+            delete_objects = [
+                {'Key': self.aws_location + key}
+                for key in self.orphans[i:i+delete_lote]
+            ]
+            response = self.my_bucket.delete_objects(
+                Delete={'Objects': delete_objects})
+
+
 def clean_file_path():
     from task.models import FilePath
     FilePath.objects.all().delete()
@@ -215,4 +298,3 @@ def dummy_change_path():
 list = [{'id': 1, 'model_name': 'data_file', 'file_name': 'estatal/isem/202210/correspondencia 926083.xlsx'},
         {'id': 2, 'model_name': 'data_file', 'file_name': 'estatal/isem/202210/correspondencia 926083.xlsx'}]
 tuple_of_ids = tuple([elem['id'] for elem in list])
-

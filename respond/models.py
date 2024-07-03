@@ -39,11 +39,24 @@ class ReplyFile(models.Model, ReplyFileMix):
     has_data = models.BooleanField(
         default=False, verbose_name="Contiene los datos")
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = ReplyFile.objects.get(pk=self.pk)
+                if old_instance.file and old_instance.file != self.file:
+                    old_instance.file.delete(save=False)
+            except ReplyFile.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
+
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(
             sheet_file__data_file__reply_file=self, inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
+        self.file.delete(save=False)
         super().delete(*args, **kwargs)
 
     @property
@@ -116,12 +129,24 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True, verbose_name="Todos los resultados")
     notes = models.TextField(blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = DataFile.objects.get(pk=self.pk)
+                if old_instance.file and old_instance.file != self.file:
+                    old_instance.file.delete(save=False)
+            except DataFile.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(
             sheet_file__data_file=self, inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
+        self.file.delete(save=False)
         super().delete(*args, **kwargs)
 
     @property
@@ -237,7 +262,8 @@ class SheetFile(models.Model):
         FileType, on_delete=models.CASCADE, blank=True, null=True)
     matched = models.BooleanField(blank=True, null=True)
     sheet_name = models.CharField(max_length=255, blank=True, null=True)
-    sample_data = JSONField(blank=True, null=True, default=default_explore_data)
+    sample_data = JSONField(blank=True, null=True,
+                            default=default_explore_data)
     total_rows = models.IntegerField(default=0)
     error_process = JSONField(blank=True, null=True)
     warnings = JSONField(blank=True, null=True)
@@ -266,10 +292,23 @@ class SheetFile(models.Model):
     # inserted_rows = models.IntegerField(default=0)
     # all_results = JSONField(blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = SheetFile.objects.get(pk=self.pk)
+                if old_instance.file and old_instance.file != self.file:
+                    old_instance.file.delete(save=False)
+            except SheetFile.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
+
     def delete(self, using=None, keep_parents=False):
         some_inserted = self.laps.filter(inserted=True).exists()
         if some_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
+        self.file.delete(save=False)
         super().delete(using, keep_parents)
 
     @property
@@ -341,7 +380,8 @@ class LapSheet(models.Model):
     last_edit = models.DateTimeField(blank=True, null=True)
     inserted = models.BooleanField(default=False, blank=True, null=True)
     cat_inserted = models.BooleanField(default=False, blank=True, null=True)
-    missing_inserted = models.BooleanField(default=False, blank=True, null=True)
+    missing_inserted = models.BooleanField(
+        default=False, blank=True, null=True)
 
     general_error = models.CharField(max_length=255, blank=True, null=True)
 
@@ -366,7 +406,8 @@ class LapSheet(models.Model):
 
     def delete(self, using=None, keep_parents=False):
         if self.inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         return super().delete(using=using, keep_parents=keep_parents)
 
     def save(self, *args, **kwargs):
@@ -420,6 +461,21 @@ class TableFile(models.Model):
 
     def __str__(self):
         return "%s %s" % (self.collection, self.lap_sheet)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = TableFile.objects.get(pk=self.pk)
+                if old_instance.file and old_instance.file != self.file:
+                    old_instance.file.delete(save=False)
+            except TableFile.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        self.file.delete(save=False)
+        super().delete(*args, **kwargs)
 
     @property
     def final_path(self):
