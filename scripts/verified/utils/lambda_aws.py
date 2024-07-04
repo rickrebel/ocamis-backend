@@ -140,7 +140,7 @@ def build_lambda_layer(
     create_lambda_layer(layer_name, layer_path, python_version)
 
 
-# from scripts.verified.lambda import build_lambda_layer
+# from scripts.verified.utils.lambda_aws import build_lambda_layer
 # definitive_function_real()
 # build_lambda_layer("pandas_with_complements",
 #                   ["XlsxWriter", "xlrd", "lxml", "wheel", "pandas",
@@ -151,6 +151,7 @@ def build_lambda_layer(
 # build_lambda_layer("other_complements_psycopg2_and_unidecode_10",
 #                   ["psycopg2", "unidecode"])
 # build_lambda_layer("csv_complements", ["csv", "uuid"])
+# build_lambda_layer("unrar3", ["unrar"])
 # build_lambda_layer("csv_complements", ["csv", "uuid"])
 # build_lambda_layer("request_package", ["requests"])
 # build_lambda_layer("psycopg2-binary", ["psycopg2-binary"])
