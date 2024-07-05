@@ -12,6 +12,7 @@ class CleanBucket:
     files_in_s3: List = []
     files_in_db: List = []
     orphans: List = []
+    responses: List = []
 
     def __init__(self, aws_location="", limit=10000):
         import boto3
@@ -88,6 +89,7 @@ class CleanBucket:
         print(f"Total size of orphans: {total_size/(1024*1024)} MB")
 
     def clean_orphans(self, delete_lote=1000):
+        self.responses = []
         can_delete_aws_storage_files = getattr(
             settings, "CAN_DELETE_AWS_STORAGE_FILES", False)
         if not can_delete_aws_storage_files:
@@ -101,3 +103,4 @@ class CleanBucket:
             ]
             response = self.my_bucket.delete_objects(
                 Delete={'Objects': delete_objects})
+            self.responses.append(response)
