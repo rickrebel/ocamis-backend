@@ -2,6 +2,8 @@
 from datetime import datetime
 from typing import Any, Dict, List
 
+from django.conf import settings
+
 
 class CleanBucket:
     my_bucket: Any
@@ -86,6 +88,12 @@ class CleanBucket:
         print(f"Total size of orphans: {total_size/(1024*1024)} MB")
 
     def clean_orphans(self, delete_lote=1000):
+        can_delete_aws_storage_files = getattr(
+            settings, "CAN_DELETE_AWS_STORAGE_FILES", False)
+        if not can_delete_aws_storage_files:
+            print("No se pueden borrar archivos en AWS")
+            return
+
         for i in range(0, len(self.orphans), delete_lote):
             delete_objects = [
                 {'Key': self.aws_location + key}

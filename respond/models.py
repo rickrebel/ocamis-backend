@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import JSONField
 
@@ -10,6 +11,9 @@ from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
 from inai.models import Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord
 from respond.reply_file_mixins.process_mix import ReplyFileMix
+
+CAN_DELETE_AWS_STORAGE_FILES = getattr(
+    settings, "CAN_DELETE_AWS_STORAGE_FILES", False)
 
 
 class ReplyFile(models.Model, ReplyFileMix):
@@ -53,7 +57,12 @@ class ReplyFile(models.Model, ReplyFileMix):
         if some_lap_inserted:
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
-        self.file.delete(save=False)
+
+        if CAN_DELETE_AWS_STORAGE_FILES:
+            self.file.delete(save=False)
+        else:
+            print("No se pueden borrar archivos en AWS")
+
         super().delete(*args, **kwargs)
 
     @property
@@ -134,7 +143,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         if some_lap_inserted:
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
-        self.file.delete(save=False)
+
+        if CAN_DELETE_AWS_STORAGE_FILES:
+            self.file.delete(save=False)
+        else:
+            print("No se pueden borrar archivos en AWS")
+
         super().delete(*args, **kwargs)
 
     @property
@@ -296,7 +310,10 @@ class SheetFile(models.Model):
         if some_inserted:
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
-        self.file.delete(save=False)
+        if CAN_DELETE_AWS_STORAGE_FILES:
+            self.file.delete(save=False)
+        else:
+            print("No se pueden borrar archivos en AWS")
         super().delete(using, keep_parents)
 
     @property
@@ -462,7 +479,10 @@ class TableFile(models.Model):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        self.file.delete(save=False)
+        if CAN_DELETE_AWS_STORAGE_FILES:
+            self.file.delete(save=False)
+        else:
+            print("No se pueden borrar archivos en AWS")
         super().delete(*args, **kwargs)
 
     @property
