@@ -154,6 +154,7 @@ class DataFileSerializer(serializers.ModelSerializer):
     has_sample_data = serializers.SerializerMethodField(read_only=True)
     short_name = serializers.SerializerMethodField(read_only=True)
     real_name = serializers.SerializerMethodField(read_only=True)
+    directory_short = serializers.SerializerMethodField(read_only=True)
     petition = serializers.IntegerField(
         source="petition_file_control.petition_id", read_only=True)
 
@@ -166,6 +167,13 @@ class DataFileSerializer(serializers.ModelSerializer):
 
     def get_short_name(self, obj):
         real_name = obj.file.name.split("/")[-1]
+        return f"{real_name[:25]}...{real_name[-15:]}" \
+            if len(real_name) > 42 else real_name
+
+    def get_directory_short(self, obj):
+        if not obj.directory:
+            return None
+        real_name = obj.directory
         return f"{real_name[:25]}...{real_name[-15:]}" \
             if len(real_name) > 42 else real_name
 

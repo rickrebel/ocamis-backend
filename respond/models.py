@@ -9,7 +9,8 @@ from geo.models import Provider, Delegation
 from respond.data_file_mixins.explore_mix import ExploreMix
 from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
-from inai.models import Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord
+from inai.models import (
+    Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord)
 from respond.reply_file_mixins.process_mix import ReplyFileMix
 
 can_delete_s3 = getattr(
@@ -39,6 +40,8 @@ class ReplyFile(models.Model, ReplyFileMix):
         blank=True, null=True, verbose_name="Otras configuraciones")
     has_data = models.BooleanField(
         default=False, verbose_name="Contiene los datos")
+    month_records = models.ManyToManyField(
+        MonthRecord, related_name="reply_files", blank=True)
 
     def save(self, *args, **kwargs):
         if self.pk and can_delete_s3:

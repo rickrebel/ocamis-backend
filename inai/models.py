@@ -9,7 +9,7 @@ from classify_task.models import Stage, StatusTask
 from transparency.models import Anomaly
 from data_param.models import (
     DataType, FinalField, CleanFunction,
-    OldDataGroup, Collection, ParameterGroup, FileControl)
+    DataGroup, Collection, ParameterGroup, FileControl)
 from med_cat.models import Delivered
 from rds.models import Cluster
 
@@ -224,6 +224,8 @@ class RequestTemplate(models.Model):
         Provider, related_name="request_templates",
         verbose_name="Proveedor",
         on_delete=models.CASCADE, null=True, blank=True)
+    data_groups = models.ManyToManyField(
+        DataGroup, blank=True, verbose_name="Grupos de datos")
 
     def __str__(self):
         return self.version_name or str(self.version)
@@ -317,6 +319,7 @@ class Petition(models.Model, PetitionTransformsMix):
         verbose_name="Razón de invalidez",
         on_delete=models.CASCADE)
     notes = models.TextField(blank=True, null=True)
+
     template_text = models.TextField(
         blank=True, null=True, verbose_name="Texto para la plantilla")
     request_template = models.ForeignKey(
@@ -409,6 +412,23 @@ class Petition(models.Model, PetitionTransformsMix):
     class Meta:
         verbose_name = "Solicitud - Petición"
         verbose_name_plural = "1. Solicitudes (Peticiones)"
+
+
+class PetitionDataGroup(models.Model):
+    petition = models.ForeignKey(
+        Petition, related_name="data_groups", on_delete=models.CASCADE)
+    data_group = models.ForeignKey(
+        DataGroup, related_name="petitions", on_delete=models.CASCADE)
+    status_data = models.ForeignKey(
+        StatusControl, related_name="petition_data_groups_data",
+        on_delete=models.CASCADE, blank=True, null=True)
+
+    def __str__(self):
+        return "%s - %s" % (self.petition, self.data_group)
+
+    class Meta:
+        verbose_name = "Petición - Grupo de datos (m2m)"
+        verbose_name_plural = "Peticiones - Grupos de datos (m2m)"
 
 
 class Complaint(models.Model):

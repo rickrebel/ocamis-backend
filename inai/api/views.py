@@ -260,6 +260,20 @@ class PetitionViewSet(ModelViewSet):
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(methods=["post"], detail=True, url_path='back_start_massive')
+    def back_start_massive(self, request, **kwargs):
+        from respond.api.views_aws import send_full_response
+        from respond.models import DataFile
+
+        petition = self.get_object()
+        files_id = request.data.get("files")
+        data_files = DataFile.objects.filter(id__in=files_id)
+
+        for data_file in data_files:
+            data_file.reset_initial()
+
+        return send_full_response(petition)
+
 
 class PetitionFileControlViewSet(CreateRetrieveView):
     queryset = PetitionFileControl.objects.all()
