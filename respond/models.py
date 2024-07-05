@@ -9,10 +9,11 @@ from geo.models import Provider, Delegation
 from respond.data_file_mixins.explore_mix import ExploreMix
 from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
-from inai.models import Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord
+from inai.models import (
+    Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord)
 from respond.reply_file_mixins.process_mix import ReplyFileMix
 
-CAN_DELETE_AWS_STORAGE_FILES = getattr(
+can_delete_s3 = getattr(
     settings, "CAN_DELETE_AWS_STORAGE_FILES", False)
 
 
@@ -39,9 +40,11 @@ class ReplyFile(models.Model, ReplyFileMix):
         blank=True, null=True, verbose_name="Otras configuraciones")
     has_data = models.BooleanField(
         default=False, verbose_name="Contiene los datos")
+    month_records = models.ManyToManyField(
+        MonthRecord, related_name="reply_files", blank=True)
 
     def save(self, *args, **kwargs):
-        if self.pk:
+        if self.pk and can_delete_s3:
             try:
                 old_instance = ReplyFile.objects.get(pk=self.pk)
                 if old_instance.file and old_instance.file != self.file:
@@ -58,7 +61,7 @@ class ReplyFile(models.Model, ReplyFileMix):
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
 
-        if CAN_DELETE_AWS_STORAGE_FILES:
+        if can_delete_s3:
             self.file.delete(save=False)
         else:
             print("No se pueden borrar archivos en AWS")
@@ -127,7 +130,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     notes = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        if self.pk:
+        if self.pk and can_delete_s3:
             try:
                 old_instance = DataFile.objects.get(pk=self.pk)
                 if old_instance.file and old_instance.file != self.file:
@@ -144,7 +147,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
 
-        if CAN_DELETE_AWS_STORAGE_FILES:
+        if can_delete_s3:
             self.file.delete(save=False)
         else:
             print("No se pueden borrar archivos en AWS")
@@ -295,7 +298,7 @@ class SheetFile(models.Model):
     # all_results = JSONField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        if self.pk:
+        if self.pk and can_delete_s3:
             try:
                 old_instance = SheetFile.objects.get(pk=self.pk)
                 if old_instance.file and old_instance.file != self.file:
@@ -310,7 +313,7 @@ class SheetFile(models.Model):
         if some_inserted:
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
-        if CAN_DELETE_AWS_STORAGE_FILES:
+        if can_delete_s3:
             self.file.delete(save=False)
         else:
             print("No se pueden borrar archivos en AWS")
@@ -468,9 +471,10 @@ class TableFile(models.Model):
         return "%s %s" % (self.collection, self.lap_sheet)
 
     def save(self, *args, **kwargs):
-        if self.pk:
+        if self.pk and can_delete_s3:
             try:
                 old_instance = TableFile.objects.get(pk=self.pk)
+
                 if old_instance.file and old_instance.file != self.file:
                     old_instance.file.delete(save=False)
             except TableFile.DoesNotExist:
@@ -479,7 +483,7 @@ class TableFile(models.Model):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if CAN_DELETE_AWS_STORAGE_FILES:
+        if can_delete_s3:
             self.file.delete(save=False)
         else:
             print("No se pueden borrar archivos en AWS")

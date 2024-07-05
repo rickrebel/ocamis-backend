@@ -6,26 +6,6 @@ from transparency.models import Anomaly
 from geo.models import Institution, Delegation, Agency, Provider
 
 
-class OldDataGroup(models.Model):
-    name = models.CharField(
-        max_length=40, verbose_name="Nombre (devs)", blank=True, null=True)
-    public_name = models.CharField(
-        max_length=80, verbose_name="Nombre público")
-    is_default = models.BooleanField(default=False)
-    color = models.CharField(max_length=20, default="lime")
-    can_has_percent = models.BooleanField(
-        default=False, verbose_name="Puede tener porcentajes")
-    order = models.IntegerField(default=5)
-
-    def __str__(self):
-        return self.public_name
-
-    class Meta:
-        verbose_name = "Grupo de datos solicitados"
-        verbose_name_plural = "1.1 Grupos de datos solicitados"
-        ordering = ['order']
-
-
 class DataGroup(models.Model):
     name = models.CharField(
         max_length=40, verbose_name="Nombre (devs)", primary_key=True)

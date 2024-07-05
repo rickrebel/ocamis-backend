@@ -27,7 +27,7 @@ class DecompressZip:
         file = event["file"]
         self.object_bytes = self.s3_utils.get_object_file(file, "zip")
 
-    def decompress_file(self, suffixes, upload_path, prev_directory=None, object_bytes=None):
+    def decompress_file(self, suffixes, upload_path, prev_directory="", object_bytes=None):
         from io import BytesIO
         if not object_bytes:
             object_bytes = self.object_bytes
@@ -45,18 +45,32 @@ class DecompressZip:
             file_name = zip_elem.filename
             if "desktop.ini" in file_name:
                 continue
-            pos_slash = file_name.rfind("/")
-            # only_name = file_name[pos_slash + 1:]
-            directory = (file_name[:pos_slash]
-                         if pos_slash > 0 else None)
+            if "Thumbs.db" in file_name:
+                continue
+            directory = ""
+            only_name = file_name
+            if "/" in file_name:
+                pos_slash = file_name.rfind("/")
+                only_name = file_name[pos_slash + 1:]
+                directory = file_name[:pos_slash]
             if prev_directory:
-                directory = f"{prev_directory}/{directory}"
-                file_name = f"{prev_directory}/{file_name}"
+                prev_directory = f"{prev_directory}/"
+            directory = f"{prev_directory}{directory}"
+
+            if directory:
+                folders = directory.split("/")
+                final_directory = []
+                for folder in folders:
+                    if folder not in final_directory:
+                        final_directory.append(folder)
+                directory = "/".join(final_directory)
+                file_name = f"{directory}/{only_name}"
+
             # evaluate if file_name is a .zip or .rar file
-            if file_name.endswith(".zip") or file_name.endswith(".rar"):
+            if only_name.endswith(".zip") or only_name.endswith(".rar"):
                 object_bytes = zip_file.open(zip_elem).read()
                 real_object_bytes = BytesIO(object_bytes)
-                directory += f"/{file_name.replace('.', '_')}"
+                directory += f"/{only_name.replace('.', '_')}"
                 self.decompress_file(
                     file_name, upload_path, directory, real_object_bytes)
             else:

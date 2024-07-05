@@ -28,7 +28,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     def retrieve(self, request, *args, **kwargs):
         from respond.models import ReplyFile
         from data_param.models import FileControl
-        from data_param.models import OldDataGroup
 
         petition = self.get_object()
         current_file_ctrl = request.query_params.get("file_ctrl", False)
