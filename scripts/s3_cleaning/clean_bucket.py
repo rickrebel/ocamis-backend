@@ -60,7 +60,7 @@ class CleanBucket:
         for bucket_obj in all_bucket_files:
             bucket_obj_key = bucket_obj.key.replace(self.aws_location, '')
             if any(
-                excluded_dir in bucket_obj_key
+                bucket_obj_key.startswith(excluded_dir)
                 for excluded_dir in self.excluded_dirs
             ):
                 continue

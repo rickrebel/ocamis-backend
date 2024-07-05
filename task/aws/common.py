@@ -96,6 +96,24 @@ def send_simple_response(event, context, errors=None, result=None):
     }
 
 
+def send_simple_response_2(event, context, result):
+    result["success"] = bool(not result["errors"])
+    result_data = {
+        "result": result,
+        "request_id": context.aws_request_id,
+        "aws_function_name": context.function_name,
+        "function_name": event.get("function_name"),
+    }
+    json_result = json.dumps(result_data)
+    send_result = SendResultToWebhook(event, json_result)
+    send_result.send_to_webhook()
+
+    return {
+        'statusCode': 200,
+        'body': json_result
+    }
+
+
 def create_connection(db_config):
     import psycopg2
     connection = psycopg2.connect(

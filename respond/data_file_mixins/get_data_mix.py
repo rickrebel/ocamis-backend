@@ -9,10 +9,9 @@ class ExtractorsMix:
             self, type_explor, file_control=None, task_params=None):
         print("transform_file_in_data", type_explor)
         from category.models import FileFormat
-        is_explore = bool(type_explor)
         data_file = self
         # is_auto = type_explor == 'auto_explore'
-        status_error = 'explore|with_errors' if is_explore else 'extraction|with_errors'
+        status_error = 'explore|with_errors'
         if not file_control:
             file_control = data_file.petition_file_control.file_control
         is_orphan = file_control.data_group_id == "orphan"
@@ -29,8 +28,11 @@ class ExtractorsMix:
             # if type_explor == 'auto_explore':
             #     errors = ["No existe ningún grupo de control coincidente"]
             # else:
-            #     errors = ["Formato especificado no coincide con el archivo"]
-            return None, None, None
+            if is_orphan:
+                errors = None
+            else:
+                errors = ["Formato especificado no coincide con el archivo"]
+            return None, errors, None
         elif data_file.suffix in FileFormat.objects.get(short_name='xls').suffixes:
             result, new_task = data_file.get_data_from_excel(
                 type_explor, file_control=file_control, task_params=task_params)
@@ -138,11 +140,7 @@ class ExtractorsMix:
             self, type_explor, file_control=None, task_params=None):
         from task.serverless import async_in_lambda
         from scripts.common import explore_sheets
-        is_explore = bool(type_explor)
-        if is_explore:
-            all_sheets = self.all_sample_data
-        else:
-            all_sheets = {}
+        all_sheets = self.all_sample_data
 
         sheet_names = self.sheet_names_list
         
@@ -180,7 +178,7 @@ class ExtractorsMix:
                 continue
             filtered_sheets.append(sheet_name)
             # xls.parse(sheet_name)
-            if is_explore and sheet_name in all_sheets:
+            if sheet_name in all_sheets:
                 if "all_data" in all_sheets[sheet_name]:
                     continue
             # print("SE TUVO QUE LEER EL EXCEL DE NUEVO")

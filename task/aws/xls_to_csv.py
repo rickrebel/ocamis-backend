@@ -20,6 +20,7 @@ def lambda_handler(event, context):
     many_sheets = len(all_sheet_names) > 10
     n_rows = 40 if many_sheets else 220
     n_end = 15 if many_sheets else 30
+    final_sheets = []
 
     all_sheets = {}
     for sheet_name in all_sheet_names:
@@ -31,6 +32,8 @@ def lambda_handler(event, context):
             to_replace=[r"\\t|\\n|\\r", "\t|\n|\r", "\|"],
             value=[" > ", " > ", ";"],
             regex=True)
+        if data_excel.empty:
+            continue
         csv_buffer = io.StringIO()
         total_rows = data_excel.shape[0]
         data_excel.to_csv(
@@ -49,10 +52,11 @@ def lambda_handler(event, context):
             "total_rows": total_rows,
             "final_path": final_name,
         }
+        final_sheets.append(final_name)
 
     result = {
         "new_sheets": all_sheets,
-        "all_sheet_names": all_sheet_names
+        "all_sheet_names": final_sheets,
     }
     return send_simple_response(event, context, result=result)
 
