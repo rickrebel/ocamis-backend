@@ -45,13 +45,24 @@ class DecompressZip:
             file_name = zip_elem.filename
             if "desktop.ini" in file_name:
                 continue
-            pos_slash = file_name.rfind("/")
-            # only_name = file_name[pos_slash + 1:]
-            directory = (file_name[:pos_slash]
-                         if pos_slash > 0 else None)
+            if "Thumbs.db" in file_name:
+                continue
+            directory = ""
+            if "/" in file_name:
+                pos_slash = file_name.rfind("/")
+                # only_name = file_name[pos_slash + 1:]
+                directory = file_name[:pos_slash]
+                folders = directory.split("/")
+                final_directory = []
+                for folder in folders:
+                    if folder not in final_directory:
+                        final_directory.append(folder)
+                directory = "/".join(final_directory)
             if prev_directory:
-                directory = f"{prev_directory}/{directory}"
+                directory = f"{prev_directory}/{directory}" \
+                    if directory else prev_directory
                 file_name = f"{prev_directory}/{file_name}"
+
             # evaluate if file_name is a .zip or .rar file
             if file_name.endswith(".zip") or file_name.endswith(".rar"):
                 object_bytes = zip_file.open(zip_elem).read()
