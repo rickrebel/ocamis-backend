@@ -399,7 +399,7 @@ class NameColumn (models.Model):
     #     blank=True, null=True, verbose_name="Parámetros de limpieza")
     required_row = models.BooleanField(default=False)
     destination = models.SmallIntegerField(
-        blank=True, null=True, verbose_name="Pestaña Destino")
+        blank=True, null=True, verbose_name="Hoja Destino")
     parent_column = models.ForeignKey(
         "NameColumn", related_name="parents",
         verbose_name="Columna padre de la que derivó",

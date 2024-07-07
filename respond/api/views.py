@@ -179,5 +179,53 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
             {"behavior_counts": [],"drugs_summarize": {},},
             status=status.HTTP_200_OK)
 
+    @action(methods=["post"], detail=False, url_path='massive_change_behavior')
+    def massive_change_behavior(self, request, **kwargs):
+        from inai.api.views import get_related_months
+        from respond.models import Behavior
+        data = request.data
+
+        new_behavior = data.get("behavior")
+        new_behavior_obj = Behavior.objects.get(name=new_behavior)
+
+        sheet_files = SheetFile.objects \
+            .filter(laps__rx_count__gt=0, laps__lap__gte=0)
+
+        month_record_id = data.get("month_record_id")
+        sheet_files_ids = data.get("sheet_files")
+        behavior_group = data.get("behavior_group")
+        if not sheet_files_ids and not month_record_id:
+            return Response(
+                {"error": "You must provide month_record_id or sheet_files"},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        if month_record_id:
+            sheet_files = sheet_files.filter(
+                month_records__id=month_record_id)
+        if sheet_files_ids:
+            sheet_files = sheet_files.filter(id__in=sheet_files_ids)
+        if behavior_group:
+            behavior_group_obj = Behavior.objects.get(name=behavior_group)
+            if behavior_group_obj.is_discarded:
+                sheet_files = sheet_files.filter(behavior__is_discarded=True)
+            else:
+                sheet_files = sheet_files.exclude(behavior__is_discarded=True)
+                if behavior_group == "dupli":
+                    sheet_files = sheet_files.exclude(
+                        duplicates_count=0, shared_count=0)
+                    print("sheet_files", sheet_files)
+                else:
+                    sheet_files = sheet_files.filter(
+                        duplicates_count=0, shared_count=0)
+
+        sheet_files = sheet_files.distinct()
+
+        if new_behavior_obj.is_discarded:
+            sheet_files.update(duplicates_count=0, shared_count=0)
+        sheet_files.update(behavior=new_behavior_obj)
+        data_response = get_related_months(sheet_files)
+        return Response(data_response, status=status.HTTP_200_OK)
+
+
 
 

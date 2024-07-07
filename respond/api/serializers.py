@@ -78,6 +78,16 @@ class TableFileAwsSerializer(serializers.ModelSerializer):
         # "iso_year", "iso_week", "delegation_name"]
 
 
+class SheetFileSimpleSerializer(serializers.ModelSerializer):
+    name = serializers.ReadOnlyField(source="file.name")
+    url = serializers.ReadOnlyField(source="file.url")
+
+    class Meta:
+        model = SheetFile
+        # fields = "__all__"
+        exclude = ["sample_data", "error_process", "warnings"]
+
+
 class LapSheetSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -103,13 +113,10 @@ class SheetFileSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class SheetFileSimpleSerializer(serializers.ModelSerializer):
-    name = serializers.ReadOnlyField(source="file.name")
-    url = serializers.ReadOnlyField(source="file.url")
+class SheetFileTableSerializer(SheetFileSerializer):
 
     class Meta:
         model = SheetFile
-        # fields = "__all__"
         exclude = ["sample_data", "error_process", "warnings"]
 
 
@@ -143,14 +150,6 @@ class DataFileSimpleSerializer(serializers.ModelSerializer):
 class DataFileSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
-    #origin_file = DataFileSimpleSerializer(read_only=True)
-    # origin_file_id = serializers.PrimaryKeyRelatedField(
-    #     write_only=True, source="origin_file",
-    #     queryset=DataFile.objects.all(), required=False)
-    # petition_file_control_id = serializers.PrimaryKeyRelatedField(
-    #     write_only=True, source="petition_file_control",
-    #     queryset=PetitionFileControl.objects.all())
-    # child_files = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     has_sample_data = serializers.SerializerMethodField(read_only=True)
     short_name = serializers.SerializerMethodField(read_only=True)
     real_name = serializers.SerializerMethodField(read_only=True)
@@ -159,7 +158,6 @@ class DataFileSerializer(serializers.ModelSerializer):
         source="petition_file_control.petition_id", read_only=True)
 
     def get_has_sample_data(self, obj):
-        # return bool(obj.sample_data)
         return bool(obj.sheet_files.exists())
 
     def get_real_name(self, obj):
@@ -199,6 +197,52 @@ class DataFileFullSerializer(DataFileSerializer):
         model = DataFile
         exclude = ('sample_data',)
         read_only_fields = ["petition_file_control", "file"]
+
+
+class DataFileTableSerializer(DataFileSimpleSerializer):
+    has_sample_data = serializers.SerializerMethodField(read_only=True)
+    short_name = serializers.SerializerMethodField(read_only=True)
+    real_name = serializers.SerializerMethodField(read_only=True)
+    directory_short = serializers.SerializerMethodField(read_only=True)
+    petition = serializers.IntegerField(
+        source="petition_file_control.petition_id", read_only=True)
+
+    def get_has_sample_data(self, obj):
+        # return bool(obj.sample_data)
+        return bool(obj.sheet_files.exists())
+
+    def get_real_name(self, obj):
+        return obj.file.name.split("/")[-1]
+
+    def get_short_name(self, obj):
+        real_name = obj.file.name.split("/")[-1]
+        return f"{real_name[:25]}...{real_name[-15:]}" \
+            if len(real_name) > 42 else real_name
+
+    def get_directory_short(self, obj):
+        if not obj.directory:
+            return None
+        real_name = obj.directory
+        return f"{real_name[:25]}...{real_name[-15:]}" \
+            if len(real_name) > 42 else real_name
+
+    class Meta:
+        model = DataFile
+        read_only_fields = ["has_sample_data"]
+        exclude = ('sample_data', )
+
+
+class SheetFileTable2Serializer(SheetFileSimpleSerializer):
+    data_file = DataFileTableSerializer(read_only=True)
+
+
+class LapSheetTableSerializer(serializers.ModelSerializer):
+    table_files = TableFileSerializer(read_only=True, many=True)
+    sheet_file = SheetFileTable2Serializer(read_only=True)
+
+    class Meta:
+        model = LapSheet
+        fields = "__all__"
 
 
 class SheetFileMonthSerializer(SheetFileSimpleSerializer):
@@ -250,3 +294,4 @@ class BehaviorSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Behavior
         fields = "__all__"
+

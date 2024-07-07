@@ -79,7 +79,7 @@ class MonthRecordSimpleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MonthRecord
-        fields = ["year_month", "human_name"]
+        fields = ["id", "year_month", "human_name", "provider"]
 
 
 class WeekRecordSimpleSerializer(serializers.ModelSerializer):

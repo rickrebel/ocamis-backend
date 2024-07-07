@@ -267,8 +267,11 @@ class SheetFile(models.Model):
         FileType, on_delete=models.CASCADE, blank=True, null=True)
     matched = models.BooleanField(blank=True, null=True)
     sheet_name = models.CharField(max_length=255, blank=True, null=True)
-    sample_data = JSONField(blank=True, null=True,
-                            default=default_explore_data)
+    sample_data = JSONField(
+        blank=True, null=True, default=default_explore_data)
+    sample_file = models.FileField(
+        max_length=255, upload_to=set_upload_path,
+        blank=True, null=True, verbose_name="Archivo con muestra")
     total_rows = models.IntegerField(default=0)
     error_process = JSONField(blank=True, null=True)
     warnings = JSONField(blank=True, null=True)
@@ -346,8 +349,8 @@ class SheetFile(models.Model):
         return f">{self.file_type}< {self.sheet_name}- {self.data_file}"
 
     class Meta:
-        verbose_name = "Archivo de pestaña (csv)"
-        verbose_name_plural = "4. Archivos de pestaña (Sheets .csv)"
+        verbose_name = "Archivo de hojas (csv)"
+        verbose_name_plural = "4. Archivos de hojas (Sheets .csv)"
         ordering = ["id"]
         unique_together = ("data_file", "sheet_name", "file_type")
         db_table = "inai_sheetfile"

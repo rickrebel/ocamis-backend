@@ -317,7 +317,7 @@ class ExploreMix:
                 if data_file.petition_file_control_id in all_data_files:
                     save_sheet_file(data_file)
                     data_file.add_warning(
-                        "Hay pestañas con el mismo formato, no incluidas en "
+                        "Hay hojas con el mismo formato, no incluidas en "
                         "por los filtros de inclusión y exclusión")
                 continue
             try:
@@ -375,7 +375,7 @@ class ExploreMix:
             is_match_ready = data_file.has_exact_matches(current_sheets)
             print("is_match_ready", is_match_ready)
             if not is_match_ready:
-                errors = ["No todas las pestañas filtradas coinciden con "
+                errors = ["No todas las hojas filtradas coinciden con "
                           "el grupo de control"]
                 return data_file, saved, errors
             return all_data_files[current_pfc], saved, []

@@ -725,9 +725,6 @@ class MatchAws:
                     value = [str(value)]
                 except Exception as e:
                     error = "No se pudo convertir a lista de valores"
-                    # if self.show_examples():
-                    #     print("error", error, "value", value, "\nerror:", e)
-                    #     print("row:\n", row)
                     raise ValueProcessError(error, value, str(e))
             else:
                 value = str(value)
@@ -743,9 +740,8 @@ class MatchAws:
             if field.get("is_list"):
                 for val in value:
                     if need_check and not re.match(regex_format, val):
-                        raise ValueProcessError(
-                            f"No pasó validación con el formato de {field_name}",
-                            value)
+                        error = f"No pasó validación con el formato de {field_name}"
+                        raise ValueProcessError(error, value)
             elif need_check:
                 if not re.match(regex_format, value):
                     raise ValueProcessError(

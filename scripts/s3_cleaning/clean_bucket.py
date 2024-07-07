@@ -24,12 +24,13 @@ class CleanBucket:
             's3', aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key)
         self.my_bucket = s3.Bucket(bucket_name)
-        if "data_file" in aws_location:
+        if "data_files" in aws_location:
             self.aws_location = aws_location
         # self.aws_location = aws_location or self.aws_location
         self.excluded_dirs = [
             "admin/", "aws_errors/", "cat_images/", "ckeditor/", "experiment/",
-            "logos/", "mat_views/", "profile_images/", "rest_framework/"]
+            "logos/", "mat_views/", "profile_images/", "rest_framework/",
+            "catalog/"]
 
     def __call__(self):
         self.get_files_in_db()
@@ -99,7 +100,7 @@ class CleanBucket:
         for i in range(0, len(self.orphans), delete_lote):
             delete_objects = [
                 {'Key': self.aws_location + key}
-                for key in self.orphans[i:i+delete_lote]
+                for key, _ in self.orphans[i:i+delete_lote]
             ]
             response = self.my_bucket.delete_objects(
                 Delete={'Objects': delete_objects})

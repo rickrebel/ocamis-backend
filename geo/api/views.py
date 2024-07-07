@@ -172,7 +172,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             if all_classified:
                 if month_record.sheet_files.filter(behavior_id="pending").exists():
                     month_errors.append(
-                        f"Hay pestañas pendientes de clasificar para el mes "
+                        f"Hay hojas pendientes de clasificar para el mes "
                         f"{month_record.year_month}")
 
             if month_errors:

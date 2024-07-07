@@ -34,7 +34,7 @@ def lambda_handler(event, context):
         cursor.execute(first_query)
         result = cursor.fetchone()
         if result[0]:
-            errors.append(f"Ya se había insertado la pestaña y su lap")
+            errors.append(f"Ya se había insertado la hoja y su lap")
     # print("after first_query", datetime.now())
     if not errors:
         print("before sql_queries", datetime.now())

@@ -31,7 +31,7 @@ class TaskFunction(models.Model):
         ("file_control", "Grupo de Control"),
         ("data_file", "DataFile (archivo de datos)"),
         ("reply_file", "ReplyFile (.zip)"),
-        ("sheet_file", "Pestaña"),
+        ("sheet_file", "Hoja (sheet)"),
         # ("3entity_week", "Semana Proveedor"),
         ("week_record", "Semana Proveedor"),
         # ("3entity_month", "Mes Proveedor"),

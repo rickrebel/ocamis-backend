@@ -18,7 +18,4 @@ def build_catalog_delegation_by_id(institution, key_field='name'):
             alt_name = text_normalizer(alt_name)
             if alt_name not in catalog_delegation:
                 catalog_delegation[alt_name] = delegation["id"]
-    # final_path = f"{self.agency.provider.acronym}/catalogs/delegation_by_{key_field}.json"
-    # file_name, errors = create_file(
-    #     catalog_delegation, self.s3_client, final_path=final_path)
     return catalog_delegation

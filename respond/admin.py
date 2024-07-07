@@ -14,7 +14,7 @@ class ReplyFileAdmin(admin.ModelAdmin):
         "file_type",
         "url_download",
     ]
-    raw_id_fields = ["petition"]
+    raw_id_fields = ["petition", "month_records"]
     list_filter = ["petition__agency"]
 
 

@@ -9,7 +9,7 @@ from inai.api.serializers import (
     PetitionSemiFullSerializer, PetitionFileControlDeepSerializer,
     FileControlFullSerializer, TransformationEditSerializer,
     NameColumnEditSerializer)
-from respond.api.serializers import DataFileSerializer, SheetFileSerializer
+from respond.api.serializers import DataFileSerializer
 from inai.models import PetitionFileControl
 from respond.models import DataFile, SheetFile
 from task.views import build_task_params, comprobate_status
@@ -228,8 +228,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         total_count = final_files.count()
         page_size = limiters.get("page_size", 30)
         page = limiters.get("page", 1) - 1
-        final_files3 = final_files[page * page_size:(page + 1) * page_size]
-        serializer_files = DataFileSerializer(final_files3, many=True).data
+        final_files2 = final_files[page * page_size:(page + 1) * page_size]
+        serializer_files = DataFileSerializer(final_files2, many=True).data
         data = {
             "total_count": total_count,
             "data_files": serializer_files,
@@ -239,24 +239,70 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     @action(methods=["get"], detail=True, url_path='sheet_files')
     def sheet_files(self, request, **kwargs):
         import json
+        from respond.api.serializers import SheetFileTableSerializer
         from django.db.models import Q
         file_control = self.get_object()
-        sheet_files = SheetFile.objects\
-            .filter(data_file__petition_file_control__file_control=file_control) \
-            .order_by("-id")\
-            .prefetch_related("laps")
         limiters = request.query_params.get("limiters", None)
         limiters = json.loads(limiters)
 
         # print("STS_PROCESS", sts_process)
-        total_count = sheet_files.count()
         page_size = limiters.get("page_size", 30)
         page = limiters.get("page", 1) - 1
+        filters = {"data_file__petition_file_control__file_control": file_control}
+        if behavior := limiters.get("behavior", None):
+            filters["behavior_id"] = behavior
+        order = limiters.get("order", "-id")
+        sheet_files = SheetFile.objects\
+            .filter(**filters)\
+            .order_by(order)\
+            .prefetch_related("laps")
+        total_count = sheet_files.count()
+
         final_sheets = sheet_files[page * page_size:(page + 1) * page_size]
-        serializer_files = SheetFileSerializer(final_sheets, many=True).data
+        serializer_files = SheetFileTableSerializer(final_sheets, many=True).data
         data = {
             "total_count": total_count,
             "sheet_files": serializer_files,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], detail=True, url_path='lap_sheets')
+    def lap_sheets(self, request, **kwargs):
+        import json
+        # from django.db.models import Q
+        from respond.api.serializers import LapSheetTableSerializer
+        from respond.models import LapSheet
+        file_control = self.get_object()
+        limiters = request.query_params.get("limiters", None)
+        limiters = json.loads(limiters)
+
+        # print("STS_PROCESS", sts_process)
+        page_size = limiters.get("page_size", 30)
+        page = limiters.get("page", 1) - 1
+        filters = {
+            "sheet_file__data_file__petition_file_control__file_control": file_control,
+            "lap__gte": 0,
+            "sheet_file__matched": True,
+        }
+        if behavior := limiters.get("behavior", None):
+            filters["sheet_file__behavior_id"] = behavior
+        if search_text := limiters.get("search", None):
+            filters["sheet_file__file__icontains"] = search_text
+        order = limiters.get("order", "-sheet_file_id")
+        lap_sheets = LapSheet.objects\
+            .filter(**filters)\
+            .order_by(order)\
+            .select_related("sheet_file", "sheet_file__data_file",
+                            "sheet_file__data_file__petition_file_control")\
+            .prefetch_related("table_files")
+
+        total_count = lap_sheets.count()
+
+        final_laps = lap_sheets[page * page_size:(page + 1) * page_size]
+        serializer_laps = LapSheetTableSerializer(final_laps, many=True).data
+        data = {
+            "total_count": total_count,
+            "lap_sheets": serializer_laps,
         }
         return Response(data, status=status.HTTP_200_OK)
 
@@ -264,6 +310,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     def filter(self, request, **kwargs):
         from data_param.models import FileControl, CleanFunction
         from inai.models import Petition
+        from inai.api.views import get_petition_related_months
         import json
         limiters = request.query_params.get("limiters", "{}")
         limiters = json.loads(limiters)
@@ -337,10 +384,12 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             ).distinct()
         serializer_petitions = PetitionSemiFullSerializer(
             related_petitions, many=True, context={'request': request})
+        related_month_records = get_petition_related_months(serializer_petitions)
         data = {
             "file_controls": serializer.data,
             "petitions": serializer_petitions.data,
             "total_count": total_count,
+            "related_month_records": related_month_records,
         }
         return Response(data, status=status.HTTP_200_OK)
 

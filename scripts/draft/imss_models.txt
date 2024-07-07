@@ -29,7 +29,7 @@ NEC_CIE10
     DES_CIE10
 
 
-# Catálogos privados
+# Catálogos personales
 NET_PACIENTE
     CVE_IDEE - PK
 

@@ -265,6 +265,7 @@ class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializ
     # petitions = PetitionSemiFullSerializer(many=True)
     petitions = serializers.SerializerMethodField(read_only=True)
     month_records = MonthRecordSerializer(many=True)
+    related_month_records = serializers.SerializerMethodField(read_only=True)
     sheet_files_summarize = serializers.SerializerMethodField(read_only=True)
     drugs_summarize = serializers.SerializerMethodField(read_only=True)
     last_request_template = serializers.SerializerMethodField(read_only=True)
@@ -305,6 +306,17 @@ class ProviderFullSerializer(ProviderCatSerializer, ProviderFileControlsSerializ
         if last_request_template:
             return RequestTemplateSerializer(last_request_template).data
         return None
+
+    def get_related_month_records(self, obj):
+        from inai.models import MonthRecord
+        from inai.api.serializers import MonthRecordSimpleSerializer
+        if obj.has_indirect:
+            related_month_records = MonthRecord.objects\
+                .filter(provider__is_indirect=True)
+            return MonthRecordSimpleSerializer(
+                related_month_records, many=True).data
+        else:
+            return []
 
     class Meta:
         model = Provider
