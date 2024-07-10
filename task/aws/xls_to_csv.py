@@ -10,6 +10,7 @@ def clean_na(row):
 # def xls_to_csv(event, context):
 def lambda_handler(event, context):
     import pandas as pd
+    import json
 
     final_path = event["final_path"]
     only_name = event["only_name"]
@@ -46,9 +47,17 @@ def lambda_handler(event, context):
         tail_excel = data_excel.tail(n_end)
         iter_data_tail = tail_excel.apply(clean_na, axis=1)
         list_val_tail = iter_data_tail.tolist()
-        all_sheets[sheet_name] = {
+        sheet_sample_name = f"{only_name}_sample_{sheet_name}.json"
+        sheet_sample = {
             "all_data": list_val_head,
             "tail_data": list_val_tail,
+        }
+        sheet_sample = json.dumps(sheet_sample)
+        s3_utils.save_file_in_aws(sheet_sample, sheet_sample_name)
+        all_sheets[sheet_name] = {
+            # "all_data": list_val_head,
+            # "tail_data": list_val_tail,
+            "sample_path": sheet_sample_name,
             "total_rows": total_rows,
             "final_path": final_name,
         }

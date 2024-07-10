@@ -44,13 +44,14 @@ class DecompressGz:
 
     def write_split_files(self, complete_file, simple_name):
         import math
+        import json
 
         [base_name, extension] = simple_name.rsplit(".", 1)
         file_num = 0
         new_files = []
         errors = []
-        header_validated = []
-        tail_validated = []
+        # header_validated = []
+        # tail_validated = []
         size_hint = 300 * 1000000
         has_cut = False
         cut_lap = 0
@@ -74,37 +75,49 @@ class DecompressGz:
                 print("No hay más datos")
                 break
 
-            if not header_validated:
-                header_data = buf[:220]
-                tail_data = buf[-50:]
+            # if not header_validated:
+            header_data = buf[:220]
+            tail_data = buf[-50:]
 
-                if not self.decode:
-                    self.decode = obtain_decode(header_data)
-                    if self.decode == "unknown":
-                        errors.append("No se pudo decodificar el archivo")
-                sample_header = decode_content(header_data, self.decode)
-                if not self.delimiter:
-                    self.delimiter = calculate_delimiter(sample_header)
-                if errors:
-                    break
+            if not self.decode:
+                self.decode = obtain_decode(header_data)
+                if self.decode == "unknown":
+                    errors.append("No se pudo decodificar el archivo")
+            sample_header = decode_content(header_data, self.decode)
+            sample_tail = decode_content(tail_data, self.decode)
+            if not self.delimiter:
+                self.delimiter = calculate_delimiter(sample_header)
+            if errors:
+                break
 
-                sample_tail = decode_content(tail_data, self.decode)
-                header_validated = self.divide_rows(sample_header)
-                tail_validated = self.divide_rows(sample_tail)
+            header_validated = self.divide_rows(sample_header)
+            tail_validated = self.divide_rows(sample_tail)
+            split_sample = {
+                "all_data": header_validated,
+                "tail_data": tail_validated,
+            }
+            split_sample = json.dumps(split_sample)
 
             file_num += 1
             curr_only_name = f"{base_name}_{file_num}.{extension}"
             curr_only_name = self.directory.replace(
                 "NEW_FILE_NAME", curr_only_name)
+            curr_sample_name = f"sample_{file_num}_sample.json"
+            curr_sample_name = self.directory.replace(
+                "NEW_FILE_NAME", curr_sample_name)
+
+            self.s3_utils.save_file_in_aws(split_sample, curr_sample_name)
+
             total_rows = len(buf)
             buf = b"".join(buf)
-            print("len buf", len(buf))
-            print("rr_file_name", curr_only_name)
+            # print("len buf", len(buf))
+            # print("rr_file_name", curr_only_name)
             self.s3_utils.save_file_in_aws(buf, curr_only_name)
             current_file = {
                 "total_rows": total_rows,
                 "final_path": curr_only_name,
                 "sheet_name": file_num,
+                "sample_path": curr_sample_name,
             }
             new_files.append(current_file)
             # complete_file.seek(0, 1)
@@ -113,8 +126,8 @@ class DecompressGz:
             "new_files": new_files,
             "decode": self.decode,
             "delimiter": self.delimiter,
-            "all_data": header_validated,
-            "tail_data": tail_validated,
+            # "all_data": header_validated,
+            # "tail_data": tail_validated,
         }
 
         return result, errors

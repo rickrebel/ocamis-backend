@@ -29,7 +29,7 @@ def move_sheets_to_status(file_control_id):
 
 
 def analyze_every_months(provider_id):
-    from inai.misc_mixins.month_record_mix import FromAws
+    from inai.misc_mixins.month_record_from_aws import FromAws
     from inai.models import MonthRecord
     all_months = MonthRecord.objects.filter(provider_id=provider_id)
     for month in all_months:

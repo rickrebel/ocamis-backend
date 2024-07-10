@@ -34,11 +34,11 @@ class ExtractorsMix:
                 errors = ["Formato especificado no coincide con el archivo"]
             return None, errors, None
         elif data_file.suffix in FileFormat.objects.get(short_name='xls').suffixes:
-            result, new_task = data_file.get_data_from_excel(
+            result, new_task = data_file._get_data_from_excel(
                 type_explor, file_control=file_control, task_params=task_params)
             (validated_data, current_sheets, errors) = result
         elif data_file.suffix in ['.txt', '.csv']:
-             result = data_file.get_data_from_file_simple(
+             result = data_file._get_data_from_file_simple(
                 type_explor, file_control=file_control, task_params=task_params)
              validated_data, current_sheets, errors, new_task = result
         else:
@@ -107,14 +107,6 @@ class ExtractorsMix:
         }
         return result, [], None
 
-    def split_intermediary_file(self, task_params=None):
-        params = {
-            "file": self.file.name,
-            "final_path": self.final_path,
-        }
-
-        return []
-
     def decompress_file_gz(self, task_params=None):
         from task.serverless import async_in_lambda
         from inai.models import set_upload_path
@@ -136,7 +128,7 @@ class ExtractorsMix:
         new_task = async_in_lambda("decompress_gz", params, task_params)
         return new_task, [], self
 
-    def get_data_from_excel(
+    def _get_data_from_excel(
             self, type_explor, file_control=None, task_params=None):
         from task.serverless import async_in_lambda
         from scripts.common import explore_sheets
@@ -187,83 +179,21 @@ class ExtractorsMix:
         # print("SÍ LLEGAMOS A VOLVER A CALCULAR LAS PESTAÑAS", filtered_sheets)
         return (all_sheets, filtered_sheets, []), None
 
-    def decompress_gz_after(self, parent_task=None, **kwargs):
-        from respond.models import SheetFile
-        # import pathlib
-        new_files = kwargs.get("new_files", {})
-        # final_path = kwargs.get("final_path", {})
-        # suffixes = pathlib.Path(final_path).suffixes
-        generic_sample = {
-            "all_data": kwargs.pop("all_data", []),
-            "tail_data": kwargs.pop("tail_data", []),
-        }
-        for sheet_file in new_files:
-            final_path = sheet_file.pop("final_path")
-            total_rows = sheet_file.pop("total_rows")
-            sheet_name = sheet_file.pop("sheet_name")
-            SheetFile.objects.get_or_create(
-                data_file=self,
-                file=final_path,
-                file_type_id="split",
-                # matched=True,
-                sheet_name=sheet_name,
-                total_rows=total_rows,
-                sample_data=generic_sample,
-            )
-        decode = kwargs.get("decode")
-        if decode:
-            file_control = self.petition_file_control.file_control
-            if not file_control.decode and file_control.data_group_id != 'orphan':
-                file_control.decode = decode
-                file_control.save()
-        return [], [], self
-
-    def build_sample_data_after(self, parent_task=None, **kwargs):
-        from respond.models import SheetFile
-        new_sheets = kwargs.get("new_sheets", {})
-        sheet_count = len(new_sheets)
-        for sheet_name, sheet_data in new_sheets.items():
-            is_not_xls = sheet_count == 1 and sheet_name == "default"
-            simple_path = self.file if is_not_xls else None
-            file_type_id = "clone" if is_not_xls else "sheet"
-            final_path = sheet_data.pop("final_path", simple_path)
-            total_rows = sheet_data.pop("total_rows")
-            SheetFile.objects.create(
-                file=final_path,
-                data_file=self,
-                sheet_name=sheet_name,
-                sample_data=sheet_data,
-                file_type_id=file_type_id,
-                total_rows=total_rows
-            )
-        decode = kwargs.get("decode")
-        if decode:
-            file_control = self.petition_file_control.file_control
-            if not file_control.decode and file_control.data_group_id != 'orphan':
-                file_control.decode = decode
-                file_control.save()
-        if self.stage_id == "explore":
-            self.status_id = "finished"
-            self.save()
-        return [], [], self
-
-    def get_data_from_file_simple(
+    def _get_data_from_file_simple(
             self, type_explor, file_control=None, task_params=None):
         from task.serverless import async_in_lambda
-        from scripts.recipe_specials import special_issste
+        from respond.views import SampleFile
 
         errors = []
-        is_explore = bool(type_explor)
 
         if type_explor == 'only_save' or type_explor == 'forced_save':
+            sample_file = SampleFile()
             params = {
                 "file": self.file.name,
                 "delimiter": file_control.delimiter,
+                "sample_path": sample_file.build_path_name(self)
             }
             task_params = task_params or {}
-            # params_after = task_params.get("params_after", {})
-            # params_after["next_"] = is_explore
-            # task_params["params_after"] = params_after
             function_after = task_params.get(
                 "function_after", "find_matches_in_file_controls")
             task_params["function_after"] = function_after
@@ -274,6 +204,7 @@ class ExtractorsMix:
                 errors.append("No se pudo iniciar la tarea")
             return errors, [], [], async_task
 
+        is_explore = bool(type_explor)
         all_sheets = self.all_sample_data
         # print("all_sheets", all_sheets)
         if is_explore and isinstance(all_sheets, dict):

@@ -3,7 +3,7 @@ from rest_framework import routers
 from task.api.views import (
     AsyncTaskViewSet, CutOffViewSet, StepViewSet, ActivityView,
     OfflineTaskViewSet)
-from task.views import (AWSMessage, AWSErrors, AWSSuccess)
+from task.views_aws import AWSErrors, AWSSuccess, AWSMessage
 from task.api.views_channel import MessageSendAPIView
 
 router = routers.DefaultRouter()
@@ -14,8 +14,6 @@ router.register(r'step', StepViewSet)
 router.register(r'offline_task', OfflineTaskViewSet)
 
 urlpatterns = (
-    # path('suscription_test', AWSErrors.as_view()),
-    # path('suscription_test/', AWSErrors.as_view()),
     path('activity/', ActivityView.as_view()),
     path('error_aws/', AWSErrors.as_view()),
     path('success_aws/', AWSSuccess.as_view()),

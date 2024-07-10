@@ -101,7 +101,7 @@ class Stage(models.Model):
     order = models.IntegerField(default=5)
     icon = models.CharField(max_length=30, blank=True, null=True)
     main_function = models.ForeignKey(
-        "TaskFunction", blank=True, null=True, on_delete=models.CASCADE,
+        TaskFunction, blank=True, null=True, on_delete=models.CASCADE,
         verbose_name="Función principal", related_name="stages")
     next_stage = models.OneToOneField(
         "Stage", blank=True, null=True, on_delete=models.CASCADE,
@@ -131,7 +131,7 @@ class Stage(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.order}. {self.public_name or self.name}"
+        return f"{self.name} \n({self.public_name})"
 
     class Meta:
         ordering = ['order']

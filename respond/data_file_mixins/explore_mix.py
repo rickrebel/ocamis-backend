@@ -7,8 +7,10 @@ class ExploreMix:
     def get_sample_data(self, task_params=None, **kwargs):
         # from task.models import AsyncTask
         from category.models import FileFormat
+        from respond.views import SampleFile
         from respond.models import SheetFile
         from scripts.common import get_readeable_suffixes
+
         data_file = self
         task_params = task_params or {}
         data_file.error_process = []
@@ -41,6 +43,7 @@ class ExploreMix:
                 errors = ["Formato no legible", "%s" % data_file.suffix]
                 return [], errors, data_file
 
+        sample_file = SampleFile()
         forced_save = kwargs.get("forced_save", False)
         sheet_names = data_file.sheet_names_list
         if not sheet_names:
@@ -50,18 +53,24 @@ class ExploreMix:
             elif not data_file.sample_data:
                 forced_save = True
             else:
-                sample_data = data_file.sample_data or {}
-                default_sheet = sample_data.get("default", {})
-                previous_explore = default_sheet and data_file.has_explore
-                if previous_explore and default_sheet.get("tail_data"):
-                    total_rows = default_sheet.pop("total_rows", 0)
+                # sample_data = data_file.sample_data or {}
+                sample_data = sample_file.get_sample(data_file)
+                default_sample = sample_data.get("default", {})
+                previous_explore = default_sample and data_file.explore_ready
+                if previous_explore and default_sample.get("tail_data"):
+                    total_rows = default_sample.pop("total_rows", 0)
+                    sample_file.create_file(
+                        data_file,
+                        cat_name="default_samples",
+                        sample_data=default_sample)
                     SheetFile.objects.create(
                         file=data_file.file,
                         data_file=data_file,
                         sheet_name="default",
                         file_type_id="clone",
                         matched=True,
-                        sample_data=default_sheet,
+                        sample_data=default_sample,
+                        sample_file=sample_file.final_path,
                         total_rows=total_rows
                     )
                     data_file.filtered_sheets = ["default"]
@@ -94,18 +103,18 @@ class ExploreMix:
         return [], [], data_file
 
     def transform_data(self, task_params, **kwargs):
-        from respond.data_file_mixins.matches_mix import Match
+        from respond.data_file_mixins.matches_mix import MatchTransform
         from respond.data_file_mixins.intermediary_mix import Intermediary
         file_control = self.petition_file_control.file_control
         if file_control.is_intermediary:
             my_intermediary = Intermediary(self, task_params)
             return my_intermediary.split_columns()
         else:
-            my_match = Match(self, task_params)
-            return my_match.build_csv_converted(is_prepare=False)
+            match_transform = MatchTransform(self, task_params)
+            return match_transform.build_csv_converted(is_prepare=False)
 
     def prepare_transform(self, task_params, **kwargs):
-        from respond.data_file_mixins.matches_mix import Match
+        from respond.data_file_mixins.matches_mix import MatchTransform
         data_file = self.count_file_rows()
         file_control = data_file.petition_file_control.file_control
         if file_control.is_intermediary:
@@ -113,8 +122,8 @@ class ExploreMix:
                 "No se puede preparar muestra con la función " 
                 "'Se repiten las mismas columnas', enviar 'Transformar'")
             return [], [error], data_file
-        my_match = Match(data_file, task_params)
-        return my_match.build_csv_converted(is_prepare=True)
+        match_transform = MatchTransform(data_file, task_params)
+        return match_transform.build_csv_converted(is_prepare=True)
 
     def insert_data(self, task_params, **kwargs):
         raise "Esta función ya no se usa"
@@ -180,6 +189,7 @@ class ExploreMix:
             self, saved=False, petition=None, file_ctrl=None,
             task_params=None, **kwargs):
         from scripts.common import similar, text_normalizer
+        from respond.views import SampleFile
         from inai.models import PetitionFileControl
         from respond.models import DataFile
         data_file = self
@@ -226,6 +236,7 @@ class ExploreMix:
         only_cols_with_headers = file_ctrl.file_transformations\
             .filter(clean_function__name="only_cols_with_headers").exists()
         sheets_matched_ids = []
+        sample_file = SampleFile()
 
         for sheet_name in sorted_sheet_names:
             # headers = validated_rows[row_headers-1] if row_headers else []
@@ -290,22 +301,25 @@ class ExploreMix:
             if not same_headers:
                 continue
 
-            def save_sheet_file(d_f=data_file, save_sample_data=False):
+            def save_sheet_file(d_file=data_file, save_sample_data=False):
                 from respond.models import SheetFile
 
                 try:
-                    sheet_f = d_f.sheet_files\
+                    sheet_f = d_file.sheet_files\
                         .filter(sheet_name=sheet_name).first()
                     if not sheet_f:
                         original_sheet_f = data_file.sheet_files\
                             .filter(sheet_name=sheet_name).first()
                         sheet_f = SheetFile.objects.create(
-                            data_file=d_f,
+                            data_file=d_file,
                             sheet_name=sheet_name,
                             total_rows=original_sheet_f.total_rows,
-                            sample_data=original_sheet_f.sample_data)
+                            sample_data=original_sheet_f.sample_data,
+                            sample_file=original_sheet_f.sample_file,
+                        )
                     if save_sample_data:
-                        sheet_f.sample_data = structured_data[sheet_name]
+                        # sheet_f.sample_data = structured_data[sheet_name]
+                        sample_file.save_sample(sheet_f, structured_data[sheet_name])
                     sheet_f.matched = True
                     sheet_f.save()
                     sheets_matched_ids.append(sheet_f.id)
@@ -350,8 +364,10 @@ class ExploreMix:
                     sheet_file.pk = None
                     sheet_file.data_file = new_data_file
                     if sheet_file.sheet_name == sheet_name:
-                        sheet_file.sample_data = structured_data[sheet_name]
                         sheet_file.matched = True
+                        sheet_file.sample_data = structured_data[sheet_name]
+                        sample_file.save_sample(
+                            sheet_file, structured_data[sheet_name])
                     elif sheet_file.matched == None:
                         sheet_file.matched = False
                     sheet_file.save()
@@ -440,11 +456,16 @@ class ExploreMix:
         return (self, [], first_suffix), None
 
     def corroborate_save_data(self, task_params=None, **kwargs):
+        from respond.data_file_mixins.data_file_from_aws import (
+            FromAws as DataFileMix)
         from_aws = kwargs.get("from_aws", False)
         print("from_aws", from_aws)
 
         if from_aws:
-            x, y, data_file = self.build_sample_data_after(**kwargs)
+            data_file_from_aws = DataFileMix(self, task_params)
+            # x, y, data_file = self.build_sample_data_after(**kwargs)
+            x, y, data_file = data_file_from_aws.build_sample_data_after(
+                **kwargs)
             parent_task = task_params.get("parent_task", None)
             if parent_task.params_after:
                 kwargs.update(parent_task.params_after)

@@ -183,7 +183,7 @@ class BotoUtils:
         # if file_type == "json":
         # if file.endswith(".csv") or file_type == "csv"
 
-    def get_json_file(self, file_name):
+    def get_json_file(self, file_name, decode="utf-8"):
         import json
         bucket_name = self.s3["bucket_name"]
         aws_location = self.s3["aws_location"]
@@ -192,7 +192,7 @@ class BotoUtils:
             Bucket=bucket_name,
             Key=f"{aws_location}/{file_name}")
 
-        return json.loads(obj['Body'].read().decode('utf-8'))
+        return json.loads(obj['Body'].read().decode(decode))
 
     def save_file_in_aws(self, body, final_name, content_type="text/csv"):
         bucket_name = self.s3.get("bucket_name")

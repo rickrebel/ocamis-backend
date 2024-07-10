@@ -26,7 +26,7 @@ def lambda_handler(event, context):
     import sys
     try:
         init_data = event["init_data"]
-        match_aws = MatchAws(init_data, context, event["s3"])
+        match_aws = TransformToCsv(init_data, context, event["s3"])
     except Exception as e:
         error_ = traceback.format_exc()
         print("Error en la inicialización", error_)
@@ -48,7 +48,7 @@ def lambda_handler(event, context):
     return send_simple_response(event, context, result=final_result)
 
 
-class MatchAws:
+class TransformToCsv:
     models_to_save = ["drug", "rx", "unique_helpers"]
     med_cat_flat_fields = {}
     initial_data = {}

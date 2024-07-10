@@ -72,10 +72,13 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         return format_html(date_string)
 
     def display_function(self, obj):
-        all_texts = [
-            f"<b>{obj.task_function.name}</b>",
-            f"({obj.task_function.model_name})",
-        ]
+        if obj.task_function:
+            all_texts = [
+                f"<b>{obj.task_function.name}</b>",
+                f"({obj.task_function.model_name})",
+            ]
+        else:
+            all_texts = ["???", "???"]
         return format_html("<br>".join(all_texts))
     display_function.short_description = "Función"
 
@@ -187,23 +190,25 @@ class TaskFunctionAdmin(admin.ModelAdmin):
         "ebs_percent",
         "model_name",
     ]
-    list_editable = ["public_name", "is_active"]
+    # list_editable = ["public_name", "is_active"]
     list_filter = ["is_active", "is_queueable", "is_from_aws"]
 
 
 class StageAdmin(admin.ModelAdmin):
     list_display = [
-        "name",
+        "__str__",
+        # "name",
         # "description",
-        "public_name",
+        # "public_name",
         "stage_group",
         "order",
-        "icon",
         # "next_stage",
         "main_function",
+        "finished_function",
+        "icon",
         # "retry_function",
     ]
-    list_editable = ["order", "stage_group", "icon"]
+    list_editable = ["order"]
 
 
 class PlatformAdmin(admin.ModelAdmin):

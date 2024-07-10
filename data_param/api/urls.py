@@ -1,7 +1,6 @@
 from rest_framework import routers
 from django.urls import path, include
 from data_param.api.views import FileControlViewSet, NameColumnViewSet
-from task.views import AWSErrors
 
 router = routers.DefaultRouter()
 

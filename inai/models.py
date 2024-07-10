@@ -13,8 +13,6 @@ from data_param.models import (
 from med_cat.models import Delivered
 from rds.models import Cluster
 
-# from .data_file_mixins.matches_mix import MatchesMix
-
 from .petition_mixins.petition_mix import PetitionTransformsMix
 
 

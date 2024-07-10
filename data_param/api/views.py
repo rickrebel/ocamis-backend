@@ -517,7 +517,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             for stage in re_process_stages:
                 current_function = stage.main_function.name
                 task_params["models"] = [data_file]
-                method = getattr(data_file, current_function)
+                method = getattr(
+                    data_file, current_function)
                 if not method:
                     break
                 new_tasks, new_errors, data_file = method(task_params, **curr_kwargs)

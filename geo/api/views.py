@@ -10,6 +10,7 @@ from core.api.views import StandardResultsSetPagination
 
 from geo.models import Institution, State, CLUES, Agency, Provider
 from inai.models import MonthRecord
+from task.helpers import HttpResponseError
 
 
 class StateViewSet(ListRetrieveUpdateMix):
@@ -74,8 +75,8 @@ class ProviderViewSet(ListRetrieveUpdateMix):
     @action(methods=["post"], detail=True, url_path='send_months')
     def send_months(self, request, **kwargs):
         import time
-        from inai.misc_mixins.month_record_mix import FromAws as MonthRecordMix
-        from task.views import comprobate_status, build_task_params
+        from inai.misc_mixins.month_record_mix import MonthRecordMix
+        from task.base_views import TaskParams
         from inai.api.views import get_related_months
         from inai.api.serializers import MonthRecordSerializer
         from classify_task.models import Stage
@@ -132,39 +133,56 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         is_revert = (current_stage.order > stage.order
                      or main_function_name == "revert_stages")
 
-        all_tasks = []
-        all_errors = []
+        # all_tasks = []
+        # all_errors = []
+
+        # if month_record_id:
+        #     key_task = None
+        # else:
+        #     key_task, task_params = build_task_params(
+        #         provider, main_function_name, request, keep_tasks=True)
+        kwargs = {"finished_function": stage.finished_function}
 
         if month_record_id:
-            key_task = None
+            base_task = None
+            month_base_task = TaskParams(
+                main_function_name, request=request, **kwargs)
         else:
-            key_task, task_params = build_task_params(
-                provider, main_function_name, request, keep_tasks=True)
+            base_task = TaskParams(
+                main_function_name, request=request, keep_tasks=True)
+            base_task.build(provider)
+            kwargs["want_http_response"] = False
+            month_base_task = None
 
-        kwargs = {
-            "parent_task": key_task,
-            "finished_function": stage.finished_function
-        }
+        # kwargs = {
+        #     "parent_task": key_task,
+        #     "finished_function": stage.finished_function
+        # }
 
         for month_record in month_records:
             # related_weeks = month_record.weeks.all()
-            month_task, task_params = build_task_params(
-                month_record, main_function_name, request, **kwargs)
-            all_tasks.append(month_task)
-            # print("current_stage", current_stage)
-            # print("stage", stage)
+            # month_task, task_params = build_task_params(
+            #     month_record, main_function_name, request, **kwargs)
+            if base_task:
+                month_base_task = base_task.get_child_base(**kwargs)
+                month_base_task.build(month_record)
+            else:
+                month_base_task.build(month_record)
+            # all_tasks.append(month_task)
             month_record.stage = stage
             month_record.status_id = "created"
             month_record.save()
             month_errors = []
-            base_class = MonthRecordMix(month_record, task_params)
+            # base_class = MonthRecordMix(month_record, task_params)
+            month_methods = MonthRecordMix(month_record, month_base_task)
 
             def run_in_thread():
-                main_method = getattr(base_class, main_function_name)
-                new_tasks, errors, s = main_method()
-                all_tasks.extend(new_tasks)
-                all_errors.extend(errors)
-                comprobate_status(month_task, errors, new_tasks)
+                main_method = getattr(month_methods, main_function_name)
+                main_method()
+                # new_tasks, errors, s = main_method()
+                # all_tasks.extend(new_tasks)
+                # all_errors.extend(errors)
+                # comprobate_status(month_task, errors, new_tasks)
                 # time.sleep(2)
 
             stage_merge = Stage.objects.get(name="merge")
@@ -178,11 +196,13 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             if month_errors:
                 # print("month_errors", month_errors)
                 month_record.save_stage(stage.name, month_errors)
-                comprobate_status(month_task, month_errors, [])
+                # comprobate_status(month_task, month_errors, [])
+                month_base_task.comprobate_status()
             elif is_revert:
-                base_class.revert_stages(stage)
+                month_methods.revert_stages(stage)
                 month_record.save_stage(stage.name)
-                comprobate_status(month_task, [], [])
+                # comprobate_status(month_task, [], [])
+                month_base_task.comprobate_status()
             else:
                 # t = threading.Thread(target=run_in_thread)
                 # t.start()
@@ -190,11 +210,20 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 run_in_thread()
                 time.sleep(seconds_sleep)
 
-        if (all_tasks or all_errors) and key_task:
-            return comprobate_status(
-                key_task, all_errors, all_tasks, want_http_response=True)
-        elif is_revert and key_task:
-            comprobate_status(key_task, [], [])
+        # if (all_tasks or all_errors) and key_task:
+        #     return comprobate_status(
+        #         key_task, all_errors, all_tasks, want_http_response=True)
+        if base_task:
+            try:
+                base_task.comprobate_status()
+            except HttpResponseError as e:
+                return Response(e.body_response, status=e.http_status)
+            # return comprobate_status(
+            #     key_task, all_errors, all_tasks, want_http_response=True)
+        # elif is_revert and key_task:
+        #     comprobate_status(key_task, [], [])
+        elif is_revert and base_task:
+            base_task.comprobate_status()
 
         if not month_records_ids:
             month_records_ids = [month_record_id]

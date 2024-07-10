@@ -55,8 +55,8 @@ class AsyncTask(models.Model):
     #     on_delete=models.CASCADE, blank=True, null=True)
 
     status_task = models.ForeignKey(
-        StatusTask, on_delete=models.CASCADE, blank=True, null=True,
-        verbose_name="Estado de la tarea")
+        StatusTask, on_delete=models.CASCADE,
+        default="created", verbose_name="Estado de la tarea")
     task_function = models.ForeignKey(
         TaskFunction, blank=True, null=True, on_delete=models.CASCADE,
         related_name="functions")
@@ -79,8 +79,7 @@ class AsyncTask(models.Model):
         related_name="async_tasks")
     result = JSONField(blank=True, null=True)
     errors = JSONField(blank=True, null=True)
-    is_current = models.BooleanField(
-        default=True, verbose_name="last")
+    is_current = models.BooleanField(default=True, verbose_name="last")
     traceback = models.TextField(blank=True, null=True)
 
     date_start = models.DateTimeField(blank=True, null=True)
@@ -120,7 +119,9 @@ class AsyncTask(models.Model):
         return more_than_x_minutes
 
     def __str__(self):
-        return "%s -- %s" % (self.task_function.name, self.status_task)
+        # return "%s -- %s" % (self.task_function.name, self.status_task)
+        function_name = self.task_function.name if self.task_function else "??"
+        return "%s -- %s" % (function_name, self.status_task)
 
     def display_name(self):
         return "%s -- %s" % (self.task_function.name, self.status_task)

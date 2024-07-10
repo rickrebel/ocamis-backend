@@ -26,6 +26,7 @@ class FromAws:
         #         .update(inserted=True)
         return [], [], True
 
+    # Función para los archivos de tipo "intermediary", que se repite horizontalmente
     def save_new_split_files(self, **kwargs):
         from respond.models import DataFile
         errors = kwargs.get("errors", [])

@@ -11,11 +11,18 @@ def sheet_name_to_file_name(sheet_name):
     return valid_characters
 
 
-class BaseTransform:
+class BaseDataFile:
 
     def __init__(self, data_file: DataFile, task_params=None):
-        self.is_prepare = False
         self.data_file = data_file
+        self.task_params = task_params
+
+
+class BaseTransform(BaseDataFile):
+
+    def __init__(self, data_file: DataFile, task_params=None):
+        super().__init__(data_file, task_params)
+        self.is_prepare = False
         self.init_data = {}
         self.all_tasks = []
         self.file_control = data_file.petition_file_control.file_control
@@ -25,8 +32,6 @@ class BaseTransform:
         else:
             file_name = full_name.rsplit('/', 1)[-1]
         self.file_name = file_name.replace(".", "_")
-
-        self.task_params = task_params
 
     def calculate_sheets(self):
         from classify_task.models import Stage, StatusTask

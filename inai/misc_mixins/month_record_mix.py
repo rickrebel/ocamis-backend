@@ -1,6 +1,7 @@
 from classify_task.models import Stage
 from inai.models import MonthRecord
 from task.serverless import async_in_lambda
+from task.base_views import TaskParams
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
@@ -22,11 +23,15 @@ def exist_temp_table(table_name, schema="public"):
     return exists_temp_tables
 
 
-class FromAws:
+class MonthRecordMix:
 
-    def __init__(self, month_record: MonthRecord, task_params=None):
+    # def __init__(self, month_record: MonthRecord, task_params=None):
+    #     self.month_record = month_record
+    #     self.task_params = task_params
+    def __init__(self, month_record: MonthRecord,
+                 base_task: TaskParams = None, task_params=None):
         self.month_record = month_record
-        self.task_params = task_params
+        self.base_task = base_task
 
     def revert_stages(self, final_stage: Stage):
         from respond.models import TableFile
@@ -119,95 +124,15 @@ class FromAws:
 
         return [], [], True
 
-    def save_month_analysis(self, **kwargs):
-        from django.utils import timezone
-        from respond.models import CrossingSheet
-
-        from_aws = kwargs.get("from_aws", False)
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        self.month_record.end_stage("analysis", parent_task)
-
-        related_weeks = self.month_record.weeks.all()
-        all_crosses = {}
-        all_errors = []
-        for related_week in related_weeks:
-            crosses = related_week.crosses
-            if not crosses:
-                error = f"La semana {related_week.iso_week} no tiene cruces"
-                all_errors.append(error)
-                continue
-            for pair, value in crosses["dupli"].items():
-                if pair in all_crosses:
-                    all_crosses[pair]["dupli"] += value
-                else:
-                    all_crosses[pair] = {"dupli": value, "shared": 0}
-            for pair, value in crosses["shared"].items():
-                if pair in all_crosses:
-                    all_crosses[pair]["shared"] += value
-                else:
-                    all_crosses[pair] = {"dupli": 0, "shared": value}
-        if all_errors:
-            return [], all_errors, False
-        CrossingSheet.objects.filter(month_record=self.month_record).delete()
-
-        all_sheet_ids = set()
-        current_crosses = []
-        for pair, value in all_crosses.items():
-            sheet_1, sheet_2 = pair.split("|")
-            crossing_sheet = CrossingSheet(
-                month_record=self.month_record,
-                sheet_file_1_id=sheet_1,
-                sheet_file_2_id=sheet_2,
-                duplicates_count=value["dupli"],
-                shared_count=value["shared"],
-                last_crossing=timezone.now(),
-            )
-            all_sheet_ids.add(sheet_1)
-            all_sheet_ids.add(sheet_2)
-            current_crosses.append(crossing_sheet)
-        self.save_sums(all_sheet_ids)
-        CrossingSheet.objects.bulk_create(current_crosses)
-
-        if from_aws:
-            self.month_record.last_crossing = timezone.now()
-        self.month_record.save()
-        return [], [], True
-
-    def save_sums(self, all_sheet_ids):
-        from respond.models import LapSheet
-        from django.db.models import Sum
-
-        sum_fields = [
-            "drugs_count", "rx_count", "duplicates_count", "shared_count"]
-        query_sheet_sums = [Sum(field) for field in sum_fields]
-        # query_annotations = {field: Sum(field) for field in sum_fields}
-        all_laps = LapSheet.objects.filter(
-            sheet_file_id__in=all_sheet_ids, lap=0)
-        for lap_sheet in all_laps:
-            table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
-            for field in sum_fields:
-                setattr(lap_sheet.sheet_file, field,
-                        table_sums[f"{field}__sum"] or 0)
-            lap_sheet.sheet_file.save()
-
-        query_sums = [Sum(field) for field in sum_fields]
-        result_sums = self.month_record.weeks.all().aggregate(*query_sums)
-        # print("result_sums", result_sums)
-        for field in sum_fields:
-            setattr(self.month_record, field,
-                    result_sums[f"{field}__sum"] or 0)
-
     def send_analysis(self):
-        # import time
         from respond.models import TableFile
-        from data_param.models import FileControl, NameColumn
+        from data_param.models import FileControl
 
-        all_tasks = []
+        # all_tasks = []
         insert_stage = Stage.objects.get(name="insert")
         if self.month_record.stage.order >= insert_stage.order:
             error = f"El mes {self.month_record.year_month} ya se insertó"
-            return all_tasks, [error], True
+            return self.base_task.add_errors([error], True)
         all_table_files = TableFile.objects\
             .filter(
                 week_record__month_record=self.month_record,
@@ -228,12 +153,16 @@ class FromAws:
                 .order_by("-final_field__is_common", "final_field__name")\
                 .first()
             if not medicine_field:
-                return all_tasks, ["No se encontró campo de medicamento"], True
+                error = "No se encontró campo de medicamento"
+                return self.base_task.add_errors([error], True)
             unique_medicines.add(medicine_field.final_field_id)
         if len(unique_medicines) > 1:
-            return all_tasks, ["Más de un campo de medicamento"], True
+            error = "Más de un campo de medicamento"
+            return self.base_task.add_errors([error], True)
         elif len(unique_medicines) == 1:
             medicine_key = unique_medicines.pop()
+
+        # week_base_task = TaskParams(
 
         for week in self.month_record.weeks.all():
             # if week.last_crossing and week.last_transformation:
@@ -243,6 +172,7 @@ class FromAws:
             # table_files = TableFile.objects.filter(
             #     week_record=week,
             #     collection__isnull=True)
+
             table_files = all_table_files.filter(week_record=week)
             file_names = table_files.values_list("file", flat=True)
             params = {
@@ -250,17 +180,27 @@ class FromAws:
                 "table_files": list(file_names),
                 "has_medicine_key": bool(medicine_key),
             }
-            self.task_params["models"] = [week, self.month_record]
-            self.task_params["function_after"] = "analyze_uniques_after"
-            params_after = self.task_params.get("params_after", {})
-            # params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
-            self.task_params["params_after"] = params_after
-            async_task = async_in_lambda(
-                "analyze_uniques", params, self.task_params)
-            all_tasks.append(async_task)
+            week_base_task = TaskParams(
+                function_name="analyze_uniques",
+                parent_class=self.base_task, model_obj=week,
+                function_after="analyze_uniques_after",
+                params=params, models=[week, self.month_record])
+            print("week_base_task", week_base_task)
+
+            # week_base_task.set_models([week, self.month_record])
+            # self.task_params["models"] = [week, self.month_record]
+            # self.task_params["function_after"] = "analyze_uniques_after"
+            # self.base_task.models = [week, self.month_record]
+            # RICK task: No estoy seguro de dejar esto así comentado
+            # params_after = self.task_params.get("params_after", {})
+            # self.task_params["params_after"] = params_after
+            # async_task = async_in_lambda(
+            #     "analyze_uniques", params, self.task_params)
+            week_base_task.async_in_lambda(comprobate=True)
+            # all_tasks.append(async_task)
             # if self.month_record.provider.split_by_delegation:
             #     time.sleep(0.2)
-        return all_tasks, [], True
+        # return all_tasks, [], True
 
     def merge_files_by_week(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
@@ -374,22 +314,16 @@ class FromAws:
             print("error", errors)
 
         self.task_params["keep_tasks"] = True
-        task_params = self.task_params
-
-        class RequestClass:
-            def __init__(self):
-                self.user = task_params["parent_task"].user
-        req = RequestClass()
 
         task_cats, task_params_cat = build_task_params(
-            self.month_record, 'save_month_cat_tables', req,
-            **self.task_params)
+            self.month_record, 'save_month_cat_tables', **self.task_params)
         new_tasks = []
         errors = []
         cat_tasks = []
 
         new_tasks.append(task_cats)
         my_insert_cat = InsertMonth(self.month_record, task_params_cat)
+
         for lap_sheet in pending_lap_sheets:
             current_table_files = collection_table_files.filter(
                 lap_sheet=lap_sheet,
@@ -415,8 +349,7 @@ class FromAws:
         #     inserted=False)
 
         task_base, task_params_base = build_task_params(
-            self.month_record, 'save_month_base_tables', req,
-            **self.task_params)
+            self.month_record, 'save_month_base_tables', **self.task_params)
         new_tasks.append(task_base)
         my_insert_base = InsertMonth(self.month_record, task_params_base)
         base_tasks = []
@@ -656,78 +589,26 @@ class FromAws:
             all_tasks.append(async_task)
         return all_tasks, [], True
 
-    def all_base_tables_merged(self, **kwargs):
-        from django.utils import timezone
-        self.month_record.last_merge = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        self.month_record.end_stage("merge", parent_task)
-        self.month_record.save()
-        return [], [], True
+    def save_sums(self, all_sheet_ids):
+        from respond.models import LapSheet
+        from django.db.models import Sum
 
-    def insert_temp_tables_after(self, **kwargs):
-        return [], [], True
+        sum_fields = [
+            "drugs_count", "rx_count", "duplicates_count", "shared_count"]
+        query_sheet_sums = [Sum(field) for field in sum_fields]
+        # query_annotations = {field: Sum(field) for field in sum_fields}
+        all_laps = LapSheet.objects.filter(
+            sheet_file_id__in=all_sheet_ids, lap=0)
+        for lap_sheet in all_laps:
+            table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
+            for field in sum_fields:
+                setattr(lap_sheet.sheet_file, field,
+                        table_sums[f"{field}__sum"] or 0)
+            lap_sheet.sheet_file.save()
 
-    def validate_temp_tables_after(self, **kwargs):
-        errors = kwargs.get("errors", [])
-        return [], [], True
-
-    def indexing_temp_tables_after(self, **kwargs):
-        return [], [], True
-
-    def all_base_tables_saved(self, **kwargs):
-        from django.utils import timezone
-        self.month_record.last_pre_insertion = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        errors = self.month_record.end_stage("pre_insert", parent_task)
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
-        self.month_record.save()
-        return [], [], True
-
-    def all_base_tables_validated(self, **kwargs):
-        from django.utils import timezone
-        import json
-        self.month_record.last_validate = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        errors = self.month_record.end_stage("validate", parent_task)
-        for error in errors:
-            if "semanas no insertadas en la base" in error:
-                week_ids = error.split(": ")[1]
-                week_ids = json.loads(week_ids)
-                for week_id in week_ids:
-                    week = self.month_record.weeks.get(id=week_id)
-                    week.last_pre_insertion = None
-                    week.table_files.update(inserted=False)
-                    week.save()
-                self.month_record.stage_id = "pre_insert"
-                self.month_record.status_id = "with_errors"
-                self.month_record.save()
-                return [], errors, False
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
-        self.month_record.save()
-        return [], [], True
-
-    def all_base_tables_indexed(self, **kwargs):
-        # self.month_record.last_indexing = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        self.month_record.end_stage("indexing", parent_task)
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
-        self.month_record.save()
-        return [], [], True
-
-    def all_temp_tables_inserted(self, **kwargs):
-        from django.utils import timezone
-        # self.month_record.last_insertion = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        errors = self.month_record.end_stage("insert", parent_task)
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
-        self.month_record.save()
-        return [], [], True
+        query_sums = [Sum(field) for field in sum_fields]
+        result_sums = self.month_record.weeks.all().aggregate(*query_sums)
+        # print("result_sums", result_sums)
+        for field in sum_fields:
+            setattr(self.month_record, field,
+                    result_sums[f"{field}__sum"] or 0)

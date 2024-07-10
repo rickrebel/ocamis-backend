@@ -88,7 +88,7 @@ def build_available_deliveries():
     return deliveries
 
 
-class Match(BaseTransform):
+class MatchTransform(BaseTransform):
 
     def __init__(self, data_file: DataFile, task_params=None):
         super().__init__(data_file, task_params)
@@ -135,8 +135,8 @@ class Match(BaseTransform):
         self.existing_fields = []
         self.task_params = task_params
 
-        s3_client, dev_resource = start_session()
-        self.s3_client = s3_client
+        # s3_client, dev_resource = start_session()
+        # self.s3_client = s3_client
 
     def build_init_data(self, final_lap, string_date):
         from geo.views import build_catalog_delegation_by_id
@@ -175,6 +175,8 @@ class Match(BaseTransform):
         self.init_data = init_data
 
     def build_csv_converted(self, is_prepare=False):
+        from respond.views import SampleFile
+
         self.is_prepare = is_prepare
 
         missing_criteria = self.calculate_minimals_criteria()
@@ -204,6 +206,7 @@ class Match(BaseTransform):
 
         self.task_params["function_after"] = "build_csv_data_from_aws"
 
+        sample_file = SampleFile()
         for sf in self.calculate_sheets():
             sheet_file = sf["sheet_file"]
             params = sf["params"]
@@ -214,14 +217,10 @@ class Match(BaseTransform):
             self.task_params["models"] = [self.data_file, sheet_file]
 
             if is_prepare:
-                dump_sample = json.dumps(sheet_file.sample_data)
-                final_path = f"catalogs/{self.provider.acronym}" \
-                             f"/sample_file_{sheet_file.id}.json"
-                file_sample, errors = create_file(
-                    dump_sample, self.s3_client, final_path=final_path)
-                if errors:
-                    return [], errors, self.data_file
-                params["file"] = file_sample
+                try:
+                    params["file"] = sample_file.get_file_path(sheet_file)
+                except ValueError as e:
+                    return [], [str(e)], self.data_file
                 # init_data["sample_data"] = sheet_file.sample_data
             self.send_lambda("start_build_csv_data", params)
         return self.all_tasks, [], self.data_file

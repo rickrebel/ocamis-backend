@@ -123,8 +123,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         blank=True, null=True, verbose_name="Errores de procesamiento")
     warnings = JSONField(
         blank=True, null=True, verbose_name="Advertencias")
+    # Datos de exploración para los archivos .csv
     sample_data = JSONField(
         blank=True, null=True, verbose_name="Primeros datos, de exploración")
+    sample_file = models.FileField(
+        max_length=255, upload_to=set_upload_path,
+        blank=True, null=True, verbose_name="Archivo con muestra")
     all_results = JSONField(
         blank=True, null=True, verbose_name="Todos los resultados")
     notes = models.TextField(blank=True, null=True)
@@ -169,9 +173,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
 
     @property
     def all_sample_data(self):
+        from respond.views import SampleFile
+        sample_file = SampleFile()
         sheet_files = self.sheet_files \
             .filter(file_type_id__in=['sheet', 'split', 'clone'])
-        return {tf.sheet_name: tf.sample_data for tf in sheet_files}
+        # return {tf.sheet_name: tf.sample_data for tf in sheet_files}
+        return sample_file.get_many_samples(sheet_files)
 
     @property
     def last_lap(self):
@@ -192,7 +199,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         return lap_number if lap_number >= 0 else 0
 
     @property
-    def has_explore(self):
+    def explore_ready(self):
         explore_stage = Stage.objects.get(name="explore")
         if self.stage.order > explore_stage.order:
             return True

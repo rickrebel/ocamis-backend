@@ -40,7 +40,7 @@ def field_of_models_all(model_data):
     return fields
 
 
-class Match:
+class MatchOld:
 
     def __init__(self, data_file: DataFile):
         from inai.models import set_upload_path

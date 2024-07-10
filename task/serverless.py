@@ -1,6 +1,10 @@
 import json
 from django.conf import settings
 from datetime import datetime
+from scripts.common import build_s3
+from task.models import AsyncTask, TaskFunction
+from task.rds_balance import (
+    has_enough_balance, delayed_execution, comprobate_waiting_balance)
 from task.aws.start_build_csv_data import lambda_handler as start_build_csv_data
 from task.aws.split_horizontal import lambda_handler as split_horizontal
 from task.aws.start_build_csv_data import lambda_handler as prepare_files
@@ -13,6 +17,8 @@ from task.aws.decompress_zip_aws import lambda_handler as decompress_zip_aws
 from task.aws.build_week_csvs import lambda_handler as build_week_csvs
 from task.aws.rebuild_week_csv import lambda_handler as rebuild_week_csv
 
+api_url = getattr(settings, "API_URL", False)
+
 
 def camel_to_snake(name):
     import re
@@ -20,15 +26,113 @@ def camel_to_snake(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
+class Serverless:
+    errors: list = []
+
+    # def __init__(
+    #         self, main_task, function_name=None, params=None,
+    #         task_params=None):
+    # def __init__(self, main_task: AsyncTask, params=None):
+    def __init__(
+            self, main_task: AsyncTask, want_http_response=None,
+            errors=None, params=None, parent_class=None, model_obj=None):
+        self.main_task = main_task
+        self.model_obj = model_obj
+        if errors is None:
+            self.errors = []
+        else:
+            self.errors = errors
+        self.new_tasks = []
+        self.want_http_response = want_http_response
+        self.parent_class = parent_class
+        self.params = {}
+        if params:
+            self.params = params
+        elif main_task.original_request:
+            self.params = main_task.original_request
+
+        self.params.update({
+            "webhook_url": f"{api_url}task/webhook_aws/",
+            "s3": build_s3(),
+        })
+
+    def set_function_name(self, function_name=None):
+        raise NotImplementedError("set_function_name")
+
+    def save_queue(self):
+        if self.main_task.task_function.ebs_percent:
+            delayed_execution(comprobate_waiting_balance, 300)
+        self.main_task.status_task_id = "queue"
+        self.main_task.save()
+        return True
+
+    def execute_async(self):
+        print("SE VA A EJECUTAR:", self.main_task.task_function_id)
+        use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
+        if use_local_lambda:
+            return self.execute_in_local()
+        else:
+            return self.execute_in_lambda()
+
+    def execute_in_lambda(self):
+        s3_client, _ = build_s3()
+        function_final = f"{self.main_task.task_function_id}:normal"
+        dumb_params = json.dumps(self.params)
+        try:
+            response = s3_client.invoke(
+                FunctionName=function_final,
+                InvocationType='Event',
+                LogType='Tail',
+                Payload=dumb_params
+            )
+            request_id = response["ResponseMetadata"]["RequestId"]
+            self.main_task.request_id = request_id
+            self.main_task.status_task_id = "running"
+            self.main_task.date_sent = datetime.now()
+            self.main_task.save()
+            return True
+        except Exception as e:
+            error = f"ERROR EN LAMBDA: {e}"
+            print(error)
+            self.main_task.status_task_id = "not_sent"
+            self.main_task.errors = [str(e)]
+            self.main_task.save()
+            return False
+
+    def execute_in_local(self):
+        import threading
+        function_name = self.main_task.task_function.name
+        if not globals().get(function_name, False):
+            return self.execute_in_lambda()
+
+        print("SE EJECUTA EN LOCAL:", function_name)
+        request_id = self.main_task.id
+        self.params["artificial_request_id"] = str(request_id)
+        self.main_task.request_id = request_id
+        self.main_task.status_task_id = "running"
+        self.main_task.save()
+
+        def run_in_thread():
+            class Context:
+                def __init__(self):
+                    self.aws_request_id = request_id
+                    self.function_name = f"{function_name} in local"
+
+            globals()[function_name](self.params, Context())
+
+        t = threading.Thread(target=run_in_thread)
+        t.start()
+        return True
+
+
 def execute_async(current_task, params):
     import threading
     from scripts.common import start_session
+
     task_function = current_task.task_function
     function_name = task_function.lambda_function or task_function.name
     # if current_task.task_function.is_queueable and "save" in function_name:
     #     function_name = "save_csv_in_db"
-
-    s3_client, dev_resource = start_session("lambda")
     use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
     print("SE VA A EJECUTAR:", function_name)
     if globals().get(function_name, False) and use_local_lambda:
@@ -44,15 +148,17 @@ def execute_async(current_task, params):
 
         def run_in_thread():
             class Context:
-                def __init__(self, request_id):
+                def __init__(self):
                     self.aws_request_id = request_id
                     self.function_name = f"{function_name} in local"
-            globals()[function_name](params, Context(request_id))
+
+            globals()[function_name](params, Context())
 
         t = threading.Thread(target=run_in_thread)
         t.start()
         return current_task
     else:
+        s3_client, _ = start_session("lambda")
         function_final = f"{function_name}:normal"
         dumb_params = json.dumps(params)
         try:
@@ -82,10 +188,7 @@ def execute_async(current_task, params):
 
 def async_in_lambda(function_name, params, task_params):
     from task.models import AsyncTask, TaskFunction
-    from task.views import has_enough_balance
-    from scripts.common import build_s3
 
-    api_url = getattr(settings, "API_URL", False)
     params["webhook_url"] = f"{api_url}task/webhook_aws/"
     params["s3"] = build_s3()
     params["function_name"] = function_name
@@ -105,9 +208,7 @@ def async_in_lambda(function_name, params, task_params):
 
     for model in task_params["models"]:
         query_kwargs[camel_to_snake(model.__class__.__name__)] = model
-    # print("query_kwargs:\n", query_kwargs, "\n")
 
-    # print("SE ENVÍA A LAMBDA ASÍNCRONO", function_name)
     try:
         final_task = AsyncTask.objects.create(**query_kwargs)
     except Exception as e:
@@ -174,26 +275,3 @@ def async_in_lambda(function_name, params, task_params):
     else:
         return save_and_send()
 
-
-def create_file_lmd(file_bytes, upload_path, only_name, s3_vars):
-    all_errors = []
-    final_file = None
-    aws_location = s3_vars["aws_location"]
-    bucket_name = s3_vars["bucket_name"]
-    s3_client = s3_vars["s3_client"]
-    try:
-        final_path = upload_path.replace("NEW_FILE_NAME", only_name)
-        success_file = s3_client.put_object(
-            Key=f"{aws_location}/{final_path}",
-            Body=file_bytes,
-            Bucket=bucket_name,
-            ACL='public-read',
-        )
-        if success_file:
-            final_file = final_path
-        else:
-            all_errors += [f"No se pudo insertar el archivo {final_path}"]
-    except Exception as e:
-        print(e)
-        all_errors += ["Error leyendo los datos %s" % e]
-    return final_file, all_errors

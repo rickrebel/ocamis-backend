@@ -76,8 +76,8 @@ class AsyncTaskViewSet(ListRetrieveView):
 
         now = datetime.now()
         last_request = request.query_params.get("last_request")
-        #format_string = "%a %b %d %Y %H:%M:%S GMT%z (%Z)"
-        #last_request = datetime.strptime(last_request, format_string)
+        # format_string = "%a %b %d %Y %H:%M:%S GMT%z (%Z)"
+        # last_request = datetime.strptime(last_request, format_string)
 
         # convert unix timestamp to datetime
         try:

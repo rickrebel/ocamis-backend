@@ -1,75 +1,9 @@
-import boto3
-import threading
-import time
-
-from django.views import generic
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
-from datetime import datetime, timedelta
-
+from datetime import datetime
 from classify_task.models import TaskFunction
 from task.models import AsyncTask
 
-from inai.misc_mixins.petition_mix import FromAws as Petition
-from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
-from inai.misc_mixins.month_record_mix import FromAws as MonthRecord
-from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
-from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
-from rds.misc_mixins.cluster_mix import FromAws as Cluster
-from rds.misc_mixins.mat_view_mix import FromAws as MatView
-from scripts.common import build_s3
-
-
-def calculate_special_function(special_function):
-    import json
-    from scripts.common import text_normalizer
-    from geo.models import Delegation, CLUES
-
-    # print("SPECIAL FUNCTION", special_function)
-    delegation_value_list = [
-        'name', 'other_names', 'id', 'clues_id']
-
-    delegation_name = special_function.get("delegation_name")
-    clues_id = special_function.get("clues_id")
-    institution_id = special_function.get("institution_id")
-    valid_strings = ["H.R.", "HAE ", "C.M.N."]
-    final_delegation = None
-    standard_name = text_normalizer(delegation_name)
-    try:
-        curr_delegation = Delegation.objects.get(
-            name__icontains=standard_name)
-        final_delegation = {}
-        for field in delegation_value_list:
-            final_delegation[field] = getattr(curr_delegation, field)
-        error = None
-    except Delegation.DoesNotExist:
-        error = f"No se encontró la delegación; {delegation_name}"
-    except Delegation.MultipleObjectsReturned:
-        error = f"Hay más de una delegación con el mismo nombre; {delegation_name}"
-
-    is_valid_name = any(
-        [valid_string in delegation_name for valid_string in valid_strings])
-
-    if not final_delegation and is_valid_name:
-        try:
-            clues_obj = CLUES.objects.get(id=clues_id)
-            del_obj, created = Delegation.objects.get_or_create(
-                institution_id=institution_id,
-                name=delegation_name,
-                clues=clues_obj,
-                state=clues_obj.state,
-            )
-            final_delegation = {}
-            for field in delegation_value_list:
-                final_delegation[field] = getattr(del_obj, field)
-            # self.catalog_delegation[delegation_name] = final_delegation
-            # return delegation_id, None
-        except Exception as e:
-            error = "No se pudo crear la delegación; ERROR: %s" % e
-    if not final_delegation and not error:
-        error = f"No es un nombre válido, razón desconocida; {delegation_name}"
-    response = json.dumps([final_delegation, error])
-    return HttpResponse(response)
+from task.rds_balance import (
+    has_enough_balance, delayed_execution, comprobate_waiting_balance)
 
 
 def find_task_model(async_task):
@@ -83,231 +17,25 @@ def find_task_model(async_task):
             return model, current_obj
 
 
-def execute_function_aws(current_task, function_name, result, errors=None):
-
-    if not errors:
-        errors = []
-
-    new_tasks = []
-
-    def get_method(model_obj):
-        task_parameters = {"parent_task": current_task}
-        final_method = None
-        err = ""
-        try:
-            final_method = getattr(model_obj, function_name)
-        except Exception as error2:
-            err = f"Error al obtener el método {function_name}: {error2}"
-        if not final_method:
-            try:
-                model_name = model_obj.__class__.__name__
-                from_aws_class = globals()[model_name]
-                aws_mix = from_aws_class(model_obj, task_parameters)
-                final_method = getattr(aws_mix, function_name)
-                # return method(**kwargs)
-                # final_method = getattr(model_obj, "from_aws")
-                # task_parameters["function_name"] = function_name
-            except Exception as error3:
-                err += f"; {error3}"
-                pass
-        return final_method, task_parameters, err
-
-    # if not errors:
-    final_errors = []
-    model, current_obj = find_task_model(current_task)
-    # print("CURRENT OBJ: ", current_obj)
-    # name_model = current_obj.__class__.__name__
-    # print("NAME MODEL: ", name_model)
-    # print("METHOD: ", method)
-    result["from_aws"] = True
-
-    method, task_params, error = get_method(current_obj)
-    if method:
-        try:
-            new_tasks, final_errors, data = method(
-                **result, task_params=task_params)
-        except Exception:
-            import traceback
-            error_ = traceback.format_exc()
-            print("ERROR EN EL MÉTODO: ", error_)
-            final_errors.append(str(error_))
-    else:
-        print(error)
-        final_errors.append(error)
-    errors.extend(final_errors or [])
-    current_task.date_end = datetime.now()
-    return comprobate_status(current_task, errors, new_tasks)
-
-
-class AWSMessage(generic.View):
-
-    def get(self, request, *args, **kwargs):
-        # print("HOLA GET")
-        # print("request", request)
-        return HttpResponse("error")
-
-    @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
-        # print("DISPATCH")
-        return generic.View.dispatch(self, request, *args, **kwargs)
-
-    @csrf_exempt
-    def post(self, request, *args, **kwargs):
-        import json
-        from task.models import AsyncTask
-
-        # print("HOLA POST")
-        # print(request)
-        request_body = request.body
-        # replace True for true and False for false
-        # request_body = request_body.replace(b": True", b": true")
-        # request_body = request_body.replace(b": False", b": false")
-        try:
-            body = json.loads(request_body)
-        except Exception as e:
-            print("ERROR AL LEER EL BODY: ", e)
-            print("request original: \n", request)
-            return HttpResponse()
-        # print("body 0: \n", body)
-        special_function = body.get("special_function", {})
-        if special_function:
-            return calculate_special_function(special_function)
-        request_id = body.get("request_id")
-        # print("request_id: ", request_id)
-        result = body.get("result", {})
-
-        errors = result.get("errors", [])
-        try:
-            current_task = AsyncTask.objects.get(request_id=str(request_id))
-            current_task.status_task_id = "success"
-            current_task.date_arrive = datetime.now()
-            # print("RESULT: ", result)
-            current_task.result = result
-            new_result = result.copy()
-            new_result.update(current_task.params_after or {})
-            current_task.save()
-            function_after = current_task.function_after
-            execute_function_aws(
-                current_task, function_after, new_result, errors)
-            response = "success"
-        except Exception as e:
-            print("ERROR AL GUARDAR 1: ", e)
-            print("body error 1: \n", body)
-            response = "error"
-
-        return HttpResponse(response)
-
-
-def extract_only_message(error_text):
-    import re
-    pattern = r".*[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12} (.*)"
-    match = re.search(pattern, error_text)
-
-    if match:
-        return match.group(1)
-    else:
-        return error_text
-
-
-class AWSErrors(generic.View):
-
-    def get(self, request, *args, **kwargs):
-        print("HOLA GET")
-        print("request", request)
-        return HttpResponse("error")
-
-    @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
-        # print("DISPATCH")
-        return generic.View.dispatch(self, request, *args, **kwargs)
-
-    @csrf_exempt
-    def post(self, request, *args, **kwargs):
-        import json
-        # from task.models import AsyncTask
-        print("HOLA ERRORES")
-        # print(request)
-        print("++++++++++++++++++++++++++++++++++++++++++++++")
-        try:
-            body = json.loads(request.body)
-            print(body)
-        except Exception as e:
-            print("ERROR AL LEER EL BODY: ", e)
-            print("request original: \n", request)
-            return HttpResponse()
-        try:
-            message = body.get("MessageAttributes", {})
-            request_id = message.get("RequestID", {}).get("Value")
-            if request_id:
-                current_task = AsyncTask.objects.get(request_id=request_id)
-                # current_task.status_task_id = "not_executed"
-                current_task.date_arrive = datetime.now()
-                error = message.get("ErrorMessage", {}).get("Value")
-                error = extract_only_message(error)
-                # current_task.errors = extract_only_message(error)
-                current_task.traceback = request.body
-                comprobate_status(current_task, error, [])
-        except Exception as e:
-            print("ERROR AL GUARDAR 1: ", e)
-            print("body error 2: \n", body)
-        return HttpResponse()
-
-
-class AWSSuccess(generic.View):
-
-    def get(self, request, *args, **kwargs):
-        print("HOLA GET")
-        print("request", request)
-        return HttpResponse("error")
-
-    @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
-        # print("DISPATCH")
-        return generic.View.dispatch(self, request, *args, **kwargs)
-
-    @csrf_exempt
-    def post(self, request, *args, **kwargs):
-        import json
-        # from task.models import AsyncTask
-        # print("HOLA SUCCESS")
-        # print(request)
-        # print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
-        try:
-            body = json.loads(request.body)
-            # print("body: \n", body)
-            # message = body.pop("Message")
-            # payload = json.loads(message)
-            # print("payload: \n\n", payload, "\n\n")
-            # payload_body = payload.pop("body")
-            # print("payload_body: \n", payload_body)
-        except Exception as e:
-            print("ERROR: ", e)
-        return HttpResponse()
-
-
 def camel_to_snake(name):
     import re
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def build_task_params(model, function_name, request, **kwargs):
-    from datetime import datetime
+def build_task_params(model_obj, function_name, request=None, **kwargs):
     subgroup = kwargs.get("subgroup")
     parent_task = kwargs.get("parent_task")
     finished_function = kwargs.get("finished_function")
     keep_tasks = kwargs.get("keep_tasks", False)
-    # print("build_task_params 1: ", datetime.now())
-    model_name = camel_to_snake(model.__class__.__name__)
-    create_kwargs = {model_name: model}
+    model_name = camel_to_snake(model_obj.__class__.__name__)
+    create_kwargs = {model_name: model_obj}
     is_massive = False
     if bool(subgroup):
         create_kwargs["subgroup"] = subgroup
         is_massive = "|" in subgroup
 
     def update_previous_tasks(tasks):
-        # print("TASKS Previous: ", tasks)
-        # tasks.update(is_current=False)
         tasks = tasks.filter(is_current=True)
         for task in tasks:
             task.is_current = False
@@ -316,43 +44,43 @@ def build_task_params(model, function_name, request, **kwargs):
                 update_previous_tasks(task.child_tasks.all())
 
     if not is_massive and not keep_tasks:
-        # print("build_task_params 2.0: ", datetime.now())
         update_previous_tasks(AsyncTask.objects.filter(**create_kwargs))
-    # print("build_task_params 2.1: ", datetime.now())
-    # print("function_name: ", function_name)
     if finished_function:
         create_kwargs["finished_function"] = finished_function
     if is_massive:
         create_kwargs["is_massive"] = True
-    # print("build_task_params 3: ", datetime.now())
     task_function, created = TaskFunction.objects.get_or_create(
         name=function_name)
     if created:
-        task_function.public_name = function_name
+        task_function.public_name = f"{function_name} (Creada por excepción)"
         task_function.save()
-    # print("build_task_params 4: ", datetime.now())
     if model_name == "data_file":
         stage = task_function.stages.last()
         if stage:
-            model.stage = stage
-            model.status_id = "pending"
-            model.save()
-    # print("build_task_params 5: ", datetime.now())
+            model_obj.stage = stage
+            model_obj.status_id = "pending"
+            model_obj.save()
+
+    user = None
     if parent_task:
         create_kwargs["parent_task"] = parent_task
+        user = parent_task.user
+    elif request:
+        user = request.user
+
     key_task = AsyncTask.objects.create(
-        user=request.user, task_function=task_function,
+        user=user, task_function=task_function,
         date_start=datetime.now(), status_task_id="created", **create_kwargs
     )
-    # print("build_task_params 6: ", datetime.now())
     return key_task, {"parent_task": key_task}
 
 
 def comprobate_status(
         current_task, errors=None, new_tasks=None, want_http_response=False):
-    print("comprobate_status", current_task, current_task.id)
     from rest_framework.response import Response
     from rest_framework import status
+
+    # print("comprobate_status", current_task, current_task.id)
     if not current_task:
         raise Exception("No se ha encontrado la tarea enviada")
     if errors:
@@ -381,26 +109,28 @@ def comprobate_status(
 
 
 def execute_finished_function(parent_task):
+    from task.views_aws import AwsFunction
     finished_function = parent_task.finished_function
     brothers_in_finish = AsyncTask.objects.filter(
         parent_task=parent_task,
         task_function_id=finished_function)
     if brothers_in_finish.exists():
         return comprobate_children_with_errors(parent_task)
-    params_after = parent_task.params_after or {}
-    params_finished = params_after.get("params_finished", {})
+    # params_after = parent_task.params_after or {}
+    # params_finished = params_after.get("params_finished", {})
 
     class RequestClass:
         def __init__(self):
             self.user = parent_task.user
+
     req = RequestClass()
     add_elems = {"parent_task": parent_task, "keep_tasks": True}
     model, current_obj = find_task_model(parent_task)
     new_task, task_params = build_task_params(
         current_obj, finished_function, req, **add_elems)
-    new_task = execute_function_aws(
-        new_task, finished_function, params_finished)
-    is_final = new_task.status_task.is_completed
+    aws_function = AwsFunction(new_task, parent_task=parent_task)
+    new_task2 = aws_function.execute_function()
+    is_final = new_task2.status_task.is_completed
     return comprobate_children_with_errors(parent_task) \
         if is_final else "children_tasks"
 
@@ -442,81 +172,6 @@ def comprobate_brothers(current_task, status_task_id):
                     parent_task)
         comprobate_brothers(parent_task, parent_status_task_id)
     return current_task
-
-
-def has_enough_balance(task_function) -> bool:
-
-    service = 'cloudwatch'
-    credentials = build_s3()
-    boto_client = boto3.client(
-        service,
-        aws_access_key_id=credentials["aws_access_key_id"],
-        aws_secret_access_key=credentials["aws_secret_access_key"],
-        region_name=credentials["region_aws"],
-    )
-
-    start_time_30_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
-    response = boto_client.get_metric_data(
-        MetricDataQueries=[
-            {
-                'Id': 'm1',
-                'MetricStat': {
-                    'Metric': {
-                        'Namespace': 'AWS/RDS',
-                        'MetricName': 'EBSByteBalance%',
-                        'Dimensions': [
-                            {
-                                'Name': 'DBInstanceIdentifier',
-                                'Value': 'new-alldatabases'
-                            },
-                        ]
-                    },
-                    'Period': 60,
-                    'Stat': 'Average'
-                },
-                'ReturnData': True,
-            },
-        ],
-        StartTime=start_time_30_minutes_ago.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        EndTime=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    )
-
-    if not type(response) == dict:
-        return False
-
-    MetricDataResults = response.get("MetricDataResults", [])
-    if not MetricDataResults or not type(MetricDataResults) == list:
-        return False
-    metric_data = MetricDataResults[0].get("Values", [])
-
-    if not metric_data or not type(metric_data) == list:
-        return False
-
-    ebs_percent = metric_data[0]
-
-    return ebs_percent >= task_function.ebs_percent
-
-
-def delayed_execution(method, delay):
-    def wrapper():
-        time.sleep(delay)
-        method()
-    threading.Thread(target=wrapper).start()
-
-
-def comprobate_waiting_balance():
-    from task.models import AsyncTask
-    from task.serverless import execute_async
-    waiting_balance_task = AsyncTask.objects\
-        .filter(status_task_id="queue", task_function__ebs_percent__gt=0)\
-        .order_by("id").first()
-    if waiting_balance_task:
-        if has_enough_balance(waiting_balance_task.task_function):
-            execute_async(
-                waiting_balance_task, waiting_balance_task.original_request)
-        else:
-            delayed_execution(comprobate_waiting_balance, 300)
-            return
 
 
 def comprobate_queue(current_task):
