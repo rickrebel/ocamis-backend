@@ -205,15 +205,15 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
         if sheet_files_ids:
             sheet_files = sheet_files.filter(id__in=sheet_files_ids)
         if behavior_group:
-            behavior_group_obj = Behavior.objects.get(name=behavior_group)
-            if behavior_group_obj.is_discarded:
+
+            if behavior_group in ["invalid", "discarded"]:
                 sheet_files = sheet_files.filter(behavior__is_discarded=True)
             else:
                 sheet_files = sheet_files.exclude(behavior__is_discarded=True)
                 if behavior_group == "dupli":
                     sheet_files = sheet_files.exclude(
                         duplicates_count=0, shared_count=0)
-                    print("sheet_files", sheet_files)
+                    # print("sheet_files", sheet_files)
                 else:
                     sheet_files = sheet_files.filter(
                         duplicates_count=0, shared_count=0)
