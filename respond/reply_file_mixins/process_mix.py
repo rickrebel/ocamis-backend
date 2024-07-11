@@ -27,8 +27,10 @@ class ReplyFileMix:
         }
         task_params = task_params or {}
         task_params["models"] = [self]
+        task_params["function_after"] = "decompress_zip_aws_after"
         params_after = task_params.get("params_after", {})
         params_after["pet_file_ctrl_id"] = pet_file_ctrl.id
+        # params_after["
         task_params["params_after"] = params_after
         async_task = async_in_lambda("decompress_zip_aws", params, task_params)
         # print async_task
