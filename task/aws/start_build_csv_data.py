@@ -579,11 +579,11 @@ class TransformToCsv:
                 continue
             origin_value = row[divided_col["position"]]
             if text_nulls := divided_col.get("text_nulls"):
-                null_to_value = divided_col.get("null_to_value")
                 text_nulls = text_nulls.split(",")
                 text_nulls = [text_null.strip() for text_null in text_nulls]
                 # Si hay que convertir a null y null tiene valor, se vale
                 if origin_value in text_nulls:
+                    null_to_value = self.get_null_to_value(divided_col)
                     origin_value = null_to_value
             if origin_value is None:
                 continue
@@ -624,9 +624,10 @@ class TransformToCsv:
             value = available_data.get(field_name)
         if self.not_unicode:
             value = convert_to_str(value)
-        null_to_value = field.get("null_to_value")
-        if null_to_value:
-            if value is None or value == "":
+        # null_to_value = field.get("null_to_value")
+        if value is None or value == "":
+            null_to_value = self.get_null_to_value(field)
+            if null_to_value:
                 value = null_to_value
         delete_text = field.get("delete_text")
         if delete_text:
@@ -655,6 +656,7 @@ class TransformToCsv:
         if "almost_empty" in field:
             value = None
         elif "text_nulls" in field:
+            null_to_value = self.get_null_to_value(field)
             text_nulls = field["text_nulls"]
             text_nulls = text_nulls.split(",")
             text_nulls = [text_null.strip() for text_null in text_nulls]
@@ -1136,6 +1138,21 @@ class TransformToCsv:
                 raise ValueProcessError(error, value)
         return value
 
+    def get_null_to_value(self, field):
+        import re
+        null_to_value = field.get("null_to_value")
+        if null_to_value:
+            if null_to_value.startswith("fn("):
+                function_name = re.search(r"fn\((.*)\)", null_to_value).group(1)
+                if function_name == "imss-resurtibles":
+                    uuid = str(uuid_lib.uuid4())[:22]
+                    return f"fn-{uuid}"
+                else:
+                    return None
+            else:
+                return null_to_value
+        else:
+            return None
 
 # class DeliveredCalculator:
 #

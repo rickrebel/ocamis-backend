@@ -46,7 +46,7 @@ def obtain_names_from_s3(
                 pet_file_ctrl = pet_file_ctrls.first()
                 petition = pet_file_ctrl.petition
                 provider = petition.real_provider or petition.agency.provider
-                DataFile.objects.create(
+                DataFile.objects.get_or_create(
                     petition_file_control=pet_file_ctrl,
                     provider=provider,
                     file=final_name)
@@ -57,9 +57,9 @@ def obtain_names_from_s3(
         print("------------------------------")
 
 
-obtain_names_from_s3(
-    "data_files/nacional/imss_imss-bienestar/330018024006508/dvd2/",
-    "330018024006508", True)
+# obtain_names_from_s3(
+#     "data_files/nacional/imss_imss-bienestar/330018024006508/dvd3/",
+#     "330018024006508", True)
 
 # obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
 # obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)
@@ -75,8 +75,8 @@ obtain_names_from_s3(
 
 def apply_transformation_to_file():
     obtain_names_from_s3(
-        "data_files/nacional/imss_imss-bienestar/330018023000822/Centro",
-        "330018023000822", file_control_id=1622)
+        "data_files/nacional/imss_imss-bienestar/330018024006508/dvd3/",
+        "330018024006508", True)
 
 
 def delete_paths_from_aws(path):
@@ -141,8 +141,14 @@ def upload_s3_files(local_file, s3_dir):
         return False
 
 
+# from scripts.verified.utils.boto_s3 import upload_s3_files
 # upload_s3_files = upload_s3_files(
 #     'D:\\RecetasIMSS\\req_mayo_2020_02.txt.gz', 'nacional/imss/202107/')
+# f'H:\\Mi unidad\\IMSS\\Noviembre_2021.zip',
+def upload_simple():
+    files = upload_s3_files(
+        f'H:\\Mi unidad\\IMSS\\Noviembre_2021-2.zip',
+        'nacional/imss_imss-bienestar/330018024006508/dvd3/')
 
 
 def upload_imss_files():

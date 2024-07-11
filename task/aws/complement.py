@@ -40,7 +40,8 @@ class GetAllData:
         import json
         structured_data = []
         sample = data_rows[:50]
-        self.match_class.decode = self.match_class.decode or obtain_decode(sample)
+        if not self.match_class.decode:
+            self.match_class.decode = obtain_decode(sample)
         decoded = self.match_class.decode
         if decoded == "latin-1":
             self.match_class.decode_final = 'latin-1'
