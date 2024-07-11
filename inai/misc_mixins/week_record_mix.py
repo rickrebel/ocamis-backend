@@ -1,20 +1,18 @@
-from respond.models import TableFile
 from inai.models import WeekRecord
+from task.base_views import TaskBuilder
 
 
 class FromAws:
 
-    def __init__(self, week_record: WeekRecord, task_params=None):
+    def __init__(self, week_record: WeekRecord, task_params=None,
+                 base_task: TaskBuilder = None):
         self.week_record = week_record
         self.split_by_delegation = week_record.provider.split_by_delegation
         self.task_params = task_params
 
     def analyze_uniques_after(self, **kwargs):
-        # print("analyze_uniques_after---------------------------------")
-        # print("kwargs", kwargs)
+        print("analyze_uniques_after---------------------------------")
         all_errors = []
-        # parent_task = task_params.get("parent_task")
-        # params_after = parent_task.params_after
         all_tasks = []
         if kwargs.get('errors'):
             all_errors += kwargs['errors']

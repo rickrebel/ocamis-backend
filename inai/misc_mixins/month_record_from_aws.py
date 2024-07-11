@@ -10,10 +10,7 @@ class FromAws(MonthRecordMix):
         from django.utils import timezone
         from respond.models import CrossingSheet
 
-        from_aws = kwargs.get("from_aws", False)
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        self.month_record.end_stage("analysis", parent_task)
+        self.month_record.end_stage("analysis", self.base_task.main_task)
 
         related_weeks = self.month_record.weeks.all()
         all_crosses = {}
@@ -56,7 +53,7 @@ class FromAws(MonthRecordMix):
         self.save_sums(all_sheet_ids)
         CrossingSheet.objects.bulk_create(current_crosses)
 
-        if from_aws:
+        if self.base_task.from_aws:
             self.month_record.last_crossing = timezone.now()
         self.month_record.save()
         return [], [], True
@@ -64,9 +61,7 @@ class FromAws(MonthRecordMix):
     def all_base_tables_merged(self, **kwargs):
         from django.utils import timezone
         self.month_record.last_merge = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        self.month_record.end_stage("merge", parent_task)
+        self.month_record.end_stage("merge", self.base_task.main_task)
         self.month_record.save()
         return [], [], True
 
@@ -83,11 +78,7 @@ class FromAws(MonthRecordMix):
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
         self.month_record.last_pre_insertion = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        errors = self.month_record.end_stage("pre_insert", parent_task)
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
+        self.month_record.end_stage("pre_insert", self.base_task.main_task)
         self.month_record.save()
         return [], [], True
 
@@ -95,9 +86,8 @@ class FromAws(MonthRecordMix):
         from django.utils import timezone
         import json
         self.month_record.last_validate = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        errors = self.month_record.end_stage("validate", parent_task)
+        errors = self.month_record.end_stage(
+            "validate", self.base_task.main_task)
         for error in errors:
             if "semanas no insertadas en la base" in error:
                 week_ids = error.split(": ")[1]
@@ -111,28 +101,15 @@ class FromAws(MonthRecordMix):
                 self.month_record.status_id = "with_errors"
                 self.month_record.save()
                 return [], errors, False
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
         self.month_record.save()
         return [], [], True
 
     def all_base_tables_indexed(self, **kwargs):
-        # self.month_record.last_indexing = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        self.month_record.end_stage("indexing", parent_task)
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
+        self.month_record.end_stage("indexing", self.base_task.main_task)
         self.month_record.save()
         return [], [], True
 
     def all_temp_tables_inserted(self, **kwargs):
-        from django.utils import timezone
-        # self.month_record.last_insertion = timezone.now()
-        current_task = self.task_params.get("parent_task")
-        parent_task = current_task.parent_task
-        errors = self.month_record.end_stage("insert", parent_task)
-        # if not errors:
-        #     self.month_record.end_stage("insert", parent_task)
+        self.month_record.end_stage("insert", self.base_task.main_task)
         self.month_record.save()
         return [], [], True

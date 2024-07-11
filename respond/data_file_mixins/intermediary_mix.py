@@ -1,10 +1,12 @@
 from respond.models import DataFile
 from respond.data_file_mixins.base_transform import BaseTransform
+from task.base_views import TaskBuilder
 
 
 class Intermediary(BaseTransform):
 
-    def __init__(self, data_file: DataFile, task_params=None):
+    def __init__(self, data_file: DataFile, task_params=None,
+                 base_task: TaskBuilder = None):
         super().__init__(data_file, task_params)
         from inai.models import set_upload_path
         only_name = f"{self.file_name}_SHEET_NAME_intermediary"

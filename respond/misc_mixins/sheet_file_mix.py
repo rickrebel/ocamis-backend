@@ -1,9 +1,11 @@
 from respond.models import SheetFile, LapSheet
+from task.base_views import TaskBuilder
 
 
 class FromAws:
 
-    def __init__(self, sheet_file: SheetFile, task_params=None):
+    def __init__(self, sheet_file: SheetFile, task_params=None,
+                 base_task: TaskBuilder = None):
         self.sheet_file = sheet_file
         self.task_params = task_params
 

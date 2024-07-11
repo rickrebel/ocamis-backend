@@ -1,10 +1,12 @@
 from respond.models import LapSheet, TableFile
 from inai.models import WeekRecord
+from task.base_views import TaskBuilder
 
 
 class FromAws:
 
-    def __init__(self, lap_sheet: LapSheet, task_params=None):
+    def __init__(self, lap_sheet: LapSheet, task_params=None,
+                 base_task: TaskBuilder = None):
         self.lap_sheet = lap_sheet
         self.task_params = task_params
 

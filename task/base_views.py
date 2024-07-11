@@ -5,20 +5,28 @@ from task.views import camel_to_snake
 from datetime import datetime
 
 
-class TaskParams(TaskHelper):
+class TaskBuilder(TaskHelper):
 
     def __init__(
             self, function_name=None, model_obj=None, main_task=None,
             request=None, parent_task=None, finished_function=None,
-            keep_tasks=False, parent_class=None, subgroup=None,
+            keep_tasks=False, parent_class=None, subgroup=None, from_aws=None,
             function_after=None, params_after=None, models=None, **kwargs):
 
+        self.from_aws = from_aws
         if main_task:
             self.main_task = main_task
         else:
             self.main_task = AsyncTask(date_start=datetime.now())
 
-        if self.main_task.pk and model_obj:
+        if not models:
+            remain_models = []
+        elif not model_obj:
+            model_obj = models[0]
+            remain_models = models[1:]
+        else:
+            remain_models = models
+        if main_task and model_obj:
             raise Exception("No se puede crear una nueva tarea con un modelo")
 
         self.model_obj = model_obj
@@ -30,7 +38,7 @@ class TaskParams(TaskHelper):
 
         if parent_task:
             self.main_task.parent_task = parent_task
-        if parent_class and not parent_task:
+        elif parent_class:
             self.main_task.parent_task = parent_class.main_task
 
         if finished_function:
@@ -42,7 +50,9 @@ class TaskParams(TaskHelper):
             self.main_task.function_after = function_after
         if params_after:
             self.main_task.params_after = params_after
-        self.params_after = params_after or {}
+        else:
+            self.main_task.params_after = {}
+        # self.params_after = params_after or {}
 
         user = None
         if self.main_task.user:
@@ -54,14 +64,14 @@ class TaskParams(TaskHelper):
         if user:
             self.main_task.user = user
 
-        print("Function name", function_name)
-        kwargs["model_obj"] = model_obj
+        print("-x Function name", function_name)
+        kwargs["model_obj"] = self.model_obj
         super().__init__(self.main_task, parent_class=parent_class, **kwargs)
         self.set_function_name(function_name)
-        if model_obj:
+        if self.model_obj and not main_task:
             self.build()
-        if models:
-            self.set_models(models)
+        if remain_models:
+            self.set_models(remain_models)
 
     def set_function_name(self, function_name=None):
         if function_name:
@@ -83,8 +93,7 @@ class TaskParams(TaskHelper):
         if not self.model_obj:
             raise Exception("No se ha encontrado el modelo")
 
-        model_name = camel_to_snake(self.model_obj.__class__.__name__)
-        setattr(self.main_task, model_name, model_obj)
+        model_name = self.set_model(self.model_obj)
 
         if model_name == "data_file":
             stage = self.main_task.task_function.stages.last()
@@ -96,7 +105,7 @@ class TaskParams(TaskHelper):
         self.start_update_previous_tasks(model_name)
 
         self.main_task.save()
-        # self.add_new_task()
+        self.add_new_task()
 
     def start_update_previous_tasks(self, model_name):
         filter_kwargs = {model_name: self.model_obj}
@@ -116,13 +125,17 @@ class TaskParams(TaskHelper):
             if task.child_tasks.filter(is_current=True).exists():
                 self.update_previous_tasks(task.child_tasks.all())
 
-    def get_child_base(self, **kwargs):
-        task_params = TaskParams(
-            function_name=self.main_task.task_function_id,
-            parent_class=self, **kwargs)
+    def get_child_base(self, function_name=None, **kwargs):
+        if not function_name:
+            function_name = self.main_task.task_function_id
+        task_params = TaskBuilder(
+            function_name=function_name, parent_class=self, **kwargs)
         return task_params
 
+    def set_model(self, model):
+        model_name = camel_to_snake(model.__class__.__name__)
+        setattr(self.main_task, model_name, model)
+        return model_name
+
     def set_models(self, models):
-        for model in models:
-            model_name = camel_to_snake(model.__class__.__name__)
-            setattr(self.main_task, model_name, model)
+        [self.set_model(model) for model in models]

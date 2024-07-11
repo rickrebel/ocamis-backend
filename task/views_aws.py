@@ -1,18 +1,11 @@
 from django.http import HttpResponse
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime
+import traceback
 
 from task.models import AsyncTask
 from task.helpers import TaskHelper
-from datetime import datetime
-
-from inai.misc_mixins.petition_mix import FromAws as Petition
-from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
-from inai.misc_mixins.month_record_from_aws import FromAws as MonthRecord
-from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
-from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
-from rds.misc_mixins.cluster_mix import FromAws as Cluster
-from rds.misc_mixins.mat_view_mix import FromAws as MatView
 
 
 def extract_only_message(error_text):
@@ -41,6 +34,7 @@ class AWSErrors(generic.View):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         import json
+
         print("HOLA ERRORES")
         print("++++++++++++++++++++++++++++++++++++++++++++++")
         try:
@@ -66,7 +60,7 @@ class AWSErrors(generic.View):
                 task_helper.comprobate_status()
                 # comprobate_status(current_task, error, [])
         except Exception as e:
-            print("ERROR AL GUARDAR 1: ", e)
+            print("ERROR AL GUARDAR 1.2: ", e)
             print("body error 2: \n", body)
         return HttpResponse()
 
@@ -86,7 +80,6 @@ class AWSSuccess(generic.View):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         import json
-        # from task.models import AsyncTask
         # print("HOLA SUCCESS")
         # print(request)
         # print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
@@ -133,7 +126,9 @@ class AWSMessage(generic.View):
             function_aws.execute_function()
             response = "success"
         except Exception as e:
+            error_ = traceback.format_exc()
             print("ERROR AL GUARDAR 1: ", e)
+            print("LOG:\n", error_)
             print("body error 1: \n", body)
             response = "error"
 
@@ -142,23 +137,27 @@ class AWSMessage(generic.View):
 
 class AwsFunction(TaskHelper):
 
-    def __init__(
-            self, body=None, main_task=None, parent_task=None):
+    def __init__(self, body=None, main_task=None, parent_task=None):
         # self.body = body
         self.response = None
-        self.result = None
+        self.new_result = {}
         self.errors = []
+        self.from_aws = True
         self.function_name = None
         self.final_method = None
+        if not body and not main_task:
+            raise Exception("No se ha enviado un resultado o un main_task")
         if body:
+            # print("-x BODY: ", body)
             main_task = self.build_with_body(body)
         super().__init__(main_task, errors=self.errors)
+        print("-x function_name: ", self.function_name)
         if parent_task:
             params_after = parent_task.params_after or {}
-            self.result = params_after.get("params_finished", {})
+            self.new_result = params_after.get("params_finished", {})
             self.function_name = parent_task.finished_function
         else:
-            raise Exception("No se ha enviado un resultado o un padre")
+            self.function_name = main_task.task_function.name
 
     def build_with_body(self, body, request_id=None):
         if not request_id:
@@ -173,9 +172,9 @@ class AwsFunction(TaskHelper):
             # print("RESULT: ", result)
             main_task.result = result
             main_task.save()
-            new_result = result.copy()
-            new_result.update(self.main_task.params_after or {})
-            self.build_result(new_result)
+            self.new_result = result.copy()
+            self.new_result.update(main_task.params_after or {})
+            self.build_complement(main_task)
             # function_aws = AwsFunction(self.main_task, new_result)
             # function_aws.execute_function()
             self.response = "success"
@@ -183,41 +182,53 @@ class AwsFunction(TaskHelper):
         except Exception as e:
             raise e
 
-    def build_result(self, new_result):
-        self.errors = new_result.get("errors", [])
-        self.function_name = self.main_task.function_after
+    def build_complement(self, main_task=None):
+        if not main_task:
+            main_task = self.main_task
+        self.errors = self.new_result.get("errors", [])
+        self.function_name = main_task.function_after
 
     def get_method(self):
-        from task.base_views import TaskParams
+        from inai.misc_mixins.petition_mix import FromAws as Petition
+        from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
+        from inai.misc_mixins.month_record_from_aws import FromAws as MonthRecord
+        from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
+        from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
+        from rds.misc_mixins.cluster_mix import FromAws as Cluster
+        from rds.misc_mixins.mat_view_mix import FromAws as MatView
+        print("-x get_method de", self.function_name)
+        print("-x model_obj: ", self.model_obj)
         task_parameters = {"parent_task": self.main_task}
         try:
             self.final_method = getattr(self.model_obj, self.function_name)
         except AttributeError as error2:
             try:
                 model_name = self.model_obj.__class__.__name__
-                from_aws_class = globals()[model_name]
-                base_task = TaskParams(
-                    model_obj=self.model_obj, parent_task=self.main_task)
+                from_aws_class = locals()[model_name]
+                # base_task = TaskBuilder(
+                #     model_obj=self.model_obj, parent_task=self.main_task)
+                # base_task = TaskBuilder(main_task=self.main_task, from_aws=True)
                 base_aws_mix = from_aws_class(
-                    self.model_obj, task_param=task_parameters,
-                    base_task=base_task)
+                    self.model_obj, task_params=task_parameters,
+                    base_task=self)
                 self.final_method = getattr(base_aws_mix, self.function_name)
             except Exception as error3:
+                error_ = traceback.format_exc()
+                print("LOG DE ERRORES 3: ", error_)
                 err = f"Error al obtener el método {self.function_name}: {error2}"
                 err += f"; {error3}"
                 self.errors.append(err)
         return self.final_method
 
     def execute_function(self):
-        import traceback
 
         self.model_obj = self.find_task_model()
-        self.result["from_aws"] = True
+        self.new_result["from_aws"] = True
         self.final_method = self.get_method()
         if self.final_method:
             try:
                 self.new_tasks, final_errors, data = self.final_method(
-                    **self.result,
+                    **self.new_result,
                     task_params={"parent_task": self.main_task})
                 self.errors.extend(final_errors or [])
             except Exception as error:
@@ -226,8 +237,9 @@ class AwsFunction(TaskHelper):
                 error_ = (f"Error en el método {self.function_name}:"
                           f"{str(error)} {str(error_)}")
                 self.errors.append(error_)
+
         self.main_task.date_end = datetime.now()
         if self.errors:
             print("ERRORES en ExecuteAwsFunction: ", self.errors)
         # return comprobate_status(self.main_task, self.errors, self.new_tasks)
-        return self.comprobate_status()
+        return self.comprobate_status(want_http_response=False)

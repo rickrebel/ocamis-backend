@@ -1,9 +1,11 @@
 from respond.models import DataFile
+from task.base_views import TaskBuilder
 
 
 class FromAws:
 
-    def __init__(self, data_file: DataFile, task_params=None):
+    def __init__(self, data_file: DataFile, task_params=None,
+                 base_task: TaskBuilder = None):
         self.data_file = data_file
         self.task_params = task_params
 

@@ -1,6 +1,7 @@
 from data_param.models import Transformation
 from scripts.common import start_session, create_file
 import json
+from task.base_views import TaskBuilder
 from task.serverless import camel_to_snake
 from respond.models import DataFile, LapSheet
 from respond.data_file_mixins.base_transform import BaseTransform
@@ -90,7 +91,8 @@ def build_available_deliveries():
 
 class MatchTransform(BaseTransform):
 
-    def __init__(self, data_file: DataFile, task_params=None):
+    def __init__(self, data_file: DataFile, task_params=None,
+                 base_task: TaskBuilder = None):
         super().__init__(data_file, task_params)
         from inai.models import set_upload_path
         from data_param.models import NameColumn

@@ -1,26 +1,11 @@
 from classify_task.models import Stage
 from inai.models import MonthRecord
 from task.serverless import async_in_lambda
-from task.base_views import TaskParams
+from task.base_views import TaskBuilder
+from task.helpers import HttpResponseError
+from task.views_aws import AwsFunction
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
-
-
-def exist_temp_table(table_name, schema="public"):
-    from django.db import connection
-    query_if_exists = f"""
-        SELECT EXISTS(
-            SELECT 1
-            FROM pg_class c
-            JOIN pg_namespace n ON n.oid = c.relnamespace
-            WHERE c.relname = '{table_name}' AND n.nspname = '{schema}'
-        );
-    """
-    cursor = connection.cursor()
-    cursor.execute(query_if_exists)
-    exists_temp_tables = cursor.fetchone()[0]
-    cursor.close()
-    return exists_temp_tables
 
 
 class MonthRecordMix:
@@ -29,8 +14,9 @@ class MonthRecordMix:
     #     self.month_record = month_record
     #     self.task_params = task_params
     def __init__(self, month_record: MonthRecord,
-                 base_task: TaskParams = None, task_params=None):
+                 task_params=None, base_task: AwsFunction = None):
         self.month_record = month_record
+        self.task_params = task_params
         self.base_task = base_task
 
     def revert_stages(self, final_stage: Stage):
@@ -38,7 +24,6 @@ class MonthRecordMix:
         from respond.models import LapSheet
         from respond.models import CrossingSheet
         from django.db import connection
-        from task.views import comprobate_brothers
 
         self.month_record.stage = final_stage
         if final_stage.name == "revert_stages":
@@ -119,8 +104,6 @@ class MonthRecordMix:
             self.save_sums(all_sheet_ids)
 
         self.month_record.save()
-        # current_task = self.task_params.get("parent_task")
-        # comprobate_brothers(current_task, "finished")
 
         return [], [], True
 
@@ -162,7 +145,8 @@ class MonthRecordMix:
         elif len(unique_medicines) == 1:
             medicine_key = unique_medicines.pop()
 
-        # week_base_task = TaskParams(
+        # week_base_task = TaskBuilder(
+        print("base_task.main_task", self.base_task.main_task)
 
         for week in self.month_record.weeks.all():
             # if week.last_crossing and week.last_transformation:
@@ -180,23 +164,22 @@ class MonthRecordMix:
                 "table_files": list(file_names),
                 "has_medicine_key": bool(medicine_key),
             }
-            week_base_task = TaskParams(
+            week_base_task = TaskBuilder(
                 function_name="analyze_uniques",
                 parent_class=self.base_task, model_obj=week,
                 function_after="analyze_uniques_after",
                 params=params, models=[week, self.month_record])
             print("week_base_task", week_base_task)
 
-            # week_base_task.set_models([week, self.month_record])
             # self.task_params["models"] = [week, self.month_record]
             # self.task_params["function_after"] = "analyze_uniques_after"
             # self.base_task.models = [week, self.month_record]
-            # RICK task: No estoy seguro de dejar esto así comentado
+            # RICK TASK: No estoy seguro de dejar esto así comentado
             # params_after = self.task_params.get("params_after", {})
             # self.task_params["params_after"] = params_after
             # async_task = async_in_lambda(
             #     "analyze_uniques", params, self.task_params)
-            week_base_task.async_in_lambda(comprobate=True)
+            week_base_task.async_in_lambda(comprobate=False)
             # all_tasks.append(async_task)
             # if self.month_record.provider.split_by_delegation:
             #     time.sleep(0.2)
@@ -205,14 +188,14 @@ class MonthRecordMix:
     def merge_files_by_week(self):
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from respond.models import TableFile
-        from respond.models import DataFile
         from django.utils import timezone
         from django.db.models import F
 
-        related_sheet_files = self.month_record.sheet_files.all()
+        # related_sheet_files = self.month_record.sheet_files.all()
 
-        my_insert = InsertMonth(self.month_record, self.task_params)
-        new_tasks = []
+        my_insert = InsertMonth(self.month_record, self.task_params,
+                                base_task=self.base_task)
+        # new_tasks = []
         week_records = self.month_record.weeks.all().prefetch_related(
             "table_files", "table_files__collection", "table_files__lap_sheet",
             "table_files__lap_sheet__sheet_file")
@@ -246,19 +229,16 @@ class MonthRecordMix:
                 wr.last_merge = timezone.now()
                 wr.save()
                 continue
-            table_task = my_insert.merge_week_base_tables(
-                wr, week_base_table_files)
-            new_tasks.append(table_task)
+            my_insert.merge_week_base_tables(wr, week_base_table_files)
+            # new_tasks.append(table_task)
 
-        return new_tasks, [], True
+        # return new_tasks, [], True
 
     def pre_insert_month(self):
-        from task.views import comprobate_status, build_task_params
         from django.db import connection
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from respond.models import TableFile
         from respond.models import LapSheet
-        from respond.models import DataFile
 
         # CREATE TABLE fm_55_201902_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
         # CREATE TABLE fm_55_201902_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
@@ -313,16 +293,18 @@ class MonthRecordMix:
         if errors:
             print("error", errors)
 
-        self.task_params["keep_tasks"] = True
+        # self.task_params["keep_tasks"] = True
+        # task_cats, task_params_cat = build_task_params(
+        #     self.month_record, 'save_month_cat_tables', **self.task_params)
+        # new_tasks = []
+        # errors = []
+        # cat_tasks = []
+        cats_task = TaskBuilder(
+            function_name="save_month_cat_tables", keep_tasks=True,
+            parent_class=self.base_task, model_obj=self.month_record)
 
-        task_cats, task_params_cat = build_task_params(
-            self.month_record, 'save_month_cat_tables', **self.task_params)
-        new_tasks = []
-        errors = []
-        cat_tasks = []
-
-        new_tasks.append(task_cats)
-        my_insert_cat = InsertMonth(self.month_record, task_params_cat)
+        # new_tasks.append(task_cats)
+        my_insert_cat = InsertMonth(self.month_record, base_task=cats_task)
 
         for lap_sheet in pending_lap_sheets:
             current_table_files = collection_table_files.filter(
@@ -331,12 +313,15 @@ class MonthRecordMix:
                 inserted=False)
             if not current_table_files.exists():
                 continue
-            new_task = my_insert_cat.send_lap_tables_to_db(
+            my_insert_cat.send_lap_tables_to_db(
                 lap_sheet, current_table_files, "cat_inserted")
-            cat_tasks.append(new_task)
-            new_tasks.append(new_task)
-        if not cat_tasks:
-            comprobate_status(task_cats)
+            # cat_tasks.append(new_task)
+            # new_tasks.append(new_task)
+
+        # if not cat_tasks:
+        #     comprobate_status(task_cats)
+        if not cats_task.new_tasks:
+            cats_task.comprobate_status()
 
         missing_table_files = TableFile.objects.filter(
             lap_sheet__in=related_lap_sheets,
@@ -348,11 +333,15 @@ class MonthRecordMix:
         #     collection__app_label="formula",
         #     inserted=False)
 
-        task_base, task_params_base = build_task_params(
-            self.month_record, 'save_month_base_tables', **self.task_params)
-        new_tasks.append(task_base)
-        my_insert_base = InsertMonth(self.month_record, task_params_base)
-        base_tasks = []
+        # task_base, task_params_base = build_task_params(
+        #     self.month_record, 'save_month_base_tables', **self.task_params)
+        formula_task = TaskBuilder(
+            function_name="save_month_base_tables", keep_tasks=True,
+            model_obj=self.month_record, parent_class=self.base_task)
+        # new_tasks.append(task_base)
+        # my_insert_base = InsertMonth(self.month_record, task_params_base)
+        my_insert_base = InsertMonth(self.month_record, base_task=formula_task)
+        # base_tasks = []
         for week in self.month_record.weeks.all():
             week_base_table_files = week.table_files.filter(
                 lap_sheet__isnull=True,
@@ -360,12 +349,13 @@ class MonthRecordMix:
                 inserted=False)
             if not week_base_table_files.exists():
                 continue
-            week_task = my_insert_base.send_base_tables_to_db(
-                week, week_base_table_files)
-            base_tasks.append(week_task)
-            new_tasks.append(week_task)
-        if not base_tasks:
-            comprobate_status(task_base)
+            my_insert_base.send_base_tables_to_db(week, week_base_table_files)
+            # base_tasks.append(week_task)
+            # new_tasks.append(week_task)
+        # if not base_tasks:
+        #     comprobate_status(task_base)
+        if not formula_task.new_tasks:
+            formula_task.comprobate_status()
 
         for lap_sheet in related_lap_sheets:
             lap_missing_tables = missing_table_files.filter(
@@ -374,28 +364,19 @@ class MonthRecordMix:
                 lap_sheet.missing_inserted = True
                 # lap_sheet.sheet_file.save_stage('insert', [])
             else:
-                new_task = my_insert_base.send_lap_tables_to_db(
+                my_insert_base.send_lap_tables_to_db(
                     lap_sheet, lap_missing_tables, "missing_inserted")
-                new_tasks.append(new_task)
-
-        return new_tasks, errors, True
+                # new_tasks.append(new_task)
+        # return new_tasks, errors, True
 
     def validate_month(self):
         from respond.models import TableFile
         clean_queries = []
-        errors = []
 
-        for table_name in ["rx", "drug"]:
-            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table, "tmp")
-            if not exists_temp_tables:
-                errors.append(f"No existe la tabla esencial {temp_table}")
-        if errors:
-            return [], errors, False
+        self.check_temp_tables()
 
-        if self.month_record.error_process:
-            error_process_list = self.month_record.error_process
-            error_process_str = "\n".join(error_process_list)
+        error_process_str = self.get_error_process_str()
+        if error_process_str:
             blocked_error = "blocked by process " in error_process_str
             if "semanas con más medicamentos" in error_process_str:
                 models = {
@@ -418,11 +399,9 @@ class MonthRecordMix:
                         );
                     """)
             elif not blocked_error:
-                error = f"Existen otros errores: {error_process_str}"
-                self.month_record.error_process = [error]
-                self.month_record.status_id = "with_errors"
-                self.month_record.save()
-                return [], [error], True
+                errors = [f"Existen otros errores: {error_process_str}"]
+                self.month_record.save_error_process(errors)
+                return self.base_task.add_errors(errors, True)
 
         drugs_counts = TableFile.objects.filter(
                 week_record__month_record=self.month_record,
@@ -434,11 +413,9 @@ class MonthRecordMix:
         for drug in drugs_counts:
             drugs_object[drug["week_record_id"]] = drug["drugs_count"]
         if not drugs_object:
-            error = "No se encontraron semanas con medicamentos"
-            self.month_record.error_process = [error]
-            self.month_record.status_id = "with_errors"
-            self.month_record.save()
-            return [], [error], True
+            errors = ["No se encontraron semanas con medicamentos"]
+            self.month_record.save_error_process(errors)
+            return self.base_task.add_errors(errors, True)
         temp_drug = f"tmp.fm_{self.month_record.temp_table}_drug"
         count_query = f"""
             SELECT week_record_id,
@@ -463,34 +440,29 @@ class MonthRecordMix:
             "last_query": last_query,
         }
 
-        all_tasks = []
-        self.task_params["models"] = [self.month_record]
-        async_task = async_in_lambda(
-            "validate_temp_tables", params, self.task_params)
-        if async_task:
-            all_tasks.append(async_task)
-        return all_tasks, errors, True
+        # all_tasks = []
+        # self.task_params["models"] = [self.month_record]
+        # async_task = async_in_lambda(
+        #     "validate_temp_tables", params, self.task_params)
+        # if async_task:
+        #     all_tasks.append(async_task)
+        validate_task = TaskBuilder(
+            function_name="validate_temp_tables", params=params,
+            parent_class=self.base_task, model_obj=self.month_record)
+        validate_task.async_in_lambda(comprobate=False)
+        # return all_tasks, errors, True
 
     def indexing_month(self):
         from formula.views import modify_constraints
-        errors = []
+        # errors = []
 
-        for table_name in ["rx", "drug"]:
-            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table, "tmp")
-            if not exists_temp_tables:
-                errors.append(f"No existe la tabla esencial {temp_table}")
-        if errors:
-            return [], errors, False
+        self.check_temp_tables()
 
-        if self.month_record.error_process:
-            error_process_list = self.month_record.error_process
-            error_process_str = "\n".join(error_process_list)
+        error_process_str = self.get_error_process_str()
+        if error_process_str:
             error = f"Existen otros errores: {error_process_str}"
-            self.month_record.error_process = [error]
-            self.month_record.status_id = "with_errors"
-            self.month_record.save()
-            return [], [error], True
+            self.month_record.save_error_process([error])
+            return self.base_task.add_errors([error], True)
 
         constraint_queries = modify_constraints(
             True, False, self.month_record.temp_table)
@@ -509,13 +481,17 @@ class MonthRecordMix:
             "last_query": last_query,
         }
 
-        all_tasks = []
-        self.task_params["models"] = [self.month_record]
-        async_task = async_in_lambda(
-            "indexing_temp_tables", params, self.task_params)
-        if async_task:
-            all_tasks.append(async_task)
-        return all_tasks, errors, True
+        # all_tasks = []
+        # self.task_params["models"] = [self.month_record]
+        # async_task = async_in_lambda(
+        #     "indexing_temp_tables", params, self.task_params)
+        # if async_task:
+        #     all_tasks.append(async_task)
+        indexing_task = TaskBuilder(
+            function_name="indexing_temp_tables", params=params,
+            parent_class=self.base_task, model_obj=self.month_record)
+        indexing_task.async_in_lambda(comprobate=False)
+        # return all_tasks, errors, True
 
     def final_insert_month(self):
         errors = []
@@ -612,3 +588,37 @@ class MonthRecordMix:
         for field in sum_fields:
             setattr(self.month_record, field,
                     result_sums[f"{field}__sum"] or 0)
+
+    def get_error_process_str(self):
+        if not self.month_record.error_process:
+            return ""
+        error_process_list = self.month_record.error_process
+        return "\n".join(error_process_list)
+
+    def check_temp_tables(self):
+        for table_name in ["rx", "drug"]:
+            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+            exists_temp_tables = exist_temp_table(temp_table, "tmp")
+            if not exists_temp_tables:
+                error = f"No existe la tabla esencial {temp_table}"
+                self.base_task.add_errors([error], True)
+                self.month_record.status_id = "with_errors"
+                self.month_record.save()
+                raise HttpResponseError({"errors": self.base_task.errors})
+
+
+def exist_temp_table(table_name, schema="public"):
+    from django.db import connection
+    query_if_exists = f"""
+        SELECT EXISTS(
+            SELECT 1
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relname = '{table_name}' AND n.nspname = '{schema}'
+        );
+    """
+    cursor = connection.cursor()
+    cursor.execute(query_if_exists)
+    exists_temp_tables = cursor.fetchone()[0]
+    cursor.close()
+    return exists_temp_tables

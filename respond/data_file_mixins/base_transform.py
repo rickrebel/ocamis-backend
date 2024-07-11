@@ -1,4 +1,5 @@
 from respond.models import DataFile, LapSheet
+from task.base_views import TaskBuilder
 
 
 def sheet_name_to_file_name(sheet_name):
@@ -13,14 +14,16 @@ def sheet_name_to_file_name(sheet_name):
 
 class BaseDataFile:
 
-    def __init__(self, data_file: DataFile, task_params=None):
+    def __init__(self, data_file: DataFile, task_params=None,
+                 base_task: TaskBuilder = None):
         self.data_file = data_file
         self.task_params = task_params
 
 
 class BaseTransform(BaseDataFile):
 
-    def __init__(self, data_file: DataFile, task_params=None):
+    def __init__(self, data_file: DataFile, task_params=None,
+                 base_task: TaskBuilder = None):
         super().__init__(data_file, task_params)
         self.is_prepare = False
         self.init_data = {}

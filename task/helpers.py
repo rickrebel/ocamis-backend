@@ -1,15 +1,11 @@
-from django.http import HttpResponse
-from datetime import datetime
-
 from task.models import AsyncTask
-from task.serverless import Serverless, camel_to_snake
+from task.serverless import Serverless
 from task.rds_balance import (
     has_enough_balance, delayed_execution, comprobate_waiting_balance)
-from task.views import build_task_params
 
 
 class HttpResponseError(Exception):
-    def __init__(self, body_response, http_status):
+    def __init__(self, body_response, http_status=400):
         self.body_response = body_response
         self.http_status = http_status
         super().__init__(self.body_response)
@@ -20,10 +16,9 @@ class TaskHelper(Serverless):
     def async_in_lambda(self, function_name=None, comprobate=True):
         self.set_function_name(function_name)
         task_function = self.main_task.task_function
-        function_name = task_function.name
-        function_after = self.main_task.function_after or f"{function_name}_after"
-        self.main_task.task_function = task_function
-        self.main_task.function_after = function_after
+        if not self.main_task.function_after:
+            self.main_task.function_after = f"{task_function.name}_after"
+        # self.main_task.task_function = task_function
         self.main_task.original_request = self.params
         self.main_task.status_task_id = "pending"
 
@@ -46,9 +41,8 @@ class TaskHelper(Serverless):
                 self.main_task.save()
         else:
             self.individual_queueable(task_function)
-        self.add_new_task()
         if comprobate:
-            return self.comprobate_status()
+            return self.comprobate_status(want_http_response=False)
 
     def comprobate_status(self, want_http_response=None):
         if want_http_response is not None:
@@ -58,7 +52,7 @@ class TaskHelper(Serverless):
             self.errors.append("No se ha encontrado la tarea enviada")
             return
         if self.errors:
-            original_errors = self.main_task.errors
+            original_errors = self.main_task.errors or []
             original_errors.extend(self.errors)
             self.main_task.errors = original_errors
             new_status_task_id = "with_errors"
@@ -71,6 +65,8 @@ class TaskHelper(Serverless):
         else:
             new_status_task_id = "finished"
         self.save_new_status(new_status_task_id)
+        self.comprobate_queue()
+        self.add_new_task()
         if self.want_http_response is not False:
             body_response = {"new_task": self.main_task.id}
             if self.errors:
@@ -83,7 +79,6 @@ class TaskHelper(Serverless):
                     # return HttpResponse(body_response, status=200)
                 else:
                     return None
-        self.comprobate_queue()
         return self.main_task
 
     def add_new_task(self, new_task=None, from_child=False):
@@ -94,12 +89,15 @@ class TaskHelper(Serverless):
                 new_task = self.main_task
             self.parent_class.add_new_task(new_task, from_child=True)
 
-    def add_errors(self, errors: list, save=False):
+    def add_errors(self, errors: list, save=False, comprobate=True):
         self.errors.extend(errors)
         if self.parent_class:
             self.parent_class.add_errors(errors)
         if save:
             self.main_task.errors = errors
+        if comprobate:
+            self.comprobate_status(want_http_response=False)
+        return self.errors
 
     def comprobate_brothers_with_errors(self):
         children_with_errors = AsyncTask.objects.filter(
@@ -112,8 +110,11 @@ class TaskHelper(Serverless):
 
     def execute_finished_function(self):
         from task.views_aws import AwsFunction
+        from task.base_views import TaskBuilder
+        print("EJECUTANDO FINISHED FUNCTION")
         parent_task = self.main_task.parent_task
         finished_function = parent_task.finished_function
+        print("FINISHED FUNCTION: ", finished_function)
         if not parent_task.finished_function:
             return self.comprobate_brothers_with_errors()
         brothers_in_finish = AsyncTask.objects.filter(
@@ -122,11 +123,14 @@ class TaskHelper(Serverless):
         if brothers_in_finish.exists():
             return self.comprobate_brothers_with_errors()
 
-        add_elems = {"parent_task": parent_task, "keep_tasks": True}
+        # add_elems = {"parent_task": parent_task, "keep_tasks": True}
         self.model_obj = self.find_task_model(parent_task)
-        new_task, task_params = build_task_params(
-            self.model_obj, finished_function, **add_elems)
-        aws_function = AwsFunction(new_task, parent_task=parent_task)
+        # new_task, task_params = build_task_params(
+        #     self.model_obj, finished_function, **add_elems)
+        finished_task = TaskBuilder(function_name=finished_function,
+                                    parent_task=parent_task, keep_tasks=True)
+        aws_function = AwsFunction(
+            main_task=finished_task.main_task, parent_task=parent_task)
         new_task2 = aws_function.execute_function()
         if new_task2.status_task.is_completed:
             return self.comprobate_brothers_with_errors()
@@ -236,7 +240,7 @@ class TaskHelper(Serverless):
                 self.execute_first(not_started_tasks)
                 # first_task = not_started_tasks.first()
                 # execute_async(first_task, first_task.original_request)
-                # RICK Task: por qué estamos haciendo esto?
+                # RICK TASK: por qué estamos haciendo esto?
                 # first_task_helper = TaskHelper(first_task)
                 # first_task_helper.comprobate_queue()
 

@@ -130,6 +130,11 @@ class MonthRecord(models.Model):
             self.error_process = []
         self.save()
 
+    def save_error_process(self, errors):
+        self.error_process = errors
+        self.status_id = "with_errors"
+        self.save()
+
     @property
     def human_name(self):
         months = [

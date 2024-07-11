@@ -2,6 +2,7 @@ from django.conf import settings
 from inai.models import MonthRecord, WeekRecord
 from respond.models import LapSheet
 from task.serverless import async_in_lambda
+from task.base_views import TaskBuilder
 
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
@@ -35,7 +36,8 @@ def build_alternative_query(model_in_db, columns_join):
 
 class InsertMonth:
 
-    def __init__(self, month_record: MonthRecord, task_params=None):
+    def __init__(self, month_record: MonthRecord, task_params=None,
+                 base_task: TaskBuilder = None):
         from respond.data_file_mixins.matches_mix import (
             get_models_of_app, field_of_models)
         self.task_params = task_params
@@ -61,8 +63,10 @@ class InsertMonth:
                               if model["model"] not in self.base_models_names]
         self.base_models = [model for model in self.editable_models
                             if model["model"] in self.base_models_names]
+        self.base_task = base_task
 
-    def merge_week_base_tables(self, week_record: WeekRecord, week_table_files: list):
+    def merge_week_base_tables(
+            self, week_record: WeekRecord, week_table_files: list):
         fields_in_name = ["iso_year", "iso_week", "year", "month"]
         complement_name = "_".join([str(getattr(week_record, field))
                                     for field in fields_in_name])
@@ -75,17 +79,21 @@ class InsertMonth:
         acronym = self.provider.acronym.lower()
         final_path = "/".join([provider_type, acronym, only_name])
         params = {
-            # "week_table_files": TableFileAwsSerializer(
-            #     week_table_files, many=True).data,
             "week_table_files": week_table_files,
             "final_path": final_path,
             "week_record_id": week_record.id,
         }
-        current_task_params = self.task_params.copy()
-        current_task_params["models"] = [week_record, self.month_record]
-        current_task_params["week_record_id"] = week_record.id
-        current_task_params["function_after"] = "save_merged_from_aws"
-        return async_in_lambda("build_week_csvs", params, current_task_params)
+        # current_task_params = self.task_params.copy()
+        # current_task_params["models"] = [week_record, self.month_record]
+        # current_task_params["week_record_id"] = week_record.id
+        # current_task_params["function_after"] = "save_merged_from_aws"
+        week_task = TaskBuilder(
+            model_obj=week_record, parent_class=self.base_task,
+            function_name="build_week_csvs", params=params,
+            models=[week_record, self.month_record],
+            function_after="save_merged_from_aws")
+        return week_task.async_in_lambda()
+        # return async_in_lambda("build_week_csvs", params, current_task_params)
 
     def build_query_tables(self, table_files, complement=None):
         queries_by_model = {}
@@ -151,15 +159,15 @@ class InsertMonth:
             "week_record_id": week_record.id,
             "table_files_ids": table_files_ids,
         }
-        # self.task_params["function_after"] = "check_success_insert"
-        current_task_params = self.task_params.copy()
-        current_task_params["models"] = [week_record, self.month_record]
-        # current_task_params["params_after"] = {
-        #     "table_files_ids": [table_file.id for table_file in table_files],
-        # }
-        # return async_in_lambda("save_csv_in_db", params, current_task_params)
-        return async_in_lambda(
-            "save_week_base_models", params, current_task_params)
+        # current_task_params = self.task_params.copy()
+        # current_task_params["models"] = [week_record, self.month_record]
+        week_task = TaskBuilder(
+            model_obj=week_record, parent_class=self.base_task,
+            function_name="save_week_base_models", params=params,
+            models=[week_record, self.month_record])
+        return week_task.async_in_lambda()
+        # return async_in_lambda(
+        #     "save_week_base_models", params, current_task_params)
 
     def send_lap_tables_to_db(
             self, lap_sheet: LapSheet, table_files: list, inserted_field):
@@ -174,20 +182,26 @@ class InsertMonth:
             WHERE id = {lap_sheet.id}
         """
 
-        current_task_params = self.task_params.copy()
-        current_task_params["models"] = [
-            lap_sheet.sheet_file,
-            lap_sheet.sheet_file.data_file,
-            self.month_record]
+        # current_task_params = self.task_params.copy()
+        models = [lap_sheet.sheet_file, lap_sheet.sheet_file.data_file,
+                  self.month_record]
+        # current_task_params["models"] = [
+        #     lap_sheet.sheet_file,
+        #     lap_sheet.sheet_file.data_file,
+        #     self.month_record]
+        function_after = None
         if inserted_field == "missing_inserted":
             function_name = "save_lap_missing_tables"
             temp_complement = self.month_record.temp_table
-            current_task_params["function_after"] = "check_success_insert"
-            current_task_params["subgroup"] = "missing"
+            # current_task_params["function_after"] = "check_success_insert"
+            function_after = "check_success_insert"
+            # current_task_params["subgroup"] = "missing"
+            subgroup = "missing"
         elif inserted_field == "cat_inserted":
             function_name = "save_lap_cat_tables"
             temp_complement = None
-            current_task_params["subgroup"] = "med_cat"
+            # current_task_params["subgroup"] = "med_cat"
+            subgroup = "med_cat"
         else:
             raise Exception("No se encontró el campo de inserción")
         table_files_ids = [table_file.id for table_file in table_files]
@@ -202,8 +216,13 @@ class InsertMonth:
             "lap_sheet_id": lap_sheet.id,
             "table_files_ids": table_files_ids,
         }
+        lap_task = TaskBuilder(
+            model_obj=lap_sheet, parent_class=self.base_task,
+            function_name=function_name, params=params, models=models,
+            function_after=function_after, subgroup=subgroup)
+        lap_task.async_in_lambda()
         # return async_in_lambda("save_csv_in_db", params, current_task_params)
-        return async_in_lambda(function_name, params, current_task_params)
+        # return async_in_lambda(function_name, params, current_task_params)
 
     def build_catalog_queries(
             self, path, columns_join, model_in_db, model_name):

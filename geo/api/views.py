@@ -76,10 +76,12 @@ class ProviderViewSet(ListRetrieveUpdateMix):
     def send_months(self, request, **kwargs):
         import time
         from inai.misc_mixins.month_record_mix import MonthRecordMix
-        from task.base_views import TaskParams
+        from task.base_views import TaskBuilder
         from inai.api.views import get_related_months
         from inai.api.serializers import MonthRecordSerializer
         from classify_task.models import Stage
+        import threading
+
         month_records_ids = request.data.get("month_records", None)
         month_record_id = request.data.get("month_record", None)
         main_function_name = request.data.get("function_name", None)
@@ -145,10 +147,10 @@ class ProviderViewSet(ListRetrieveUpdateMix):
 
         if month_record_id:
             base_task = None
-            month_base_task = TaskParams(
+            month_base_task = TaskBuilder(
                 main_function_name, request=request, **kwargs)
         else:
-            base_task = TaskParams(
+            base_task = TaskBuilder(
                 main_function_name, request=request, keep_tasks=True)
             base_task.build(provider)
             kwargs["want_http_response"] = False
@@ -158,6 +160,8 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         #     "parent_task": key_task,
         #     "finished_function": stage.finished_function
         # }
+        seconds_sleep = 10 if provider.split_by_delegation else 1
+        accumulated_sleep = 0
 
         for month_record in month_records:
             # related_weeks = month_record.weeks.all()
@@ -174,16 +178,22 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             month_record.save()
             month_errors = []
             # base_class = MonthRecordMix(month_record, task_params)
-            month_methods = MonthRecordMix(month_record, month_base_task)
+            month_methods = MonthRecordMix(
+                month_record, base_task=month_base_task)
 
             def run_in_thread():
                 main_method = getattr(month_methods, main_function_name)
-                main_method()
+                try:
+                    main_method()
+                except HttpResponseError as err:
+                    if not base_task:
+                        return Response(err.body_response, status=err.http_status)
                 # new_tasks, errors, s = main_method()
                 # all_tasks.extend(new_tasks)
                 # all_errors.extend(errors)
                 # comprobate_status(month_task, errors, new_tasks)
                 # time.sleep(2)
+                time.sleep(seconds_sleep)
 
             stage_merge = Stage.objects.get(name="merge")
             all_classified = stage.order >= stage_merge.order
@@ -203,27 +213,30 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 month_record.save_stage(stage.name)
                 # comprobate_status(month_task, [], [])
                 month_base_task.comprobate_status()
+            elif provider.split_by_delegation:
+                t = threading.Thread(target=run_in_thread)
+                t.start()
             else:
-                # t = threading.Thread(target=run_in_thread)
-                # t.start()
-                seconds_sleep = 10 if provider.split_by_delegation else 1
                 run_in_thread()
-                time.sleep(seconds_sleep)
+                # time.sleep(seconds_sleep)
 
         # if (all_tasks or all_errors) and key_task:
         #     return comprobate_status(
         #         key_task, all_errors, all_tasks, want_http_response=True)
+
         if base_task:
             try:
-                base_task.comprobate_status()
+                base_task.comprobate_status(want_http_response=None)
             except HttpResponseError as e:
                 return Response(e.body_response, status=e.http_status)
             # return comprobate_status(
             #     key_task, all_errors, all_tasks, want_http_response=True)
         # elif is_revert and key_task:
         #     comprobate_status(key_task, [], [])
-        elif is_revert and base_task:
-            base_task.comprobate_status()
+        # elif is_revert and base_task:
+        #     base_task.comprobate_status()
+        elif month_base_task:
+            month_base_task.comprobate_status(want_http_response=False)
 
         if not month_records_ids:
             month_records_ids = [month_record_id]
