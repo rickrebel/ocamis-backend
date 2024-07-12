@@ -137,7 +137,8 @@ class AWSMessage(generic.View):
 
 class AwsFunction(TaskHelper):
 
-    def __init__(self, body=None, main_task=None, parent_task=None):
+    def __init__(self, body=None, main_task=None, parent_task=None,
+                 function_name=None):
         # self.body = body
         self.response = None
         self.new_result = {}
@@ -149,17 +150,22 @@ class AwsFunction(TaskHelper):
             raise Exception("No se ha enviado un resultado o un main_task")
         if body:
             # print("-x BODY: ", body)
-            main_task = self.build_with_body(body)
+            main_task = self._build_with_body(body)
         super().__init__(main_task, errors=self.errors)
-        print("-x function_name: ", self.function_name)
+        print("-x function_name 1: ", self.function_name)
+        # if function_name:
+        #     self.function_name = function_name
+        #     print("-x function_name 1.1: ", self.function_name)
         if parent_task:
             params_after = parent_task.params_after or {}
             self.new_result = params_after.get("params_finished", {})
             self.function_name = parent_task.finished_function
-        else:
+            print("-x function_name 2: ", self.function_name)
+        elif not self.function_name:
+            print("-x function_name 3: ", self.function_name)
             self.function_name = main_task.task_function.name
 
-    def build_with_body(self, body, request_id=None):
+    def _build_with_body(self, body, request_id=None):
         if not request_id:
             request_id = body.get("request_id")
         # print("body 0: \n", body)
@@ -174,7 +180,7 @@ class AwsFunction(TaskHelper):
             main_task.save()
             self.new_result = result.copy()
             self.new_result.update(main_task.params_after or {})
-            self.build_complement(main_task)
+            self._build_complement(main_task)
             # function_aws = AwsFunction(self.main_task, new_result)
             # function_aws.execute_function()
             self.response = "success"
@@ -182,13 +188,13 @@ class AwsFunction(TaskHelper):
         except Exception as e:
             raise e
 
-    def build_complement(self, main_task=None):
+    def _build_complement(self, main_task=None):
         if not main_task:
             main_task = self.main_task
         self.errors = self.new_result.get("errors", [])
         self.function_name = main_task.function_after
 
-    def get_method(self):
+    def _get_method(self):
         from inai.misc_mixins.petition_mix import FromAws as Petition
         from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
         from inai.misc_mixins.month_record_from_aws import FromAws as MonthRecord
@@ -204,7 +210,9 @@ class AwsFunction(TaskHelper):
         except AttributeError as error2:
             try:
                 model_name = self.model_obj.__class__.__name__
+                print("-x model_name: ", model_name)
                 from_aws_class = locals()[model_name]
+                print("-x from_aws_class: ", from_aws_class)
                 # base_task = TaskBuilder(
                 #     model_obj=self.model_obj, parent_task=self.main_task)
                 # base_task = TaskBuilder(main_task=self.main_task, from_aws=True)
@@ -222,9 +230,11 @@ class AwsFunction(TaskHelper):
 
     def execute_function(self):
 
-        self.model_obj = self.find_task_model()
+        self.model_obj = self._find_task_model()
+        print("-x function_name 4: ", self.function_name)
         self.new_result["from_aws"] = True
-        self.final_method = self.get_method()
+        self.final_method = self._get_method()
+        print("-x function_name 5: ", self.function_name)
         if self.final_method:
             try:
                 self.new_tasks, final_errors, data = self.final_method(
@@ -233,7 +243,6 @@ class AwsFunction(TaskHelper):
                 self.errors.extend(final_errors or [])
             except Exception as error:
                 error_ = traceback.format_exc()
-
                 error_ = (f"Error en el método {self.function_name}:"
                           f"{str(error)} {str(error_)}")
                 self.errors.append(error_)

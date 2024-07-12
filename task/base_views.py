@@ -5,7 +5,12 @@ from task.views import camel_to_snake
 from datetime import datetime
 
 
-class TaskBuilder(TaskHelper):
+# task_built = TaskBuilder.build_special()
+# task_built.build()
+
+
+class TaskBuilder(TaskHelper, AsyncTask):
+    request = None
 
     def __init__(
             self, function_name=None, model_obj=None, main_task=None,
@@ -54,19 +59,16 @@ class TaskBuilder(TaskHelper):
             self.main_task.params_after = {}
         # self.params_after = params_after or {}
 
-        user = None
         if self.main_task.user:
             pass
         elif self.main_task.parent_task and self.main_task.parent_task.user:
-            user = self.main_task.parent_task.user
+            self.main_task.user = self.main_task.parent_task.user
         elif request:
-            user = request.user
-        if user:
-            self.main_task.user = user
+            self.main_task.user = request.user
 
         print("-x Function name", function_name)
-        kwargs["model_obj"] = self.model_obj
-        super().__init__(self.main_task, parent_class=parent_class, **kwargs)
+        super().__init__(self.main_task, parent_class=parent_class,
+                         model_obj=self.model_obj, **kwargs)
         self.set_function_name(function_name)
         if self.model_obj and not main_task:
             self.build()
@@ -84,6 +86,12 @@ class TaskBuilder(TaskHelper):
             print("Task function", task_function.name)
             self.params["function_name"] = function_name
             self.main_task.task_function = task_function
+
+    # @staticmethod
+    # def build_special(clss, model_obj=None):
+    #     second_object = TaskBuilder(model_obj=model_obj)
+    #     second_object = clss(model_obj=model_obj)
+    #     return second_object
 
     def build(self, model_obj=None):
 

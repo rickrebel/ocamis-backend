@@ -33,23 +33,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         current_file_ctrl = request.query_params.get("file_ctrl", False)
         file_id = request.query_params.get("file_id", False)
 
-        name_control = "Archivos por agrupar. Solicitud %s" % (
-            petition.folio_petition)
-        prev_file_controls = FileControl.objects.filter(
-            data_group_id='orphan',
-            petition_file_control__petition=petition)
-        created = False
-        if prev_file_controls.exists():
-            file_control = prev_file_controls.first()
-        else:
-            file_control, created = FileControl.objects.get_or_create(
-                name=name_control,
-                data_group_id='orphan',
-                final_data=False,
-                agency=petition.agency,
-            )
-        orphan_pfc, created_pfc = PetitionFileControl.objects \
-            .get_or_create(file_control=file_control, petition=petition)
+        orphan_pfc = get_orphan_pfc(petition)
         all_tasks = []
         all_errors = []
         if file_id:
@@ -61,18 +45,15 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 task_params=task_params)
             all_tasks.extend(new_tasks)
             all_errors.extend(errors)
+
         else:
             key_task, task_params = build_task_params(
                 petition, "auto_explore", request)
-            reply_files = ReplyFile.objects.filter(
-                petition=petition, has_data=True)
-            for reply_file in reply_files:
-                children_files = DataFile.objects.filter(reply_file=reply_file)
-                if children_files.exists():
-                    if not children_files.filter(
-                        petition_file_control__file_control__data_group_id='orphan'
-                    ).exists():
-                        continue
+            # reply_files = ReplyFile.objects.filter(
+            #     petition=petition, has_data=True)
+            orphan_files = DataFile.objects.filter(
+                petition_file_control=orphan_pfc)
+
                     new_tasks, new_errors = petition.find_matches_in_children(
                         children_files, current_file_ctrl=current_file_ctrl,
                         task_params=task_params)
@@ -99,10 +80,79 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
         return send_response(petition, task=key_task, errors=all_errors)
 
+    @action(detail=True, methods=["get"], url_path="decompress_remain")
+    def decompress_remain(self, request):
+        from respond.models import ReplyFile
+
+        petition = self.get_object()
+        orphan_pfc = get_orphan_pfc(petition)
+
+        all_tasks = []
+        all_errors = []
+        key_task, task_params = build_task_params(
+            petition, "auto_explore", request)
+        reply_files = ReplyFile.objects\
+            .filter(petition=petition, has_data=False)\
+            .exclude(data_file_childs__isnull=True)
+
+        for reply_file in reply_files:
+            children_files = DataFile.objects.filter(reply_file=reply_file)
+            if children_files.exists():
+                if not children_files.filter(
+                    petition_file_control__file_control__data_group_id='orphan'
+                ).exists():
+                    continue
+                new_tasks, new_errors = petition.find_matches_in_children(
+                    children_files, current_file_ctrl=current_file_ctrl,
+                    task_params=task_params)
+
+                all_tasks.extend(new_tasks)
+                all_errors.extend(new_errors)
+            else:
+                async_task = reply_file.decompress(
+                    orphan_pfc, task_params=task_params)
+                all_tasks.append(async_task)
+        if not reply_files.exists():
+            orphan_files = orphan_pfc.data_files.all()
+            if not orphan_files.exists():
+                all_errors.append(
+                    "No hay archivos huérfanos para explorar")
+            else:
+                new_tasks, new_errors = petition.find_matches_in_children(
+                    orphan_files, current_file_ctrl=current_file_ctrl,
+                    task_params=task_params)
+                all_tasks.extend(new_tasks)
+                all_errors.extend(new_errors)
+        key_task = comprobate_status(
+            key_task, errors=all_errors, new_tasks=all_tasks)
+
+        return send_response(petition, task=key_task, errors=all_errors)
+
     @action(detail=True, methods=["get"], url_path="finished")
     def finished(self, request, pk=None):
         petition = self.get_object()
         return send_response(petition)
+
+
+def get_orphan_pfc(petition):
+    from data_param.models import FileControl
+    name_control = "Archivos por agrupar. Solicitud %s" % (
+        petition.folio_petition)
+    prev_file_controls = FileControl.objects.filter(
+        data_group_id='orphan',
+        petition_file_control__petition=petition)
+    if prev_file_controls.exists():
+        file_control = prev_file_controls.first()
+    else:
+        file_control, created = FileControl.objects.get_or_create(
+            name=name_control,
+            data_group_id='orphan',
+            final_data=False,
+            agency=petition.agency,
+        )
+    orphan_pfc, created_pfc = PetitionFileControl.objects \
+        .get_or_create(file_control=file_control, petition=petition)
+    return orphan_pfc
 
 
 class OpenDataInaiViewSet(ListRetrieveView):

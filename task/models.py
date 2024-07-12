@@ -87,6 +87,23 @@ class AsyncTask(models.Model):
     date_arrive = models.DateTimeField(blank=True, null=True)
     date_end = models.DateTimeField(blank=True, null=True)
 
+    # new_task: list = []
+    # models: list = []
+
+    # def __init__(self, *args, **kwargs):
+    #     self.new_task = kwargs.pop("new_task", None)
+    #     super().__init__(*args, **kwargs)
+    #     # self.new_task = []
+
+    # def save(self, *args, **kwargs):
+    #     post_models = kwargs.pop("models", [])
+    #     for model in post_models:
+    #         model_name = camel_to_snake(model.__class__.__name__)
+    #         setattr(self, model_name, model)
+    #         return model_name
+    #
+    #     super().save(*args, **kwargs)
+
     def save_status(self, status_id=None):
         from datetime import datetime
         is_changed = self.status_task_id != status_id

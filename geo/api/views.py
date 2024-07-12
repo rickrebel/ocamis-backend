@@ -161,7 +161,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         #     "finished_function": stage.finished_function
         # }
         seconds_sleep = 10 if provider.split_by_delegation else 1
-        accumulated_sleep = 0
+        # accumulated_sleep = 0
 
         for month_record in month_records:
             # related_weeks = month_record.weeks.all()
@@ -228,6 +228,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             try:
                 base_task.comprobate_status(want_http_response=None)
             except HttpResponseError as e:
+                print("ERROR EN BASE TASK", e)
                 return Response(e.body_response, status=e.http_status)
             # return comprobate_status(
             #     key_task, all_errors, all_tasks, want_http_response=True)

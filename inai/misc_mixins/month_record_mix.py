@@ -2,7 +2,6 @@ from classify_task.models import Stage
 from inai.models import MonthRecord
 from task.serverless import async_in_lambda
 from task.base_views import TaskBuilder
-from task.helpers import HttpResponseError
 from task.views_aws import AwsFunction
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
@@ -104,8 +103,7 @@ class MonthRecordMix:
             self.save_sums(all_sheet_ids)
 
         self.month_record.save()
-
-        return [], [], True
+        self.base_task.comprobate_status()
 
     def send_analysis(self):
         from respond.models import TableFile
@@ -115,7 +113,7 @@ class MonthRecordMix:
         insert_stage = Stage.objects.get(name="insert")
         if self.month_record.stage.order >= insert_stage.order:
             error = f"El mes {self.month_record.year_month} ya se insertó"
-            return self.base_task.add_errors([error], True)
+            return self.base_task.add_errors([error], http_response=True)
         all_table_files = TableFile.objects\
             .filter(
                 week_record__month_record=self.month_record,
@@ -137,16 +135,16 @@ class MonthRecordMix:
                 .first()
             if not medicine_field:
                 error = "No se encontró campo de medicamento"
-                return self.base_task.add_errors([error], True)
+                return self.base_task.add_errors([error], http_response=True)
             unique_medicines.add(medicine_field.final_field_id)
         if len(unique_medicines) > 1:
             error = "Más de un campo de medicamento"
-            return self.base_task.add_errors([error], True)
+            return self.base_task.add_errors([error], http_response=True)
         elif len(unique_medicines) == 1:
             medicine_key = unique_medicines.pop()
 
         # week_base_task = TaskBuilder(
-        print("base_task.main_task", self.base_task.main_task)
+        print("-x base_task.main_task", self.base_task.main_task)
 
         for week in self.month_record.weeks.all():
             # if week.last_crossing and week.last_transformation:
@@ -169,7 +167,7 @@ class MonthRecordMix:
                 parent_class=self.base_task, model_obj=week,
                 function_after="analyze_uniques_after",
                 params=params, models=[week, self.month_record])
-            print("week_base_task", week_base_task)
+            # print("week_base_task", week_base_task)
 
             # self.task_params["models"] = [week, self.month_record]
             # self.task_params["function_after"] = "analyze_uniques_after"
@@ -377,7 +375,6 @@ class MonthRecordMix:
 
         error_process_str = self.get_error_process_str()
         if error_process_str:
-            blocked_error = "blocked by process " in error_process_str
             if "semanas con más medicamentos" in error_process_str:
                 models = {
                     "rx": "uuid_folio",
@@ -398,10 +395,10 @@ class MonthRecordMix:
                             WHERE t.rnum > 1
                         );
                     """)
-            elif not blocked_error:
+            elif "blocked by process " not in error_process_str:
                 errors = [f"Existen otros errores: {error_process_str}"]
                 self.month_record.save_error_process(errors)
-                return self.base_task.add_errors(errors, True)
+                return self.base_task.add_errors(errors, http_response=True)
 
         drugs_counts = TableFile.objects.filter(
                 week_record__month_record=self.month_record,
@@ -415,7 +412,7 @@ class MonthRecordMix:
         if not drugs_object:
             errors = ["No se encontraron semanas con medicamentos"]
             self.month_record.save_error_process(errors)
-            return self.base_task.add_errors(errors, True)
+            self.base_task.add_errors(errors, http_response=True)
         temp_drug = f"tmp.fm_{self.month_record.temp_table}_drug"
         count_query = f"""
             SELECT week_record_id,
@@ -462,7 +459,7 @@ class MonthRecordMix:
         if error_process_str:
             error = f"Existen otros errores: {error_process_str}"
             self.month_record.save_error_process([error])
-            return self.base_task.add_errors([error], True)
+            self.base_task.add_errors([error], http_response=True)
 
         constraint_queries = modify_constraints(
             True, False, self.month_record.temp_table)
@@ -505,20 +502,18 @@ class MonthRecordMix:
         try:
             base_table = self.month_record.cluster.name
         except Exception as e:
-            errors.append(f"El proveedor no está asociado a ningún cluster")
-            return [], errors, False
+            error = f"El proveedor no está asociado a ningún cluster:"
+            self.base_task.add_errors([error], http_response=True)
         formula_tables = ["rx", "drug", "missingrow", "missingfield",
                           "complementrx", "complementdrug", "diagnosisrx"]
+        self.check_temp_tables()
         for table_name in formula_tables:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table, "tmp")
+            if not exists_temp_tables:
+                continue
             base_table_name = f"frm_{base_table}_{table_name}"
             exists_base_table = exist_temp_table(base_table_name, "base")
-            if not exists_temp_tables:
-                if table_name in ["rx", "drug"]:
-                    errors.append(f"No existe la tabla esencial {temp_table}")
-                else:
-                    continue
             if not exists_base_table:
                 create_base_tables.append(f"""
                     CREATE TABLE base.{base_table_name}
@@ -532,9 +527,6 @@ class MonthRecordMix:
             drop_queries.append(f"""
                 DROP TABLE IF EXISTS {temp_table} CASCADE;
             """)
-
-        if errors:
-            return [], errors, False
 
         first_query = f"""
             SELECT last_insertion IS NOT NULL AS last_insertion
@@ -557,13 +549,17 @@ class MonthRecordMix:
             "drop_queries": drop_queries,
             "last_query": last_query,
         }
-        all_tasks = []
-        self.task_params["models"] = [self.month_record]
-        async_task = async_in_lambda(
-            "insert_temp_tables", params, self.task_params)
-        if async_task:
-            all_tasks.append(async_task)
-        return all_tasks, [], True
+        # all_tasks = []
+        # self.task_params["models"] = [self.month_record]
+        # async_task = async_in_lambda(
+        #     "insert_temp_tables", params, self.task_params)
+        # if async_task:
+        #     all_tasks.append(async_task)
+        insert_task = TaskBuilder(
+            function_name="insert_temp_tables", params=params,
+            parent_class=self.base_task, model_obj=self.month_record)
+        insert_task.async_in_lambda(comprobate=False)
+        # return all_tasks, [], True
 
     def save_sums(self, all_sheet_ids):
         from respond.models import LapSheet
@@ -596,15 +592,17 @@ class MonthRecordMix:
         return "\n".join(error_process_list)
 
     def check_temp_tables(self):
+        errors = []
         for table_name in ["rx", "drug"]:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
             exists_temp_tables = exist_temp_table(temp_table, "tmp")
             if not exists_temp_tables:
                 error = f"No existe la tabla esencial {temp_table}"
-                self.base_task.add_errors([error], True)
-                self.month_record.status_id = "with_errors"
-                self.month_record.save()
-                raise HttpResponseError({"errors": self.base_task.errors})
+                errors.append(error)
+        if errors:
+            self.month_record.status_id = "with_errors"
+            self.month_record.save()
+            self.base_task.add_errors(errors, http_response=True)
 
 
 def exist_temp_table(table_name, schema="public"):

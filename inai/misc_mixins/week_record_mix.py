@@ -19,8 +19,8 @@ class FromAws:
         unique_counts = kwargs.get("month_week_counts", {})
         month_pairs = kwargs.get("month_pairs", {})
         month_sheets = kwargs.get("month_sheets", {})
-        self.save_week_record(unique_counts, month_pairs)
-        errors = self.save_crossing_sheets(month_sheets)
+        self._save_week_record(unique_counts, month_pairs)
+        errors = self._save_crossing_sheets(month_sheets)
         all_errors += errors
 
         return all_tasks, all_errors, True
@@ -91,7 +91,7 @@ class FromAws:
         self.week_record.drugs_count = drugs_count
         return [], [], True
 
-    def save_week_record(self, month_week_counts, month_pairs):
+    def _save_week_record(self, month_week_counts, month_pairs):
         from django.utils import timezone
         # duplicates_count
         fields = [
@@ -119,7 +119,7 @@ class FromAws:
         #     drugs_count=month_counts["drugs_count"]
         # )
 
-    def save_crossing_sheets(self, sheets):
+    def _save_crossing_sheets(self, sheets):
         from respond.models import TableFile
         all_errors = []
 
@@ -143,7 +143,7 @@ class FromAws:
 
         return all_errors
 
-    def save_crossing_sheets_old(self, month_pairs, sheets):
+    def _save_crossing_sheets_old(self, month_pairs, sheets):
         all_errors = []
 
         for sheet_id, value in sheets.items():

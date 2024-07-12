@@ -38,9 +38,7 @@ class Serverless:
             errors=None, params=None, parent_class=None, model_obj=None):
         self.main_task = main_task
         self.model_obj = model_obj
-        if errors is None:
-            self.errors = []
-        else:
+        if errors:
             self.errors = errors
         self.new_tasks = []
         self.want_http_response = want_http_response
