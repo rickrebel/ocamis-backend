@@ -120,7 +120,6 @@ class TaskBuilder(TaskHelper, AsyncTask):
         if self.main_task.subgroup:
             filter_kwargs["subgroup"] = self.main_task.subgroup
 
-        # self.create_kwargs[model_name] = model_obj
         if not self.main_task.is_massive and not self.keep_tasks:
             previous_tasks = AsyncTask.objects.filter(**filter_kwargs)
             self.update_previous_tasks(previous_tasks)

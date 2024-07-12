@@ -3,7 +3,6 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import inai.models
-import respond.reply_file_mixins.process_mix
 import respond.models
 
 
@@ -113,7 +112,6 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': '2. Archivos sin datos finales',
                 'db_table': 'inai_replyfile',
             },
-            bases=(models.Model, respond.reply_file_mixins.process_mix.ReplyFileMix),
         ),
         migrations.CreateModel(
             name='LapSheet',

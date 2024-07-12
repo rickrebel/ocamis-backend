@@ -13,6 +13,8 @@ from respond.api.serializers import DataFileSerializer
 from inai.models import PetitionFileControl
 from respond.models import DataFile, SheetFile
 from task.views import build_task_params, comprobate_status
+from task.base_views import TaskBuilder
+from task.helpers import HttpResponseError
 from . import serializers
 from rest_framework.response import Response
 from rest_framework import (permissions, status)
@@ -453,29 +455,6 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             new_file_control)
         return Response(
             new_serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(methods=["get"], detail=True, url_path='link_orphans')
-    def link_orphans(self, request, **kwargs):
-        from inai.api.common import send_response
-
-        file_control = self.get_object()
-        petition = file_control.petition_file_control.petition
-        orphan_files = DataFile.objects.filter(
-            petition_file_control__petition=petition,
-            petition_file_control__file_control__data_group_id="orphan",
-        )
-        if orphan_files.exists():
-            key_task, task_params = build_task_params(
-                file_control, "link_orphans", request)
-            new_tasks, new_errors = petition.find_matches_in_children(
-                orphan_files, current_file_ctrl=file_control.id,
-                task_params=task_params)
-            comprobate_status(key_task, new_errors, new_tasks)
-            return send_response(petition, task=key_task, errors=new_errors)
-        else:
-            return Response(
-                {"errors": ["No hay archivos en grupos huérfanos"]},
-                status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["put"], detail=True, url_path='massive_change_stage')
     def massive_change_stage(self, request, **kwargs):

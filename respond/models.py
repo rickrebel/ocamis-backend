@@ -11,13 +11,12 @@ from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
 from inai.models import (
     Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord)
-from respond.reply_file_mixins.process_mix import ReplyFileMix
 
 can_delete_s3 = getattr(
     settings, "CAN_DELETE_AWS_STORAGE_FILES", False)
 
 
-class ReplyFile(models.Model, ReplyFileMix):
+class ReplyFile(models.Model):
 
     petition = models.ForeignKey(
         Petition, related_name="reply_files", on_delete=models.CASCADE)

@@ -13,8 +13,6 @@ from data_param.models import (
 from med_cat.models import Delivered
 from rds.models import Cluster
 
-from .petition_mixins.petition_mix import PetitionTransformsMix
-
 
 def set_upload_path(instance, filename):
     from django.conf import settings
@@ -271,7 +269,7 @@ class Variable(models.Model):
         verbose_name_plural = "Variables de plantilla"
 
 
-class Petition(models.Model, PetitionTransformsMix):
+class Petition(models.Model):
 
     folio_petition = models.CharField(
         max_length=50, blank=True, null=True,

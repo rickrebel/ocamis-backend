@@ -152,7 +152,6 @@ class AwsFunction(TaskHelper):
             # print("-x BODY: ", body)
             main_task = self._build_with_body(body)
         super().__init__(main_task, errors=self.errors)
-        print("-x function_name 1: ", self.function_name)
         # if function_name:
         #     self.function_name = function_name
         #     print("-x function_name 1.1: ", self.function_name)
@@ -160,9 +159,7 @@ class AwsFunction(TaskHelper):
             params_after = parent_task.params_after or {}
             self.new_result = params_after.get("params_finished", {})
             self.function_name = parent_task.finished_function
-            print("-x function_name 2: ", self.function_name)
         elif not self.function_name:
-            print("-x function_name 3: ", self.function_name)
             self.function_name = main_task.task_function.name
 
     def _build_with_body(self, body, request_id=None):
@@ -202,17 +199,14 @@ class AwsFunction(TaskHelper):
         from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
         from rds.misc_mixins.cluster_mix import FromAws as Cluster
         from rds.misc_mixins.mat_view_mix import FromAws as MatView
-        print("-x get_method de", self.function_name)
-        print("-x model_obj: ", self.model_obj)
+        from respond.reply_file_mixins.process_real_mix import FromAws as ReplyFile
         task_parameters = {"parent_task": self.main_task}
         try:
             self.final_method = getattr(self.model_obj, self.function_name)
         except AttributeError as error2:
             try:
                 model_name = self.model_obj.__class__.__name__
-                print("-x model_name: ", model_name)
                 from_aws_class = locals()[model_name]
-                print("-x from_aws_class: ", from_aws_class)
                 # base_task = TaskBuilder(
                 #     model_obj=self.model_obj, parent_task=self.main_task)
                 # base_task = TaskBuilder(main_task=self.main_task, from_aws=True)
@@ -231,10 +225,8 @@ class AwsFunction(TaskHelper):
     def execute_function(self):
 
         self.model_obj = self._find_task_model()
-        print("-x function_name 4: ", self.function_name)
         self.new_result["from_aws"] = True
         self.final_method = self._get_method()
-        print("-x function_name 5: ", self.function_name)
         if self.final_method:
             try:
                 self.new_tasks, final_errors, data = self.final_method(

@@ -3,8 +3,6 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import inai.models
-import inai.petition_mixins.petition_mix
-import respond.reply_file_mixins.process_mix
 import respond.models
 
 
@@ -87,7 +85,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Solicitud - Petición',
                 'verbose_name_plural': '1. Solicitudes (Peticiones)',
             },
-            bases=(models.Model, inai.petition_mixins.petition_mix.PetitionTransformsMix),
         ),
         migrations.CreateModel(
             name='SheetFile',
@@ -130,7 +127,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Archivo sin datos finales',
                 'verbose_name_plural': '2. Archivos sin datos finales',
             },
-            bases=(models.Model, respond.reply_file_mixins.process_mix.ReplyFileMix),
         ),
         migrations.CreateModel(
             name='PetitionNegativeReason',

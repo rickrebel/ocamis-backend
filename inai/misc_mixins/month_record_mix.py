@@ -144,7 +144,7 @@ class MonthRecordMix:
             medicine_key = unique_medicines.pop()
 
         # week_base_task = TaskBuilder(
-        print("-x base_task.main_task", self.base_task.main_task)
+        # print("-x base_task.main_task", self.base_task.main_task)
 
         for week in self.month_record.weeks.all():
             # if week.last_crossing and week.last_transformation:

@@ -81,6 +81,10 @@ class TaskHelper(Serverless):
                     return None
         return self.main_task
 
+    def add_many_tasks(self, new_tasks: list, from_child=False):
+        for new_task in new_tasks:
+            self.add_new_task(new_task, from_child)
+
     def add_new_task(self, new_task=None, from_child=False):
         if from_child and new_task:
             self.new_tasks.append(new_task)
