@@ -25,7 +25,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         "retrieve": serializers.PetitionFullSerializer,
     }
 
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve_old(self, request, *args, **kwargs):
         from respond.models import ReplyFile
         from data_param.models import FileControl
 
@@ -33,6 +33,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         current_file_ctrl = request.query_params.get("file_ctrl", False)
         file_id = request.query_params.get("file_id", False)
 
+        petition = self.get_object()
         orphan_pfc = get_orphan_pfc(petition)
         all_tasks = []
         all_errors = []
@@ -45,15 +46,18 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 task_params=task_params)
             all_tasks.extend(new_tasks)
             all_errors.extend(errors)
-
         else:
             key_task, task_params = build_task_params(
                 petition, "auto_explore", request)
-            # reply_files = ReplyFile.objects.filter(
-            #     petition=petition, has_data=True)
-            orphan_files = DataFile.objects.filter(
-                petition_file_control=orphan_pfc)
-
+            reply_files = ReplyFile.objects.filter(
+                petition=petition, has_data=True)
+            for reply_file in reply_files:
+                children_files = DataFile.objects.filter(reply_file=reply_file)
+                if children_files.exists():
+                    if not children_files.filter(
+                        petition_file_control__file_control__data_group_id='orphan'
+                    ).exists():
+                        continue
                     new_tasks, new_errors = petition.find_matches_in_children(
                         children_files, current_file_ctrl=current_file_ctrl,
                         task_params=task_params)
@@ -80,6 +84,36 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
         return send_response(petition, task=key_task, errors=all_errors)
 
+    def retrieve(self, request, *args, **kwargs):
+
+        petition = self.get_object()
+        current_file_ctrl = request.query_params.get("file_ctrl", False)
+        file_id = request.query_params.get("file_id", False)
+
+        orphan_pfc = get_orphan_pfc(petition)
+        all_tasks = []
+        all_errors = []
+        key_task, task_params = build_task_params(
+            petition, "auto_explore", request)
+        if file_id:
+            data_files = DataFile.objects.filter(id=file_id)
+        else:
+            data_files = orphan_pfc.data_files.all()
+        if not data_files.exists():
+            error = "No se encontró el archivo para explorar" if file_id else \
+                "No hay archivos huérfanos para explorar"
+            all_errors.append(error)
+            return send_response(petition, errors=all_errors)
+        new_tasks, errors = petition.find_matches_in_children(
+            data_files, current_file_ctrl=current_file_ctrl,
+            task_params=task_params)
+        all_tasks.extend(new_tasks)
+        all_errors.extend(errors)
+        key_task = comprobate_status(
+            key_task, errors=all_errors, new_tasks=all_tasks)
+
+        return send_response(petition, task=key_task, errors=all_errors)
+
     @action(detail=True, methods=["get"], url_path="decompress_remain")
     def decompress_remain(self, request):
         from respond.models import ReplyFile
@@ -96,33 +130,12 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             .exclude(data_file_childs__isnull=True)
 
         for reply_file in reply_files:
-            children_files = DataFile.objects.filter(reply_file=reply_file)
-            if children_files.exists():
-                if not children_files.filter(
-                    petition_file_control__file_control__data_group_id='orphan'
-                ).exists():
-                    continue
-                new_tasks, new_errors = petition.find_matches_in_children(
-                    children_files, current_file_ctrl=current_file_ctrl,
-                    task_params=task_params)
-
-                all_tasks.extend(new_tasks)
-                all_errors.extend(new_errors)
-            else:
-                async_task = reply_file.decompress(
-                    orphan_pfc, task_params=task_params)
-                all_tasks.append(async_task)
+            async_task = reply_file.decompress(
+                orphan_pfc, task_params=task_params)
+            all_tasks.append(async_task)
         if not reply_files.exists():
-            orphan_files = orphan_pfc.data_files.all()
-            if not orphan_files.exists():
-                all_errors.append(
-                    "No hay archivos huérfanos para explorar")
-            else:
-                new_tasks, new_errors = petition.find_matches_in_children(
-                    orphan_files, current_file_ctrl=current_file_ctrl,
-                    task_params=task_params)
-                all_tasks.extend(new_tasks)
-                all_errors.extend(new_errors)
+            all_errors.append(
+                "Ya se han descomprimido todos los archivos")
         key_task = comprobate_status(
             key_task, errors=all_errors, new_tasks=all_tasks)
 
