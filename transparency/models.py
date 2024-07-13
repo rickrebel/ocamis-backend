@@ -14,8 +14,8 @@ def default_dict():
 
 
 class Anomaly(models.Model):
-    public_name = models.CharField(max_length=255,
-        verbose_name="Nombre público")
+    public_name = models.CharField(
+        max_length=255, verbose_name="Nombre público")
     name = models.CharField(
         max_length=25, verbose_name="Nombre (devs)")
     is_public = models.BooleanField(default=True)
@@ -65,8 +65,8 @@ class TransparencyLevel(models.Model):
         on_delete=models.CASCADE)
     short_name = models.CharField(max_length=20)
     public_name = models.CharField(max_length=80)
-    value = models.IntegerField(default=0,
-        help_text="Para ordenar y decidier según menor")
+    value = models.IntegerField(
+        default=0, help_text="Para ordenar y decidir según menor")
     description = models.TextField(blank=True, null=True)
     anomalies = models.ManyToManyField(
         Anomaly, blank=True, verbose_name="Anomalías relacionadas")

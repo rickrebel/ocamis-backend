@@ -107,6 +107,14 @@ class ExtractorsMix:
         }
         return result, [], None
 
+    def split_intermediary_file(self, task_params=None):
+        params = {
+            "file": self.file.name,
+            "final_path": self.final_path,
+        }
+
+        return []
+
     def decompress_file_gz(self, task_params=None):
         from task.serverless import async_in_lambda
         from inai.models import set_upload_path

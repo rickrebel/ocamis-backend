@@ -147,7 +147,10 @@ def upload_s3_files(local_file, s3_dir):
 # f'H:\\Mi unidad\\IMSS\\Noviembre_2021.zip',
 def upload_simple():
     files = upload_s3_files(
-        f'H:\\Mi unidad\\IMSS\\Noviembre_2021-2.zip',
+        f'H:\\Mi unidad\\IMSS\\Enero_2022-1.rar',
+        'nacional/imss_imss-bienestar/330018024006508/dvd3/')
+    files = upload_s3_files(
+        f'H:\\Mi unidad\\IMSS\\Enero_2022-2.rar',
         'nacional/imss_imss-bienestar/330018024006508/dvd3/')
 
 

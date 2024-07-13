@@ -170,9 +170,9 @@ class Provider(models.Model):
     def save(self, *args, **kwargs):
         from inai.models import MonthRecord
         from scripts.verified.initial_fields import WeeksGenerator
-        self_created = True if self.pk is None else False
+        # self_created = True if self.pk is None else False
         super(Provider, self).save(*args, **kwargs)
-        if self_created:
+        if not self.pk:
             weeks_gen = WeeksGenerator(provider=self)
             weeks_gen.generate_months()
             weeks_gen.generate_weeks()
