@@ -3,7 +3,7 @@ from django.db.models import JSONField
 
 from geo.models import Agency, Provider, Delegation
 from category.models import (
-    FileType, ColumnType, NegativeReason,
+    ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat, StatusControl)
 from classify_task.models import Stage, StatusTask
 from transparency.models import Anomaly

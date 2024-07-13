@@ -222,9 +222,7 @@ class FinalField(models.Model):
     verbose_name = models.CharField(
         max_length=255, verbose_name="Nombre público", blank=True, null=True)
     data_type = models.ForeignKey(
-        DataType, 
-        null=True, blank= True,
-        on_delete=models.CASCADE,)
+        DataType, null=True, blank=True, on_delete=models.CASCADE)
     addl_params = JSONField(
         blank=True, null=True, 
         verbose_name="Otras configuraciones", 

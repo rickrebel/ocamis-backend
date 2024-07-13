@@ -34,7 +34,10 @@ class DecompressZip:
         if '.zip' in suffixes:
             zip_file = zipfile.ZipFile(object_bytes)
         elif '.rar' in suffixes:
-            zip_file = rarfile.RarFile(object_bytes)
+            try:
+                zip_file = rarfile.RarFile(object_bytes)
+            except rarfile.NotRarFile:
+                return
         else:
             self.errors.append("No se reconoce el formato del archivo")
             return

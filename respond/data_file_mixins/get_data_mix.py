@@ -250,7 +250,6 @@ class ExtractorsMix:
     def get_data_from_file_simple(
             self, type_explor, file_control=None, task_params=None):
         from task.serverless import async_in_lambda
-        from scripts.recipe_specials import special_issste
 
         errors = []
         is_explore = bool(type_explor)

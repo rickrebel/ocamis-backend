@@ -631,7 +631,9 @@ class MatchAws:
                 value = null_to_value
         delete_text = field.get("delete_text")
         if delete_text:
-            value = re.sub(delete_text, "", value)
+            strings = delete_text.split(";")
+            for string in strings:
+                value = re.sub(string, "", value)
         replace_text = field.get("replace_text")
         if replace_text:
             try:
