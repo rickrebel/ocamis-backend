@@ -5,14 +5,14 @@ from task.aws.common import (obtain_decode, send_simple_response, BotoUtils,
 # def decompress_gz(event, context):
 def lambda_handler(event, context):
 
-    decompress_gz = DecompressGz(event, context)
+    gz = Gz(event, context)
     file = event["file"]
-    result, errors = decompress_gz.decompress(file)
+    result, errors = gz.decompress_gz(file)
 
     return send_simple_response(event, context, errors, result)
 
 
-class DecompressGz:
+class Gz:
 
     def __init__(self, event: dict, context):
         self.context = context
@@ -21,7 +21,7 @@ class DecompressGz:
         self.decode = event.get("decode")
         self.directory = event["directory"]
 
-    def decompress(self, file):
+    def decompress_gz(self, file):
         import gzip
         decompressed_path = file.replace(".gz", "")
         pos_slash = decompressed_path.rfind("/")
@@ -38,7 +38,7 @@ class DecompressGz:
             with file_obj.get()['Body'] as csv_file:
                 result, errors = self.write_split_files(csv_file, only_name)
         result["matched"] = True
-        result["file_type_id"] = "split"
+        result["file_type"] = "split"
         errors += self.s3_utils.errors
         return result, errors
 

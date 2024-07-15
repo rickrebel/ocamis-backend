@@ -189,9 +189,11 @@ class TaskFunctionAdmin(admin.ModelAdmin):
         "is_queueable",
         "ebs_percent",
         "model_name",
+        # "queue_size",
+        # "group_queue",
     ]
     # list_editable = ["public_name", "is_active"]
-    list_filter = ["is_active", "is_queueable", "is_from_aws"]
+    list_filter = ["is_active", "is_queueable", "is_from_aws", "model_name"]
 
 
 class StageAdmin(admin.ModelAdmin):

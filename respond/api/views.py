@@ -93,7 +93,7 @@ class AscertainableViewSet(CreateRetrieveView):
             # print("serializer_data_file", serializer_data_file)
             serializer_data_file.save()
         else:
-            return Response({ "errors": serializer_data_file.errors },
+            return Response({"errors": serializer_data_file.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
             serializer_data_file.data, status=status.HTTP_201_CREATED)

@@ -1,6 +1,6 @@
 from respond.models import ReplyFile
 from task.base_views import TaskBuilder
-from inai.petition_mixins.petition_real_mix import PetitionTransformsMixReal
+from inai.petition_mixins.petition_mix import PetitionTransformsMixReal
 
 
 class ReplyFileMixReal:
@@ -10,7 +10,7 @@ class ReplyFileMixReal:
         self.task_params = {"parent_task": base_task.main_task}
         self.base_task = base_task
 
-    def decompress(self, pet_file_ctrl):
+    def decompress_reply(self, pet_file_ctrl):
         import pathlib
         from inai.models import set_upload_path
 
@@ -82,5 +82,5 @@ class FromAws:
 
         petition_class = PetitionTransformsMixReal(
             petition, base_task=self.base_task)
-        petition_class.find_matches_in_children(all_data_files)
+        petition_class.find_matches_for_data_files(all_data_files)
         return self.base_task.new_tasks, self.base_task.errors, None

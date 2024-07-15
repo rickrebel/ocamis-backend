@@ -2,7 +2,7 @@ from classify_task.models import Stage
 from inai.models import MonthRecord
 from task.serverless import async_in_lambda
 from task.base_views import TaskBuilder
-from task.views_aws import AwsFunction
+from task.views_main_aws import AwsFunction
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
@@ -156,10 +156,21 @@ class MonthRecordMix:
             #     collection__isnull=True)
 
             table_files = all_table_files.filter(week_record=week)
-            file_names = table_files.values_list("file", flat=True)
+            file_names = list(table_files.values_list("file", flat=True))
+            # Calculate if file_names has duplicates
+            if len(file_names) != len(set(file_names)):
+                # Calculate the first duplicate file
+                first_duplicate_file = None
+                for file_name in file_names:
+                    if file_names.count(file_name) > 1:
+                        first_duplicate_file = file_name
+                        break
+                error = f"Se están intentando enviar el mismo archivo " \
+                        f"llamado {first_duplicate_file} más de una vez"
+                return self.base_task.add_errors_and_raise([error])
             params = {
                 "provider_id": week.provider_id,
-                "table_files": list(file_names),
+                "table_files": file_names,
                 "has_medicine_key": bool(medicine_key),
             }
             week_base_task = TaskBuilder(

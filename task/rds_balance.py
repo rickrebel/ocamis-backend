@@ -70,9 +70,10 @@ def delayed_execution(method, delay):
 def comprobate_waiting_balance():
     from task.models import AsyncTask
     from task.serverless import execute_async
-    waiting_balance_task = AsyncTask.objects\
-        .filter(status_task_id="queue", task_function__ebs_percent__gt=0)\
-        .order_by("id").first()
+    # waiting_balance_task = AsyncTask.objects\
+    #     .filter(status_task_id="queue", task_function__ebs_percent__gt=0)\
+    #     .order_by("id").first()
+    waiting_balance_task = AsyncTask.objects.in_queue().first()
     if waiting_balance_task:
         if has_enough_balance(waiting_balance_task.task_function):
             execute_async(

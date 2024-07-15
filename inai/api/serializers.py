@@ -122,6 +122,7 @@ class PetitionFileControlFullSerializer(PetitionFileControlSerializer):
     class Meta:
         model = PetitionFileControl
         fields = "__all__"
+        ordering = ["file_control_id"]
 
 
 class FileControlFullSerializer(FileControlSerializer):

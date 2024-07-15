@@ -9,14 +9,14 @@ from datetime import datetime
 # task_built.build()
 
 
-class TaskBuilder(TaskHelper, AsyncTask):
+class TaskBuilder(TaskHelper):
     request = None
 
     def __init__(
             self, function_name=None, model_obj=None, main_task=None,
-            request=None, parent_task=None, finished_function=None,
+            request=None, parent_task=None, function_after=None,
             keep_tasks=False, parent_class=None, subgroup=None, from_aws=None,
-            function_after=None, params_after=None, models=None, **kwargs):
+            finished_function=None, params_after=None, models=None, **kwargs):
 
         self.from_aws = from_aws
         if main_task:

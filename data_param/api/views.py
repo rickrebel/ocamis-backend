@@ -102,16 +102,14 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             file_control, context={'request': request})
         data = serializer.data
         data_files = DataFile.objects\
-            .filter(petition_file_control__file_control=file_control) \
-            .order_by("-id")\
-            .prefetch_related("sheet_files", "petition_file_control")
+            .filter(petition_file_control__file_control=file_control)
+        # data_files = file_control.petition_file_control.data_files.all()
         data["data_files_count"] = data_files.count()
         data["filter_data_files"] = data["data_files_count"]
-        # data_files = data_files[:31]
-        # serializer_files = DataFileSerializer(data_files, many=True).data
-        # data["data_files"] = serializer_files
+        sheet_files = SheetFile.objects\
+            .filter(data_file__petition_file_control__file_control=file_control)
+        data["sheet_files_count"] = sheet_files.count()
         data["data_files"] = []
-        # data_files = serializers.SerializerMethodField(read_only=True)
         return Response(data, status=status.HTTP_200_OK)
 
     def create(self, request, **kwargs):
@@ -476,6 +474,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         function_name = target_stage.main_function.name
         after_aws = "find_coincidences_from_aws" if \
             target_stage.name == "cluster" else "build_sample_data_after"
+        # RICK TASK: Revisar perfecto esto de after_if_empty
         curr_kwargs = {"after_if_empty": after_aws}
         subgroup = f"{stage_init}|{status_init}"
         key_task, task_params = build_task_params(

@@ -59,17 +59,6 @@ def restructurate_reasons():
     #for PetitionNegativeReason in NegativeReason:
 
 
-def set_file_type_to_datafile():
-    from respond.models import DataFile
-    from category.models import FileType
-    all_files = DataFile.objects.all()
-    for data_file in all_files:
-        if data_file.file_type:
-            continue
-        data_file.file_type_id = 'original_data'
-        data_file.save()
-
-
 def change_some_default_values():
     from respond.models import DataFile
     all_files = DataFile.objects.all()

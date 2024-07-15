@@ -4,10 +4,10 @@ from django.conf import settings
 
 def obtain_names_from_s3(
         path, folio_petition, is_reply_file=False, file_control_id=None):
-    from inai.models import (
-        PetitionFileControl, Petition, FileType)
-    from respond.models import DataFile
-    from respond.models import ReplyFile
+    from inai.models import PetitionFileControl, Petition
+    from category.models import FileType
+    from respond.models import DataFile, ReplyFile
+
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
@@ -23,14 +23,9 @@ def obtain_names_from_s3(
         final_name = object_summary.key.replace(f"{settings.AWS_LOCATION}/", '')
         if is_reply_file:
             try:
-                default_type = FileType.objects.get(name="no_final_info")
                 petition = Petition.objects.get(folio_petition=folio_petition)
                 pf, created = ReplyFile.objects.get_or_create(
-                    petition=petition,
-                    file=final_name,
-                    file_type=default_type,
-                    has_data=True
-                    )
+                    petition=petition, file=final_name, has_data=True)
                 print(f"{'Exitosamente' if created else 'Previamente'} creado: {petition}")
             except Exception as e:
                 print("No fue posible obtener la Solicitud")

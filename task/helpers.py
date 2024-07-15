@@ -1,5 +1,5 @@
 from task.models import AsyncTask
-from task.serverless import Serverless
+from task.serverless import Serverless, TaskChecker
 from task.rds_balance import (
     has_enough_balance, delayed_execution, comprobate_waiting_balance)
 
@@ -8,13 +8,26 @@ class HttpResponseError(Exception):
     def __init__(self, body_response, http_status=400):
         self.body_response = body_response
         self.http_status = http_status
+        self.errors = body_response.get("errors", [])
         super().__init__(self.body_response)
+
+    def send_response(self):
+        from rest_framework.response import Response
+        return Response(self.body_response, status=self.http_status)
 
 
 class TaskHelper(Serverless):
 
-    def async_in_lambda(self, function_name=None, comprobate=True):
-        self.set_function_name(function_name)
+    def __init__(self, main_task: AsyncTask, want_http_response=None,
+                 parent_class=None, model_obj=None, **kwargs):
+        super().__init__(main_task, **kwargs)
+        self.want_http_response = want_http_response
+        self.parent_class = parent_class
+        self.model_obj = model_obj
+        self.checker = TaskChecker(self.main_task)
+
+    def async_in_lambda(self, comprobate=True, http_response=False):
+        # self.set_function_name(function_name)
         task_function = self.main_task.task_function
         if not self.main_task.function_after:
             self.main_task.function_after = f"{task_function.name}_after"
@@ -30,28 +43,31 @@ class TaskHelper(Serverless):
             print(error)
             self.errors.append(error)
             return None
+        self.comprobate_send(comprobate=comprobate, http_response=http_response)
 
+    def comprobate_send(self, comprobate=True, http_response=False):
+        task_function = self.main_task.task_function
         if not task_function.is_queueable:
             self.execute_async()
 
         elif task_function.ebs_percent:
             self.save_queue()
-            res = self._comprobate_ebs(True)
+            res = self.checker.comprobate_ebs(True)
             if not res:
                 self.main_task.save()
         else:
             self._individual_queueable(task_function)
-        if comprobate:
-            return self.comprobate_status(want_http_response=False)
+        if comprobate or http_response is not False:
+            return self.comprobate_status(want_http_response=http_response)
 
-    def comprobate_status(self, want_http_response=None):
+    def comprobate_status(self, want_http_response=None, explore_parent=True):
+
         if want_http_response is not None:
             self.want_http_response = want_http_response
 
         if not self.main_task:
-            self.errors.append("No se ha encontrado la tarea enviada")
-            return
-        if self.errors:
+            raise Exception("No se ha encontrado la tarea enviada")
+        if self.errors and not explore_parent:
             original_errors = self.main_task.errors or []
             original_errors.extend(self.errors)
             self.main_task.errors = original_errors
@@ -65,8 +81,9 @@ class TaskHelper(Serverless):
         else:
             new_status_task_id = "finished"
         self.save_new_status(new_status_task_id)
-        self._comprobate_queue()
-        self.add_new_task()
+        self.add_new_task(self.new_tasks)
+
+        self.checker.comprobate_queue()
         if self.want_http_response is not False:
             body_response = {"new_task": self.main_task.id}
             if self.errors:
@@ -76,9 +93,12 @@ class TaskHelper(Serverless):
             elif self.want_http_response:
                 if self.new_tasks:
                     raise HttpResponseError(body_response, 202)
+                # RICK TASK: no estoy seguro de esto
+                parent_tasks = self.parent_class.new_tasks if self.parent_class else []
+                if explore_parent and parent_tasks:
+                    return self.parent_class.comprobate_status(
+                        http_response=True, explore_parent=False)
                     # return HttpResponse(body_response, status=200)
-                else:
-                    return None
         return self.main_task
 
     def add_many_tasks(self, new_tasks: list, from_child=False):
@@ -87,7 +107,8 @@ class TaskHelper(Serverless):
 
     def add_new_task(self, new_task=None, from_child=False):
         if from_child and new_task:
-            self.new_tasks.append(new_task)
+            if new_task not in self.new_tasks:
+                self.new_tasks.append(new_task)
         if self.parent_class:
             if not new_task:
                 new_task = self.main_task
@@ -95,7 +116,9 @@ class TaskHelper(Serverless):
 
     def add_errors(self, errors: list, save=False, comprobate=True,
                    http_response=False):
-        self.errors.extend(errors)
+        for new_error in errors:
+            if new_error not in self.errors:
+                self.errors.append(new_error)
         if self.parent_class:
             self.parent_class.add_errors(errors)
         if save:
@@ -103,6 +126,9 @@ class TaskHelper(Serverless):
         if comprobate or http_response is not False:
             self.comprobate_status(want_http_response=http_response)
         return self.errors
+
+    def add_errors_and_raise(self, errors: list):
+        self.add_errors(errors, save=True, http_response=True)
 
     def _comprobate_brothers_with_errors(self):
         children_with_errors = AsyncTask.objects.filter(
@@ -114,7 +140,7 @@ class TaskHelper(Serverless):
             return "finished"
 
     def _execute_finished_function(self):
-        from task.views_aws import AwsFunction
+        from task.views_main_aws import AwsFunction
         from task.base_views import TaskBuilder
         # print("EJECUTANDO FINISHED FUNCTION")
         parent_task = self.main_task.parent_task
@@ -137,7 +163,7 @@ class TaskHelper(Serverless):
         aws_function = AwsFunction(
             main_task=finished_task.main_task,
             parent_task=parent_task, function_name=finished_function)
-        new_task2 = aws_function.execute_function()
+        new_task2 = aws_function.execute_next_function()
         if new_task2.status_task.is_completed:
             return self._comprobate_brothers_with_errors()
         else:
@@ -183,76 +209,6 @@ class TaskHelper(Serverless):
             parent_helper = TaskHelper(parent_task)
             parent_helper.save_new_status(parent_status_task_id)
 
-    def _comprobate_queue(self, is_main=False):
-        task_function = self.main_task.task_function
-        if not task_function.is_queueable:
-            return
-        if not self.main_task.status_task.is_completed:
-            return
-
-        if task_function.ebs_percent:
-            self._comprobate_ebs()
-        queue_tasks = AsyncTask.objects.filter(
-            task_function=task_function,
-            status_task_id="queue").order_by("id")
-        if not queue_tasks.exists():
-            return
-        if task_function.group_queue:
-            self._comprobate_group_queue(queue_tasks)
-        else:
-            self._execute_many_tasks(queue_tasks[:task_function.queue_size])
-        self.main_task.save()
-
-    def _comprobate_ebs(self, want_send=False):
-        task_function = self.main_task.task_function
-        rds_tasks = AsyncTask.objects.filter(task_function__ebs_percent__gt=0)
-        running_rds_tasks = rds_tasks.filter(status_task_id="running")
-        if running_rds_tasks.exists():
-            return False
-        pending_rds_tasks = rds_tasks.filter(status_task_id="queue")
-        if want_send:
-            pending_rds_tasks = pending_rds_tasks.exclude(id=self.main_task.id)
-        has_pending = pending_rds_tasks.exists()
-        if has_pending or want_send:
-            has_balance = has_enough_balance(task_function)
-            if has_balance:
-                if has_pending:
-                    return self._execute_first(pending_rds_tasks)
-                else:
-                    return self.execute_async()
-            else:
-                delayed_execution(comprobate_waiting_balance, 300)
-                return False
-
-    def _comprobate_group_queue(self, queue_tasks):
-        task_function = self.main_task.task_function
-        group_obj = getattr(self.main_task, task_function.group_queue)
-
-        filter_group = {f"{task_function.group_queue}": group_obj}
-        same_group_tasks = queue_tasks.filter(**filter_group)
-        if same_group_tasks.exists():
-            if task_function.queue_size == 1:
-                return self._execute_first(same_group_tasks)
-            filter_group["task_function"] = task_function
-            filter_group["status_task_id"] = "running"
-            running_tasks = AsyncTask.objects.filter(**filter_group)
-            remain_tasks = task_function.queue_size - running_tasks.count()
-            if remain_tasks > 0:
-                self._execute_many_tasks(same_group_tasks[:remain_tasks])
-        else:
-            not_started_tasks = queue_tasks.filter(
-                parent_task__status_task_id="created")
-            if not not_started_tasks.exists():
-                not_started_tasks = queue_tasks.filter(
-                    parent_task__parent_task__status_task_id="created")
-            if not_started_tasks.exists():
-                self._execute_first(not_started_tasks)
-                # first_task = not_started_tasks.first()
-                # execute_async(first_task, first_task.original_request)
-                # RICK TASK: por qué estamos haciendo esto?
-                # first_task_helper = TaskHelper(first_task)
-                # first_task_helper.comprobate_queue()
-
     def _individual_queueable(self, task_function):
         pending_tasks = AsyncTask.objects \
             .filter(
@@ -265,11 +221,11 @@ class TaskHelper(Serverless):
             return self.execute_async()
         if task_function.simultaneous_groups == 1 and has_pending:
             return self.save_queue()
-        group_obj = None
+        group_queue = None
         if task_function.group_queue:
-            # group_obj = query_kwargs.get(task_function.group_queue, False)
-            group_obj = getattr(self.main_task, task_function.group_queue)
-        if not group_obj:
+            # group_queue = query_kwargs.get(task_function.group_queue, False)
+            group_queue = getattr(self.main_task, task_function.group_queue)
+        if not group_queue:
             return self.save_queue()
 
         filter_group = {f"{task_function.group_queue}": group_obj}
@@ -289,18 +245,3 @@ class TaskHelper(Serverless):
             if not many_groups:
                 return self.execute_async()
         return self.save_queue()
-
-    def _execute_many_tasks(self, tasks):
-        self.main_task.save()
-        for task in tasks:
-            next_serverless = Serverless(task)
-            next_serverless.execute_async()
-        return True
-
-    def _execute_first(self, tasks):
-        self.main_task.save()
-        if first_task := tasks.first():
-            next_serverless = Serverless(first_task)
-            next_serverless.execute_async()
-        return True
-

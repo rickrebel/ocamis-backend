@@ -5,9 +5,9 @@ class ExtractorsMix:
     petition_file_control: None
     final_path: str
 
-    def transform_file_in_data(
+    def convert_file_in_data(
             self, type_explor, file_control=None, task_params=None):
-        print("transform_file_in_data", type_explor)
+        print("convert_file_in_data", type_explor)
         from category.models import FileFormat
         data_file = self
         # is_auto = type_explor == 'auto_explore'
@@ -107,14 +107,6 @@ class ExtractorsMix:
         }
         return result, [], None
 
-    def split_intermediary_file(self, task_params=None):
-        params = {
-            "file": self.file.name,
-            "final_path": self.final_path,
-        }
-
-        return []
-
     def decompress_file_gz(self, task_params=None):
         from task.serverless import async_in_lambda
         from inai.models import set_upload_path
@@ -203,7 +195,7 @@ class ExtractorsMix:
             }
             task_params = task_params or {}
             function_after = task_params.get(
-                "function_after", "find_matches_in_file_controls")
+                "function_after", "find_matches_between_controls")
             task_params["function_after"] = function_after
             errors = []
             async_task = async_in_lambda(

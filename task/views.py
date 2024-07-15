@@ -109,7 +109,7 @@ def comprobate_status(
 
 
 def execute_finished_function(parent_task):
-    from task.views_aws import AwsFunction
+    from task.views_main_aws import AwsFunction
     finished_function = parent_task.finished_function
     brothers_in_finish = AsyncTask.objects.filter(
         parent_task=parent_task,
@@ -129,7 +129,7 @@ def execute_finished_function(parent_task):
     new_task, task_params = build_task_params(
         current_obj, finished_function, req, **add_elems)
     aws_function = AwsFunction(new_task, parent_task=parent_task)
-    new_task2 = aws_function.execute_function()
+    new_task2 = aws_function.execute_next_function()
     is_final = new_task2.status_task.is_completed
     return comprobate_children_with_errors(parent_task) \
         if is_final else "children_tasks"
@@ -191,9 +191,10 @@ def comprobate_queue(current_task):
     if current_task.status_task.is_completed:
         task_function = current_task.task_function
         if task_function.ebs_percent:
-            pending_rds_tasks = AsyncTask.objects.filter(
-                task_function__ebs_percent__gt=0,
-                status_task_id="queue")
+            # pending_rds_tasks = AsyncTask.objects.filter(
+            #     task_function__ebs_percent__gt=0,
+            #     status_task_id="queue")
+            pending_rds_tasks = AsyncTask.objects.in_queue(ebs=True)
             if pending_rds_tasks.exists():
                 has_balance = has_enough_balance(task_function)
                 if has_balance:
@@ -203,9 +204,10 @@ def comprobate_queue(current_task):
                     delayed_execution(comprobate_waiting_balance, 300)
                     return
             return
-        queue_tasks = AsyncTask.objects.filter(
-            task_function=task_function,
-            status_task_id="queue").order_by("id")
+        # queue_tasks = AsyncTask.objects.filter(
+        #     task_function=task_function,
+        #     status_task_id="queue").order_by("id")
+        queue_tasks = AsyncTask.objects.in_queue(task_function=task_function)
         if not queue_tasks.exists():
             return
         if task_function.group_queue:
@@ -235,40 +237,6 @@ def comprobate_queue(current_task):
                     comprobate_queue(first_task)
         else:
             send_to_execute(queue_tasks[:task_function.queue_size])
-
-
-def debug_queue():
-    from task.serverless import execute_async
-    # from inai.data_file_mixins.insert_mix import modify_constraints
-    from datetime import timedelta
-    from django.utils import timezone
-    arrived_tasks = AsyncTask.objects.filter(
-        status_task_id="success",
-        task_function__is_queueable=True)
-    # arrived_tasks = AsyncTask.objects.filter(
-    #     status_task_id="success", task_function__is_queueable=True)
-    for task in arrived_tasks:
-        if task.date_arrive + timedelta(seconds=5) < timezone.now():
-            comprobate_status(task)
-            errors = task.errors
-            if task.sheet_file:
-                task.sheet_file.save_stage('transform', errors)
-    every_completed = AsyncTask.objects.filter(
-        status_task__is_completed=True,
-        status_task_id="queue",
-        task_function__is_queueable=True)
-    pending_tasks = AsyncTask.objects.filter(
-        status_task_id="queue", task_function__is_queueable=True)
-    if every_completed.exists():
-        next_task = AsyncTask.objects.filter(
-            status_task_id="queue").order_by("id").first()
-        if next_task:
-            execute_async(next_task, next_task.original_request)
-        # else:
-        #     modify_constraints(is_create=True)
-    elif pending_tasks.exists():
-        next_task = pending_tasks.order_by("id").first()
-        execute_async(next_task, next_task.original_request)
 
 
 def resend_error_tasks(task_function_id="save_csv_in_db", task_id=None):

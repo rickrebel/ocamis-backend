@@ -67,7 +67,7 @@ class UniquesAws:
         all_drugs = []
         for table_file in self.table_files:
             csv_content = self.s3_utils.get_object_file(table_file)
-            not_med_column = False
+            # not_med_column = False
             for idx, cols in enumerate(csv_content):
                 if not idx:
                     self.get_positions(cols, basic_fields)
@@ -140,13 +140,10 @@ class UniquesAws:
         # print("all_folios", all_folios)
         for folio_ocamis, medicines in all_folios.items():
             self.unique_counts["rx_count"] += 1
-            # folio_ocamis, medicament_key = folio_key
-            # values = all_folios.pop(folio)
             current_folios_uuid = set()
             unique_medicines = set()
             # "sheet_file_id", "uuid_folio", "month"
             # for sheet_id, uuid_folio, month in values:
-
             some_dupli = False
             all_sheets = set()
 

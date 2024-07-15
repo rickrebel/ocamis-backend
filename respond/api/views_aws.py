@@ -4,7 +4,8 @@ from rest_framework.response import Response
 
 import respond.api
 from api.mixins import MultiSerializerCreateRetrieveMix as CreateRetrieveView
-
+from task.base_views import TaskBuilder
+from task.helpers import HttpResponseError
 from geo.api.serializers import AgencyFileControlsSerializer
 from inai.api import serializers
 from inai.models import PetitionFileControl
@@ -26,8 +27,7 @@ def move_and_duplicate(data_files, petition, request):
         for data_file in data_files:
             ReplyFile.objects.create(
                 petition=petition,
-                file=data_file.file,
-                file_type_id="no_final_info")
+                file=data_file.file)
             if not is_duplicate:
                 data_file.delete()
     elif destination:
@@ -100,70 +100,102 @@ class DataFileViewSet(CreateRetrieveView):
     def change_stage(self, request, **kwargs):
         from django.conf import settings
         from classify_task.models import Stage
+        from respond.data_file_mixins.explore_mix_real import ExploreRealMix
 
         data_file = self.get_object()
         is_local = settings.IS_LOCAL
         if not data_file.can_repeat and not is_local:
-            return Response({
-                "errors": ["Aún se está procesando; espera máx. 15 minutos"]
-            }, status=status.HTTP_404_NOT_FOUND)
-        stage_text = request.query_params.get("stage")
-        target_stage = Stage.objects.get(name=stage_text)
-        key_task, task_params = build_task_params(
-            data_file, target_stage.main_function.name, request)
+            error = "Aún se está procesando; espera máx. 15 minutos"
+            return Response({"errors": [error]}, status=status.HTTP_404_NOT_FOUND)
+
+        stage_name = request.query_params.get("stage")
+        target_stage = Stage.objects.get(name=stage_name)
         target_name = target_stage.name
-        after_aws = "find_coincidences_from_aws" if \
-            target_name == "cluster" else "build_sample_data_after"
-        curr_kwargs = {"after_if_empty": after_aws}
+
+        base_task = TaskBuilder(
+            function_name=target_stage.main_function.name,
+            models=[data_file], request=request)
+
+        function_after = None
+        if target_stage.function_after:
+            function_after = target_stage.function_after.name
+        # key_task, task_params = build_task_params(
+        #     data_file, target_stage.main_function.name, request)
+
+        # after_aws = "find_coincidences_from_aws" if \
+        #     target_name == "cluster" else "build_sample_data_after"
+        # curr_kwargs = {"after_if_empty": after_aws}
         for re_stage in target_stage.re_process_stages.all():
             current_function = re_stage.main_function.name
-            print("stage", re_stage.name, current_function)
-            task_params["models"] = [data_file]
-            method = getattr(data_file, current_function)
-            if not method:
-                break
-            new_tasks, all_errors, data_file = method(task_params, **curr_kwargs)
-            if all_errors or new_tasks:
-                if all_errors:
-                    data_file.save_errors(
-                        all_errors, f"{re_stage.name}|with_errors")
-                return comprobate_status(
-                    key_task, all_errors, new_tasks, want_http_response=True)
-            elif re_stage.name == target_name:
+
+            # print("stage", re_stage.name, current_function)
+            # task_params["models"] = [data_file]
+            # method = getattr(data_file, current_function)
+            re_task = TaskBuilder(
+                function_name=current_function, parent_class=base_task,
+                models=[data_file], request=request,
+                function_after=function_after)
+            explore = ExploreRealMix(
+                data_file, base_task=re_task, want_response=True)
+            try:
+                # possible_functions: get_sample_data, verify_coincidences,
+                # prepare_transform, transform_data
+                getattr(explore, current_function)()
+            except HttpResponseError as e:
+                if e.errors:
+                    data_file.save_errors(e.errors, f"{re_stage.name}|with_errors")
+                return e.send_response()
+            # re_task.comprobate_status(want_http_response=None
+            # new_tasks, all_errors, data_file = method(task_params, **curr_kwargs)
+            # if all_errors or new_tasks:
+            #     if all_errors:
+            #         data_file.save_errors(
+            #             all_errors, f"{re_stage.name}|with_errors")
+            #     return comprobate_status(
+            #         key_task, all_errors, new_tasks, want_http_response=True)
+            if re_stage.name == target_name:
                 data_file = data_file.finished_stage(f"{target_name}|finished")
-                comprobate_status(key_task, all_errors, new_tasks)
-                data = respond.api.serializers.DataFileSerializer(data_file).data
+                # comprobate_status(key_task, all_errors, new_tasks)
+                base_task.comprobate_status(want_http_response=False)
+                data = serializers.DataFileSerializer(data_file).data
                 response_body = {"data_file": data}
                 return Response(response_body, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_404_NOT_FOUND, data={
-            "errors": "Hubo un error inesperado"
+            "errors": "Hubo un error inesperado en change_stage"
         })
 
     @action(methods=["get"], detail=True, url_path="build_columns")
     def build_columns(self, request, **kwargs):
         from respond.data_file_mixins.build_headers import BuildComplexHeaders
         data_file = self.get_object()
-        key_task, task_params = build_task_params(
-            data_file, "build_columns", request)
+        from respond.data_file_mixins.explore_mix_real import ExploreRealMix
+
+        # key_task, task_params = build_task_params(
+        #     data_file, "build_columns", request)
+        base_task = TaskBuilder(
+            function_name="build_columns", models=[data_file], request=request)
+
         curr_kwargs = {
             "after_if_empty": "build_sample_data_after",
+            # RICK TASK: Seguimos pendiente de qué hace esto
+            "task_kwargs_if_empty": {
+                "after_function": "build_sample_data_after",
+            },
         }
-        all_tasks, all_errors, data_file = data_file.get_sample_data(
-            task_params, **curr_kwargs)
-        if all_tasks or all_errors:
-            return comprobate_status(
-                key_task, all_errors, all_tasks, want_http_response=True)
-        elif data_file:
-            build_complex_headers = BuildComplexHeaders(data_file)
-            new_tasks, errors, data = build_complex_headers()
-            # new_tasks, errors, data = data_file.build_complex_headers()
-            all_errors.extend(errors or [])
-            if data:
-                return Response(data, status=status.HTTP_201_CREATED)
-        if not all_errors:
-            all_errors = ["Pasó algo extraño en build_columns, reportar a Rick"]
-        return Response(
-            {"errors": all_errors}, status=status.HTTP_400_BAD_REQUEST)
+        explore = ExploreRealMix(
+            data_file, base_task=base_task, want_response=True)
+        try:
+            explore.get_sample_data(comprobate=True, **curr_kwargs)
+        except HttpResponseError as e:
+            return e.send_response()
+
+        build_complex_headers = BuildComplexHeaders(
+            data_file, base_task=base_task)
+        try:
+            data = build_complex_headers()
+            return Response(data, status=status.HTTP_201_CREATED)
+        except HttpResponseError as e:
+            return e.send_response()
 
     @action(methods=["get"], detail=True, url_path="back_start")
     def back_start(self, request, **kwargs):

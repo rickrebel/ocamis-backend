@@ -11,7 +11,6 @@ class ReplyFileAdmin(admin.ModelAdmin):
     list_display = [
         "petition",
         "file",
-        "file_type",
         "url_download",
     ]
     raw_id_fields = ["petition", "month_records"]

@@ -50,8 +50,7 @@ class TaskFunction(models.Model):
     is_active = models.BooleanField(default=False, verbose_name="active")
     is_from_aws = models.BooleanField(default=False, verbose_name="AWS")
     is_queueable = models.BooleanField(default=False, verbose_name="queue")
-    ebs_percent = models.IntegerField(
-        default=0, verbose_name="% EBS")
+    ebs_percent = models.IntegerField(default=0, verbose_name="% EBS")
     queue_size = models.IntegerField(default=1, verbose_name="queue size")
     group_queue = models.CharField(
         max_length=100, choices=MODEL_CHOICES, blank=True, null=True,
@@ -106,9 +105,12 @@ class Stage(models.Model):
     next_stage = models.OneToOneField(
         "Stage", blank=True, null=True, on_delete=models.CASCADE,
         related_name="previous_stage")
+    function_after = models.CharField(
+        max_length=100, blank=True, null=True,
+        verbose_name="Función llegando de Lambda")
     finished_function = models.CharField(
         max_length=100, blank=True, null=True,
-        verbose_name="Función al terminar")
+        verbose_name="Función al terminar hijos")
     available_next_stages = models.ManyToManyField(
         "Stage", blank=True, related_name="previous_stages")
     re_process_stages = models.ManyToManyField(
@@ -125,7 +127,6 @@ class Stage(models.Model):
         if self.stage_group == "provider":
             for provider in Provider.objects.all():
                 Step.objects.get_or_create(
-                    # provider=provider,
                     stage=self, status_operative_id="initial_register")
 
         super().save(*args, **kwargs)

@@ -12,6 +12,19 @@ from category.models import StatusControl
 from rds.models import Cluster, MatView, Operation
 
 
+class TaskManager(models.Manager):
+
+    def in_queue(self, ebs=False, **kwargs):
+        query_task = self\
+            .filter(status_task__name="queued", **kwargs)\
+            .order_by("id")
+        if ebs:
+            query_task = query_task.filter(task_function__ebs_percent__gt=0)
+        else:
+            query_task = query_task.filter(task_function__ebs_percent=0)
+        return query_task
+
+
 class AsyncTask(models.Model):
 
     request_id = models.CharField(max_length=100, blank=True, null=True)
@@ -103,6 +116,8 @@ class AsyncTask(models.Model):
     #         return model_name
     #
     #     super().save(*args, **kwargs)
+
+    objects = TaskManager()
 
     def save_status(self, status_id=None):
         from datetime import datetime

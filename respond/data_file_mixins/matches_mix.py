@@ -200,7 +200,7 @@ class MatchTransform(BaseTransform):
             print("missing_criteria", missing_criteria)
             error = f"No pasó la validación básica: " \
                 f"{missing_criteria}"
-            return [], [error], self.data_file
+            return [], [error], None
 
         # self.build_existing_fields()
         final_lap = -1 if self.is_prepare else self.lap

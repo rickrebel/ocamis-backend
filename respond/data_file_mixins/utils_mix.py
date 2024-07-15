@@ -5,7 +5,7 @@ class DataUtilsMix:
     save: classmethod
     error_process: object
 
-    def save_errors(self, errors, error_name):
+    def save_errors(self, errors: list, error_name: str):
 
         curr_errors = self.error_process or []
         curr_errors += errors

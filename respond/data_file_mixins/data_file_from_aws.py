@@ -33,7 +33,7 @@ class FromAws:
             SheetFile.objects.get_or_create(
                 data_file=self.data_file,
                 file=final_path,
-                file_type_id="split",
+                file_type="split",
                 sheet_name=sheet_name,
                 total_rows=total_rows,
                 # sample_data=generic_sample,
@@ -57,7 +57,7 @@ class FromAws:
         for sheet_name, sheet_details in new_sheets.items():
             is_not_xls = sheet_count == 1 and sheet_name == "default"
             simple_path = self.data_file.file if is_not_xls else None
-            file_type_id = "clone" if is_not_xls else "sheet"
+            file_type = "clone" if is_not_xls else "sheet"
             final_path = sheet_details.pop("final_path", simple_path)
             total_rows = sheet_details.pop("total_rows")
             sample_path = sheet_details.pop("sample_path")
@@ -71,7 +71,7 @@ class FromAws:
                 # sample_file=sample_file.final_path,
                 sample_data=sample_sheet,
                 sample_file=sample_path,
-                file_type_id=file_type_id,
+                file_type=file_type,
                 total_rows=total_rows
             )
         decode = kwargs.get("decode")

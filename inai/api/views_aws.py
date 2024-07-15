@@ -9,7 +9,7 @@ from task.base_views import TaskBuilder
 from inai.api.common import send_response, send_response2
 
 from inai.models import Petition, PetitionFileControl
-from inai.petition_mixins.petition_real_mix import PetitionTransformsMixReal
+from inai.petition_mixins.petition_mix import PetitionTransformsMixReal
 from respond.reply_file_mixins.process_real_mix import ReplyFileMixReal
 from respond.models import DataFile
 from api.mixins import (
@@ -39,7 +39,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         if file_id:
             models = []
         if file_control:
-            models = [file_control]
+            models = [petition, file_control]
         else:
             models = [petition]
 
@@ -62,7 +62,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         else:
             petition_class = PetitionTransformsMixReal(
                 petition, base_task=base_task)
-            petition_class.find_matches_in_children(data_files, file_ctrl_id)
+            petition_class.find_matches_for_data_files(data_files, file_ctrl_id)
 
         return send_response2(petition, base_task)
 
@@ -81,7 +81,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
 
         for reply_file in remain_reply_files:
             reply_file_class = ReplyFileMixReal(reply_file, base_task=base_task)
-            reply_file_class.decompress(orphan_pfc)
+            reply_file_class.decompress_reply(orphan_pfc)
 
         if not remain_reply_files.exists():
             error = "Ya se han descomprimido todos los archivos"

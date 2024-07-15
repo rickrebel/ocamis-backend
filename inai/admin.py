@@ -102,7 +102,7 @@ class PetitionAdmin(admin.ModelAdmin):
     search_fields = [
         "folio_petition", "agency__acronym", "agency__name",
         "agency__state__short_name"]
-    raw_id_fields = ["month_records"]
+    raw_id_fields = ["month_records", "agency", "real_provider"]
     inlines = [ComplaintInline]
     list_filter = ["agency"]
 

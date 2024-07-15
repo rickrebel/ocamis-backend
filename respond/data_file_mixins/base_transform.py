@@ -55,8 +55,7 @@ class BaseTransform(BaseDataFile):
         first_sheet = final_sheets.first()
         is_split = False
         if first_sheet:
-            file_type = first_sheet.file_type_id
-            is_split = file_type == 'split'
+            is_split = first_sheet.file_type == 'split'
         files_to_process = []
         for idx, sheet_file in enumerate(final_sheets):
             init_data = self.init_data.copy()

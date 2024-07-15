@@ -5,7 +5,7 @@ def test_data_from_file():
     number_columns = 14
     row_start_data = 1
     row_headers = None
-    final_data, headers, error_number_columns = get_data_from_file_txt(
+    final_data, headers, error_number_columns = get_info_from_txt(
         path_imss, number_columns, row_start_data, row_headers)
     # print("rows_count: ", len(final_data)) ## 1,000,000
     # print("headers: ", headers) ## None
@@ -13,7 +13,7 @@ def test_data_from_file():
     # print("primeros datos:\n", final_data[:20]) ## [[----],[----],...]
 
 
-def get_data_from_file_txt(
+def get_info_from_txt(
         reporte_recetas_path, number_columns,
         row_start_data=None, row_headers=None):
     import io

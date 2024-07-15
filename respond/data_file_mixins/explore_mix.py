@@ -92,7 +92,7 @@ class ExploreMix:
                 type_explor = 'forced_save'
             else:
                 type_explor = 'only_save'
-            data_file, new_errors, new_task = data_file.transform_file_in_data(
+            data_file, new_errors, new_task = data_file.convert_file_in_data(
                 type_explor, file_control=current_file_ctrl,
                 task_params=task_params)
             if new_task:
@@ -193,9 +193,11 @@ class ExploreMix:
         from inai.models import PetitionFileControl
         from respond.models import DataFile
         data_file = self
+        print("data_file_id 1:", data_file.id)
         already_cluster = not bool(file_ctrl)
-        data, errors, new_task = data_file.transform_file_in_data(
+        data, errors, new_task = data_file.convert_file_in_data(
             'auto_explore', task_params=task_params, file_control=file_ctrl)
+        print("data_file_id 2:", data_file.id)
         if not petition or not file_ctrl:
             pfc = data_file.petition_file_control
             if not petition:
@@ -209,6 +211,7 @@ class ExploreMix:
         # print("data", data)
         current_sheets = data["current_sheets"]
         structured_data = data["structured_data"]
+        print("data_file_id 3:", data_file.id)
         if already_cluster:
             # print("INTENTO GUARDAR current_sheets", current_sheets)
             data_file.filtered_sheets = current_sheets
@@ -217,6 +220,7 @@ class ExploreMix:
         is_match_ready = data_file.has_exact_matches(current_sheets)
         if is_match_ready:
             return data_file, True, []
+        print("data_file_id 4:", data_file.id)
         # is_orphan = file_ctrl.data_group.name == "orphan"
         all_data_files = {}
         same_data_files = DataFile.objects\
@@ -300,6 +304,7 @@ class ExploreMix:
 
             if not same_headers:
                 continue
+            print("data_file_id 5:", data_file.id)
 
             def save_sheet_file(d_file=data_file, save_sample_data=False):
                 from respond.models import SheetFile
@@ -324,9 +329,11 @@ class ExploreMix:
                     sheet_f.save()
                     sheets_matched_ids.append(sheet_f.id)
                 except Exception as e:
-                    raise Exception(f"No se encontró el archivo con el "
-                                    f"nombre de hoja {sheet_name} \n {e}")
+                    raise Exception(f"Para el archivo {data_file.id} no se "
+                                    f"encontró la hoja {sheet_name}; "
+                                    f"current_sheets: {current_sheets}\n-->{e}")
 
+            print("data_file_id 6:", data_file.id)
             if sheet_name not in current_sheets:
                 if data_file.petition_file_control_id in all_data_files:
                     save_sheet_file(data_file)
@@ -339,7 +346,7 @@ class ExploreMix:
                     .get_or_create(
                         file_control=file_ctrl, petition=petition)
             except PetitionFileControl.MultipleObjectsReturned:
-                errors = ["El grupos de control está duplicado en la solicitud"]
+                errors = ["El grupo de control está duplicado en la solicitud"]
                 return data_file, saved, errors
             # validated_data[sheet_name] = structured_data[sheet_name]
             current_pfc = succ_pet_file_ctrl.id
@@ -415,6 +422,7 @@ class ExploreMix:
         new_task = None
         data_file = None
         task_params["function_after"] = "decompress_gz_after"
+        split_sheet_files = self.sheet_files.filter(file_type='split')
         if '.gz' in suffixes:
             if not self.sheet_files.exists():
                 new_task, errors, data_file = self.decompress_file_gz(
@@ -423,8 +431,7 @@ class ExploreMix:
             suffixes.remove('.gz')
         elif '.zip' in suffixes or '.rar' in suffixes:
             errors = ["Mover a 'archivos no finales' para descomprimir desde allí"]
-        elif (len(suffixes) == 1 and
-              not self.sheet_files.filter(file_type_id='split').exists()):
+        elif len(suffixes) == 1 and not split_sheet_files.exists():
             file_size = self.file.size
             if file_size > 440000000:
                 real_suffix = suffixes[0]
@@ -455,25 +462,7 @@ class ExploreMix:
         # print("Parece que todo está bien")
         return (self, [], first_suffix), None
 
-    def corroborate_save_data(self, task_params=None, **kwargs):
-        from respond.data_file_mixins.data_file_from_aws import (
-            FromAws as DataFileMix)
-        from_aws = kwargs.get("from_aws", False)
-        print("from_aws", from_aws)
-
-        if from_aws:
-            data_file_from_aws = DataFileMix(self, task_params)
-            # x, y, data_file = self.build_sample_data_after(**kwargs)
-            x, y, data_file = data_file_from_aws.build_sample_data_after(
-                **kwargs)
-            parent_task = task_params.get("parent_task", None)
-            if parent_task.params_after:
-                kwargs.update(parent_task.params_after)
-        else:
-            data_file = self
-        return data_file, kwargs
-
-    def find_matches_in_file_controls(self, task_params=None, **kwargs):
+    def find_matches_between_controls(self, task_params=None, **kwargs):
         from data_param.models import FileControl
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
         saved = False
@@ -494,3 +483,21 @@ class ExploreMix:
             all_errors.append("No existe ningún grupo de control coincidente")
             data_file.save_errors(all_errors, "explore|with_errors")
         return None, all_errors, None
+
+    def corroborate_save_data(self, task_params=None, **kwargs):
+        from respond.data_file_mixins.data_file_from_aws import (
+            FromAws as DataFileMix)
+        from_aws = kwargs.get("from_aws", False)
+        print("from_aws", from_aws)
+
+        if from_aws:
+            data_file_from_aws = DataFileMix(self, task_params)
+            # x, y, data_file = self.build_sample_data_after(**kwargs)
+            x, y, data_file = data_file_from_aws.build_sample_data_after(
+                **kwargs)
+            parent_task = task_params.get("parent_task", None)
+            if parent_task.params_after:
+                kwargs.update(parent_task.params_after)
+        else:
+            data_file = self
+        return data_file, kwargs

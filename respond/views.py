@@ -15,7 +15,7 @@ class SampleFile:
         self.final_path = None
 
     def get_json_content(self, file_path):
-        import json
+        # import json
         if file_path:
             self.final_path = file_path
         if not self.final_path:
@@ -23,7 +23,7 @@ class SampleFile:
         # json_lines = self.s3_utils.get_csv_lines(self.final_path)
         # return json.loads(json_lines.read())
         json_lines = self.s3_utils.get_json_file(self.final_path)
-        return json.loads(json_lines)
+        return json_lines
 
     def get_sample(self, file_obj):
         if file_obj.sample_file:

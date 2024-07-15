@@ -25,9 +25,9 @@ class ReplyFile(models.Model):
         max_length=255, upload_to=set_upload_path,
         blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
-    file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE,
-        default='no_final_info', blank=True, null=True)
+    # file_type = models.ForeignKey(
+    #     FileType, on_delete=models.CASCADE,
+    #     default='no_final_info', blank=True, null=True)
     text = models.TextField(
         blank=True, null=True,
         verbose_name="Texto (en caso de no haber archivo)")
@@ -166,7 +166,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
     @property
     def sheet_names_list(self):
         return self.sheet_files \
-            .filter(file_type_id__in=['sheet', 'split', 'clone']) \
+            .filter(file_type__in=['sheet', 'split', 'clone']) \
             .order_by("id") \
             .values_list("sheet_name", flat=True)
 
@@ -175,7 +175,7 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
         from respond.views import SampleFile
         sample_file = SampleFile()
         sheet_files = self.sheet_files \
-            .filter(file_type_id__in=['sheet', 'split', 'clone'])
+            .filter(file_type__in=['sheet', 'split', 'clone'])
         # return {tf.sheet_name: tf.sample_data for tf in sheet_files}
         return sample_file.get_many_samples(sheet_files)
 
@@ -265,12 +265,19 @@ def default_explore_data():
 
 
 class SheetFile(models.Model):
+    FILE_TYPES = [
+        ('sheet', 'Hoja'),
+        ('split', 'Dividida'),
+        ('clone', 'Clonado'),
+    ]
 
     data_file = models.ForeignKey(
         DataFile, related_name="sheet_files", on_delete=models.CASCADE)
     file = models.FileField(max_length=255, upload_to=set_upload_path)
-    file_type = models.ForeignKey(
-        FileType, on_delete=models.CASCADE, blank=True, null=True)
+    # file_type = models.ForeignKey(
+    #     FileType, on_delete=models.CASCADE, blank=True, null=True)
+    file_type = models.CharField(max_length=20, blank=True, null=True)
+
     matched = models.BooleanField(blank=True, null=True)
     sheet_name = models.CharField(max_length=255, blank=True, null=True)
     sample_data = JSONField(

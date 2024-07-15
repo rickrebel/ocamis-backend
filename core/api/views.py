@@ -84,8 +84,6 @@ class CatalogView(views.APIView):
                 CleanFunction.objects.all(), many=True).data,
             "behaviors": BehaviorSimpleSerializer(
                 Behavior.objects.all(), many=True).data,
-            "file_types": FileTypeSimpleSerializer(
-                FileType.objects.all(), many=True).data,
             "status": StatusControlSimpleSerializer(
                 StatusControl.objects.all(), many=True).data,
             "column_types": ColumnTypeSimpleSerializer(

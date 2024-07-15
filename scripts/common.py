@@ -254,40 +254,6 @@ def using_example_big():
 # using_example_big()
 
 
-def explore_sheets(file_control):
-    from data_param.models import Transformation
-    file_transformations = Transformation.objects.filter(
-        file_control=file_control,
-        clean_function__name__icontains="_tabs_").prefetch_related(
-        "clean_function")
-    include_names = exclude_names = include_idx = exclude_idx = None
-
-    for transform in file_transformations:
-        current_values = transform.addl_params["value"].split(",")
-        func_name = transform.clean_function.name
-        all_names = [name.upper().strip() for name in current_values]
-        if func_name == 'include_tabs_by_name':
-            include_names = all_names
-        elif func_name == 'exclude_tabs_by_name':
-            exclude_names = all_names
-        elif func_name == 'include_tabs_by_index':
-            include_idx = [int(val.strip()) for val in current_values]
-        elif func_name == 'exclude_tabs_by_index':
-            exclude_idx = [int(val.strip()) for val in current_values]
-
-    return include_names, exclude_names, include_idx, exclude_idx
-
-
-def get_readeable_suffixes():
-    from category.models import FileFormat
-    readable_suffixes = FileFormat.objects.filter(readable=True) \
-        .values_list("suffixes", flat=True)
-    final_readeable = []
-    for suffix in list(readable_suffixes):
-        final_readeable += suffix
-    return final_readeable
-
-
 """
 python ./manage.py dumpdata --exclude auth --exclude contenttypes --exclude authtoken --exclude admin.LogEntry --exclude sessions --indent 2 -v 2  > fixture/todo_desabasto.json 
 """
