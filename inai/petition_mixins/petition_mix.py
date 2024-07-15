@@ -29,9 +29,8 @@ class PetitionTransformsMixReal:
         for data_file in all_data_files:
             curr_kwargs = {
                 # RICK TASK: No contemplamos task_kwargs_if_empty en ningún lugar
-                "task_kwargs_if_empty": {
-                    "function_name": "find_matches_between_controls",
-                    # "params": {"provider_controls_ids": ctrl_list},
+                "task_kwargs": {
+                    "function_after": "find_matches_between_controls",
                     "params_after": {"provider_controls_ids": provider_ctrl_list},
                 },
                 "after_if_empty": "find_matches_between_controls",
@@ -39,11 +38,11 @@ class PetitionTransformsMixReal:
                     "provider_controls_ids": provider_ctrl_list
                 },
             }
+            explore = ExploreRealMix(
+                data_file, base_task=self.base_task, want_response=True)
             if data_file.sheet_names_list:
                 pass
             else:
-                explore = ExploreRealMix(
-                    data_file, base_task=self.base_task, want_response=True)
                 try:
                     explore.get_sample_data(
                         current_file_ctrl=file_control_id, **curr_kwargs)
@@ -52,7 +51,7 @@ class PetitionTransformsMixReal:
             new_task_params = self.task_params.copy()
             new_task_params["models"] = [data_file]
 
-            data_file.find_matches_between_controls(
+            explore.find_matches_between_controls(
                 task_params=new_task_params,
                 provider_file_controls=provider_file_controls)
 

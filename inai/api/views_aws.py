@@ -10,7 +10,7 @@ from inai.api.common import send_response, send_response2
 
 from inai.models import Petition, PetitionFileControl
 from inai.petition_mixins.petition_mix import PetitionTransformsMixReal
-from respond.reply_file_mixins.process_real_mix import ReplyFileMixReal
+from respond.reply_file_mixins.reply_mix import ReplyFileMixReal
 from respond.models import DataFile
 from api.mixins import (
     MultiSerializerListRetrieveMix as ListRetrieveView)

@@ -1,5 +1,6 @@
 from respond.models import DataFile
 from task.base_views import TaskBuilder
+from respond.data_file_mixins.find_coincidences import MatchControls
 
 
 class FromAws:
@@ -8,6 +9,7 @@ class FromAws:
                  base_task: TaskBuilder = None):
         self.data_file = data_file
         self.task_params = task_params
+        self.base_task = base_task
 
     def decompress_gz_after(self, **kwargs):
         from respond.models import SheetFile
@@ -48,7 +50,7 @@ class FromAws:
                 file_control.save()
         return [], [], self.data_file
 
-    def build_sample_data_after(self, parent_task=None, **kwargs):
+    def build_sample_data_after(self, **kwargs):
         from respond.models import SheetFile
         from respond.views import SampleFile
         new_sheets = kwargs.get("new_sheets", {})
@@ -84,3 +86,57 @@ class FromAws:
             self.data_file.status_id = "finished"
             self.data_file.save()
         return [], [], self.data_file
+
+    # Función de after y directa
+    def find_matches_between_controls(
+            self, task_params=None, provider_file_controls=None, **kwargs):
+        from data_param.views import get_related_file_controls
+        from data_param.models import FileControl
+        kwargs = self._corroborate_save_data(task_params, **kwargs)
+        saved = False
+        all_errors = []
+        if not provider_file_controls:
+            provider_controls_ids = kwargs.get("provider_controls_ids", [])
+            if not provider_controls_ids:
+                provider_file_controls = get_related_file_controls(
+                    data_file=self.data_file)
+            else:
+                provider_file_controls = FileControl.objects.filter(
+                    id__in=provider_controls_ids)
+        match_controls = MatchControls(self)
+        saved = match_controls.find_in_file_controls(provider_file_controls)
+        # for file_ctrl in provider_file_controls:
+        #     saved = match_controls.find_file_controls(file_control=file_ctrl)
+        #     all_errors.extend(match_controls.errors)
+        if not saved:
+            all_errors.append("No existe ningún grupo de control coincidente")
+            self.data_file.save_errors(all_errors, "explore|with_errors")
+        return None, all_errors, None
+
+    # Función de after
+    def find_coincidences_from_aws(self, task_params=None, **kwargs):
+        self._corroborate_save_data(task_params, **kwargs)
+        # saved, errors = self._find_coincidences(saved=False)
+        match_controls = MatchControls(self)
+        saved = match_controls.find_file_controls()
+        errors = match_controls.errors
+        if not saved and not errors:
+            errors = ["No coincide con el formato del archivo 3"]
+        if errors:
+            self.data_file.save_errors(errors, "explore|with_errors")
+            return [], errors, None
+        elif self.data_file.stage_id == 'cluster':
+            self.data_file.finished_stage("cluster|finished")
+        return [], errors, None
+
+    def _corroborate_save_data(self, task_params=None, **kwargs):
+        from_aws = kwargs.get("from_aws", False)
+        print("from_aws", from_aws)
+
+        if from_aws:
+            # x, y, data_file = self.build_sample_data_after(**kwargs)
+            self.build_sample_data_after(**kwargs)
+            parent_task = task_params.get("parent_task", None)
+            if parent_task.params_after:
+                kwargs.update(parent_task.params_after)
+        return kwargs

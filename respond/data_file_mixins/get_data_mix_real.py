@@ -18,25 +18,45 @@ class ExtractorRealMix:
 
     def build_data_from_file(self, file_control=None, task_params=None,
                              task_kwargs=None):
+        from respond.views import SampleFile
+
         self._set_file_control(file_control)
         type_format = self._get_type_format()
+
         if type_format == 'excel':
-            self._build_excel_data(task_params=task_params)
+            function_name = "xls_to_csv"
+            params = {
+                "final_path": self.data_file.final_path,
+                "only_name": self.data_file.file.name,
+            }
         elif type_format == 'simple':
-            self._build_simple_data(task_params=task_params)
-        return self.data_file
+            function_name = "explore_data_simple"
+            sample_file = SampleFile()
+            params = {
+                "file": self.data_file.file.name,
+                "delimiter": self.file_control.delimiter,
+                "sample_path": sample_file.build_path_name(self.data_file)
+            }
+        else:
+            return None
+        params_after = task_kwargs.get("params_after", {})
+        function_after = task_kwargs.get("function_after")
+        convert_task = TaskBuilder(
+            function_name=function_name, parent_class=self.base_task,
+            function_after=function_after, params_after=params_after,
+            models=[self.data_file], params=params)
+        convert_task.async_in_lambda()
 
-    def get_data_from_file(self, file_control=None, task_params=None,
-                             task_kwargs=None):
+    def get_data_from_file(self, file_control=None):
 
         self._set_file_control(file_control)
         type_format = self._get_type_format()
         if type_format == 'excel':
-            # RICK TASK: Seguimos con lo de task_params pendiente de solucionar
-            result = self._get_data_excel(task_params=task_params)
-        else:  # type_format == 'simple':
-            result = self._get_data_simple(task_params=task_params)
-        validated_data, current_sheets = result
+            validated_data, current_sheets = self._get_data_excel()
+        elif type_format == 'simple':
+            validated_data, current_sheets = self._get_data_simple()
+        else:
+            return None
         row_headers = self.file_control.row_headers or 0
         # for sheet_name, all_data in validated_data.items():
         new_validated_data = {}
@@ -115,25 +135,10 @@ class ExtractorRealMix:
         if self.want_response:
             self.data_file.save_errors([error], 'explore|with_errors')
             self.base_task.add_errors_and_raise([error])
+        return None
 
-    def _build_excel_data(self, task_params=None):
-        from task.serverless import async_in_lambda
-        all_sheets = self.data_file.all_sample_data
-        params = {
-            "final_path": self.data_file.final_path,
-            "only_name": self.data_file.file.name,
-        }
-        task_params = task_params or {}
-        new_task = async_in_lambda("xls_to_csv", params, task_params)
-        return all_sheets
-
-    def _get_data_excel(self, task_params=None):
-        all_sheets = self.data_file.all_sample_data
+    def _get_data_excel(self):
         sheet_names = self.data_file.sheet_names_list
-        filtered_sheets = self._get_filtered_sheets(sheet_names)
-        return all_sheets, filtered_sheets
-
-    def _get_filtered_sheets(self, sheet_names):
 
         incl_names, excl_names, incl_idx, excl_idx = self._explore_sheets()
 
@@ -148,7 +153,8 @@ class ExtractorRealMix:
             if excl_idx and position in excl_idx:
                 continue
             filtered_sheets.append(sheet_name)
-        return filtered_sheets
+        all_sheets = self.data_file.all_sample_data
+        return all_sheets, filtered_sheets
 
     def _explore_sheets(self):
         from data_param.models import Transformation
@@ -173,29 +179,7 @@ class ExtractorRealMix:
 
         return include_names, exclude_names, include_idx, exclude_idx
 
-    def _build_simple_data(self, task_params=None):
-        from task.serverless import async_in_lambda
-        from respond.views import SampleFile
-
-        sample_file = SampleFile()
-        params = {
-            "file": self.data_file.file.name,
-            "delimiter": self.file_control.delimiter,
-            "sample_path": sample_file.build_path_name(self.data_file)
-        }
-        task_params = task_params or {}
-        function_after = task_params.get(
-            "function_after", "find_matches_between_controls")
-        task_params["function_after"] = function_after
-        errors = []
-        async_task = async_in_lambda(
-            "explore_data_simple", params, task_params)
-        if not async_task:
-            errors.append("No se pudo iniciar la tarea")
-        # return errors, [], [], async_task
-        return [], []
-
-    def _get_data_simple(self, task_params=None):
+    def _get_data_simple(self):
 
         all_sheets = self.data_file.all_sample_data
         if isinstance(all_sheets, dict):

@@ -270,7 +270,6 @@ class SheetFile(models.Model):
         ('split', 'Dividida'),
         ('clone', 'Clonado'),
     ]
-
     data_file = models.ForeignKey(
         DataFile, related_name="sheet_files", on_delete=models.CASCADE)
     file = models.FileField(max_length=255, upload_to=set_upload_path)

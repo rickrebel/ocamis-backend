@@ -1,5 +1,6 @@
 from task.base_views import TaskBuilder
 from task.helpers import HttpResponseError
+from respond.data_file_mixins.df_from_aws import FromAws as DataFileAws
 from respond.data_file_mixins.get_data_mix_real import ExtractorRealMix
 from respond.data_file_mixins.find_coincidences import MatchControls
 
@@ -14,14 +15,14 @@ def get_readeable_suffixes():
     return final_readeable
 
 
-class ExploreRealMix(ExtractorRealMix):
+class ExploreRealMix(DataFileAws, ExtractorRealMix):
     readable_suffixes = get_readeable_suffixes()
 
     def __init__(self, want_response=False, *args, **kwargs):
-        self.want_response = want_response
         super().__init__(*args, **kwargs)
+        self.want_response = want_response
 
-    # Guardado en funciones
+    # Guardado en funciones y directo
     def get_sample_data(self, comprobate=False, **kwargs):
 
         sheet_names = self.data_file.sheet_names_list
@@ -77,48 +78,6 @@ class ExploreRealMix(ExtractorRealMix):
             match_transform = MatchTransform(self.data_file, task_params)
             return match_transform.build_csv_converted(is_prepare=False)
 
-    # Función de after y directa
-    def find_matches_between_controls(
-            self, task_params=None, provider_file_controls=None, **kwargs):
-        from data_param.views import get_related_file_controls
-        from data_param.models import FileControl
-        self._corroborate_save_data(task_params, **kwargs)
-        saved = False
-        all_errors = []
-        if not provider_file_controls:
-            provider_controls_ids = kwargs.get("provider_controls_ids", [])
-            if not provider_controls_ids:
-                provider_file_controls = get_related_file_controls(
-                    data_file=self.data_file)
-            else:
-                provider_file_controls = FileControl.objects.filter(
-                    id__in=provider_controls_ids)
-        match_controls = MatchControls(self)
-        match_controls.find_in_file_controls(provider_file_controls)
-        # for file_ctrl in provider_file_controls:
-        #     saved = match_controls.find_file_controls(file_control=file_ctrl)
-        #     all_errors.extend(match_controls.errors)
-        if not saved:
-            all_errors.append("No existe ningún grupo de control coincidente")
-            self.data_file.save_errors(all_errors, "explore|with_errors")
-        return None, all_errors, None
-
-    # Función de after
-    def find_coincidences_from_aws(self, task_params=None, **kwargs):
-        self._corroborate_save_data(task_params, **kwargs)
-        # saved, errors = self._find_coincidences(saved=False)
-        match_controls = MatchControls(self)
-        saved = match_controls.find_file_controls()
-        errors = match_controls.errors
-        if not saved and not errors:
-            errors = ["No coincide con el formato del archivo 3"]
-        if errors:
-            self.data_file.save_errors(errors, "explore|with_errors")
-            return [], errors, None
-        elif self.data_file.stage_id == 'cluster':
-            self.data_file.finished_stage("cluster|finished")
-        return [], errors, None
-
     def _get_sheet_files(self, **kwargs):
         from respond.views import SampleFile
         from respond.models import SheetFile
@@ -127,11 +86,12 @@ class ExploreRealMix(ExtractorRealMix):
         sample_data = sample_file.get_sample(self.data_file)
         # RICK TASK: Esto debería ser menos enredado
         file_control = kwargs.pop("current_file_ctrl", None)
-        new_kwargs = {"task_kwargs": kwargs, "file_control": file_control}
+        # new_kwargs = {"task_kwargs": kwargs, "file_control": file_control}
+        kwargs.update({"file_control": file_control})
         if self.data_file.suffix in self.xls_suffixes:
-            return self.build_data_from_file(**new_kwargs)
+            return self.build_data_from_file(**kwargs)
         elif not sample_data:
-            return self.build_data_from_file(**new_kwargs)
+            return self.build_data_from_file(**kwargs)
         # Esto pasa cuando ya hay guardados datos, pero no sus sheet_files
         else:
             default_sample = sample_data.get("default", {})
@@ -155,7 +115,7 @@ class ExploreRealMix(ExtractorRealMix):
                 self.data_file.filtered_sheets = ["default"]
                 self.data_file.save()
             else:
-                return self.build_data_from_file(**new_kwargs)
+                return self.build_data_from_file(**kwargs)
 
     def _count_file_rows(self):
         from respond.models import SheetFile
@@ -175,7 +135,7 @@ class ExploreRealMix(ExtractorRealMix):
     def _decompress_and_save_suffix(self):
         import pathlib
         import re
-        # Se obienen todos los tipos del archivo inicial:
+        # Se obtienen todos los tipos del archivo inicial:
         # print("final_path: ", self.final_path)
         final_path = self.data_file.final_path
         suffixes = pathlib.Path(final_path).suffixes
@@ -217,21 +177,6 @@ class ExploreRealMix(ExtractorRealMix):
         if not real_suffixes.issubset(self.readable_suffixes):
             error = "Formato no legible %s" % suffixes
             self.base_task.add_errors_and_raise([error])
-
-    def _corroborate_save_data(self, task_params=None, **kwargs):
-        from respond.data_file_mixins.data_file_from_aws import (
-            FromAws as DataFileMix)
-        from_aws = kwargs.get("from_aws", False)
-        print("from_aws", from_aws)
-
-        if from_aws:
-            data_file_aws_mix = DataFileMix(self.data_file, task_params)
-            # x, y, data_file = self.build_sample_data_after(**kwargs)
-            data_file_aws_mix.build_sample_data_after(**kwargs)
-            parent_task = task_params.get("parent_task", None)
-            if parent_task.params_after:
-                kwargs.update(parent_task.params_after)
-        return kwargs
 
     def _decompress_gz_file(self):
         from inai.models import set_upload_path

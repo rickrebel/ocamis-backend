@@ -221,7 +221,7 @@ class AwsFunction(TaskHelper):
         from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
         from rds.misc_mixins.cluster_mix import FromAws as Cluster
         from rds.misc_mixins.mat_view_mix import FromAws as MatView
-        from respond.reply_file_mixins.process_real_mix import FromAws as ReplyFile
+        from respond.reply_file_mixins.reply_mix import FromAws as ReplyFile
         task_parameters = {"parent_task": self.main_task}
         is_new_version = False
         try:

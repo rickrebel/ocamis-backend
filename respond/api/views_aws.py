@@ -178,9 +178,7 @@ class DataFileViewSet(CreateRetrieveView):
         curr_kwargs = {
             "after_if_empty": "build_sample_data_after",
             # RICK TASK: Seguimos pendiente de qué hace esto
-            "task_kwargs_if_empty": {
-                "after_function": "build_sample_data_after",
-            },
+            "task_kwargs": {"function_after": "build_sample_data_after"},
         }
         explore = ExploreRealMix(
             data_file, base_task=base_task, want_response=True)

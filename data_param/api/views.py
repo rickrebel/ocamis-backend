@@ -475,7 +475,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         after_aws = "find_coincidences_from_aws" if \
             target_stage.name == "cluster" else "build_sample_data_after"
         # RICK TASK: Revisar perfecto esto de after_if_empty
-        curr_kwargs = {"after_if_empty": after_aws}
+        curr_kwargs = {"task_kwargs": {"function_after": after_aws}}
         subgroup = f"{stage_init}|{status_init}"
         key_task, task_params = build_task_params(
             file_control, function_name, request, subgroup=subgroup)
@@ -495,11 +495,11 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             for stage in re_process_stages:
                 current_function = stage.main_function.name
                 task_params["models"] = [data_file]
-                method = getattr(
-                    data_file, current_function)
+                method = getattr(data_file, current_function)
                 if not method:
                     break
-                new_tasks, new_errors, data_file = method(task_params, **curr_kwargs)
+                new_tasks, new_errors, data_file = method(
+                    task_params, **curr_kwargs)
 
                 if new_errors or new_tasks:
                     if new_errors:
