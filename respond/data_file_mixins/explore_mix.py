@@ -243,7 +243,6 @@ class ExploreMix:
         sample_file = SampleFile()
 
         for sheet_name in sorted_sheet_names:
-            # headers = validated_rows[row_headers-1] if row_headers else []
             if not structured_data[sheet_name].get("headers"):
                 if not file_ctrl.row_headers:
                     try:
@@ -462,6 +461,7 @@ class ExploreMix:
         # print("Parece que todo está bien")
         return (self, [], first_suffix), None
 
+    # antes llamado find_matches_in_file_controls
     def find_matches_between_controls(self, task_params=None, **kwargs):
         from data_param.models import FileControl
         data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)

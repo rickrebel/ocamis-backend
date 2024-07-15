@@ -59,15 +59,15 @@ class ExtractorsMix:
         # for sheet_name, all_data in validated_data.items():
         new_validated_data = {}
 
-        def calculate_aislated(headers):
-            not_null_allone = []
+        def calculate_isolated(headers):
+            not_null_alone = []
             some_null = False
             for header in headers[1:]:
                 if not header:
                     some_null = True
                 if some_null and header:
-                    not_null_allone.append(header)
-            return not_null_allone
+                    not_null_alone.append(header)
+            return not_null_alone
 
         for sheet_name in validated_data.keys():
             try:
@@ -86,8 +86,8 @@ class ExtractorsMix:
                 headers = []
                 if row_headers and len(all_data) > row_headers - 1:
                     headers = all_data[row_headers - 1]
-                    not_null_aislated = calculate_aislated(headers)
-                    few_nulls = len(not_null_aislated) < 4
+                    not_null_isolated = calculate_isolated(headers)
+                    few_nulls = len(not_null_isolated) < 4
                 if (few_nulls and headers) or not row_headers:
                     start_data = file_control.row_start_data - 1 + plus_rows
                     curr_sheet["plus_rows"] = plus_rows

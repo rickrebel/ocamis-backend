@@ -45,7 +45,7 @@ class PetitionTransformsMixReal:
             else:
                 try:
                     explore.get_sample_data(
-                        current_file_ctrl=file_control_id, **curr_kwargs)
+                        file_control_id=file_control_id, **curr_kwargs)
                 except HttpResponseError:
                     continue
             new_task_params = self.task_params.copy()

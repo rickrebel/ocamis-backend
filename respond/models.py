@@ -170,14 +170,12 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
             .order_by("id") \
             .values_list("sheet_name", flat=True)
 
+    # RICK TASK: Eliminar en cuanto se borre get_data_mix
     @property
     def all_sample_data(self):
         from respond.views import SampleFile
         sample_file = SampleFile()
-        sheet_files = self.sheet_files \
-            .filter(file_type__in=['sheet', 'split', 'clone'])
-        # return {tf.sheet_name: tf.sample_data for tf in sheet_files}
-        return sample_file.get_many_samples(sheet_files)
+        return sample_file.get_sheet_samples(self)
 
     @property
     def last_lap(self):

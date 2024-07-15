@@ -127,6 +127,7 @@ class DataFileViewSet(CreateRetrieveView):
         # curr_kwargs = {"after_if_empty": after_aws}
         for re_stage in target_stage.re_process_stages.all():
             current_function = re_stage.main_function.name
+            in_target = re_stage.name == target_name
 
             # print("stage", re_stage.name, current_function)
             # task_params["models"] = [data_file]
@@ -153,7 +154,7 @@ class DataFileViewSet(CreateRetrieveView):
             #             all_errors, f"{re_stage.name}|with_errors")
             #     return comprobate_status(
             #         key_task, all_errors, new_tasks, want_http_response=True)
-            if re_stage.name == target_name:
+            if in_target:
                 data_file = data_file.finished_stage(f"{target_name}|finished")
                 # comprobate_status(key_task, all_errors, new_tasks)
                 base_task.comprobate_status(want_http_response=False)

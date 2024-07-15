@@ -85,9 +85,10 @@ class SampleFile:
         file_obj.sample_file = self.final_path
         file_obj.save()
 
-    def get_many_samples(self, sheet_files: QuerySet[SheetFile]) -> dict:
-        samples = {}
-        for sheet_file in sheet_files:
+    # def get_many_samples(self, sheet_files: QuerySet[SheetFile]) -> dict:
+    def get_sheet_samples(self, data_file: DataFile) -> dict:
+        sheets_data = {}
+        for sheet_file in data_file.sheet_files.all():
             sample = self.get_sample(sheet_file)
-            samples[sheet_file.sheet_name] = sample
-        return samples
+            sheets_data[sheet_file.sheet_name] = sample
+        return sheets_data

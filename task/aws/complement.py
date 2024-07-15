@@ -3,7 +3,7 @@ import re
 from task.aws.common import obtain_decode
 
 
-class GetAllData:
+class GetAllRows:
 
     def __init__(self, match_class):
         self.match_class = match_class

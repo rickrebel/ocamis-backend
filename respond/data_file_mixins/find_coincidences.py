@@ -26,7 +26,7 @@ class MatchControls:
         self.errors = []
         self.name_columns_simple = None
         self.all_data_files = {}
-        self.sheet_data = {}
+        self.sheet_matches = {}
 
         self.some_saved = False
 
@@ -92,15 +92,14 @@ class MatchControls:
         sorted_sheet_names.extend(other_sheets)
 
         for sheet_name in sorted_sheet_names:
-            # headers = validated_rows[row_headers-1] if row_headers else []
             self._find_coincidences_in_sheet(sheet_name, structured_data)
 
-        same_data_files = DataFile.objects \
-            .filter(file=self.data_file.file) \
-            .exclude(petition_file_control__file_control__data_group_id="orphan")
-
-        # RICK TASK: Aún no entiendo bien esta lógica
+        # RICK TASK: Aún no entiendo bien esta lógica y si debería
+        # estar identada
         if self.already_cluster:
+            same_data_files = DataFile.objects \
+                .filter(file=self.data_file.file) \
+                .exclude(petition_file_control__file_control__data_group_id="orphan")
             self.sheets_matched_ids = []
             for df in same_data_files:
                 self.all_data_files[df.petition_file_control_id] = df
@@ -142,7 +141,8 @@ class MatchControls:
                 except Exception as e:
                     print("error intentando obtener headers", e)
                     return
-            return
+            else:
+                return
         else:
             name_columns = self.name_columns_simple \
                 .values_list("std_name_in_data", flat=True)

@@ -23,8 +23,6 @@ def calculate_delimiter_own(data):
 
 # def explore_data_simple(event, context):
 def lambda_handler(event, context):
-    # import boto3
-    import io
     import json
 
     errors = []

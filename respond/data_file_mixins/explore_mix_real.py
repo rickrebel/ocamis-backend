@@ -84,10 +84,6 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
 
         sample_file = SampleFile()
         sample_data = sample_file.get_sample(self.data_file)
-        # RICK TASK: Esto debería ser menos enredado
-        file_control = kwargs.pop("current_file_ctrl", None)
-        # new_kwargs = {"task_kwargs": kwargs, "file_control": file_control}
-        kwargs.update({"file_control": file_control})
         if self.data_file.suffix in self.xls_suffixes:
             return self.build_data_from_file(**kwargs)
         elif not sample_data:

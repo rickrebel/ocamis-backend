@@ -164,6 +164,30 @@ class AwsFunction(TaskHelper):
         if body:
             self.execute_next_function()
 
+    def _build_with_body(self, body, request_id=None):
+        if not request_id:
+            request_id = body.get("request_id")
+        # print("-x BODY: ", body)
+        # print("request_id: ", request_id)
+        result = body.get("result", {})
+        try:
+            main_task = AsyncTask.objects.get(request_id=str(request_id))
+            main_task.status_task_id = "success"
+            main_task.date_arrive = datetime.now()
+            # print("RESULT: ", result)
+            main_task.result = result
+            main_task.save()
+            self.new_result = result.copy()
+            self.new_result.update(main_task.params_after or {})
+            self.errors = self.new_result.get("errors", [])
+            self.next_function = main_task.function_after
+            # function_aws = AwsFunction(self.main_task, new_result)
+            # function_aws.execute_function()
+            self.response = "success"
+            return main_task
+        except Exception as e:
+            raise e
+
     def execute_next_function(self, function_name=None):
         if function_name:
             self.next_function = function_name
@@ -188,30 +212,6 @@ class AwsFunction(TaskHelper):
             print("ERRORES en ExecuteAwsFunction: ", self.errors)
         # return comprobate_status(self.main_task, self.errors, self.new_tasks)
         return self.comprobate_status(want_http_response=False)
-
-    def _build_with_body(self, body, request_id=None):
-        if not request_id:
-            request_id = body.get("request_id")
-        # print("-x BODY: ", body)
-        # print("request_id: ", request_id)
-        result = body.get("result", {})
-        try:
-            main_task = AsyncTask.objects.get(request_id=str(request_id))
-            main_task.status_task_id = "success"
-            main_task.date_arrive = datetime.now()
-            # print("RESULT: ", result)
-            main_task.result = result
-            main_task.save()
-            self.new_result = result.copy()
-            self.new_result.update(main_task.params_after or {})
-            self.errors = self.new_result.get("errors", [])
-            self.next_function = main_task.function_after
-            # function_aws = AwsFunction(self.main_task, new_result)
-            # function_aws.execute_function()
-            self.response = "success"
-            return main_task
-        except Exception as e:
-            raise e
 
     def _get_method(self):
         from inai.misc_mixins.petition_mix import FromAws as Petition
@@ -245,4 +245,3 @@ class AwsFunction(TaskHelper):
                 err += f"; {error3}"
                 self.errors.append(err)
         return self.final_method, is_new_version
-

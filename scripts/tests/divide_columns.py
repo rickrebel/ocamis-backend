@@ -1,10 +1,10 @@
 from fixture.pruebas.request_join import initial
 from task.aws.common import (BotoUtils)
-from task.aws.complement import GetAllData
+from task.aws.complement import GetAllRows
 import re
 
 
-class MatchClass(GetAllData):
+class MatchClass(GetAllRows):
 
     def __init__(self):
         self.init_data = initial.get('init_data')
