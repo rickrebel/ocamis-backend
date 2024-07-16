@@ -219,7 +219,6 @@ class AwsFunction(TaskHelper):
         return self.comprobate_status(want_http_response=False)
 
     def _get_method(self) -> tuple:
-        from inai.petition_mixins.petition_mix import PetitionTransformsMixReal as Petition
         from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
         from inai.misc_mixins.month_record_from_aws import FromAws as MonthRecord
         from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet

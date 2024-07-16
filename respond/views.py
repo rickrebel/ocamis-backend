@@ -91,5 +91,6 @@ class SampleFile:
         sheets_data = {}
         for sheet_file in data_file.sheet_files.all():
             sample = self.get_sample(sheet_file)
+            sample.update({"file_type": sheet_file.file_type})
             sheets_data[sheet_file.sheet_name] = sample
         return sheets_data

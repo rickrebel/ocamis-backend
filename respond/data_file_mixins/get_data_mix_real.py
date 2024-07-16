@@ -20,7 +20,7 @@ class ExtractorRealMix:
     xls_suffixes = FileFormat.objects.get(short_name="xls").suffixes
 
     def __init__(self, data_file: DataFile, task_params=None,
-                 base_task: TaskBuilder = None, want_response=True):
+                 base_task: TaskBuilder = None, want_response=False):
         self.data_file = data_file
         self.task_params = task_params
         self.base_task = base_task
@@ -29,6 +29,8 @@ class ExtractorRealMix:
         self.want_response = want_response
         self.row_headers = 0
         self.errors = []
+
+        self.first_headers = []
 
     def _set_file_control(self, file_control):
         if file_control:
@@ -108,7 +110,7 @@ class ExtractorRealMix:
         type_format = self._validate_and_get_type_format()
         sample_file = SampleFile()
         all_sheets_data = sample_file.get_sheet_samples(self.data_file)
-
+        # is_excel = type_format == 'excel'
         if type_format == 'excel':
             filtered_sheets = self._get_data_excel()
         else:  # type_format == 'simple': o incluso para pdf
@@ -116,16 +118,30 @@ class ExtractorRealMix:
             # filtered_sheets = self._get_data_simple(all_sheets_data)
 
         # for sheet_name in all_sheets_data.keys():
+        some_is_valid = False
         full_sheet_data = {}
         for (sheet_name, sheet_data) in all_sheets_data.items():
-            data_rows, headers = self._assemble_headers_and_rows(
-                sheet_name, sheet_data)
-            curr_sheet = sheet_data.copy()
-            curr_sheet["data_rows"] = data_rows
-            curr_sheet["headers"] = headers
-            curr_sheet["is_valid"] = bool(data_rows)
-            full_sheet_data[sheet_name] = curr_sheet
+            is_split = sheet_data.get("is_split")
+            try:
+                is_second = is_split and int(sheet_name) != 1
+            except ValueError:
+                is_second = False
 
+            sample_rows, headers = self._assemble_headers_and_rows(
+                sheet_name, sheet_data, is_second)
+            curr_sheet = sheet_data.copy()
+            if is_split and not self.first_headers:
+                self.first_headers = headers
+            is_valid = bool(sample_rows)
+            curr_sheet["is_valid"] = is_valid
+            curr_sheet["headers"] = headers
+            full_sheet_data[sheet_name] = curr_sheet
+            if is_valid:
+                some_is_valid = True
+
+        if self.want_response and not some_is_valid:
+            error = "No se encontró información válida en el archivo"
+            self.base_task.add_errors_and_raise([error])
         # print("filtered_sheets", filtered_sheets)
         return full_sheet_data, filtered_sheets
 
@@ -170,15 +186,23 @@ class ExtractorRealMix:
 
         return include_names, exclude_names, include_idx, exclude_idx
 
-    def _assemble_headers_and_rows(self, sheet_name: str, sheet_data: dict) -> tuple:
+    def _assemble_headers_and_rows(
+            self, sheet_name: str, sheet_data: dict, is_second: bool) -> tuple:
 
         try:
             first_rows = sheet_data.get("all_data", [])
-            enough_rows = len(first_rows) > 198
             # all_data = sheet_data.get("all_data")
         except Exception as e:
             print(f"ERROR EN OBTENER ALL_DATA de {sheet_name}; {str(e)}")
             raise e
+
+        def extend_tail_data(selected_rows, build_headers):
+            if len(first_rows) >= 198:
+                selected_rows.extend(sheet_data.get("tail_data", []))
+            return selected_rows, build_headers
+        if is_second:
+            return extend_tail_data(first_rows, self.first_headers)
+
         few_nulls = False
         headers = []
         if self.row_headers and len(first_rows) > self.row_headers - 1:
@@ -187,10 +211,8 @@ class ExtractorRealMix:
             few_nulls = len(not_null_isolated) < 4
         if (few_nulls and headers) or not self.row_headers:
             start_data = self.file_control.row_start_data - 1
-            data_rows = first_rows[start_data:][:200]
-            if enough_rows:
-                data_rows.extend(sheet_data.get("tail_data", []))
-            return data_rows, headers
+            sample_rows = first_rows[start_data:]
+            return extend_tail_data(sample_rows, headers)
         else:
             print("No pasó las pruebas básicas -", sheet_name)
             return None, headers

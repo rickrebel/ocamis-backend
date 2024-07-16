@@ -171,8 +171,8 @@ class TaskHelper(Serverless):
 
     def _find_task_model(self, async_task=None, many=False):
         task_models = [
-            "petition", "file_control", "reply_file", "sheet_file",
-            "data_file", "week_record", "month_record"]
+            "file_control", "reply_file", "sheet_file", "data_file",
+            "week_record", "month_record"]
         # "cluster", "mat_view"]
         if not async_task:
             async_task = self.main_task

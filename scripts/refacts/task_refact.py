@@ -67,3 +67,33 @@ def create_missing_stage():
 # explore_data_xls_after
 # counting_from_aws
 
+
+def clean_real_alternatives(size=30, clean=False):
+    from scripts.common import similar, text_normalizer
+    from data_param.models import NameColumn
+    name_columns = NameColumn.objects\
+        .filter(alternative_names__isnull=False)[:size]
+    real_same_count = 0
+    distinct_count = 0
+    for name_column in name_columns:
+        alt_names = name_column.alternative_names or []
+        some_distinct = False
+        for alt_name in alt_names:
+            std_name = text_normalizer(alt_name, True)
+            if name_column.std_name_in_data != std_name:
+                print("\nstd_name", std_name)
+                print("std_name_in_data", name_column.std_name_in_data)
+                some_distinct = True
+        if some_distinct:
+            distinct_count += 1
+        else:
+            name_column.alternative_names = None
+            real_same_count += 1
+    print("real_same_count", real_same_count)
+    print("distinct_count", distinct_count)
+    if clean:
+        NameColumn.objects.bulk_update(name_columns, ["alternative_names"])
+
+
+clean_real_alternatives(6000, True)
+
