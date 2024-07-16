@@ -106,7 +106,7 @@ def get_bucket_files(limit=10000):
     import boto3
     import time
     from django.conf import settings
-    from task.models import FilePath
+    # from task.models import FilePath
 
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
@@ -138,26 +138,26 @@ def get_bucket_files(limit=10000):
             count_after_exclusion += 1
             # print("key: ", key)
             args = {'path_in_bucket': bucket_obj_key, 'size': bucket_obj.size}
-            for model_dict in model_dicts:
-                model_obj = model_dict.get(bucket_obj_key)
-                if model_obj is None:
-                    continue
-                count_found += 1
-                args['is_correct_path'] = bucket_obj_key == model_obj['new_path']
-                args['path_to_file'] = model_obj['new_path']
-                args[f"{model_obj['model_name']}_id"] = model_obj['id']
-                # print("argumentos a guardar: ", args.items())
-                break
-            created_obj = FilePath(**args)
-            objs_to_save.append(created_obj)
+            # for model_dict in model_dicts:
+            #     model_obj = model_dict.get(bucket_obj_key)
+            #     if model_obj is None:
+            #         continue
+            #     count_found += 1
+            #     args['is_correct_path'] = bucket_obj_key == model_obj['new_path']
+            #     args['path_to_file'] = model_obj['new_path']
+            #     args[f"{model_obj['model_name']}_id"] = model_obj['id']
+            #     # print("argumentos a guardar: ", args.items())
+            #     break
+            # created_obj = FilePath(**args)
+            # objs_to_save.append(created_obj)
             if len(objs_to_save) >= 1000:
-                FilePath.objects.bulk_create(objs_to_save)
+                # FilePath.objects.bulk_create(objs_to_save)
                 objs_to_save.clear()
             counter += 1
         if counter >= limit:
             break
 
-    FilePath.objects.bulk_create(objs_to_save)
+    # FilePath.objects.bulk_create(objs_to_save)
     print("Cuenta después exclusión: ", count_after_exclusion)
     print("Encontrados: ", count_found)
     end_time_model = time.time()
@@ -165,9 +165,9 @@ def get_bucket_files(limit=10000):
     print(f"Tiempo de ejecución creación modelo: {execution_time} segundos")
 
 
-def clean_file_path():
-    from task.models import FilePath
-    FilePath.objects.all().delete()
+# def clean_file_path():
+#     from task.models import FilePath
+#     FilePath.objects.all().delete()
 
 
 def dummy_change_path():
