@@ -131,7 +131,7 @@ class TaskChecker:
         self.debug_aged_running()
 
     def debug_success(self):
-        from task.views_main_aws import AwsFunction
+        from task.main_views_aws import AwsFunction
 
         very_recent = timezone.now() - timedelta(seconds=20)
         arrived_tasks = AsyncTask.objects.filter(
@@ -169,7 +169,7 @@ class TaskChecker:
                 want_send=True, ebs_task=ebs_tasks.first())
 
     def debug_aged_running(self):
-        from task.views_main_aws import AwsFunction
+        from task.main_views_aws import AwsFunction
         s3 = build_s3()
         s3_utils = BotoUtils(s3)
 

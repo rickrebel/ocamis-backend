@@ -20,7 +20,7 @@ def build_constraints_and_indexes(use_complement=False):
             return build_constraints_and_indexes(use_complement=True)
         return [], []
     print("PASOOOOO")
-    rr_data_rows = data.split("\n")
+    rr_rows = data.split("\n")
     last_table = None
     create_commands = []
     delete_commands = []
@@ -43,7 +43,7 @@ def build_constraints_and_indexes(use_complement=False):
     def add_delete_block(block):
         delete_commands.append(block)
     # SPACE
-    for row in rr_data_rows:
+    for row in rr_rows:
         constraint_name = None
         if not row or "alter table" in row or "owner to" in row:
             last_function = None

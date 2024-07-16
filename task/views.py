@@ -109,7 +109,7 @@ def comprobate_status(
 
 
 def execute_finished_function(parent_task):
-    from task.views_main_aws import AwsFunction
+    from task.main_views_aws import AwsFunction
     finished_function = parent_task.finished_function
     brothers_in_finish = AsyncTask.objects.filter(
         parent_task=parent_task,

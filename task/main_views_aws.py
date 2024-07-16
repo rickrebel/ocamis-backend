@@ -5,7 +5,7 @@ from datetime import datetime
 import traceback
 
 from task.models import AsyncTask
-from task.helpers import TaskHelper
+from task.helpers import TaskHelper, HttpResponseError
 
 
 def extract_only_message(error_text):
@@ -196,10 +196,15 @@ class AwsFunction(TaskHelper):
         self.final_method, is_new_version = self._get_method()
         if self.final_method:
             try:
-                self.new_tasks, final_errors, _data = self.final_method(
-                    **self.new_result,
-                    task_params={"parent_task": self.main_task})
-                self.errors.extend(final_errors or [])
+                if is_new_version:
+                    self.final_method(**self.new_result)
+                else:
+                    new_tasks, final_errors, _data = self.final_method(
+                        **self.new_result,
+                        task_params={"parent_task": self.main_task})
+                    self.errors.extend(final_errors or [])
+            except HttpResponseError as e:
+                self.errors.extend(e.errors)
             except Exception as error:
                 error_ = traceback.format_exc()
                 print("LOG DE ERRORES 2: ", error_)
@@ -213,8 +218,8 @@ class AwsFunction(TaskHelper):
         # return comprobate_status(self.main_task, self.errors, self.new_tasks)
         return self.comprobate_status(want_http_response=False)
 
-    def _get_method(self):
-        from inai.misc_mixins.petition_mix import FromAws as Petition
+    def _get_method(self) -> tuple:
+        from inai.petition_mixins.petition_mix import PetitionTransformsMixReal as Petition
         from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
         from inai.misc_mixins.month_record_from_aws import FromAws as MonthRecord
         from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
@@ -223,9 +228,9 @@ class AwsFunction(TaskHelper):
         from rds.misc_mixins.mat_view_mix import FromAws as MatView
         from respond.reply_file_mixins.reply_mix import FromAws as ReplyFile
         task_parameters = {"parent_task": self.main_task}
-        is_new_version = False
         try:
             self.final_method = getattr(self.model_obj, self.next_function)
+            return self.final_method, False
         except AttributeError as error2:
             try:
                 model_name = self.model_obj.__class__.__name__
@@ -233,15 +238,13 @@ class AwsFunction(TaskHelper):
                 # base_task = TaskBuilder(
                 #     model_obj=self.model_obj, parent_task=self.main_task)
                 # base_task = TaskBuilder(main_task=self.main_task, from_aws=True)
-                base_aws_mix = from_aws_class(
-                    self.model_obj, task_params=task_parameters,
-                    base_task=self)
+                base_aws_mix = from_aws_class(self.model_obj, base_task=self)
                 is_new_version = hasattr(base_aws_mix, "new_version")
-                self.final_method = getattr(base_aws_mix, self.next_function)
+                return getattr(base_aws_mix, self.next_function), is_new_version
             except Exception as error3:
                 error_ = traceback.format_exc()
                 print("LOG DE ERRORES 3: ", error_)
                 err = f"Error al obtener el método {self.next_function}: {error2}"
                 err += f"; {error3}"
                 self.errors.append(err)
-        return self.final_method, is_new_version
+                return None, False

@@ -312,10 +312,6 @@ def get_file_csv(file_path):
     import io
     with io.open(file_path, "r", encoding="utf-8") as file:
         data = file.readlines()
-        # rr_data_rows = data.split("\n")
-        # headers = rr_data_rows.pop(0)
-        # all_headers = headers.split("|")
-        # print(all_headers)
         return data
 
 

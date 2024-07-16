@@ -19,24 +19,23 @@ class BuildComplexHeaders(ExploreRealMix):
         from data_param.models import NameColumn
 
         # De acá obtendremos self.file_control
-        try:
-            data = self.get_data_from_file()
-        except HttpResponseError as e:
-            if e.errors:
-                self.data_file.save_errors(e.errors, "explore|with_errors")
-            return self.base_task.add_errors_and_raise(e.errors)
+        full_sheet_data, filtered_sheets = self.get_data_from_file()
+        # try:
+        #     full_sheet_data, filtered_sheets = self.get_data_from_file()
+        # except HttpResponseError as e:
+        #     if e.errors:
+        #         self.data_file.save_errors(e.errors, "explore|with_errors")
+        #     return self.base_task.add_errors_and_raise(e.errors)
 
-        validated_data = data["structured_data"]
-        current_sheets = data["current_sheets"]
         first_valid_sheet = None
-        for sheet_name in current_sheets:
-            sheet_data = validated_data[sheet_name]
+        for sheet_name in filtered_sheets:
+            sheet_data = full_sheet_data[sheet_name]
             # if getattr(sheet_data, "headers"):
             if "headers" in sheet_data and sheet_data["headers"]:
                 first_valid_sheet = sheet_data
                 break
         if not first_valid_sheet:
-            first_valid_sheet = validated_data[current_sheets[0]]
+            first_valid_sheet = full_sheet_data[filtered_sheets[0]]
             if not first_valid_sheet:
                 error = "WARNING: No se encontró algo que coincidiera"
                 self.base_task.add_errors_and_raise([error])

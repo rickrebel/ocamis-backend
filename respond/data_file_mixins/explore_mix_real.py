@@ -46,12 +46,8 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
 
     # Guardado en funciones
     def verify_coincidences(self, task_params, **kwargs):
-        match_controls = MatchControls(self)
-        saved = match_controls.find_file_controls()
-        new_errors = match_controls.errors
-        if not saved and not new_errors:
-            new_errors = ["No coincide con el grupo de control (4)"]
-        return [], new_errors, None
+        match_controls = MatchControls(self.data_file, self.base_task)
+        match_controls.match_file_control()
 
     # Guardado en funciones
     def prepare_transform(self, task_params, **kwargs):

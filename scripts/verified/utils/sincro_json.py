@@ -26,9 +26,9 @@ def hydrateCol(row, all_headers):
 def getFileJson(file_path):
     # import io
     with open(file_path, "r") as file:
-        rr_data_rows = json.load(file)
-        headers = rr_data_rows.pop(0)
-        return headers, rr_data_rows
+        rr_rows = json.load(file)
+        headers = rr_rows.pop(0)
+        return headers, rr_rows
 
 
 def generate_file(app_name, model_name):
@@ -65,9 +65,9 @@ def generate_file(app_name, model_name):
 def sincronize_entities(app_name, model_name, field_id="id"):
     from django.apps import apps
     json_path = 'fixture/sincronize/%s.json' % model_name
-    all_headers, rr_data_rows = getFileJson(json_path)
+    all_headers, rr_rows = getFileJson(json_path)
     MyModel = apps.get_model(app_name, model_name)
-    for idx, row in enumerate(rr_data_rows):
+    for idx, row in enumerate(rr_rows):
         if not row:
             break
         hydrated = hydrateCol(row, all_headers)

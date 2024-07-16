@@ -3,6 +3,10 @@ from inai.misc_mixins.month_record_mix import MonthRecordMix
 
 class FromAws(MonthRecordMix):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.new_version = True
+
     def revert_stages_after(self, **kwargs):
         return [], [], True
 

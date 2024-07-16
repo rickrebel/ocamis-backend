@@ -9,12 +9,13 @@ class GetAllRows:
         self.match_class = match_class
 
         self.s3_utils = match_class.s3_utils
-        self.existing_fields = match_class.existing_fields
+        self.existing_fields = match_class.existing_fields or []
         self.positioned_fields = [field for field in self.existing_fields
                                   if field["position"] is not None]
 
-        self.fill_columns = "fill_columns" in match_class.global_transformations
-        self.is_prepare = match_class.is_prepare
+        global_transformations = match_class.global_transformations or []
+        self.fill_columns = "fill_columns" in global_transformations
+        self.is_prepare = match_class.is_prepare or False
         self.columns_count = match_class.columns_count
         self.string_date = match_class.string_date
 
@@ -38,7 +39,7 @@ class GetAllRows:
 
     def divide_rows(self, data_rows):
         import json
-        structured_data = []
+
         sample = data_rows[:50]
         if not self.match_class.decode:
             self.match_class.decode = obtain_decode(sample)
@@ -50,6 +51,7 @@ class GetAllRows:
             raise ValueError("No se pudo decodificar el archivo")
 
         # for row_seq, row in enumerate(data_rows[begin+1:], start=begin+1):
+        final_rows_with_cols = []
         for row_seq, row in enumerate(data_rows, start=1):
             self.match_class.last_missing_row = None
             if self.is_prepare:
@@ -69,18 +71,18 @@ class GetAllRows:
 
             if current_count == self.columns_count:
                 row_final.insert(0, str(row_seq))
-                structured_data.append(row_final)
+                final_rows_with_cols.append(row_final)
             elif self.fill_columns:
                 row_final.insert(0, str(row_seq))
                 row_final.extend([None] * (self.columns_count - current_count))
-                structured_data.append(row_final)
+                final_rows_with_cols.append(row_final)
             else:
                 error = "Conteo distinto de Columnas; %s de %s" % (
                     current_count, self.columns_count)
                 row_data = [str(row_seq), row_data]
                 self.match_class.add_missing_row(row_data, error)
 
-        return structured_data
+        return final_rows_with_cols
 
     def string_time_to_regex(self, string_time):
         conversion_map = {

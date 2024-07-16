@@ -25,12 +25,12 @@ def get_info_from_txt(
     except Exception as e:
         print(e)
         return False, ["%s" % (e)], False
-    data_rows = data.replace("\r\n","\n")
-    #data_rows = data.split("\n")
+    txt_rows = data.replace("\r\n","\n")
+    # txt_rows = data.split("\n")
     final_data = []
     headers = None
     error_number_columns = 0
-    for index, data_row in enumerate(data_rows):
+    for index, data_row in enumerate(txt_rows):
         if index % 100000 == 0:
             print("index: %s" % index, timezone.now())
         final_row = data_row.split("|")
@@ -49,7 +49,7 @@ def intento_de_limpieza():
     import csv
     import json
     data = None
-    rr_data_rows = None
+    rr_txt_rows = None
     # path_json = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_0.json"
     path_json = "fixture/pruebas/SOLICITUDES_AGS.json"
     with io.open(path_json, "r", encoding="latin-1") as file:
@@ -95,7 +95,7 @@ def intento_de_limpieza():
 
     data_file = data.replace("\n", "\\n")
     # Lo que está fuera
-    # rr_data_rows = json.load(file)
+    # rr_txt_rows = json.load(file)
     data_file = data_file.replace('\n', '')
     csv_path2 = "C:\\Users\\Ricardo\\Desktop\\experimentos\\sol19296_1.json"
     with open(csv_path2, 'w', encoding="latin-1") as outfile:

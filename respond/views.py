@@ -25,11 +25,12 @@ class SampleFile:
         json_lines = self.s3_utils.get_json_file(self.final_path)
         return json_lines
 
-    def get_sample(self, file_obj):
+    def get_sample(self, file_obj) -> dict:
         if file_obj.sample_file:
             return self.get_json_content(file_obj.sample_file.name)
         else:
-            return file_obj.sample_data
+            sample_data = file_obj.sample_data.copy()
+            return sample_data
 
     def get_file_path(self, file_obj):
         if file_obj.sample_file:

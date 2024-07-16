@@ -38,11 +38,11 @@ class ReplyFileMixReal:
 
 class FromAws:
 
-    def __init__(self, reply_file: ReplyFile, task_params=None,
-                 base_task: TaskBuilder = None):
+    def __init__(self, reply_file: ReplyFile, base_task: TaskBuilder = None):
         self.reply_file = reply_file
-        self.task_params = task_params
         self.base_task = base_task
+        self.new_version = True
+        self.task_params = {"parent_task": base_task.main_task}
 
     def decompress_zip_aws_after(self, **kwargs):
         print("decompress_zip_aws_after---------------------------------")

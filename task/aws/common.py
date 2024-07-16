@@ -252,9 +252,9 @@ def obtain_decode(sample):
     return "utf-8"
 
 
-def decode_content(data_rows, decode):
+def decode_content(rows, decode):
     decoded_data = []
-    for row in data_rows:
+    for row in rows:
         content = str(row) if decode == 'str' else row.decode(decode)
         decoded_data.append(content)
     return decoded_data

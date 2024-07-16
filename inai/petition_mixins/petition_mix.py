@@ -10,8 +10,9 @@ class PetitionTransformsMixReal:
         self.task_params = {"parent_task": base_task.main_task}
         self.base_task = base_task
 
-    # Función after y directa
-    def find_matches_for_data_files(self, all_data_files, file_control_id=None):
+    # Función directa
+    def find_matches_for_data_files(
+            self, all_data_files=None, file_control_id=None, **kwargs):
 
         from data_param.models import FileControl
         from data_param.views import get_related_file_controls
@@ -22,6 +23,8 @@ class PetitionTransformsMixReal:
         else:
             provider_file_controls = get_related_file_controls(
                 petition=self.petition)
+
+        from_aws = kwargs.get("from_aws", False)
 
         provider_ctrl_list = list(
             provider_file_controls.values_list("id", flat=True))

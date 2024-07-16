@@ -282,6 +282,8 @@ class SheetFile(models.Model):
     sample_file = models.FileField(
         max_length=255, upload_to=set_upload_path,
         blank=True, null=True, verbose_name="Archivo con muestra")
+    headers = JSONField(blank=True, null=True)
+    row_start_data = models.IntegerField(blank=True, null=True)
     total_rows = models.IntegerField(default=0)
     error_process = JSONField(blank=True, null=True)
     warnings = JSONField(blank=True, null=True)

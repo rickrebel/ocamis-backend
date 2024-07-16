@@ -4,11 +4,11 @@ from task.base_views import TaskBuilder
 
 class FromAws:
 
-    def __init__(self, week_record: WeekRecord, task_params=None,
-                 base_task: TaskBuilder = None):
+    def __init__(self, week_record: WeekRecord, base_task: TaskBuilder = None):
         self.week_record = week_record
         self.split_by_delegation = week_record.provider.split_by_delegation
-        self.task_params = task_params
+        self.base_task = base_task
+        self.task_params = {"parent_task": base_task.main_task}
 
     def analyze_uniques_after(self, **kwargs):
         print("analyze_uniques_after---------------------------------")

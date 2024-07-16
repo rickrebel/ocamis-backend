@@ -5,11 +5,10 @@ from respond.data_file_mixins.find_coincidences import MatchControls
 
 class FromAws:
 
-    def __init__(self, data_file: DataFile, task_params=None,
-                 base_task: TaskBuilder = None):
+    def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
         self.data_file = data_file
-        self.task_params = task_params
         self.base_task = base_task
+        self.task_params = {"parent_task": base_task.main_task}
 
     def decompress_gz_after(self, **kwargs):
         from respond.models import SheetFile
@@ -94,8 +93,6 @@ class FromAws:
         from data_param.views import get_related_file_controls
         from data_param.models import FileControl
         kwargs = self._corroborate_save_data(task_params, **kwargs)
-        saved = False
-        all_errors = []
         if not provider_file_controls:
             provider_controls_ids = kwargs.get("provider_controls_ids", [])
             if not provider_controls_ids:
@@ -104,22 +101,23 @@ class FromAws:
             else:
                 provider_file_controls = FileControl.objects.filter(
                     id__in=provider_controls_ids)
-        match_controls = MatchControls(self)
+        match_controls = MatchControls(self.data_file, self.base_task)
         saved = match_controls.find_in_file_controls(provider_file_controls)
         # for file_ctrl in provider_file_controls:
         #     saved = match_controls.find_file_controls(file_control=file_ctrl)
         #     all_errors.extend(match_controls.errors)
+        errors = None
         if not saved:
-            all_errors.append("No existe ningún grupo de control coincidente")
-            self.data_file.save_errors(all_errors, "explore|with_errors")
-        return None, all_errors, None
+            errors = ["No existe ningún grupo de control coincidente"]
+            self.data_file.save_errors(errors, "cluster|with_errors")
+        return None, errors, None
 
     # Función de after
     def find_coincidences_from_aws(self, task_params=None, **kwargs):
         self._corroborate_save_data(task_params, **kwargs)
         # saved, errors = self._find_coincidences(saved=False)
-        match_controls = MatchControls(self)
-        saved = match_controls.find_file_controls()
+        match_controls = MatchControls(self.data_file, self.base_task)
+        saved = match_controls.match_file_control()
         errors = match_controls.errors
         if not saved and not errors:
             errors = ["No coincide con el formato del archivo 3"]
