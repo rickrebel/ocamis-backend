@@ -278,6 +278,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
         # print("STS_PROCESS", sts_process)
         page_size = limiters.get("page_size", 30)
+        page_size = int(page_size)
         page = limiters.get("page", 1) - 1
         filters = {
             "sheet_file__data_file__petition_file_control__file_control": file_control,
