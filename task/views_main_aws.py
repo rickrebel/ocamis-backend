@@ -137,19 +137,17 @@ class AWSMessage(generic.View):
 
 class AwsFunction(TaskHelper):
 
-    def __init__(self, body=None, main_task=None, parent_task=None,
-                 function_name=None, **kwargs):
-        # self.body = body
+    def __init__(
+            self, main_task: AsyncTask, parent_task=None,
+            function_name=None, **kwargs):
+
         self.response = None
         self.new_result = {}
         self.errors = []
         self.from_aws = True
         self.next_function = function_name
         self.final_method = None
-        if not body and not main_task:
-            raise Exception("No se ha enviado un resultado o un main_task")
-        if body:
-            main_task = self._build_with_body(body)
+
         super().__init__(main_task, errors=self.errors, **kwargs)
         # if function_name:
         #     self.next_function = function_name
@@ -160,9 +158,6 @@ class AwsFunction(TaskHelper):
             self.next_function = parent_task.finished_function
         elif not self.next_function:
             self.next_function = main_task.task_function.name
-
-        if body:
-            self.execute_next_function()
 
     def execute_next_function(self, function_name=None):
         if function_name:
@@ -188,30 +183,6 @@ class AwsFunction(TaskHelper):
             print("ERRORES en ExecuteAwsFunction: ", self.errors)
         # return comprobate_status(self.main_task, self.errors, self.new_tasks)
         return self.comprobate_status(want_http_response=False)
-
-    def _build_with_body(self, body, request_id=None):
-        if not request_id:
-            request_id = body.get("request_id")
-        # print("-x BODY: ", body)
-        # print("request_id: ", request_id)
-        result = body.get("result", {})
-        try:
-            main_task = AsyncTask.objects.get(request_id=str(request_id))
-            main_task.status_task_id = "success"
-            main_task.date_arrive = datetime.now()
-            # print("RESULT: ", result)
-            main_task.result = result
-            main_task.save()
-            self.new_result = result.copy()
-            self.new_result.update(main_task.params_after or {})
-            self.errors = self.new_result.get("errors", [])
-            self.next_function = main_task.function_after
-            # function_aws = AwsFunction(self.main_task, new_result)
-            # function_aws.execute_function()
-            self.response = "success"
-            return main_task
-        except Exception as e:
-            raise e
 
     def _get_method(self):
         from inai.misc_mixins.petition_mix import FromAws as Petition
@@ -246,3 +217,36 @@ class AwsFunction(TaskHelper):
                 self.errors.append(err)
         return self.final_method, is_new_version
 
+
+class AwsBody(AwsFunction):
+    def __init__(self, body: dict, **kwargs):
+
+        self.new_result = {}
+        self.errors = []
+        main_task = self._build_with_body(body)
+        super().__init__(main_task=main_task)
+        self.execute_next_function()
+
+    def _build_with_body(self, body, request_id=None):
+        if not request_id:
+            request_id = body.get("request_id")
+        # print("-x BODY: ", body)
+        # print("request_id: ", request_id)
+        result = body.get("result", {})
+        try:
+            main_task = AsyncTask.objects.get(request_id=str(request_id))
+            main_task.status_task_id = "success"
+            main_task.date_arrive = datetime.now()
+            # print("RESULT: ", result)
+            main_task.result = result
+            main_task.save()
+            self.new_result = result.copy()
+            self.new_result.update(main_task.params_after or {})
+            self.errors = self.new_result.get("errors", [])
+            self.next_function = main_task.function_after
+            # function_aws = AwsFunction(self.main_task, new_result)
+            # function_aws.execute_function()
+            self.response = "success"
+            return main_task
+        except Exception as e:
+            raise e
