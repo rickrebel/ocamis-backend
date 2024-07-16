@@ -1121,6 +1121,8 @@ class MatchAws:
                         value = datetime(1899, 12, 30) + timedelta(
                             days=days, seconds=seconds)
                     elif string_format == "UNIX":
+                        if int(value) < 1400000000:
+                            continue
                         value = datetime.fromtimestamp(int(value))
                     else:
                         value = datetime.strptime(value, string_format)
