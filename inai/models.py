@@ -300,6 +300,9 @@ class Petition(models.Model):
     send_response = models.DateField(
         verbose_name="Fecha de última respuesta",
         blank=True, null=True)
+    complain_send_limit = models.DateField(
+        verbose_name="Fecha límite de envío de queja",
+        blank=True, null=True)
     status_petition = models.ForeignKey(
         StatusControl, null=True, blank=True,
         related_name="petitions_petition",
@@ -349,7 +352,8 @@ class Petition(models.Model):
             sheet_file__data_file__petition_file_control__petition=self,
             inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
     def first_year_month(self):
@@ -504,7 +508,7 @@ class Complaint(models.Model):
 
 class PetitionBreak(models.Model):
     petition = models.ForeignKey(
-        Petition, 
+        Petition,
         related_name="break_dates",
         on_delete=models.CASCADE)
     date_break = models.ForeignKey(
@@ -572,7 +576,8 @@ class PetitionFileControl(models.Model):
             sheet_file__data_file__petition_file_control=self,
             inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
     def __str__(self):
