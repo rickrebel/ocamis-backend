@@ -99,6 +99,16 @@ class Migration(migrations.Migration):
                 'unique_together': {('data_file', 'sheet_name', 'file_type')},
             },
         ),
+        migrations.AddField(
+            model_name='sheetfile',
+            name='headers',
+            field=models.JSONField(blank=True, null=True),
+        ),
+        migrations.AddField(
+            model_name='sheetfile',
+            name='row_start_data',
+            field=models.IntegerField(blank=True, null=True),
+        ),
         migrations.CreateModel(
             name='ReplyFile',
             fields=[
