@@ -1,0 +1,29 @@
+from django.db import migrations, models
+
+
+def copy_old_status_control(apps, schema_editor):
+    OldStatusControl = apps.get_model("category", "OldStatusControl")
+    StatusControl = apps.get_model("category", "StatusControl")
+    for old_status in OldStatusControl.objects.all():
+        StatusControl.objects.create(
+            name=old_status.name,
+            group=old_status.group,
+            public_name=old_status.public_name,
+            color=old_status.color,
+            icon=old_status.icon,
+            order=old_status.order,
+            description=old_status.description,
+            addl_params=old_status.addl_params,
+        )
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('category', '0001_initial'),
+    ]
+
+    operations = [
+
+        migrations.RunPython(copy_old_status_control),
+    ]
