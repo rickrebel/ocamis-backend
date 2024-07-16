@@ -4,7 +4,7 @@ from inai.models import PetitionFileControl
 
 from .models import (
     DataGroup, Collection, FinalField, DataType, CleanFunction,
-    ParameterGroup, NameColumn, FileControl, Transformation, DictionaryFile)
+    ParameterGroup, NameColumn, FileControl, Transformation)
 
 
 class CleanFunctionInLine(admin.StackedInline):
@@ -208,4 +208,3 @@ ocamis_admin_site.register(CleanFunction, CleanFunctionAdmin)
 ocamis_admin_site.register(NameColumn, NameColumnAdmin)
 ocamis_admin_site.register(FileControl, FileControlAdmin)
 ocamis_admin_site.register(Transformation, TransformationAdmin)
-ocamis_admin_site.register(DictionaryFile, DictionaryFileAdmin)

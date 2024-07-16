@@ -164,10 +164,11 @@ class MatchOld:
                 }
             elif catalog["required"]:
                 print("dict_file", dict_file)
-                raise Exception(f"Error al crear el catálogo de {catalog_name}")
+                raise Exception(
+                    f"Error al crear el catálogo de {catalog_name}")
 
     def build_catalog(self, catalog_name, model2, only_unique, **kwargs):
-        from data_param.models import DictionaryFile
+
         from django.apps import apps
         [app_name, model_name] = model2.split(":", 1)
         model = apps.get_model(app_name, model_name)
@@ -186,12 +187,10 @@ class MatchOld:
             query_dict_file["institution"] = self.institution
             if self.global_delegation:
                 query_dict_file["delegation"] = self.global_delegation
-        dict_file = DictionaryFile.objects.filter(**query_dict_file).first()
-        if not dict_file:
-            query_dict_file["file"] = self.build_catalog_by_id(
-                model, model_unique.final_field.name, catalog_name, **kwargs)
-            dict_file = DictionaryFile.objects.create(**query_dict_file)
-        return dict_file
+        # dict_file = DictionaryFile.objects.filter(**query_dict_file).first()
+        query_dict_file["file"] = self.build_catalog_by_id(
+            model, model_unique.final_field.name, catalog_name, **kwargs)
+        # dict_file = DictionaryFile.objects.create(**query_dict_file)
 
     def build_catalog_by_id(
             self, model, key_field, catalog_name, **kwargs):
