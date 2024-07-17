@@ -1,5 +1,7 @@
+from respond.models import DataFile
 
-class ExploreMix:
+
+class ExploreMix(DataFile):
     final_path: str
     petition_file_control: None
 

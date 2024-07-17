@@ -30,7 +30,6 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
         if sheet_names:
             return self.data_file
 
-        # task_params["models"] = [data_file]
         self.data_file.warning = []
         self.data_file.error_process = []
         self.data_file.save()
@@ -45,12 +44,12 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
                 want_http_response=True, explore_parent=False)
 
     # Guardado en funciones
-    def verify_coincidences(self, task_params, **kwargs):
+    def verify_coincidences(self, **kwargs):
         match_controls = MatchControls(self.data_file, self.base_task)
         match_controls.match_file_control()
 
     # Guardado en funciones
-    def prepare_transform(self, task_params, **kwargs):
+    def prepare_transform(self, **kwargs):
         from respond.data_file_mixins.matches_mix import MatchTransform
         self._count_file_rows()
         file_control = self.data_file.petition_file_control.file_control
@@ -58,21 +57,22 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
             error = (
                 "No se puede preparar muestra con la función " 
                 "'Se repiten las mismas columnas', enviar 'Transformar'")
-            return [], [error], self.data_file
-        match_transform = MatchTransform(self.data_file, task_params)
-        return match_transform.build_csv_converted(is_prepare=True)
+            self.base_task.add_errors_and_raise([error])
+        match_transform = MatchTransform(self.data_file, self.base_task)
+        match_transform.build_csv_converted(is_prepare=True)
 
     # Guardado en funciones
-    def transform_data(self, task_params, **kwargs):
+    def transform_data(self, **kwargs):
         from respond.data_file_mixins.matches_mix import MatchTransform
         from respond.data_file_mixins.intermediary_mix import Intermediary
         file_control = self.data_file.petition_file_control.file_control
         if file_control.is_intermediary:
-            my_intermediary = Intermediary(self.data_file, task_params)
-            return my_intermediary.split_columns()
+            my_intermediary = Intermediary(
+                self.data_file, base_task=self.base_task)
+            my_intermediary.split_columns()
         else:
-            match_transform = MatchTransform(self.data_file, task_params)
-            return match_transform.build_csv_converted(is_prepare=False)
+            match_transform = MatchTransform(self.data_file, self.base_task)
+            match_transform.build_csv_converted(is_prepare=False)
 
     def _get_sheet_files(self, **kwargs):
         from respond.views import SampleFile
@@ -144,12 +144,10 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
             error = "Mover a 'archivos no finales' para descomprimir desde allí"
             self.base_task.add_errors_and_raise([error])
         elif len(suffixes) == 1 and not split_sheet_files.exists():
-            # RICK TASK: A veces ocurre que esto está vacío...
+            # RICK TASK2: A veces ocurre que esto está vacío...
             file_size = self.data_file.file.size
             if file_size > 440000000:
-                real_suffix = suffixes[0]
-                # RICK EXPLORE: Qué pasa con los .csv?
-                if real_suffix not in self.xls_suffixes:
+                if suffixes[0] not in self.xls_suffixes:
                     self._decompress_gz_file()
 
         real_suffixes = suffixes

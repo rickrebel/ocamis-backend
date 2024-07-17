@@ -122,8 +122,7 @@ class AWSMessage(generic.View):
             return HttpResponse()
 
         try:
-            AwsFunction(body=body)
-            # aws_function.execute_next_function()
+            AwsBody(body=body)
             response = "success"
         except Exception as e:
             error_ = traceback.format_exc()
@@ -137,19 +136,17 @@ class AWSMessage(generic.View):
 
 class AwsFunction(TaskHelper):
 
-    def __init__(self, body=None, main_task=None, parent_task=None,
-                 function_name=None, **kwargs):
-        # self.body = body
+    def __init__(
+            self, main_task: AsyncTask, parent_task=None,
+            function_name=None, new_result=None, **kwargs):
+
         self.response = None
-        self.new_result = {}
-        self.errors = []
+        self.new_result = new_result or {}
+        self.errors = self.new_result.get("errors", [])
         self.from_aws = True
         self.next_function = function_name
         self.final_method = None
-        if not body and not main_task:
-            raise Exception("No se ha enviado un resultado o un main_task")
-        if body:
-            main_task = self._build_with_body(body)
+
         super().__init__(main_task, errors=self.errors, **kwargs)
         # if function_name:
         #     self.next_function = function_name
@@ -160,33 +157,6 @@ class AwsFunction(TaskHelper):
             self.next_function = parent_task.finished_function
         elif not self.next_function:
             self.next_function = main_task.task_function.name
-
-        if body:
-            self.execute_next_function()
-
-    def _build_with_body(self, body, request_id=None):
-        if not request_id:
-            request_id = body.get("request_id")
-        # print("-x BODY: ", body)
-        # print("request_id: ", request_id)
-        result = body.get("result", {})
-        try:
-            main_task = AsyncTask.objects.get(request_id=str(request_id))
-            main_task.status_task_id = "success"
-            main_task.date_arrive = datetime.now()
-            # print("RESULT: ", result)
-            main_task.result = result
-            main_task.save()
-            self.new_result = result.copy()
-            self.new_result.update(main_task.params_after or {})
-            self.errors = self.new_result.get("errors", [])
-            self.next_function = main_task.function_after
-            # function_aws = AwsFunction(self.main_task, new_result)
-            # function_aws.execute_function()
-            self.response = "success"
-            return main_task
-        except Exception as e:
-            raise e
 
     def execute_next_function(self, function_name=None):
         if function_name:
@@ -200,17 +170,16 @@ class AwsFunction(TaskHelper):
                     self.final_method(**self.new_result)
                 else:
                     new_tasks, final_errors, _data = self.final_method(
-                        **self.new_result,
-                        task_params={"parent_task": self.main_task})
+                        **self.new_result)
                     self.errors.extend(final_errors or [])
             except HttpResponseError as e:
                 self.errors.extend(e.errors)
             except Exception as error:
-                error_ = traceback.format_exc()
-                print("LOG DE ERRORES 2: ", error_)
-                error_ = (f"Error en el método {self.next_function}:"
-                          f"{str(error)} | {str(error_)}")
-                self.errors.append(error_)
+                error_tb = traceback.format_exc()
+                print("LOG DE ERRORES 2: ", error_tb)
+                error_tb = (f"Error en el método {self.next_function}:"
+                          f"{str(error)} | {str(error_tb)}")
+                self.errors.append(error_tb)
 
         self.main_task.date_end = datetime.now()
         if self.errors:
@@ -247,3 +216,29 @@ class AwsFunction(TaskHelper):
                 err += f"; {error3}"
                 self.errors.append(err)
                 return None, False
+
+
+class AwsBody(AwsFunction):
+    def __init__(self, body: dict, **kwargs):
+
+        main_task, new_result = self._build_with_body(body)
+        super().__init__(main_task=main_task, new_result=new_result)
+        self.execute_next_function()
+
+    def _build_with_body(self, body, request_id=None):
+        if not request_id:
+            request_id = body.get("request_id")
+        # print("-x BODY: ", body)
+        result = body.get("result", {})
+        try:
+            main_task = AsyncTask.objects.get(request_id=str(request_id))
+            main_task.status_task_id = "success"
+            main_task.date_arrive = datetime.now()
+            # print("RESULT: ", result)
+            main_task.result = result
+            main_task.save()
+            new_result = result.copy()
+            new_result.update(main_task.params_after or {})
+            return main_task, new_result
+        except Exception as e:
+            raise e

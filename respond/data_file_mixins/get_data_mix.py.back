@@ -108,7 +108,7 @@ class ExtractorsMix:
         return result, [], None
 
     def decompress_file_gz(self, task_params=None):
-        from task.serverless import async_in_lambda
+        # from task.serverless import async_in_lambda
         from inai.models import set_upload_path
 
         only_name = "split/NEW_FILE_NAME"
@@ -125,14 +125,14 @@ class ExtractorsMix:
         task_params["models"] = [self]
         # task_params["function_after"] = "decompress_gz_after"
 
-        new_task = async_in_lambda("decompress_gz", params, task_params)
-        return new_task, [], self
+        # new_task = async_in_lambda("decompress_gz", params, task_params)
+        # return new_task, [], self
 
     def _get_data_from_excel(
             self, type_explor, file_control=None, task_params=None):
-        from task.serverless import async_in_lambda
-        from scripts.common import explore_sheets
-        all_sheets = self.all_sample_data
+        # from task.serverless import async_in_lambda
+        # from scripts.common import explore_sheets
+        # all_sheets = self.all_sample_data
 
         sheet_names = self.sheet_names_list
         
@@ -144,7 +144,7 @@ class ExtractorsMix:
                 "only_name": self.file.name,
             }
             task_params = task_params or {}
-            new_task = async_in_lambda("xls_to_csv", params, task_params)
+            # new_task = async_in_lambda("xls_to_csv", params, task_params)
             return (all_sheets, [], []), new_task
             # else:
             #     return (all_sheets, sheet_names, []), None
@@ -181,7 +181,7 @@ class ExtractorsMix:
 
     def _get_data_from_file_simple(
             self, type_explor, file_control=None, task_params=None):
-        from task.serverless import async_in_lambda
+        # from task.serverless import async_in_lambda
         from respond.views import SampleFile
 
         errors = []
@@ -198,14 +198,14 @@ class ExtractorsMix:
                 "function_after", "find_matches_between_controls")
             task_params["function_after"] = function_after
             errors = []
-            async_task = async_in_lambda(
-                "explore_data_simple", params, task_params)
-            if not async_task:
-                errors.append("No se pudo iniciar la tarea")
-            return errors, [], [], async_task
+            # async_task = async_in_lambda(
+            #     "explore_data_simple", params, task_params)
+            # if not async_task:
+            #     errors.append("No se pudo iniciar la tarea")
+            # return errors, [], [], async_task
 
         is_explore = bool(type_explor)
-        all_sheets = self.all_sample_data
+        # all_sheets = self.all_sample_data
         # print("all_sheets", all_sheets)
         if is_explore and isinstance(all_sheets, dict):
             if "all_data" in all_sheets.get("default", {}):

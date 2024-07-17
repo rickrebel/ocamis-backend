@@ -91,9 +91,8 @@ def build_available_deliveries():
 
 class MatchTransform(BaseTransform):
 
-    def __init__(self, data_file: DataFile, task_params=None,
-                 base_task: TaskBuilder = None):
-        super().__init__(data_file, task_params)
+    def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
+        super().__init__(data_file, base_task=base_task)
         from inai.models import set_upload_path
         from data_param.models import NameColumn
         self.lap = self.data_file.next_lap
@@ -135,7 +134,6 @@ class MatchTransform(BaseTransform):
                              for model in self.editable_models}
 
         self.existing_fields = []
-        self.task_params = task_params
 
         # s3_client, dev_resource = start_session()
         # self.s3_client = s3_client
@@ -197,16 +195,14 @@ class MatchTransform(BaseTransform):
                 f"La columna '{name_in_data} --> {ff.verbose_name}' "
                 f"aún no está lista para ser usado")
         if missing_criteria:
-            print("missing_criteria", missing_criteria)
-            error = f"No pasó la validación básica: " \
-                f"{missing_criteria}"
-            return [], [error], None
+            # print("missing_criteria", missing_criteria)
+            # error = f"No pasó la validación básica: {missing_criteria}"
+            missing_criteria.insert(0, "No pasó la validación básica")
+            self.base_task.add_errors_and_raise(missing_criteria)
 
         # self.build_existing_fields()
         final_lap = -1 if self.is_prepare else self.lap
         self.build_init_data(final_lap, string_date)
-
-        self.task_params["function_after"] = "build_csv_data_from_aws"
 
         sample_file = SampleFile()
         for sf in self.calculate_sheets():
@@ -216,7 +212,7 @@ class MatchTransform(BaseTransform):
                 sheet_file=sheet_file, lap=final_lap)
             # init_data["lap_sheet_id"] = lap_sheet.id
             params["init_data"]["lap_sheet_id"] = lap_sheet.id
-            self.task_params["models"] = [self.data_file, sheet_file]
+            # self.task_params["models"] = [self.data_file, sheet_file]
 
             if is_prepare:
                 try:
@@ -224,8 +220,13 @@ class MatchTransform(BaseTransform):
                 except ValueError as e:
                     return [], [str(e)], self.data_file
                 # init_data["sample_data"] = sheet_file.sample_data
-            self.send_lambda("start_build_csv_data", params)
-        return self.all_tasks, [], self.data_file
+            sf_task = TaskBuilder(
+                "start_build_csv_data", function_after="build_csv_data_from_aws",
+                models=[sheet_file], parent_class=self.base_task,
+                params=params)
+            sf_task.async_in_lambda()
+
+        # return self.all_tasks, [], self.data_file
 
     def build_existing_fields(self):
 
@@ -246,7 +247,7 @@ class MatchTransform(BaseTransform):
             ["clasif_assortment_presc"],
             ["price:Drug"],
         ]
-        all_errors = []
+        build_errors = []
 
         def build_column_data(name_col, final_name=None):
 
@@ -288,14 +289,14 @@ class MatchTransform(BaseTransform):
             #     err = f"La columna {name_in_data2} tiene más de una " \
             #           f"transformación especial que no se pueden aplicar a " \
             #           f"la vez: {clean_functions}"
-            #     all_errors.append(err)
+            #     build_errors.append(err)
             if valid_transformation.exists():
                 for transformation in valid_transformation:
                     clean_function = transformation.clean_function
                     ready_code = clean_function.ready_code
                     value = transformation.addl_params.get("value", True)
                     if ready_code == "need_value" and not isinstance(value, str):
-                        all_errors.append(
+                        build_errors.append(
                             f"La transformación {clean_function} "
                             f"necesita un valor, no puede estar vacía")
                     new_column[clean_function.name] = value
@@ -319,7 +320,7 @@ class MatchTransform(BaseTransform):
         for name_column in other_name_columns:
             if not name_column.final_field:
                 name_in_data = get_name_in_data(name_column)
-                all_errors.append(
+                build_errors.append(
                     f"La columna {name_in_data} no tiene campo final referido")
                 continue
             final_field = name_column.final_field
@@ -341,14 +342,14 @@ class MatchTransform(BaseTransform):
 
         if not self.existing_fields:
             error = "No se encontraron campos para crear las recetas"
-            all_errors.append(error)
+            build_errors.append(error)
         self.existing_fields = sorted(
             self.existing_fields, key=lambda x: x.get("position", 90) or 99)
-        return self.existing_fields, all_errors
+        return self.existing_fields, build_errors
 
     def calculate_minimals_criteria(self):
 
-        existing_fields, init_errors = self.build_existing_fields()
+        existing_fields, build_errors = self.build_existing_fields()
 
         def has_matching_dict(key, val):
             for dict_item in existing_fields:
@@ -382,7 +383,7 @@ class MatchTransform(BaseTransform):
             "No tiene datos de medicamentos": some_medicine,
             "No tiene datos geográficos": some_clues,
         }
-        missing_criteria = init_errors
+        missing_criteria = build_errors
         for criteria_name, value in detailed_criteria.items():
             if not value:
                 missing_criteria.append(criteria_name)

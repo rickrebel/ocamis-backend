@@ -6,7 +6,6 @@ class FromAws:
 
     def __init__(self, sheet_file: SheetFile, base_task: TaskBuilder = None):
         self.sheet_file = sheet_file
-        self.task_params = {"parent_task": base_task.main_task}
 
     def check_success_insert(self, **kwargs):
 

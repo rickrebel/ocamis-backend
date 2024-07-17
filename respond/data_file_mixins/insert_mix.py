@@ -28,9 +28,8 @@ def build_copy_sql_aws(table_file, model_in_db, columns_join):
 
 class Insert:
 
-    def __init__(self, data_file: DataFile, task_params=None):
+    def __init__(self, data_file: DataFile, ):
         from .matches_mix import get_models_of_app, field_of_models
-        self.task_params = task_params
         self.data_file = data_file
         self.file_control = data_file.petition_file_control.file_control
         self.agency = self.file_control.agency

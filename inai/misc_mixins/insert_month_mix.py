@@ -1,7 +1,7 @@
 from django.conf import settings
 from inai.models import MonthRecord, WeekRecord
 from respond.models import LapSheet
-from task.serverless import async_in_lambda
+# from task.serverless import async_in_lambda
 from task.base_views import TaskBuilder
 
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
@@ -36,11 +36,9 @@ def build_alternative_query(model_in_db, columns_join):
 
 class InsertMonth:
 
-    def __init__(self, month_record: MonthRecord, task_params=None,
-                 base_task: TaskBuilder = None):
+    def __init__(self, month_record: MonthRecord, base_task: TaskBuilder = None):
         from respond.data_file_mixins.matches_mix import (
             get_models_of_app, field_of_models)
-        self.task_params = task_params
         self.month_record = month_record
         self.provider = self.month_record.provider
         self.editable_models = get_models_of_app("med_cat")

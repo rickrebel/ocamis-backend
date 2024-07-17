@@ -10,7 +10,7 @@ from geo.api.serializers import AgencyFileControlsSerializer
 from inai.api import serializers
 from inai.models import PetitionFileControl
 from respond.models import DataFile
-from task.views import build_task_params, comprobate_status
+# from task.views import build_task_params, comprobate_status
 
 
 def move_and_duplicate(data_files, petition, request):
@@ -119,19 +119,10 @@ class DataFileViewSet(CreateRetrieveView):
         function_after = None
         if target_stage.function_after:
             function_after = target_stage.function_after.name
-        # key_task, task_params = build_task_params(
-        #     data_file, target_stage.main_function.name, request)
-
-        # after_aws = "find_coincidences_from_aws" if \
-        #     target_name == "cluster" else "build_sample_data_after"
-        # curr_kwargs = {"after_if_empty": after_aws}
         for re_stage in target_stage.re_process_stages.all():
             current_function = re_stage.main_function.name
-            in_target = re_stage.name == target_name
+            on_target = re_stage.name == target_name
 
-            # print("stage", re_stage.name, current_function)
-            # task_params["models"] = [data_file]
-            # method = getattr(data_file, current_function)
             re_task = TaskBuilder(
                 function_name=current_function, parent_class=base_task,
                 models=[data_file], request=request,
@@ -146,24 +137,14 @@ class DataFileViewSet(CreateRetrieveView):
                 if e.errors:
                     data_file.save_errors(e.errors, f"{re_stage.name}|with_errors")
                 return e.send_response()
-            # re_task.comprobate_status(want_http_response=None
-            # new_tasks, all_errors, data_file = method(task_params, **curr_kwargs)
-            # if all_errors or new_tasks:
-            #     if all_errors:
-            #         data_file.save_errors(
-            #             all_errors, f"{re_stage.name}|with_errors")
-            #     return comprobate_status(
-            #         key_task, all_errors, new_tasks, want_http_response=True)
-            if in_target:
+            if on_target:
                 data_file = data_file.finished_stage(f"{target_name}|finished")
-                # comprobate_status(key_task, all_errors, new_tasks)
                 base_task.comprobate_status(want_http_response=False)
                 data = serializers.DataFileSerializer(data_file).data
                 response_body = {"data_file": data}
                 return Response(response_body, status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_404_NOT_FOUND, data={
-            "errors": "Hubo un error inesperado en change_stage"
-        })
+        data = {"errors": "Hubo un error inesperado en change_stage"}
+        return Response(status=status.HTTP_404_NOT_FOUND, data=data)
 
     @action(methods=["get"], detail=True, url_path="build_columns")
     def build_columns(self, request, **kwargs):
@@ -177,8 +158,6 @@ class DataFileViewSet(CreateRetrieveView):
             function_name="build_columns", models=[data_file], request=request)
 
         curr_kwargs = {
-            "after_if_empty": "build_sample_data_after",
-            # RICK TASK: Seguimos pendiente de qué hace esto
             "task_kwargs": {"function_after": "build_sample_data_after"},
         }
         explore = ExploreRealMix(

@@ -1,6 +1,6 @@
 from classify_task.models import Stage
 from inai.models import MonthRecord
-from task.serverless import async_in_lambda
+# from task.serverless import async_in_lambda
 from task.base_views import TaskBuilder
 from task.main_views_aws import AwsFunction
 from django.conf import settings
@@ -9,13 +9,8 @@ ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
 class MonthRecordMix:
 
-    # def __init__(self, month_record: MonthRecord, task_params=None):
-    #     self.month_record = month_record
-    #     self.task_params = task_params
-    def __init__(self, month_record: MonthRecord,
-                 task_params=None, base_task: AwsFunction = None):
+    def __init__(self, month_record: MonthRecord, base_task: AwsFunction = None):
         self.month_record = month_record
-        self.task_params = task_params
         self.base_task = base_task
 
     def revert_stages(self, final_stage: Stage):
@@ -183,7 +178,7 @@ class MonthRecordMix:
             # self.task_params["models"] = [week, self.month_record]
             # self.task_params["function_after"] = "analyze_uniques_after"
             # self.base_task.models = [week, self.month_record]
-            # RICK TASK: No estoy seguro de dejar esto así comentado
+            # RICK TASK2: No estoy seguro de dejar esto así comentado
             # params_after = self.task_params.get("params_after", {})
             # self.task_params["params_after"] = params_after
             # async_task = async_in_lambda(
@@ -202,8 +197,7 @@ class MonthRecordMix:
 
         # related_sheet_files = self.month_record.sheet_files.all()
 
-        my_insert = InsertMonth(self.month_record, self.task_params,
-                                base_task=self.base_task)
+        my_insert = InsertMonth(self.month_record, self.base_task)
         # new_tasks = []
         week_records = self.month_record.weeks.all().prefetch_related(
             "table_files", "table_files__collection", "table_files__lap_sheet",

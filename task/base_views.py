@@ -13,10 +13,22 @@ class TaskBuilder(TaskHelper):
     request = None
 
     def __init__(
-            self, function_name=None, model_obj=None, main_task=None,
-            request=None, parent_task=None, function_after=None,
-            keep_tasks=False, parent_class=None, subgroup=None, from_aws=None,
-            finished_function=None, params_after=None, models=None, **kwargs):
+            self,
+            function_name: str = None,
+            model_obj=None,
+            main_task: AsyncTask = None,
+            request=None,
+            parent_task: AsyncTask = None,
+            function_after: str = None,
+            keep_tasks: bool = False,
+            parent_class: TaskHelper = None,
+            subgroup: str = None,
+            from_aws: bool = False,
+            finished_function: str = None,
+            params_after: dict = None,
+            models: list = None,
+            **kwargs
+    ):
 
         self.from_aws = from_aws
         if main_task:
@@ -132,12 +144,13 @@ class TaskBuilder(TaskHelper):
             if task.child_tasks.filter(is_current=True).exists():
                 self.update_previous_tasks(task.child_tasks.all())
 
+    # RICK TASK2: Esto ya no me convenció nadita
     def get_child_base(self, function_name=None, **kwargs):
         if not function_name:
             function_name = self.main_task.task_function_id
-        task_params = TaskBuilder(
+        child_task = TaskBuilder(
             function_name=function_name, parent_class=self, **kwargs)
-        return task_params
+        return child_task
 
     def set_model(self, model):
         model_name = camel_to_snake(model.__class__.__name__)

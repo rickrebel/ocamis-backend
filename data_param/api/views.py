@@ -12,7 +12,7 @@ from inai.api.serializers import (
 from respond.api.serializers import DataFileSerializer
 from inai.models import PetitionFileControl
 from respond.models import DataFile, SheetFile
-from task.views import build_task_params, comprobate_status
+# from task.views import build_task_params, comprobate_status
 from task.base_views import TaskBuilder
 from task.helpers import HttpResponseError
 from . import serializers
@@ -474,11 +474,11 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         function_name = target_stage.main_function.name
         after_aws = "find_coincidences_from_aws" if \
             target_stage.name == "cluster" else "build_sample_data_after"
-        # RICK TASK: Revisar perfecto esto de after_if_empty
+        # RICK TASK2: Revisar perfecto esto de after_if_empty
         curr_kwargs = {"task_kwargs": {"function_after": after_aws}}
         subgroup = f"{stage_init}|{status_init}"
-        key_task, task_params = build_task_params(
-            file_control, function_name, request, subgroup=subgroup)
+        # key_task, task_params = build_task_params(
+        #     file_control, function_name, request, subgroup=subgroup)
         all_tasks = []
         all_errors = []
         final_count = 0
@@ -488,8 +488,8 @@ class FileControlViewSet(MultiSerializerModelViewSet):
             if final_count >= batch_size:
                 break
             final_count += 1
-            df_task, task_params = build_task_params(
-                data_file, function_name, request, parent_task=key_task)
+            # df_task, task_params = build_task_params(
+            #     data_file, function_name, request, parent_task=key_task)
             re_process_stages = target_stage.re_process_stages.all()
             # stages = ["sample", "cluster", "prepare"]
             for stage in re_process_stages:
@@ -507,16 +507,16 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                             new_errors, f"{stage.name}|with_errors")
                     all_errors.extend(new_errors)
                     all_tasks.extend(new_tasks)
-                    comprobate_status(df_task, all_errors, new_tasks)
+                    # comprobate_status(df_task, all_errors, new_tasks)
                     break
                 elif stage.name == stage_final:
                     data_file = data_file.finished_stage(f"{stage.name}|finished")
-                    comprobate_status(df_task, all_errors, new_tasks)
+                    # comprobate_status(df_task, all_errors, new_tasks)
         data = {
             "errors": all_errors,
             "file_control": FileControlFullSerializer(file_control).data,
         }
-        comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
+        # comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
         data["new_task"] = key_task.id
         return Response(data, status=status.HTTP_200_OK)
 

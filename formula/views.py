@@ -115,7 +115,7 @@ def modify_constraints(is_create=True, is_rebuild=False, prov_year_month=None):
 def rebuild_primary_key(cursor, table_name, constraint):
     from inai.models import WeekRecord
     from task.models import AsyncTask
-    from task.serverless import execute_async
+    # from task.serverless import execute_async
     from django.utils import timezone
     fields = [
         "provider_id", "iso_year", "month", "iso_week", "iso_delegation",
@@ -173,8 +173,8 @@ def rebuild_primary_key(cursor, table_name, constraint):
                 new_task.date_arrive = None
                 new_task.date_end = None
                 new_task.save()
-                execute_async(new_task, new_task.original_request)
-            rebuild_primary_key(cursor, table_name, constraint)
+                # execute_async(new_task, new_task.original_request)
+            # rebuild_primary_key(cursor, table_name, constraint)
             # raise "MADA"
         else:
             raise e

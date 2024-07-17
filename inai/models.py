@@ -579,6 +579,7 @@ class PetitionFileControl(models.Model):
         return "%s - %s" % (self.petition, self.file_control)
 
     class Meta:
+        unique_together = ("petition", "file_control")
         verbose_name = "Relacional: petición -- Grupo de Control"
         verbose_name_plural = "7. Relacional: Petición -- Grupos de Control"
 

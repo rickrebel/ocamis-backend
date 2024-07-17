@@ -1,5 +1,7 @@
-from respond.models import DataFile
+from django.db.models import QuerySet
 from task.base_views import TaskBuilder
+from respond.models import DataFile
+from data_param.models import FileControl
 from respond.data_file_mixins.find_coincidences import MatchControls
 
 
@@ -8,7 +10,6 @@ class FromAws:
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
         self.data_file = data_file
         self.base_task = base_task
-        self.task_params = {"parent_task": base_task.main_task}
 
     def decompress_gz_after(self, **kwargs):
         from respond.models import SheetFile
@@ -49,6 +50,7 @@ class FromAws:
                 file_control.save()
         return [], [], self.data_file
 
+    # función de after, pero también directa (derivado de otros after)
     def build_sample_data_after(self, **kwargs):
         from respond.models import SheetFile
         from respond.views import SampleFile
@@ -56,6 +58,7 @@ class FromAws:
         sheet_count = len(new_sheets)
         sample_file = SampleFile()
         for sheet_name, sheet_details in new_sheets.items():
+            # RICK TASK2: Esto ya no tiene sentido, hay que revisarlo
             is_not_xls = sheet_count == 1 and sheet_name == "default"
             simple_path = self.data_file.file if is_not_xls else None
             file_type = "clone" if is_not_xls else "sheet"
@@ -89,10 +92,23 @@ class FromAws:
     # Función de after y directa
     # antes llamado find_matches_in_file_controls
     def find_matches_between_controls(
-            self, task_params=None, provider_file_controls=None, **kwargs):
+            self,
+            provider_file_controls: QuerySet[FileControl] = None,
+            file_control_id: [int, str] = None,
+            **kwargs):
         from data_param.views import get_related_file_controls
-        from data_param.models import FileControl
-        kwargs = self._corroborate_save_data(task_params, **kwargs)
+        kwargs = self._corroborate_save_data(**kwargs)
+        if not file_control_id:
+            file_control_id = kwargs.get("file_control_id", None)
+
+        match_controls = MatchControls(self.data_file, self.base_task)
+
+        if file_control_id:
+            if isinstance(file_control_id, str):
+                file_control_id = int(file_control_id)
+            match_controls.match_file_control(file_control_id)
+            return None, match_controls.errors, None
+
         if not provider_file_controls:
             provider_controls_ids = kwargs.get("provider_controls_ids", [])
             if not provider_controls_ids:
@@ -101,11 +117,7 @@ class FromAws:
             else:
                 provider_file_controls = FileControl.objects.filter(
                     id__in=provider_controls_ids)
-        match_controls = MatchControls(self.data_file, self.base_task)
         saved = match_controls.find_in_file_controls(provider_file_controls)
-        # for file_ctrl in provider_file_controls:
-        #     saved = match_controls.find_file_controls(file_control=file_ctrl)
-        #     all_errors.extend(match_controls.errors)
         errors = None
         if not saved:
             errors = ["No existe ningún grupo de control coincidente"]
@@ -113,8 +125,8 @@ class FromAws:
         return None, errors, None
 
     # Función de after
-    def find_coincidences_from_aws(self, task_params=None, **kwargs):
-        self._corroborate_save_data(task_params, **kwargs)
+    def find_coincidences_from_aws(self, **kwargs):
+        self._corroborate_save_data(**kwargs)
         # saved, errors = self._find_coincidences(saved=False)
         match_controls = MatchControls(self.data_file, self.base_task)
         saved = match_controls.match_file_control()
@@ -128,14 +140,13 @@ class FromAws:
             self.data_file.finished_stage("cluster|finished")
         return [], errors, None
 
-    def _corroborate_save_data(self, task_params=None, **kwargs):
+    def _corroborate_save_data(self, **kwargs):
         from_aws = kwargs.get("from_aws", False)
         print("from_aws", from_aws)
 
         if from_aws:
-            # x, y, data_file = self.build_sample_data_after(**kwargs)
             self.build_sample_data_after(**kwargs)
-            parent_task = task_params.get("parent_task", None)
-            if parent_task.params_after:
-                kwargs.update(parent_task.params_after)
+            parent_task = self.base_task.main_task
+            if params_after := parent_task.params_after:
+                kwargs.update(params_after)
         return kwargs

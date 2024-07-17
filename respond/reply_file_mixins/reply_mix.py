@@ -7,7 +7,6 @@ class ReplyFileMixReal:
 
     def __init__(self, reply_file: ReplyFile, base_task: TaskBuilder = None):
         self.reply_file = reply_file
-        self.task_params = {"parent_task": base_task.main_task}
         self.base_task = base_task
 
     def decompress_reply(self, pet_file_ctrl):
@@ -42,7 +41,6 @@ class FromAws:
         self.reply_file = reply_file
         self.base_task = base_task
         self.new_version = True
-        self.task_params = {"parent_task": base_task.main_task}
 
     def decompress_zip_aws_after(self, **kwargs):
         print("decompress_zip_aws_after---------------------------------")
@@ -51,11 +49,10 @@ class FromAws:
         # print("kwargs", kwargs)
         params_after = self.base_task.main_task.params_after or {}
         pet_file_ctrl_id = params_after["pet_file_ctrl_id"]
-        # RICK TASK: No contemplamos errorMessage en ningún lugar
+        # RICK TASK2: No contemplamos errorMessage en ningún lugar
         # if "errorMessage" in kwargs:
         #     errors.append(kwargs["errorMessage"])
         #     return None, errors
-        # RICK TASK: No contemplamos errores en ningún lugar
         if new_errors := kwargs.get('errors'):
             # errors += kwargs['errors']
             self.base_task.add_errors(new_errors, True, comprobate=False)

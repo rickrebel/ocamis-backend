@@ -1,44 +1,42 @@
 from respond.models import DataFile
+from django.db.models import QuerySet
 from data_param.models import FileControl
 from inai.models import Petition
 from task.base_views import TaskBuilder
-from django.db.models import QuerySet
 from task.helpers import HttpResponseError
+from respond.data_file_mixins.get_data_mix_real import ExtractorRealMix
 from respond.data_file_mixins.get_data_mix_real import EarlyFinishError
 
 
-class MatchControls:
+class MatchControls(ExtractorRealMix):
 
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
 
-        self.data_file = data_file
-        self.base_task = base_task
-        self.already_cluster = True
-
-        self.saved = False
-        self.errors = []
         self.warnings = []
-        self.full_sheet_data = {}
-
-        self.sheet_matches = {}
-        self.filtered_sheets: list[str] = []
+        super().__init__(data_file, base_task, True)
+        # Inútiles:
+        self.saved = False
         self.some_saved = False
-        self.controls_matched = set()
+
+        self.find_many = False
+
+        self.matched_sheets = {}
+        self.matched_controls = {}
 
         self.all_data_files = {}
         self.sheets_matched_ids = []
 
         self.file_control = None
-        self.name_columns_simple = None
-
-        self.only_cols_with_headers = False
+        self.name_columns = None
+        # self.only_cols_with_headers = False
 
         # self.set_file_control(file_control or pfc.file_control)
         # self.file_control = file_control or pfc.file_control
-        self.original_pfc = self.data_file.petition_file_control
-        self.is_orphan = self.original_pfc.file_control.data_group_id == "orphan"
-        self.petition = self.original_pfc.petition
-        self.set_file_control(self.original_pfc.file_control)
+        initial_pfc = self.data_file.petition_file_control
+        self.init_file_control = initial_pfc.file_control
+        self.pfc_is_orphan = self.init_file_control.data_group_id == "orphan"
+
+        self.petition = initial_pfc.petition
 
     def set_file_control(self, file_control):
         if not file_control:
@@ -46,123 +44,124 @@ class MatchControls:
         self.file_control = file_control
 
     def find_in_file_controls(self, file_controls: QuerySet[FileControl]):
-        self.already_cluster = False
+        self.find_many = True
+        self.want_response = False
         for file_control in file_controls:
-            is_current_control = file_control == self.original_pfc.file_control
-            self.set_file_control(file_control)
+            # is_current_control = file_control == self.init_pfc.file_control
             try:
-                matched = self.match_file_control()
+                self.match_file_control(file_control)
             except EarlyFinishError as e:
                 continue
-        if self.controls_matched:
-            pass
+        # RICK TASK2: Aún no entiendo bien esta lógica y si debería
+        # estar o no identada
+        self._check_twins()
+        if not self.matched_controls:
+            self.base_task.add_errors_and_raise(
+                ["No se encontraron coincidencias"])
             # Acá necesitamos guardar las referencias
+        elif len(self.matched_controls) == 1:
+            self.saved = True
 
-    def match_file_control(self):
-        from respond.models import DataFile
-        from respond.data_file_mixins.get_data_mix_real import ExtractorRealMix
+    def _send_raise(self, error):
+        if self.find_many:
+            raise EarlyFinishError(error)
+        self.base_task.add_errors_and_raise([error])
 
-        extractor = ExtractorRealMix(
-            self.data_file, base_task=self.base_task,
-            want_response=self.already_cluster)
+    def match_file_control(self, file_control=None):
 
-        try:
-            sheets_data = extractor.get_data_from_file(
-                file_control=self.file_control)
-            self.full_sheet_data, self.filtered_sheets = sheets_data
-        except EarlyFinishError as e:
-            return False
+        self.matched_sheets = {}
+        # try:
+        # se obtiene full_sheet_data, filtered_sheets y has_split
+        self.get_data_from_file(file_control or self.file_control)
+        # except EarlyFinishError as e:
+        #     return False
+        if self.is_orphan:
+            self._send_raise("No se puede comparar con orphan (sin grupo)")
 
         # print("data", data)
-        if self.already_cluster:
-            self.data_file.filtered_sheets = self.filtered_sheets
-            self.data_file.save()
-            # RICK TASK: Había el comentario de RICK BUGS, no sé por qué...
+        if not self.find_many:
+            # RICK TASK2: Había el comentario de RICK BUGS, no sé por qué...
             # Ahora lo estoy identando
+            # RICK TASK2: No estoy seguro de la utilidad de esto
             is_match_ready = self._has_exact_matches()
             if is_match_ready:
+                self.data_file.filtered_sheets = self.filtered_sheets
+                self.data_file.save()
                 return True
 
-        # print("data_file_id 4:", self.data_file.id)
-
-        self.name_columns_simple = self.file_control.columns.filter(
+        self.name_columns = self.file_control.columns.filter(
             position_in_data__isnull=False)
         # RICK FUTURE: esto lo voy a dejar sin usar por ahora
         # self.only_cols_with_headers = self.file_control.file_transformations \
         #     .filter(clean_function__name="only_cols_with_headers").exists()
 
-        sorted_sheet_names = self.filtered_sheets.copy()
-        other_sheets = [sheet for sheet in self.full_sheet_data.keys()
-                        if sheet not in sorted_sheet_names]
-        sorted_sheet_names.extend(other_sheets)
-
-        for sheet_name in sorted_sheet_names:
-            self._find_coincidences_in_sheet(sheet_name)
-
-        if self.already_cluster:
-            has_match = self._all_filtered_are_matched()
-
+        if self.has_split:
+            first_sheet_name = next(iter(self.filtered_sheets))
+            self._find_coincidences_in_sheet(first_sheet_name)
         else:
-            for (sheet_name, match_data) in self.sheet_matches.items():
-                self._save_matched_sheets(sheet_name, match_data)
+            for sheet_name in self.full_sheet_data.keys():
+                self._find_coincidences_in_sheet(sheet_name)
 
-        # RICK TASK: Aún no entiendo bien esta lógica y si debería
-        # estar o no identada
-        if not self.already_cluster:
-            same_data_files = DataFile.objects \
-                .filter(file=self.data_file.file) \
-                .exclude(petition_file_control__file_control__data_group_id="orphan")
-            self.sheets_matched_ids = []
-            for df in same_data_files:
-                self.all_data_files[df.petition_file_control_id] = df
+        if not self.matched_sheets:
+            self._send_raise("Ninguna hoja coincide con el grupo de control")
 
-            current_pfc = self.data_file.petition_file_control_id
-            if current_pfc in self.all_data_files:
-                self.data_file.sheet_files.exclude(id__in=self.sheets_matched_ids) \
-                    .update(matched=False)
-                is_match_ready = self._has_exact_matches()
-                self.saved = is_match_ready
-                # print("is_match_ready", is_match_ready)
-                if not is_match_ready:
-                    error = "No todas las hojas filtradas coinciden con " \
-                            "el grupo de control"
-                    return self.add_errors([error])
-                # RICK EXPLORE: Esto no lo estoy considerando ahora
-                # return all_data_files[current_pfc], saved, []
-                return self.saved
-            return self.saved
-        # return all_data_files, saved, []
+        self._all_filtered_are_matched()
+
+        if not self.find_many:
+            self._save_matched_sheets()
+
+    def _has_exact_matches(self):
+        sheet_files = self.data_file.sheet_files
+        if not self.filtered_sheets or not sheet_files.exists():
+            return False
+        sheets_matched = sheet_files.filter(matched=True)\
+            .values_list("sheet_name", flat=True).distinct()
+        if not sheets_matched.exists():
+            return False
+        return set(self.filtered_sheets).issubset(set(sheets_matched))
 
     def _all_filtered_are_matched(self):
-        if not self.filtered_sheets:
-            raise EarlyFinishError("No hay hojas filtradas")
-        if not self.full_sheet_data:
-            raise EarlyFinishError("Ninguna hoja coincide con el grupo de control")
-        matched_sheet_names = set(self.full_sheet_data.keys())
-        if set(self.filtered_sheets) == matched_sheet_names:
+        matched_sheets = set(self.matched_sheets.keys())
+        filtered_sheets = set(self.filtered_sheets)
+
+        if filtered_sheets == matched_sheets:
             return True
-        elif not set(self.filtered_sheets).issubset(matched_sheet_names):
-            error = "No todas las hojas filtradas coinciden con el grupo de control"
-            self.errors.append(error)
+
+        if not filtered_sheets.intersection(matched_sheets):
+            return self._add_error(
+                "Hay coincidencias, pero no en las hojas filtradas")
+
+        error = "No todas las hojas filtradas coinciden con el grupo de control"
+        warning = "Hay hojas que coinciden, pero no se incluyeron en los filtros"
+        if filtered_sheets.issubset(matched_sheets):
+            self._add_warning(warning)
+        elif matched_sheets.issubset(filtered_sheets):
+            self._add_error(error)
         else:
-            warning = "Hay hojas con el mismo formato, no incluidas en " \
-                    "por los filtros de inclusión y exclusión"
-            self.data_file.add_warning(warning)
+            self._add_error(error)
+            self._add_warning(warning)
         return True
 
-    def add_errors(self, errors):
-        self.errors.extend(errors)
-        return self.saved
+    def _add_error(self, text, group="error"):
+        if self.find_many:
+            self.matched_controls[self.file_control.id]["errors"].add(text)
+        else:
+            self.errors.append(text)
+        return True
+
+    def _add_warning(self, text):
+        self._add_error(text, "warning")
 
     def _set_match(self, sheet_name, full=True):
-        self.sheet_matches.setdefault(sheet_name, {"full": [], "simple": []})
+        self.matched_sheets.setdefault(sheet_name, {"full": [], "simple": []})
         group = "full" if full else "simple"
-        self.sheet_matches[sheet_name][group].append(self.file_control)
-        self.controls_matched.add(self.file_control.id)
+        self.matched_sheets[sheet_name][group].append(self.file_control)
+        self.matched_controls[self.file_control.id].setdefault(
+            {"sheet_names": set(), "warnings": set(), "errors": set()})
+        self.matched_controls[self.file_control.id]["sheet_names"].add(sheet_name)
         return True
 
     def _find_coincidences_in_sheet(self, sheet_name):
-        from scripts.common import text_normalizer
         sheet_data = self.full_sheet_data.get(sheet_name)
 
         try:
@@ -172,7 +171,7 @@ class MatchControls:
         except IndexError:
             raise EarlyFinishError("No se encontró información en la hoja")
 
-        if not self.name_columns_simple.count() != total_cols:
+        if not self.name_columns.count() != total_cols:
             return False
         # RICK FUTURE: esto lo voy a dejar sin usar por ahora
         # if self.only_cols_with_headers:
@@ -185,11 +184,10 @@ class MatchControls:
                 return self._set_match(sheet_name)
             return False
 
-        std_headers = [text_normalizer(head, True) for head in current_headers]
-        name_columns = list(self.name_columns_simple
-                            .values_list("std_name_in_data", flat=True))
-
-        if name_columns == std_headers:
+        std_headers = sheet_data.get("std_headers")
+        std_name_columns = list(
+            self.name_columns.values_list("std_name_in_data", flat=True))
+        if std_name_columns == std_headers:
             return self._set_match(sheet_name)
         return self._similar_matches(std_headers, sheet_name)
 
@@ -200,7 +198,7 @@ class MatchControls:
         need_save = []
 
         remain_headers = []
-        for (idx, name_col) in enumerate(self.name_columns_simple):
+        for (idx, name_col) in enumerate(self.name_columns):
             std_name = name_col.std_name_in_data
             header = std_headers[idx]
             if std_name == header:
@@ -228,17 +226,86 @@ class MatchControls:
                     need_save.append(name_col)
                     coincidences += 1
 
-        if coincidences + 2 >= len(self.name_columns_simple):
+        if coincidences + 2 >= len(self.name_columns):
             for name_col in need_save:
                 name_col.save()
             return self._set_match(sheet_name, False)
         return False
 
-    def _save_matched_sheets(self, sheet_name, match_data):
-        from respond.views import SampleFile
+    def _check_twins(self):
+        same_data_files = DataFile.objects \
+            .filter(file=self.data_file.file) \
+            .exclude(petition_file_control__file_control__data_group_id="orphan")
+        self.sheets_matched_ids = []
+        for df in same_data_files:
+            self.all_data_files[df.petition_file_control_id] = df
+
+        current_pfc = self.data_file.petition_file_control_id
+        if current_pfc in self.all_data_files:
+            self.data_file.sheet_files.exclude(id__in=self.sheets_matched_ids) \
+                .update(matched=False)
+            # RICK TASK2: No estoy seguro de la utilidad de esto
+            is_match_ready = self._has_exact_matches()
+            self.saved = is_match_ready
+            # print("is_match_ready", is_match_ready)
+            if not is_match_ready:
+                error = "No todas las hojas filtradas coinciden con " \
+                        "el grupo de control"
+                self.errors.append(error)
+                return self.saved
+            # RICK TASK2: Esto no lo estoy considerando ahora
+            # return all_data_files[current_pfc], saved, []
+            return self.saved
+        return self.saved
+        # return all_data_files, saved, []
+
+    def _get_pfc(self, file_control=None):
         from respond.models import PetitionFileControl
+        if not file_control:
+            file_control = self.file_control
+        pet_file_ctrl, _ = PetitionFileControl.objects.get_or_create(
+            file_control=file_control, petition=self.petition)
+        return pet_file_ctrl
+
+    def _save_matched_sheets(self):
+        if self.pfc_is_orphan:
+            new_pfc = self._get_pfc()
+            self.data_file.petition_file_control = new_pfc
+        self.data_file.filtered_sheets = self.filtered_sheets
+        self.data_file.errors = self.errors or None
+        self.data_file.warnings = self.warnings or None
+        for sheet_file in self.data_file.sheet_files.all():
+            sheet_data = self.full_sheet_data.get(sheet_file.sheet_name)
+            is_second = sheet_data.get("is_second", False)
+            if is_second:
+                sheet_file.row_start_data = 1
+                is_matched = True
+            else:
+                is_matched = sheet_file.sheet_name in self.matched_sheets
+            sheet_file.matched = is_matched
+            if is_matched:
+                sheet_data.headers = sheet_data.get("headers")
+            else:
+                sheet_data.headers = []
+            sheet_file.stage_id = "cluster"
+            sheet_file.status_id = "finished"
+            sheet_file.save()
+        status = "finished" if not self.errors else "with_errors"
+        self.data_file.finished_stage(f"cluster|{status}")
+
+    def _save_many_matched_sheets(self, sheet_name, match_data):
+        from respond.views import SampleFile
 
         print("data_file_id 5:", self.data_file.id)
+
+        for (file_control, match_data) in self.matched_controls.items():
+            # same_file_control = self.init_file_control.id == self.file_control.id
+            if not match_data["sheet_names"]:
+                continue
+            if not match_data["errors"]:
+                continue
+            if not match_data["warnings"]:
+                continue
 
         # def save_sheet_file(d_file=data_file, save_sample_data=False):
         final_matches = match_data.get("full", [])
@@ -273,7 +340,7 @@ class MatchControls:
             new_data_file = data_file
             new_data_file.pk = None
             new_data_file.petition_file_control = succ_pet_file_ctrl
-            new_data_file.filtered_sheets = filtered_sheets
+            new_data_file.filtered_sheets = self.filtered_sheets
             # new_data_file.change_status("explore|finished")
             new_data_file.finished_stage('explore|finished')
             # new_data_file.sample_data = validated_data
@@ -296,9 +363,9 @@ class MatchControls:
             current_file = self.all_data_files.get(current_pfc, data_file)
             # current_file.sample_data = validated_data
             self._save_sheet_file(current_file, True)
-            if not self.saved and not self.already_cluster:
-                current_file.filtered_sheets = filtered_sheets
-            # RICK EXPLORE: No estoy seguro si saved puede ser global
+            if not self.saved and self.find_many:
+                current_file.filtered_sheets = self.filtered_sheets
+            # RICK TASK2: No estoy seguro si saved puede ser global
             self.saved = True
             if not already_in_pfc:
                 current_file.petition_file_control = succ_pet_file_ctrl
@@ -333,15 +400,4 @@ class MatchControls:
         except Exception as e:
             raise Exception(f"Para el archivo {data_file.id} no se "
                             f"encontró la hoja {sheet_name}; "
-                            f"filtered_sheets: {filtered_sheets}\n-->{e}")
-
-    def _has_exact_matches(self):
-        sheet_files = self.data_file.sheet_files
-        if not self.filtered_sheets or not sheet_files.exists():
-            return False
-        sheets_matched = sheet_files.filter(matched=True)\
-            .values_list("sheet_name", flat=True).distinct()
-        if not sheets_matched.exists():
-            return False
-        return set(self.filtered_sheets).issubset(set(sheets_matched))
-
+                            f"filtered_sheets: {self.filtered_sheets}\n-->{e}")

@@ -15,21 +15,19 @@ def get_related_file_controls(
 
     has_real_provider = getattr(petition, "real_provider", None)
 
+    base_controls = FileControl.objects \
+        .filter(file_format__isnull=False) \
+        .exclude(data_group_id="orphan")
+
     if has_real_provider:
         provider = petition.real_provider
-        provider_controls = FileControl.objects \
-            .filter(
-                petition_file_control__petition__real_provider=provider,
-                file_format__isnull=False) \
-            .exclude(data_group_id="orphan") \
+        provider_controls = base_controls \
+            .filter(petition_file_control__petition__real_provider=provider)\
             .distinct()
     else:
         provider = petition.agency.provider
-        provider_controls = FileControl.objects \
-            .filter(
-                petition_file_control__petition__agency__provider=provider,
-                file_format__isnull=False) \
-            .exclude(data_group_id="orphan") \
+        provider_controls = base_controls \
+            .filter(petition_file_control__petition__agency__provider=provider)\
             .distinct()
     near_file_controls = provider_controls \
         .filter(petition_file_control__petition=petition) \

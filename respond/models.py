@@ -6,8 +6,8 @@ from category.models import FileType
 from classify_task.models import Stage, StatusTask
 from data_param.models import Collection, FileControl
 from geo.models import Provider, Delegation
-from respond.data_file_mixins.explore_mix import ExploreMix
-from respond.data_file_mixins.get_data_mix import ExtractorsMix
+# from respond.data_file_mixins.explore_mix import ExploreMix
+# from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
 from inai.models import (
     Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord)
@@ -84,7 +84,7 @@ class ReplyFile(models.Model):
         db_table = "inai_replyfile"
 
 
-class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
+class DataFile(models.Model, DataUtilsMix):
 
     file = models.FileField(max_length=255, upload_to=set_upload_path)
     provider = models.ForeignKey(
@@ -169,13 +169,6 @@ class DataFile(models.Model, ExploreMix, DataUtilsMix, ExtractorsMix):
             .filter(file_type__in=['sheet', 'split', 'clone']) \
             .order_by("id") \
             .values_list("sheet_name", flat=True)
-
-    # RICK TASK: Eliminar en cuanto se borre get_data_mix
-    @property
-    def all_sample_data(self):
-        from respond.views import SampleFile
-        sample_file = SampleFile()
-        return sample_file.get_sheet_samples(self)
 
     @property
     def last_lap(self):
@@ -277,6 +270,7 @@ class SheetFile(models.Model):
 
     matched = models.BooleanField(blank=True, null=True)
     sheet_name = models.CharField(max_length=255, blank=True, null=True)
+    # En algún momento hay que borrar esto
     sample_data = JSONField(
         blank=True, null=True, default=default_explore_data)
     sample_file = models.FileField(
@@ -284,9 +278,11 @@ class SheetFile(models.Model):
         blank=True, null=True, verbose_name="Archivo con muestra")
     headers = JSONField(blank=True, null=True)
     row_start_data = models.IntegerField(blank=True, null=True)
+
     total_rows = models.IntegerField(default=0)
     error_process = JSONField(blank=True, null=True)
     warnings = JSONField(blank=True, null=True)
+
     year_month = models.CharField(
         max_length=8, blank=True, null=True, verbose_name="Año y mes")
     month_records = models.ManyToManyField(

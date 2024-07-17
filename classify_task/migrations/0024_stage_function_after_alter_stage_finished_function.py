@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 def add_function_after(apps, schema_editor):
     Stage = apps.get_model('classify_task', 'Stage')
-    # RICK TASK: Verificar este tema
+    # RICK TASK2: Verificar este tema
     new_functions = [
         ('explore', 'build_sample_data_after'),
         ('cluster', 'find_coincidences_from_aws'),

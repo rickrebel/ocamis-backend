@@ -93,7 +93,7 @@ class TaskHelper(Serverless):
             elif self.want_http_response:
                 if self.new_tasks:
                     raise HttpResponseError(body_response, 202)
-                # RICK TASK: no estoy seguro de esto
+                # RICK TASK2: no estoy seguro de esto
                 parent_tasks = self.parent_class.new_tasks if self.parent_class else []
                 if explore_parent and parent_tasks:
                     return self.parent_class.comprobate_status(

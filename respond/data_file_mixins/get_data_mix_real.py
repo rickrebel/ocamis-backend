@@ -19,21 +19,26 @@ class ExtractorRealMix:
 
     xls_suffixes = FileFormat.objects.get(short_name="xls").suffixes
 
-    def __init__(self, data_file: DataFile, task_params=None,
-                 base_task: TaskBuilder = None, want_response=False):
+    def __init__(self, data_file: DataFile, base_task: TaskBuilder = None,
+                 want_response=False):
         self.data_file = data_file
-        self.task_params = task_params
         self.base_task = base_task
-        self.file_control: Optional[FileControl] = None
-        self.is_orphan: bool = False
         self.want_response = want_response
-        self.row_headers = 0
         self.errors = []
 
+        self.is_orphan: bool = False
+        self.file_control: Optional[FileControl] = None
+        self.row_headers = 0
+
+        self.full_sheet_data = {}
+        self.filtered_sheets = []
         self.first_headers = []
+        self.has_split = False
 
     def _set_file_control(self, file_control):
         if file_control:
+            if isinstance(file_control, str):
+                file_control = int(file_control)
             if isinstance(file_control, int):
                 self.file_control = FileControl.objects.get(id=file_control)
             elif isinstance(file_control, FileControl):
@@ -105,21 +110,25 @@ class ExtractorRealMix:
         return function_name, params
 
     def get_data_from_file(self, file_control=None):
+        from scripts.common import text_normalizer
+
+        self.full_sheet_data: dict[str, dict] = {}
+        self.filtered_sheets: list[str] = []
+        self.first_headers: list[str] = []
+        self.has_split = False
 
         self._set_file_control(file_control)
         type_format = self._validate_and_get_type_format()
         sample_file = SampleFile()
         all_sheets_data = sample_file.get_sheet_samples(self.data_file)
-        # is_excel = type_format == 'excel'
         if type_format == 'excel':
-            filtered_sheets = self._get_data_excel()
+            self._get_data_excel()
         else:  # type_format == 'simple': o incluso para pdf
-            filtered_sheets = all_sheets_data.keys()
-            # filtered_sheets = self._get_data_simple(all_sheets_data)
+            self.filtered_sheets = all_sheets_data.keys()
 
         # for sheet_name in all_sheets_data.keys():
         some_is_valid = False
-        full_sheet_data = {}
+
         for (sheet_name, sheet_data) in all_sheets_data.items():
             is_split = sheet_data.get("is_split")
             try:
@@ -132,25 +141,32 @@ class ExtractorRealMix:
             curr_sheet = sheet_data.copy()
             if is_split and not self.first_headers:
                 self.first_headers = headers
+                self.has_split = True
             is_valid = bool(sample_rows)
+            # RICK2: Me estoy olvidando de esto:
             curr_sheet["is_valid"] = is_valid
             curr_sheet["headers"] = headers
-            full_sheet_data[sheet_name] = curr_sheet
+            curr_sheet["is_second"] = is_second
+            curr_sheet["std_headers"] = [
+                text_normalizer(head, True) for head in headers]
+            self.full_sheet_data[sheet_name] = curr_sheet
             if is_valid:
                 some_is_valid = True
 
-        if self.want_response and not some_is_valid:
+        if not some_is_valid:
             error = "No se encontró información válida en el archivo"
-            self.base_task.add_errors_and_raise([error])
-        # print("filtered_sheets", filtered_sheets)
-        return full_sheet_data, filtered_sheets
+            if self.want_response:
+                self.base_task.add_errors_and_raise([error])
+            else:
+                raise EarlyFinishError(error)
+        # print("filtered_sheets", self.filtered_sheets)
+        return self.full_sheet_data, self.filtered_sheets
 
     def _get_data_excel(self) -> list:
         sheet_names = self.data_file.sheet_names_list
 
         incl_names, excl_names, incl_idx, excl_idx = self._explore_sheets()
 
-        filtered_sheets = []
         for position, sheet_name in enumerate(sheet_names, start=1):
             if incl_names and sheet_name not in incl_names:
                 continue
@@ -160,8 +176,7 @@ class ExtractorRealMix:
                 continue
             if excl_idx and position in excl_idx:
                 continue
-            filtered_sheets.append(sheet_name)
-        return filtered_sheets
+            self.filtered_sheets.append(sheet_name)
 
     def _explore_sheets(self) -> tuple:
         from data_param.models import Transformation
@@ -200,9 +215,9 @@ class ExtractorRealMix:
             if len(first_rows) >= 198:
                 selected_rows.extend(sheet_data.get("tail_data", []))
             return selected_rows, build_headers
+
         if is_second:
             return extend_tail_data(first_rows, self.first_headers)
-
         few_nulls = False
         headers = []
         if self.row_headers and len(first_rows) > self.row_headers - 1:

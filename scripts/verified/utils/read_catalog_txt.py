@@ -41,7 +41,7 @@ def send_week_records_to_rebuild(limit=None):
     import time
     from scripts.common import build_s3
     # from task.views import build_task_params
-    from task.serverless import async_in_lambda
+    # from task.serverless import async_in_lambda
     from data_param.models import Collection
     from respond.models import TableFile
     from django.contrib.auth.models import User
@@ -83,7 +83,7 @@ def send_week_records_to_rebuild(limit=None):
             task_params = {
                 "models": [week_record]
             }
-            async_in_lambda("rebuild_week_csv", params, task_params)
+            # async_in_lambda("rebuild_week_csv", params, task_params)
 
 
 def rebuild_week_records():

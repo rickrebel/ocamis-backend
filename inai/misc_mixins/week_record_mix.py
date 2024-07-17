@@ -8,12 +8,13 @@ class FromAws:
         self.week_record = week_record
         self.split_by_delegation = week_record.provider.split_by_delegation
         self.base_task = base_task
-        self.task_params = {"parent_task": base_task.main_task}
 
     def analyze_uniques_after(self, **kwargs):
         print("analyze_uniques_after---------------------------------")
         all_errors = []
         all_tasks = []
+        # RICK TASK2: Estos errores deberíamos ponerlos en otro campo y
+        # sacarlos desde el principio
         if kwargs.get('errors'):
             all_errors += kwargs['errors']
         unique_counts = kwargs.get("month_week_counts", {})

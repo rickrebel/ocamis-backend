@@ -7,7 +7,6 @@ class FromAws:
 
     def __init__(self, lap_sheet: LapSheet, base_task: TaskBuilder = None):
         self.lap_sheet = lap_sheet
-        self.task_params = {"parent_task": base_task.main_task}
 
     def save_result_csv(self, result_files):
         from data_param.models import Collection
