@@ -1,54 +1,52 @@
 from inai.models import Petition
-from task.base_views import TaskBuilder
+from respond.models import DataFile
+from data_param.models import FileControl
+from task.builder import TaskBuilder
 from task.helpers import HttpResponseError
 
 
-class PetitionTransformsMixReal:
+class PetitionTransformMix:
 
-    def __init__(self, petition: Petition, base_task: TaskBuilder = None):
+    def __init__(self, petition: Petition, data_files,
+                 base_task: TaskBuilder = None):
         self.petition = petition
         self.base_task = base_task
+        self.data_files = data_files
+        self.curr_kwargs = {}
 
     # Función directa
-    def find_matches_for_data_files(
-            self, all_data_files=None, file_control_id=None):
-
-        from data_param.models import FileControl
-        from data_param.views import get_related_file_controls
-        from respond.data_file_mixins.explore_mix_real import ExploreRealMix
-
-        provider_ctrl_list = None
-        provider_file_controls = None
-        # else:
-        if not file_control_id:
-            provider_file_controls = get_related_file_controls(
-                petition=self.petition)
-            provider_ctrl_list = list(
-                provider_file_controls.values_list("id", flat=True))
-
-        for data_file in all_data_files:
-            curr_kwargs = {
-                "task_kwargs": {
-                    "function_after": "find_matches_between_controls",
-                    "params_after": {
-                        "provider_controls_ids": provider_ctrl_list,
-                        "file_control_id": file_control_id,
-                    },
-                },
-            }
-            explore = ExploreRealMix(
-                data_file, base_task=self.base_task, want_response=True)
-            if data_file.sheet_names_list:
-                pass
-            else:
-                try:
-                    explore.get_sample_data(
-                        file_control_id=file_control_id, **curr_kwargs)
-                except HttpResponseError:
-                    continue
-
-            explore.find_matches_between_controls(
-                provider_file_controls=provider_file_controls,
-                file_control_id=file_control_id)
+    def find_matches_for_data_files(self):
+        self.curr_kwargs = {"function_after": "find_matches_between_controls"}
+        for data_file in self.data_files:
+            explore = self._get_explore_sample(data_file)
+            if explore:
+                explore.find_matches_between_controls()
 
         self.base_task.comprobate_status()
+
+    # Función directa
+    def match_direct_for_data_files(self, file_control: FileControl):
+
+        self.curr_kwargs = {
+            "function_after": "find_matches_in_control",
+            "file_control_id": file_control.id
+        }
+
+        for data_file in self.data_files:
+            explore = self._get_explore_sample(data_file)
+            if explore:
+                explore.find_matches_in_control(file_control)
+
+        self.base_task.comprobate_status()
+
+    def _get_explore_sample(self, data_file: DataFile):
+        from respond.data_file_mixins.explore_mix_real import ExploreRealMix
+
+        explore = ExploreRealMix(
+            data_file, base_task=self.base_task, want_response=True)
+        if not data_file.sheet_names_list:
+            try:
+                explore.get_sample_data(**self.curr_kwargs)
+            except HttpResponseError:
+                return None
+        return explore

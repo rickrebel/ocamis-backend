@@ -1,5 +1,5 @@
 from inai.models import WeekRecord
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 
 
 class FromAws:

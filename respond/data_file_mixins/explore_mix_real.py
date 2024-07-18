@@ -1,6 +1,6 @@
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from task.helpers import HttpResponseError
-from respond.data_file_mixins.df_from_aws import FromAws as DataFileAws
+from respond.data_file_mixins.data_file_aws import FromAws as DataFileAws
 from respond.data_file_mixins.get_data_mix_real import ExtractorRealMix
 from respond.data_file_mixins.find_coincidences import MatchControls
 
@@ -43,37 +43,6 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
             self.base_task.comprobate_status(
                 want_http_response=True, explore_parent=False)
 
-    # Guardado en funciones
-    def verify_coincidences(self, **kwargs):
-        match_controls = MatchControls(self.data_file, self.base_task)
-        match_controls.match_file_control()
-
-    # Guardado en funciones
-    def prepare_transform(self, **kwargs):
-        from respond.data_file_mixins.matches_mix import MatchTransform
-        self._count_file_rows()
-        file_control = self.data_file.petition_file_control.file_control
-        if file_control.is_intermediary:
-            error = (
-                "No se puede preparar muestra con la función " 
-                "'Se repiten las mismas columnas', enviar 'Transformar'")
-            self.base_task.add_errors_and_raise([error])
-        match_transform = MatchTransform(self.data_file, self.base_task)
-        match_transform.build_csv_converted(is_prepare=True)
-
-    # Guardado en funciones
-    def transform_data(self, **kwargs):
-        from respond.data_file_mixins.matches_mix import MatchTransform
-        from respond.data_file_mixins.intermediary_mix import Intermediary
-        file_control = self.data_file.petition_file_control.file_control
-        if file_control.is_intermediary:
-            my_intermediary = Intermediary(
-                self.data_file, base_task=self.base_task)
-            my_intermediary.split_columns()
-        else:
-            match_transform = MatchTransform(self.data_file, self.base_task)
-            match_transform.build_csv_converted(is_prepare=False)
-
     def _get_sheet_files(self, **kwargs):
         from respond.views import SampleFile
         from respond.models import SheetFile
@@ -108,6 +77,37 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
                 self.data_file.save()
             else:
                 return self.build_data_from_file(**kwargs)
+
+    # Guardado en funciones
+    def verify_coincidences(self, **kwargs):
+        match_controls = MatchControls(self.data_file, self.base_task)
+        match_controls.match_file_control()
+
+    # Guardado en funciones
+    def prepare_transform(self, **kwargs):
+        from respond.data_file_mixins.matches_mix import MatchTransform
+        self._count_file_rows()
+        file_control = self.data_file.petition_file_control.file_control
+        if file_control.is_intermediary:
+            error = (
+                "No se puede preparar muestra con la función " 
+                "'Se repiten las mismas columnas', enviar 'Transformar'")
+            self.base_task.add_errors_and_raise([error])
+        match_transform = MatchTransform(self.data_file, self.base_task)
+        match_transform.build_csv_converted(is_prepare=True)
+
+    # Guardado en funciones
+    def transform_data(self, **kwargs):
+        from respond.data_file_mixins.matches_mix import MatchTransform
+        from respond.data_file_mixins.intermediary_mix import Intermediary
+        file_control = self.data_file.petition_file_control.file_control
+        if file_control.is_intermediary:
+            my_intermediary = Intermediary(
+                self.data_file, base_task=self.base_task)
+            my_intermediary.split_columns()
+        else:
+            match_transform = MatchTransform(self.data_file, self.base_task)
+            match_transform.build_csv_converted(is_prepare=False)
 
     def _count_file_rows(self):
         from respond.models import SheetFile

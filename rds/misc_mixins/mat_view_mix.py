@@ -1,5 +1,5 @@
 from rds.models import MatView
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 
 
 class FromAws:

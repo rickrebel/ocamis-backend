@@ -1,6 +1,6 @@
 from respond.models import DataFile
 from respond.data_file_mixins.base_transform import BaseTransform
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 
 
 class Intermediary(BaseTransform):

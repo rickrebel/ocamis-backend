@@ -9,8 +9,21 @@ class MyFinalConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
         print("Connect------")
+        # self.user_id = "INVENTADO"
+        self.room_group_name  = "dashboard"
+        await self.channel_layer.group_add(
+            # "dashboard",
+            self.room_group_name,
+            self.channel_name
+        )
         await self.accept()
-        await self.channel_layer.group_add("dashboard", self.channel_name)
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            # "dashboard",
+            self.room_group_name,
+            self.channel_name
+        )
 
     async def receive(self, text_data, **kwargs):
         print("receive: ", text_data)
@@ -20,6 +33,13 @@ class MyFinalConsumer(AsyncJsonWebsocketConsumer):
             text_data_json = text_data
         print("text_data_json", text_data_json)
         # await self.send_json({'message': text_data_json})
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': text_data_json
+            }
+        )
 
     async def send_info_to_user_group(self, event):
         print("send_info_to_user_group: ", event)
@@ -43,9 +63,13 @@ class MyFinalConsumer(AsyncJsonWebsocketConsumer):
         #     result["task_data"]["task_function"])
         await self.send_json(result)
 
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard("dashboard", self.channel_name)
-        pass
+    async def chat_message(self, event):
+        message = event['message']
+
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({
+            'message': message
+        }))
 
 
 class MyConsumer(AsyncWebsocketConsumer):
@@ -82,9 +106,9 @@ class MyConsumer(AsyncWebsocketConsumer):
         except json.decoder.JSONDecodeError:
             text_data_json = text_data
         # text_data_json = json.loads(text_data)
-        #message = text_data_json['message']
+        # message = text_data_json['message']
         print("text_data_json", text_data_json)
         # do some processing here
         await self.send(text_data=json.dumps({
-            'message': message
+            'message': text_data_json
         }))

@@ -1,5 +1,5 @@
 from django.db.models import QuerySet
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from respond.models import DataFile
 from data_param.models import FileControl
 from respond.data_file_mixins.find_coincidences import MatchControls
@@ -58,7 +58,7 @@ class FromAws:
         sheet_count = len(new_sheets)
         sample_file = SampleFile()
         for sheet_name, sheet_details in new_sheets.items():
-            # RICK TASK2: Esto ya no tiene sentido, hay que revisarlo
+            # TASK2: TODO: Esto ya no tiene sentido, hay que revisarlo
             is_not_xls = sheet_count == 1 and sheet_name == "default"
             simple_path = self.data_file.file if is_not_xls else None
             file_type = "clone" if is_not_xls else "sheet"
@@ -91,44 +91,37 @@ class FromAws:
 
     # Función de after y directa
     # antes llamado find_matches_in_file_controls
-    def find_matches_between_controls(
-            self,
-            provider_file_controls: QuerySet[FileControl] = None,
-            file_control_id: [int, str] = None,
-            **kwargs):
+    def find_matches_between_controls(self, **kwargs):
         from data_param.views import get_related_file_controls
-        kwargs = self._corroborate_save_data(**kwargs)
-        if not file_control_id:
-            file_control_id = kwargs.get("file_control_id", None)
 
-        match_controls = MatchControls(self.data_file, self.base_task)
+        match_controls = self._corroborate_save_data(**kwargs)
 
-        if file_control_id:
-            if isinstance(file_control_id, str):
-                file_control_id = int(file_control_id)
-            match_controls.match_file_control(file_control_id)
-            return None, match_controls.errors, None
+        saved = match_controls.find_in_file_controls()
 
-        if not provider_file_controls:
-            provider_controls_ids = kwargs.get("provider_controls_ids", [])
-            if not provider_controls_ids:
-                provider_file_controls = get_related_file_controls(
-                    data_file=self.data_file)
-            else:
-                provider_file_controls = FileControl.objects.filter(
-                    id__in=provider_controls_ids)
-        saved = match_controls.find_in_file_controls(provider_file_controls)
         errors = None
         if not saved:
             errors = ["No existe ningún grupo de control coincidente"]
             self.data_file.save_errors(errors, "cluster|with_errors")
         return None, errors, None
 
+    # Función de after y directa
+    # derivado de find_matches_between_controls
+    def find_matches_in_control(
+            self, file_control: FileControl = None, **kwargs):
+
+        match_controls = self._corroborate_save_data(**kwargs)
+
+        if not file_control:
+            file_control = self.base_task.main_task.parent_task.file_control
+        match_controls.match_file_control(file_control)
+        return None, match_controls.errors, None
+
     # Función de after
     def find_coincidences_from_aws(self, **kwargs):
-        self._corroborate_save_data(**kwargs)
+
+        match_controls = self._corroborate_save_data(**kwargs)
+
         # saved, errors = self._find_coincidences(saved=False)
-        match_controls = MatchControls(self.data_file, self.base_task)
         saved = match_controls.match_file_control()
         errors = match_controls.errors
         if not saved and not errors:
@@ -149,4 +142,4 @@ class FromAws:
             parent_task = self.base_task.main_task
             if params_after := parent_task.params_after:
                 kwargs.update(params_after)
-        return kwargs
+        return MatchControls(self.data_file, self.base_task)

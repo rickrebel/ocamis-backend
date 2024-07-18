@@ -11,6 +11,8 @@ from data_param.models import (
     DataType, FinalField, CleanFunction,
     DataGroup, Collection, ParameterGroup, FileControl)
 from med_cat.models import Delivered
+from .petition import Petition, RequestTemplate
+from .month_record import MonthRecord
 from rds.models import Cluster
 
 
@@ -20,22 +22,22 @@ def set_upload_path(instance, filename):
     if is_sheet_file:
         instance = instance.data_file
     try:
-        petition = instance.petition_file_control.petition
+        pet_obj = instance.petition_file_control.petition
     except AttributeError:
         try:
-            petition = instance.petition
+            pet_obj = instance.petition
         except AttributeError:
             elems = ["sin_instance", filename]
             if settings.IS_LOCAL:
                 elems.insert(1, "localhost")
             return "/".join(elems)
 
-    agency_type = petition.agency.agency_type[:8].lower()
+    agency_type = pet_obj.agency.agency_type[:8].lower()
     try:
-        acronym = petition.agency.acronym.lower()
+        acronym = pet_obj.agency.acronym.lower()
     except AttributeError:
         acronym = 'others'
-    folio_petition = petition.folio_petition
+    folio_petition = pet_obj.folio_petition
     elems = [agency_type, acronym, folio_petition]
     if settings.IS_LOCAL:
         elems.append("localhost")
@@ -46,119 +48,6 @@ def set_upload_path(instance, filename):
     elems.append(filename)
 
     return "/".join([agency_type, acronym, folio_petition, filename])
-
-
-class MonthRecord(models.Model):
-    agency = models.ForeignKey(
-        Agency,
-        verbose_name="Sujeto Obligado",
-        related_name="months",
-        on_delete=models.CASCADE, blank=True, null=True)
-    provider = models.ForeignKey(
-        Provider,
-        related_name="month_records",
-        verbose_name="Proveedor de servicios de salud",
-        on_delete=models.CASCADE, blank=True, null=True)
-    cluster = models.ForeignKey(
-        Cluster, on_delete=models.CASCADE, blank=True, null=True)
-    year_month = models.CharField(max_length=10)
-    year = models.SmallIntegerField(blank=True, null=True)
-    month = models.SmallIntegerField(blank=True, null=True)
-    stage = models.ForeignKey(
-        Stage, on_delete=models.CASCADE,
-        default='init_month', verbose_name="Etapa actual")
-    status = models.ForeignKey(
-        StatusTask, on_delete=models.CASCADE, default='finished')
-    error_process = JSONField(blank=True, null=True)
-
-    drugs_count = models.IntegerField(default=0)
-    drugs_in_pre_insertion = models.IntegerField(default=0)
-    rx_count = models.IntegerField(default=0)
-    duplicates_count = models.IntegerField(default=0)
-    shared_count = models.IntegerField(default=0)
-    last_transformation = models.DateTimeField(blank=True, null=True)
-    last_crossing = models.DateTimeField(blank=True, null=True)
-    last_behavior = models.DateTimeField(blank=True, null=True)
-    last_merge = models.DateTimeField(blank=True, null=True)
-    last_pre_insertion = models.DateTimeField(blank=True, null=True)
-    last_validate = models.DateTimeField(blank=True, null=True)
-    last_indexing = models.DateTimeField(blank=True, null=True)
-    last_insertion = models.DateTimeField(blank=True, null=True)
-
-    def __str__(self):
-        return "%s -- %s" % (self.provider.acronym, self.year_month)
-
-    def end_stage(self, stage_id, parent_task):
-        child_task_errors = parent_task.child_tasks.filter(
-            status_task__macro_status="with_errors")
-        all_errors = []
-        for child_task_error in child_task_errors:
-            current_errors = child_task_error.errors
-            if not current_errors:
-                g_children = child_task_error.child_tasks.filter(
-                    status_task__macro_status="with_errors")
-                for g_child in g_children:
-                    if g_child:
-                        try:
-                            current_errors += g_child.errors or []
-                        except Exception as e:
-                            message = (
-                                f"Error en MonthRecord.end_stage: {e}"
-                                f"g_child.errors: {g_child.errors}"
-                                f"current_errors: {current_errors}")
-                            raise Exception(message)
-            all_errors += current_errors or []
-        self.stage_id = stage_id
-        if child_task_errors.exists():
-            self.status_id = "with_errors"
-            self.error_process = all_errors
-        else:
-            self.status_id = "finished"
-            self.error_process = []
-        self.save()
-        return all_errors
-
-    def save_stage(self, stage_id: str, errors=None):
-        self.stage_id = stage_id
-        if errors:
-            self.status_id = "with_errors"
-            self.error_process = errors
-        else:
-            self.status_id = "finished"
-            self.error_process = []
-        self.save()
-
-    def save_error_process(self, errors):
-        self.error_process = errors
-        self.status_id = "with_errors"
-        self.save()
-
-    @property
-    def human_name(self):
-        months = [
-            "ene", "feb", "mar", "abr", "may", "jun",
-            "jul", "ago", "sep", "oct", "nov", "dic"]
-        year, month = self.year_month.split("-")
-        month_name = months[int(month)-1]
-        return "%s/%s" % (month_name, year)
-
-    @property
-    def temp_table(self):
-        year_month = self.year_month.replace("-", "")
-        return f"{self.provider_id}_{year_month}"
-
-    @property
-    def base_table(self):
-        # cluster = self.provider.clusters.first()
-        # year = self.year_month.split("-")[0]
-        return f"{self.cluster.name}"
-
-    class Meta:
-        get_latest_by = "year_month"
-        db_table = "inai_entitymonth"
-        ordering = ["year_month"]
-        verbose_name = "8. Mes-proveedor"
-        verbose_name_plural = "8. Meses-proveedores"
 
 
 class WeekRecord(models.Model):
@@ -216,32 +105,6 @@ class WeekRecord(models.Model):
         db_table = "inai_entityweek"
 
 
-class RequestTemplate(models.Model):
-    version = models.IntegerField(blank=True, null=True)
-    version_name = models.CharField(max_length=100, blank=True, null=True)
-    text = models.TextField()
-    description = models.TextField(blank=True, null=True)
-    provider = models.ForeignKey(
-        Provider, related_name="request_templates",
-        verbose_name="Proveedor",
-        on_delete=models.CASCADE, null=True, blank=True)
-    data_groups = models.ManyToManyField(
-        DataGroup, blank=True, verbose_name="Grupos de datos")
-
-    def __str__(self):
-        return self.version_name or str(self.version)
-
-    def save(self, *args, **kwargs):
-        if not self.version_name:
-            self.version_name = f"Versión {self.version}"
-        super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name = "Plantilla de solicitud"
-        verbose_name_plural = "CAT. Plantillas de solicitud"
-        ordering = ["-id"]
-
-
 VARIABLE_TYPES = (
     ("string", "String"),
     ("provider", "By Provider"),
@@ -267,152 +130,6 @@ class Variable(models.Model):
     class Meta:
         verbose_name = "Variable de plantilla"
         verbose_name_plural = "Variables de plantilla"
-
-
-class Petition(models.Model):
-
-    folio_petition = models.CharField(
-        max_length=50, blank=True, null=True,
-        verbose_name="Folio de la solicitud")
-    id_inai_open_data = models.IntegerField(
-        verbose_name="Id en el sistema de INAI",
-        blank=True, null=True)
-    agency = models.ForeignKey(
-        Agency, related_name="petitions",
-        on_delete=models.CASCADE)
-    real_provider = models.ForeignKey(
-        Provider, related_name="real_petitions",
-        on_delete=models.CASCADE, null=True, blank=True)
-    month_records = models.ManyToManyField(
-        MonthRecord, blank=True, verbose_name="Meses de la solicitud")
-    description_petition = models.TextField(
-        verbose_name="descripción enviada",
-        blank=True, null=True)
-    description_response = models.TextField(
-        verbose_name="Respuesta texto",
-        blank=True, null=True)
-    send_petition = models.DateField(
-        verbose_name="Fecha de envío o recepción",
-        blank=True, null=True)
-    response_limit = models.DateField(
-        verbose_name="Fecha límite de respuesta",
-        blank=True, null=True)
-    send_response = models.DateField(
-        verbose_name="Fecha de última respuesta",
-        blank=True, null=True)
-    status_petition = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_petition",
-        verbose_name="Status de la petición",
-        on_delete=models.CASCADE)
-    status_data = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_data",
-        verbose_name="Status de los datos entregados",
-        on_delete=models.CASCADE)
-    status_priority = models.ForeignKey(
-        StatusControl, null=True, blank=True,
-        related_name="petitions_priority",
-        verbose_name="Status de prioridad",
-        on_delete=models.CASCADE)
-    invalid_reason = models.ForeignKey(
-        InvalidReason, null=True, blank=True,
-        verbose_name="Razón de invalidez",
-        on_delete=models.CASCADE)
-    notes = models.TextField(blank=True, null=True)
-
-    template_text = models.TextField(
-        blank=True, null=True, verbose_name="Texto para la plantilla")
-    request_template = models.ForeignKey(
-        RequestTemplate, related_name="petitions",
-        on_delete=models.CASCADE, null=True, blank=True)
-    template_variables = JSONField(
-        blank=True, null=True, verbose_name="Variables de la plantilla")
-
-    # Need to move to own model
-    months_verified = models.BooleanField(
-        verbose_name="Meses verificados", default=False)
-    reasons_verified = models.BooleanField(
-        verbose_name="Razones verificadas", default=False)
-    reply_files_verified = models.BooleanField(
-        verbose_name="Archivos de respuesta verificados", default=False)
-
-    # Complain data, needs to be moved to another model
-    # info_queja_inai = JSONField(
-    #     verbose_name="Datos de queja",
-    #     help_text="Información de la queja en INAI Search",
-    #     blank=True, null=True)
-
-    def delete(self, *args, **kwargs):
-        from respond.models import LapSheet
-        some_lap_inserted = LapSheet.objects.filter(
-            sheet_file__data_file__petition_file_control__petition=self,
-            inserted=True).exists()
-        if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
-        super().delete(*args, **kwargs)
-
-    def first_year_month(self):
-        if self.month_records.exists():
-            return self.month_records.earliest().year_month
-        return None
-
-    def last_year_month(self):
-        if self.month_records.exists():
-            return self.month_records.latest().year_month
-        return None
-
-    @property
-    def orphan_pet_control(self):
-        orphan = self.file_controls\
-            .filter(file_control__data_group_id="orphan")\
-            .first()
-        if not orphan:
-            name_control = "Archivos por agrupar. Solicitud %s" % (
-                self.folio_petition)
-            file_control, created = FileControl.objects.get_or_create(
-                name=name_control,
-                data_group_id="orphan",
-                final_data=False,
-                agency=self.agency,
-            )
-            orphan, _ = PetitionFileControl.objects.get_or_create(
-                petition=self, file_control=file_control)
-        return orphan
-
-    def months(self):
-        # html_list = ''
-        start = self.month_records.earliest().year_month
-        end = self.month_records.latest().year_month
-        return " ".join(list({start, end}))
-    months.short_description = "Meses"
-
-    def months_in_description(self):
-        from django.utils.html import format_html
-        months = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
-            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-        curr_months = []
-        if self.description_petition:
-            description = self.description_petition.lower()
-            for month in months:
-                if month in description:
-                    curr_months.append(month)
-            html_list = ''
-            for month in list(curr_months):
-                html_list = html_list + ('<span>%s</span><br>' % month)
-            return format_html(html_list)
-        else:
-            return "Sin descripción"
-    months_in_description.short_description = "Meses escritos"
-
-    def __str__(self):
-        return f"solicitud {self.folio_petition or 'draft'} - {self.agency}"
-        # return "%s -- %s" % (self.agency, self.folio_petition or self.id)
-
-    class Meta:
-        verbose_name = "Solicitud - Petición"
-        verbose_name_plural = "1. Solicitudes (Peticiones)"
 
 
 class PetitionDataGroup(models.Model):
@@ -504,7 +221,7 @@ class Complaint(models.Model):
 
 class PetitionBreak(models.Model):
     petition = models.ForeignKey(
-        Petition, 
+        Petition,
         related_name="break_dates",
         on_delete=models.CASCADE)
     date_break = models.ForeignKey(
@@ -565,6 +282,10 @@ class PetitionFileControl(models.Model):
     file_control = models.ForeignKey(
         FileControl, on_delete=models.CASCADE,
         related_name="petition_file_control",)
+
+    def save(self, *args, **kwargs):
+        print("PetitionFileControl.save")
+        super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         from respond.models import LapSheet

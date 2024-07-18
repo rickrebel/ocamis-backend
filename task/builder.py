@@ -88,12 +88,16 @@ class TaskBuilder(TaskHelper):
             self.set_models(remain_models)
 
     def set_function_name(self, function_name=None):
+        from task.serverless import camel_to_snake
         if function_name:
             task_function, created = TaskFunction.objects.get_or_create(
                 name=function_name)
             if created:
+                model_name = camel_to_snake(self.model_obj.__class__.__name__)
+                task_function.model_name = model_name
                 task_function.public_name = (
                     f"{function_name} (Creada por excepción)")
+                task_function.is_active = True
                 task_function.save()
             print("Task function", task_function.name)
             self.params["function_name"] = function_name

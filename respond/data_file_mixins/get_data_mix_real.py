@@ -1,5 +1,5 @@
 from respond.models import DataFile
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from category.models import FileFormat
 from respond.views import SampleFile
 from data_param.models import FileControl
@@ -74,19 +74,18 @@ class ExtractorRealMix:
         raise EarlyFinishError(error)
 
     # antes convert_file_in_data
-    def build_data_from_file(self, file_control_id: int = None, task_kwargs=None):
+    def build_data_from_file(
+            self, file_control_id: int = None, function_after=None):
 
         self._set_file_control(file_control_id)
         type_format = self._validate_and_get_type_format()
         function_name, params = self._assemble_params(type_format)
-        if not task_kwargs:
-            task_kwargs = {}
-        function_after = task_kwargs.get(
-            "function_after", "find_matches_between_controls")
-        params_after = task_kwargs.get("params_after", {})
+        if not function_after:
+            function_after = "find_matches_between_controls"
+        # params_after = task_kwargs.get("params_after", {})
         convert_task = TaskBuilder(
             function_name=function_name, parent_class=self.base_task,
-            function_after=function_after, params_after=params_after,
+            function_after=function_after,  # , params_after=params_after,
             models=[self.data_file], params=params)
         convert_task.async_in_lambda()
 

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 import respond.api
 from api.mixins import MultiSerializerCreateRetrieveMix as CreateRetrieveView
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from task.helpers import HttpResponseError
 from geo.api.serializers import AgencyFileControlsSerializer
 from inai.api import serializers

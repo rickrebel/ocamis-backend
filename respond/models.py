@@ -128,6 +128,7 @@ class DataFile(models.Model, DataUtilsMix):
     sample_file = models.FileField(
         max_length=255, upload_to=set_upload_path,
         blank=True, null=True, verbose_name="Archivo con muestra")
+    # RICK2 TASK2: TODO: Eliminar este campo
     all_results = JSONField(
         blank=True, null=True, verbose_name="Todos los resultados")
     notes = models.TextField(blank=True, null=True)

@@ -1,5 +1,5 @@
 from scripts.common import text_normalizer
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from respond.models import DataFile
 from task.helpers import HttpResponseError
 from respond.data_file_mixins.explore_mix_real import ExploreRealMix

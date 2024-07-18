@@ -2,7 +2,7 @@ from django.conf import settings
 from inai.models import MonthRecord, WeekRecord
 from respond.models import LapSheet
 # from task.serverless import async_in_lambda
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 

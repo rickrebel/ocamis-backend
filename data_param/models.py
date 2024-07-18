@@ -133,6 +133,7 @@ class FileControl(models.Model):
         FileFormat, verbose_name="formato del archivo",
         blank=True, null=True, on_delete=models.CASCADE)
     other_format = models.CharField(max_length=80, blank=True, null=True)
+    # RICK TODO: Actualmente no tiene utilidad, aunque podría tener
     final_data = models.BooleanField(
         verbose_name="Es información final", blank=True, null=True)
     notes = models.TextField(blank=True, null=True)

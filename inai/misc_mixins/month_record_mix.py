@@ -1,7 +1,7 @@
 from classify_task.models import Stage
 from inai.models import MonthRecord
 # from task.serverless import async_in_lambda
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from task.main_views_aws import AwsFunction
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")

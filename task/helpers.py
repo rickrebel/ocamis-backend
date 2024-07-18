@@ -141,7 +141,7 @@ class TaskHelper(Serverless):
 
     def _execute_finished_function(self):
         from task.main_views_aws import AwsFunction
-        from task.base_views import TaskBuilder
+        from task.builder import TaskBuilder
         # print("EJECUTANDO FINISHED FUNCTION")
         parent_task = self.main_task.parent_task
         finished_function = parent_task.finished_function

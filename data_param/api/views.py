@@ -13,7 +13,7 @@ from respond.api.serializers import DataFileSerializer
 from inai.models import PetitionFileControl
 from respond.models import DataFile, SheetFile
 # from task.views import build_task_params, comprobate_status
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from task.helpers import HttpResponseError
 from . import serializers
 from rest_framework.response import Response

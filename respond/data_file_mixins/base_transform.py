@@ -1,5 +1,5 @@
 from respond.models import DataFile, LapSheet
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 
 
 def sheet_name_to_file_name(sheet_name):

@@ -238,6 +238,7 @@ class AwsBody(AwsFunction):
             main_task.result = result
             main_task.save()
             new_result = result.copy()
+            # RICK TASK2: TODO: debemos unificar todas las referencias a params_after
             new_result.update(main_task.params_after or {})
             return main_task, new_result
         except Exception as e:
