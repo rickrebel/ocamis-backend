@@ -135,14 +135,6 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         is_revert = (current_stage.order > stage.order
                      or main_function_name == "revert_stages")
 
-        # all_tasks = []
-        # all_errors = []
-
-        # if month_record_id:
-        #     key_task = None
-        # else:
-        #     key_task, task_params = build_task_params(
-        #         provider, main_function_name, request, keep_tasks=True)
         kwargs = {"finished_function": stage.finished_function}
 
         if month_record_id:
@@ -164,20 +156,15 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         # accumulated_sleep = 0
 
         for month_record in month_records:
-            # related_weeks = month_record.weeks.all()
-            # month_task, task_params = build_task_params(
-            #     month_record, main_function_name, request, **kwargs)
             if base_task:
                 month_base_task = base_task.get_child_base(**kwargs)
                 month_base_task.build(month_record)
             else:
                 month_base_task.build(month_record)
-            # all_tasks.append(month_task)
             month_record.stage = stage
             month_record.status_id = "created"
             month_record.save()
             month_errors = []
-            # base_class = MonthRecordMix(month_record, task_params)
             month_methods = MonthRecordMix(
                 month_record, base_task=month_base_task)
 
@@ -188,11 +175,6 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 except HttpResponseError as err:
                     if not base_task:
                         return Response(err.body_response, status=err.http_status)
-                # new_tasks, errors, s = main_method()
-                # all_tasks.extend(new_tasks)
-                # all_errors.extend(errors)
-                # comprobate_status(month_task, errors, new_tasks)
-                # time.sleep(2)
                 time.sleep(seconds_sleep)
 
             stage_merge = Stage.objects.get(name="merge")
@@ -206,12 +188,10 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             if month_errors:
                 # print("month_errors", month_errors)
                 month_record.save_stage(stage.name, month_errors)
-                # comprobate_status(month_task, month_errors, [])
                 month_base_task.comprobate_status()
             elif is_revert:
                 month_methods.revert_stages(stage)
                 month_record.save_stage(stage.name)
-                # comprobate_status(month_task, [], [])
                 month_base_task.comprobate_status()
             elif provider.split_by_delegation:
                 t = threading.Thread(target=run_in_thread)
@@ -220,22 +200,12 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 run_in_thread()
                 # time.sleep(seconds_sleep)
 
-        # if (all_tasks or all_errors) and key_task:
-        #     return comprobate_status(
-        #         key_task, all_errors, all_tasks, want_http_response=True)
-
         if base_task:
             try:
                 base_task.comprobate_status(want_http_response=None)
             except HttpResponseError as e:
                 print("ERROR EN BASE TASK", e)
                 return Response(e.body_response, status=e.http_status)
-            # return comprobate_status(
-            #     key_task, all_errors, all_tasks, want_http_response=True)
-        # elif is_revert and key_task:
-        #     comprobate_status(key_task, [], [])
-        # elif is_revert and base_task:
-        #     base_task.comprobate_status()
         elif month_base_task:
             month_base_task.comprobate_status(want_http_response=False)
 
@@ -247,8 +217,6 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         month_data = MonthRecordSerializer(new_month_records, many=True).data
         extra_data["month_records"] = month_data
         return Response(extra_data, status=status.HTTP_200_OK)
-
-        # return Response({}, status=status.HTTP_202_ACCEPTED)
 
 
 class AgencyViewSet(ListRetrieveUpdateMix):

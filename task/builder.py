@@ -25,11 +25,12 @@ class TaskBuilder(TaskHelper):
             subgroup: str = None,
             from_aws: bool = False,
             finished_function: str = None,
-            params_after: dict = None,
+            # params_after: dict = None,
+            is_massive: bool = False,
             models: list = None,
             **kwargs
     ):
-
+        # RICK TASK2: TODO: Revisar si se puede quitar el from_aws
         self.from_aws = from_aws
         if main_task:
             self.main_task = main_task
@@ -49,6 +50,7 @@ class TaskBuilder(TaskHelper):
         self.model_obj = model_obj
 
         self.keep_tasks = keep_tasks
+        self.main_task.is_massive = is_massive
         if subgroup:
             self.main_task.subgroup = subgroup
             self.main_task.is_massive = "|" in subgroup
@@ -65,10 +67,10 @@ class TaskBuilder(TaskHelper):
 
         if function_after:
             self.main_task.function_after = function_after
-        if params_after:
-            self.main_task.params_after = params_after
-        else:
-            self.main_task.params_after = {}
+        # if params_after:
+        #     self.main_task.params_after = params_after
+        # else:
+        #     self.main_task.params_after = {}
         # self.params_after = params_after or {}
 
         if self.main_task.user:

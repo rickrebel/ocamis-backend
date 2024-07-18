@@ -20,7 +20,10 @@ class PetitionTransformMix:
         for data_file in self.data_files:
             explore = self._get_explore_sample(data_file)
             if explore:
-                explore.find_matches_between_controls()
+                try:
+                    explore.find_matches_between_controls()
+                except HttpResponseError:
+                    continue
 
         self.base_task.comprobate_status()
 
@@ -35,12 +38,15 @@ class PetitionTransformMix:
         for data_file in self.data_files:
             explore = self._get_explore_sample(data_file)
             if explore:
-                explore.find_matches_in_control(file_control)
+                try:
+                    explore.find_matches_in_control(file_control)
+                except HttpResponseError:
+                    continue
 
         self.base_task.comprobate_status()
 
     def _get_explore_sample(self, data_file: DataFile):
-        from respond.data_file_mixins.explore_mix_real import ExploreRealMix
+        from respond.data_file_mixins.explore_mix import ExploreRealMix
 
         explore = ExploreRealMix(
             data_file, base_task=self.base_task, want_response=True)

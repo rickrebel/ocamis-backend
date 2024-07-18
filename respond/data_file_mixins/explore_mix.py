@@ -1,7 +1,7 @@
 from task.builder import TaskBuilder
 from task.helpers import HttpResponseError
 from respond.data_file_mixins.data_file_aws import FromAws as DataFileAws
-from respond.data_file_mixins.get_data_mix_real import ExtractorRealMix
+from respond.data_file_mixins.get_data_mix import ExtractorRealMix
 from respond.data_file_mixins.find_coincidences import MatchControls
 
 
@@ -56,7 +56,7 @@ class ExploreRealMix(DataFileAws, ExtractorRealMix):
         # Esto pasa cuando ya hay guardados datos, pero no sus sheet_files
         else:
             default_sample = sample_data.get("default", {})
-            previous_explore = default_sample and self.data_file.explore_ready
+            previous_explore = default_sample and self.data_file.stage_ready()
             if previous_explore and default_sample.get("tail_data"):
                 total_rows = default_sample.pop("total_rows", 0)
                 sample_file.create_file(

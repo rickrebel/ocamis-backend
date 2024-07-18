@@ -11,34 +11,27 @@ class FromAws:
 
     def analyze_uniques_after(self, **kwargs):
         print("analyze_uniques_after---------------------------------")
-        all_errors = []
-        all_tasks = []
         # RICK TASK2: Estos errores deberíamos ponerlos en otro campo y
         # sacarlos desde el principio
-        if kwargs.get('errors'):
-            all_errors += kwargs['errors']
+        if self.base_task.errors:
+            pass
         unique_counts = kwargs.get("month_week_counts", {})
         month_pairs = kwargs.get("month_pairs", {})
         month_sheets = kwargs.get("month_sheets", {})
         self._save_week_record(unique_counts, month_pairs)
-        errors = self._save_crossing_sheets(month_sheets)
-        all_errors += errors
-
-        return all_tasks, all_errors, True
+        self._save_crossing_sheets(month_sheets)
 
     # def save_csv_in_db_after(self, **kwargs):
     def save_week_base_models_after(self, **kwargs):
+        pass
         # from django.utils import timezone
         # self.week_record.last_insertion = timezone.now()
-        if kwargs.get("errors"):
-            # self.week_record.errors = True
-            print("ERRORS", kwargs.get("errors"))
-        # else:
+        # RICK TASK2: Esto debería estar estandarizado
+        # if not self.base_task.errors:
         #     table_files_ids = kwargs.get("table_files_ids", [])
         #     TableFile.objects\
         #         .filter(id__in=table_files_ids)\
         #         .update(inserted=True)
-        return [], [], True
 
     def save_merged_from_aws(self, **kwargs):
         from django.utils import timezone
@@ -79,7 +72,6 @@ class FromAws:
         self.week_record.last_merge = timezone.now()
         self.week_record.drugs_count = drugs_count
         self.week_record.save()
-        return [], [], True
 
     def rebuild_week_csv_after(self, **kwargs):
         from respond.models import TableFile
@@ -122,7 +114,6 @@ class FromAws:
 
     def _save_crossing_sheets(self, sheets):
         from respond.models import TableFile
-        all_errors = []
 
         table_files = self.week_record.table_files.filter(
             lap_sheet__lap=0)
@@ -141,34 +132,3 @@ class FromAws:
             table_files,
             ["rx_count", "duplicates_count", "shared_count"]
         )
-
-        return all_errors
-
-    def _save_crossing_sheets_old(self, month_pairs, sheets):
-        all_errors = []
-
-        for sheet_id, value in sheets.items():
-            table_file = self.week_record.table_files.filter(
-                lap_sheet__lap=0,
-                lap_sheet__sheet_file_id=sheet_id)
-            if self.split_by_delegation:
-                pass
-            elif table_file.count() != 1:
-                if table_file.count() == 0:
-                    error = f"No existe ningún table_file "
-                else:
-                    error = f"Existen {table_file.count()} table_files"
-                error += f" para sheet_id {sheet_id}, " \
-                    f"semana {self.week_record.iso_week} " \
-                    f"año {self.week_record.iso_year}, " \
-                    f"year_month {self.week_record.year_month}"
-                all_errors.append(error)
-                continue
-            table_file.update(
-                rx_count=value["rx_count"],
-                # drugs_count=value["drugs_count"],
-                duplicates_count=value["dupli"],
-                shared_count=value["shared"]
-            )
-
-        return all_errors

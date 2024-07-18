@@ -44,8 +44,8 @@ class MonthRecord(models.Model):
     def __str__(self):
         return "%s -- %s" % (self.provider.acronym, self.year_month)
 
-    def end_stage(self, stage_id, parent_task):
-        child_task_errors = parent_task.child_tasks.filter(
+    def end_stage(self, stage_id, main_task):
+        child_task_errors = main_task.child_tasks.filter(
             status_task__macro_status="with_errors")
         all_errors = []
         for child_task_error in child_task_errors:
@@ -70,7 +70,7 @@ class MonthRecord(models.Model):
             self.error_process = all_errors
         else:
             self.status_id = "finished"
-            self.error_process = []
+            self.error_process = None
         self.save()
         return all_errors
 

@@ -27,11 +27,9 @@ class TaskHelper(Serverless):
         self.checker = TaskChecker(self.main_task)
 
     def async_in_lambda(self, comprobate=True, http_response=False):
-        # self.set_function_name(function_name)
         task_function = self.main_task.task_function
         if not self.main_task.function_after:
             self.main_task.function_after = f"{task_function.name}_after"
-        # self.main_task.task_function = task_function
         self.main_task.original_request = self.params
         self.main_task.status_task_id = "pending"
 
@@ -114,15 +112,16 @@ class TaskHelper(Serverless):
                 new_task = self.main_task
             self.parent_class.add_new_task(new_task, from_child=True)
 
-    def add_errors(self, errors: list, save=False, comprobate=True,
+    def add_errors(self, errors: list = None, save=False, comprobate=True,
                    http_response=False):
-        for new_error in errors:
-            if new_error not in self.errors:
-                self.errors.append(new_error)
-        if self.parent_class:
-            self.parent_class.add_errors(errors)
-        if save:
-            self.main_task.errors = errors
+        if errors:
+            for new_error in errors:
+                if new_error not in self.errors:
+                    self.errors.append(new_error)
+            if self.parent_class:
+                self.parent_class.add_errors(errors)
+            if save:
+                self.main_task.errors = errors
         if comprobate or http_response is not False:
             self.comprobate_status(want_http_response=http_response)
         return self.errors
@@ -153,10 +152,7 @@ class TaskHelper(Serverless):
         if brothers_in_finish.exists():
             return self._comprobate_brothers_with_errors()
 
-        # add_elems = {"parent_task": parent_task, "keep_tasks": True}
         models = self._find_task_model(parent_task, many=True)
-        # new_task, task_params = build_task_params(
-        #     self.model_obj, finished_function, **add_elems)
         finished_task = TaskBuilder(
             function_name=finished_function, models=models,
             parent_task=parent_task, keep_tasks=True)

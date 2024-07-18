@@ -6,32 +6,29 @@ class FromAws:
 
     def __init__(self, sheet_file: SheetFile, base_task: TaskBuilder = None):
         self.sheet_file = sheet_file
+        self.base_task = base_task
 
     def check_success_insert(self, **kwargs):
-
-        errors = kwargs.get("errors", [])
-        if not errors:
-            # self.save_csv_in_db_after(**kwargs)
+        if not self.base_task.errors:
             self.save_lap_cat_tables_after(**kwargs)
-        # self.sheet_file.save_stage('insert', errors)
-        return [], errors, True
+        pass
 
     # def save_csv_in_db_after(self, **kwargs):
     def save_lap_cat_tables_after(self, **kwargs):
-        errors = kwargs.get("errors", [])
         # if not errors:
         #     table_files_ids = kwargs.get("table_files_ids", [])
         #     TableFile.objects\
         #         .filter(id__in=table_files_ids)\
         #         .update(inserted=True)
-        return [], [], True
+        pass
 
     # Función para los archivos de tipo "intermediary", que se repite horizontalmente
     def save_new_split_files(self, **kwargs):
         from respond.models import DataFile
+        # RICK TASK2: Esto debería estar estandarizado
         errors = kwargs.get("errors", [])
         if errors:
-            return [], errors, True
+            return
 
         original_file = kwargs.get("original_file", None)
         new_files = kwargs.get("new_files", [])
@@ -46,9 +43,7 @@ class FromAws:
                 petition_file_control=orphan_pet_control,
             )
             new_file.finished_stage('initial|finished')
-            print("new_file", new_file)
         self.sheet_file.save_stage("transform", errors)
-        return [], errors, True
 
     def build_csv_data_from_aws(self, **kwargs):
         from django.utils import timezone
@@ -93,18 +88,20 @@ class FromAws:
 
         if is_prepare or errors:
             self.sheet_file.save_stage(stage_id, errors)
-            return [], errors, True
+            self.base_task.add_errors(errors, http_response=True)
+
         # data_file.all_results = kwargs.get("report_errors", {})
         # data_file.save()
         final_paths = kwargs.get("final_paths", []) or []
-        lap_sheet_aws = LapSheetAws(lap_sheet)
-        new_task, errors, data = lap_sheet_aws.save_result_csv(final_paths)
+        lap_sheet_aws = LapSheetAws(lap_sheet, base_task=self.base_task)
+        lap_sheet_aws.save_result_csv(final_paths)
 
         all_months = kwargs.get("all_months", []) or []
         self.sheet_file.month_records.clear()
         self.sheet_file.year_month = None
         if len(all_months) == 0:
-            errors.append("No se encontraron meses")
+            error = "No se encontraron meses"
+            self.base_task.add_errors([error], comprobate=False)
         else:
             year_months = []
             for ym in all_months:
@@ -114,13 +111,11 @@ class FromAws:
                     provider=self.sheet_file.data_file.provider,
                     year_month=f"{ym[0]}-{month}")[0]
                 self.sheet_file.month_records.add(month_record)
-            # errors.append(f"Se encontraron demasiados meses: {all_months}")
         if len(all_months) == 1:
             ym = all_months[0]
             month = str(ym[1]).zfill(2)
             self.sheet_file.year_month = f"{ym[0]}-{month}"
-        self.sheet_file.save_stage(stage_id, errors)
-        return new_task, errors, data
+        self.sheet_file.save_stage(stage_id, self.base_task.errors)
 
 
 def delete_extra_files():

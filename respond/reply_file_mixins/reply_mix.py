@@ -39,20 +39,11 @@ class FromAws:
     def __init__(self, reply_file: ReplyFile, base_task: TaskBuilder = None):
         self.reply_file = reply_file
         self.base_task = base_task
-        self.new_version = True
 
     def decompress_zip_aws_after(self, **kwargs):
         print("decompress_zip_aws_after---------------------------------")
         # from inai.models import PetitionFileControl
         from respond.models import DataFile
-        # print("kwargs", kwargs)
-        # RICK TASK2: No contemplamos errorMessage en ningún lugar
-        # if "errorMessage" in kwargs:
-        #     errors.append(kwargs["errorMessage"])
-        #     return None, errors
-        if new_errors := kwargs.get('errors'):
-            # errors += kwargs['errors']
-            self.base_task.add_errors(new_errors, True, comprobate=False)
         all_data_files_ids = []
         all_files = kwargs.get("files", [])
         orphan_pfc = self.reply_file.petition.get_orphan_pfc(forced_create=True)
@@ -75,6 +66,5 @@ class FromAws:
             .prefetch_related("petition_file_control")
 
         petition_class = PetitionTransformMix(
-            petition, base_task=self.base_task)
-        petition_class.find_matches_for_data_files(all_data_files)
-        return self.base_task.new_tasks, self.base_task.errors, None
+            petition, all_data_files, base_task=self.base_task)
+        petition_class.find_matches_for_data_files()

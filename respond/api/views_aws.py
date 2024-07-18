@@ -10,7 +10,6 @@ from geo.api.serializers import AgencyFileControlsSerializer
 from inai.api import serializers
 from inai.models import PetitionFileControl
 from respond.models import DataFile
-# from task.views import build_task_params, comprobate_status
 
 
 def move_and_duplicate(data_files, petition, request):
@@ -98,13 +97,11 @@ class DataFileViewSet(CreateRetrieveView):
 
     @action(methods=["get"], detail=True, url_path="change_stage")
     def change_stage(self, request, **kwargs):
-        from django.conf import settings
         from classify_task.models import Stage
-        from respond.data_file_mixins.explore_mix_real import ExploreRealMix
+        from respond.data_file_mixins.explore_mix import ExploreRealMix
 
         data_file = self.get_object()
-        is_local = settings.IS_LOCAL
-        if not data_file.can_repeat and not is_local:
+        if not data_file.can_repeat:
             error = "Aún se está procesando; espera máx. 15 minutos"
             return Response({"errors": [error]}, status=status.HTTP_404_NOT_FOUND)
 
@@ -112,13 +109,16 @@ class DataFileViewSet(CreateRetrieveView):
         target_stage = Stage.objects.get(name=stage_name)
         target_name = target_stage.name
 
-        base_task = TaskBuilder(
-            function_name=target_stage.main_function.name,
-            models=[data_file], request=request)
-
+        curr_kwargs = {}
         function_after = None
         if target_stage.function_after:
             function_after = target_stage.function_after.name
+            curr_kwargs = {"function_after": function_after}
+
+        base_task = TaskBuilder(
+            function_name=target_stage.main_function.name,
+            models=[data_file], request=request, is_massive=True)
+
         for re_stage in target_stage.re_process_stages.all():
             current_function = re_stage.main_function.name
             on_target = re_stage.name == target_name
@@ -132,7 +132,7 @@ class DataFileViewSet(CreateRetrieveView):
             try:
                 # possible_functions: get_sample_data, verify_coincidences,
                 # prepare_transform, transform_data
-                getattr(explore, current_function)()
+                getattr(explore, current_function)(**curr_kwargs)
             except HttpResponseError as e:
                 if e.errors:
                     data_file.save_errors(e.errors, f"{re_stage.name}|with_errors")
@@ -150,16 +150,12 @@ class DataFileViewSet(CreateRetrieveView):
     def build_columns(self, request, **kwargs):
         from respond.data_file_mixins.build_headers import BuildComplexHeaders
         data_file = self.get_object()
-        from respond.data_file_mixins.explore_mix_real import ExploreRealMix
+        from respond.data_file_mixins.explore_mix import ExploreRealMix
 
-        # key_task, task_params = build_task_params(
-        #     data_file, "build_columns", request)
         base_task = TaskBuilder(
             function_name="build_columns", models=[data_file], request=request)
 
-        curr_kwargs = {
-            "task_kwargs": {"function_after": "build_sample_data_after"},
-        }
+        curr_kwargs = {"function_after": "build_sample_data_after"}
         explore = ExploreRealMix(
             data_file, base_task=base_task, want_response=True)
         try:

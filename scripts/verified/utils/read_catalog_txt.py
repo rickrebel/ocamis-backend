@@ -40,8 +40,6 @@ def analyze_every_months(provider_id):
 def send_week_records_to_rebuild(limit=None):
     import time
     from scripts.common import build_s3
-    # from task.views import build_task_params
-    # from task.serverless import async_in_lambda
     from data_param.models import Collection
     from respond.models import TableFile
     from django.contrib.auth.models import User

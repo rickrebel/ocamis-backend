@@ -48,7 +48,6 @@ class FromAws:
             if not file_control.decode and file_control.data_group_id != 'orphan':
                 file_control.decode = decode
                 file_control.save()
-        return [], [], self.data_file
 
     # función de after, pero también directa (derivado de otros after)
     def build_sample_data_after(self, **kwargs):
@@ -87,25 +86,15 @@ class FromAws:
         if self.data_file.stage_id == "explore":
             self.data_file.status_id = "finished"
             self.data_file.save()
-        return [], [], self.data_file
 
     # Función de after y directa
     # antes llamado find_matches_in_file_controls
     def find_matches_between_controls(self, **kwargs):
-        from data_param.views import get_related_file_controls
 
         match_controls = self._corroborate_save_data(**kwargs)
+        match_controls.find_in_file_controls()
 
-        saved = match_controls.find_in_file_controls()
-
-        errors = None
-        if not saved:
-            errors = ["No existe ningún grupo de control coincidente"]
-            self.data_file.save_errors(errors, "cluster|with_errors")
-        return None, errors, None
-
-    # Función de after y directa
-    # derivado de find_matches_between_controls
+    # Función de after y directa derivado de find_matches_between_controls
     def find_matches_in_control(
             self, file_control: FileControl = None, **kwargs):
 
@@ -114,32 +103,16 @@ class FromAws:
         if not file_control:
             file_control = self.base_task.main_task.parent_task.file_control
         match_controls.match_file_control(file_control)
-        return None, match_controls.errors, None
 
     # Función de after
     def find_coincidences_from_aws(self, **kwargs):
-
         match_controls = self._corroborate_save_data(**kwargs)
-
-        # saved, errors = self._find_coincidences(saved=False)
-        saved = match_controls.match_file_control()
-        errors = match_controls.errors
-        if not saved and not errors:
-            errors = ["No coincide con el formato del archivo 3"]
-        if errors:
-            self.data_file.save_errors(errors, "explore|with_errors")
-            return [], errors, None
-        elif self.data_file.stage_id == 'cluster':
-            self.data_file.finished_stage("cluster|finished")
-        return [], errors, None
+        match_controls.match_file_control()
 
     def _corroborate_save_data(self, **kwargs):
         from_aws = kwargs.get("from_aws", False)
-        print("from_aws", from_aws)
+        # print("from_aws", from_aws)
 
         if from_aws:
             self.build_sample_data_after(**kwargs)
-            parent_task = self.base_task.main_task
-            if params_after := parent_task.params_after:
-                kwargs.update(params_after)
         return MatchControls(self.data_file, self.base_task)

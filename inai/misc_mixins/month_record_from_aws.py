@@ -5,10 +5,9 @@ class FromAws(MonthRecordMix):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.new_version = True
 
     def revert_stages_after(self, **kwargs):
-        return [], [], True
+        pass
 
     def save_month_analysis(self, **kwargs):
         from django.utils import timezone
@@ -36,7 +35,7 @@ class FromAws(MonthRecordMix):
                 else:
                     all_crosses[pair] = {"dupli": 0, "shared": value}
         if all_errors:
-            return [], all_errors, False
+            self.base_task.add_errors_and_raise(all_errors)
         CrossingSheet.objects.filter(month_record=self.month_record).delete()
 
         all_sheet_ids = set()
@@ -60,31 +59,28 @@ class FromAws(MonthRecordMix):
         if self.base_task.from_aws:
             self.month_record.last_crossing = timezone.now()
         self.month_record.save()
-        return [], [], True
 
     def all_base_tables_merged(self, **kwargs):
         from django.utils import timezone
         self.month_record.last_merge = timezone.now()
         self.month_record.end_stage("merge", self.base_task.main_task)
         self.month_record.save()
-        return [], [], True
 
     def insert_temp_tables_after(self, **kwargs):
-        return [], [], True
+        pass
 
     def validate_temp_tables_after(self, **kwargs):
-        errors = kwargs.get("errors", [])
-        return [], [], True
+        pass
 
     def indexing_temp_tables_after(self, **kwargs):
-        return [], [], True
+        pass
 
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
         self.month_record.last_pre_insertion = timezone.now()
         self.month_record.end_stage("pre_insert", self.base_task.main_task)
         self.month_record.save()
-        return [], [], True
+        pass
 
     def all_base_tables_validated(self, **kwargs):
         from django.utils import timezone
@@ -106,14 +102,14 @@ class FromAws(MonthRecordMix):
                 self.month_record.save()
                 return [], errors, False
         self.month_record.save()
-        return [], [], True
+        pass
 
     def all_base_tables_indexed(self, **kwargs):
         self.month_record.end_stage("indexing", self.base_task.main_task)
         self.month_record.save()
-        return [], [], True
+        pass
 
     def all_temp_tables_inserted(self, **kwargs):
         self.month_record.end_stage("insert", self.base_task.main_task)
         self.month_record.save()
-        return [], [], True
+        pass

@@ -189,12 +189,11 @@ class DataFile(models.Model, DataUtilsMix):
             lap_number = last_lap.lap + 1 if last_lap.inserted else last_lap.lap
         return lap_number if lap_number >= 0 else 0
 
-    @property
-    def explore_ready(self):
-        explore_stage = Stage.objects.get(name="explore")
-        if self.stage.order > explore_stage.order:
+    def stage_ready(self, stage_name="explore"):
+        compare_stage = Stage.objects.get(name=stage_name)
+        if self.stage.order > compare_stage.order:
             return True
-        if self.stage_id == "explore" and self.status_id == "finished":
+        if self.stage_id == stage_name and self.status_id == "finished":
             return True
         return False
 
@@ -202,25 +201,27 @@ class DataFile(models.Model, DataUtilsMix):
     def can_repeat(self):
         from datetime import datetime, timedelta
         from django.utils.timezone import make_aware
+        if settings.IS_LOCAL:
+            return True
         if self.status.is_completed:
             return True
-        x_minutes = 15
-        last_task = self.async_tasks.filter(is_current=True).last()
-        if not last_task:
-            return True
-        if last_task.status_task.is_completed:
+
+        last_task_incomplete = self.async_tasks\
+            .filter(is_current=True)\
+            .exclude(status_task__is_completed=True)\
+            .last()
+        if not last_task_incomplete:
             return True
         quick_status = ['success', 'pending', 'created']
-        if last_task.status_task in quick_status:
+        if last_task_incomplete.status_task in quick_status:
             x_minutes = 2
+        else:
+            x_minutes = 15
         now = make_aware(datetime.now())
-        last_update = last_task.date_arrive or last_task.date_start
-        # more_than_x_minutes = (
-        #     now - timedelta(minutes=x_minutes)) > last_update
-        more_than_x_minutes = (
-            now - last_update) > timedelta(minutes=x_minutes)
-
-        return more_than_x_minutes
+        last_update = (last_task_incomplete.date_arrive or
+                       last_task_incomplete.date_start)
+        rebase_x_minutes = (now - last_update) > timedelta(minutes=x_minutes)
+        return rebase_x_minutes
 
     def __str__(self):
         return "%s %s" % (str(self.file), self.petition_file_control)
@@ -283,7 +284,7 @@ class SheetFile(models.Model):
     total_rows = models.IntegerField(default=0)
     error_process = JSONField(blank=True, null=True)
     warnings = JSONField(blank=True, null=True)
-
+    # RICK TODO Future: Hay que eliminar este campo
     year_month = models.CharField(
         max_length=8, blank=True, null=True, verbose_name="Año y mes")
     month_records = models.ManyToManyField(

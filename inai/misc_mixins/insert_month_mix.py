@@ -81,17 +81,12 @@ class InsertMonth:
             "final_path": final_path,
             "week_record_id": week_record.id,
         }
-        # current_task_params = self.task_params.copy()
-        # current_task_params["models"] = [week_record, self.month_record]
-        # current_task_params["week_record_id"] = week_record.id
-        # current_task_params["function_after"] = "save_merged_from_aws"
         week_task = TaskBuilder(
             model_obj=week_record, parent_class=self.base_task,
             function_name="build_week_csvs", params=params,
             models=[week_record, self.month_record],
             function_after="save_merged_from_aws")
         return week_task.async_in_lambda()
-        # return async_in_lambda("build_week_csvs", params, current_task_params)
 
     def build_query_tables(self, table_files, complement=None):
         queries_by_model = {}
@@ -157,8 +152,6 @@ class InsertMonth:
             "week_record_id": week_record.id,
             "table_files_ids": table_files_ids,
         }
-        # current_task_params = self.task_params.copy()
-        # current_task_params["models"] = [week_record, self.month_record]
         week_task = TaskBuilder(
             model_obj=week_record, parent_class=self.base_task,
             function_name="save_week_base_models", params=params,
@@ -180,32 +173,19 @@ class InsertMonth:
             WHERE id = {lap_sheet.id}
         """
 
-        # current_task_params = self.task_params.copy()
-        models = [lap_sheet.sheet_file, lap_sheet.sheet_file.data_file,
-                  self.month_record]
-        # current_task_params["models"] = [
-        #     lap_sheet.sheet_file,
-        #     lap_sheet.sheet_file.data_file,
-        #     self.month_record]
         function_after = None
         if inserted_field == "missing_inserted":
             function_name = "save_lap_missing_tables"
             temp_complement = self.month_record.temp_table
-            # current_task_params["function_after"] = "check_success_insert"
             function_after = "check_success_insert"
-            # current_task_params["subgroup"] = "missing"
             subgroup = "missing"
         elif inserted_field == "cat_inserted":
             function_name = "save_lap_cat_tables"
             temp_complement = None
-            # current_task_params["subgroup"] = "med_cat"
             subgroup = "med_cat"
         else:
             raise Exception("No se encontró el campo de inserción")
         table_files_ids = [table_file.id for table_file in table_files]
-        # current_task_params["params_after"] = {
-        #     "table_files_ids": [table_file.id for table_file in table_files],
-        # }
         params = {
             "first_query": first_query,
             "last_query": last_query,
@@ -214,13 +194,13 @@ class InsertMonth:
             "lap_sheet_id": lap_sheet.id,
             "table_files_ids": table_files_ids,
         }
+        models = [lap_sheet.sheet_file, lap_sheet.sheet_file.data_file,
+                  self.month_record]
         lap_task = TaskBuilder(
             model_obj=lap_sheet, parent_class=self.base_task,
             function_name=function_name, params=params, models=models,
             function_after=function_after, subgroup=subgroup)
         lap_task.async_in_lambda()
-        # return async_in_lambda("save_csv_in_db", params, current_task_params)
-        # return async_in_lambda(function_name, params, current_task_params)
 
     def build_catalog_queries(
             self, path, columns_join, model_in_db, model_name):

@@ -82,11 +82,10 @@ class ExtractorRealMix:
         function_name, params = self._assemble_params(type_format)
         if not function_after:
             function_after = "find_matches_between_controls"
-        # params_after = task_kwargs.get("params_after", {})
         convert_task = TaskBuilder(
             function_name=function_name, parent_class=self.base_task,
-            function_after=function_after,  # , params_after=params_after,
-            models=[self.data_file], params=params)
+            function_after=function_after, models=[self.data_file],
+            params=params)
         convert_task.async_in_lambda()
 
     def _assemble_params(self, type_format: str) -> tuple[str, dict]:
@@ -142,7 +141,6 @@ class ExtractorRealMix:
                 self.first_headers = headers
                 self.has_split = True
             is_valid = bool(sample_rows)
-            # RICK2: Me estoy olvidando de esto:
             curr_sheet["is_valid"] = is_valid
             curr_sheet["headers"] = headers
             curr_sheet["is_second"] = is_second
