@@ -16,19 +16,15 @@ class MessageSendAPIView(APIView):
         # get the channel group name
         async_to_sync(channel_layer.group_send)(
             "dashboard", {"type": "send_info_to_user_group",
-                        "text": {"status": "done"}}
-        )
-        async_to_sync(channel_layer.send)(
-            "dashboard", {"type": "send_info_to_user_group",
-                        "text": {"status": "done"}}
+                          "text": {"status": "done"}}
         )
 
         return Response({"status": True}, status=status.HTTP_200_OK)
 
     def post(self, request):
-        #msg = Message.objects.create(user=request.user, message={
+        # msg = Message.objects.create(user=request.user, message={
         #                             "message": request.data["message"]})
-        #socket_message = f"Message with id {msg.id} was created!"
+        # socket_message = f"Message with id {msg.id} was created!"
         socket_message = "Message was created!"
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(

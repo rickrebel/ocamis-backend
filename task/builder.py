@@ -13,11 +13,24 @@ class TaskBuilder(TaskHelper):
     request = None
 
     def __init__(
-            self, function_name=None, model_obj=None, main_task=None,
-            request=None, parent_task=None, function_after=None,
-            keep_tasks=False, parent_class=None, subgroup=None, from_aws=None,
-            finished_function=None, params_after=None, models=None, **kwargs):
-
+            self,
+            function_name: str = None,
+            model_obj=None,
+            main_task: AsyncTask = None,
+            request=None,
+            parent_task: AsyncTask = None,
+            function_after: str = None,
+            keep_tasks: bool = False,
+            parent_class: TaskHelper = None,
+            subgroup: str = None,
+            from_aws: bool = False,
+            finished_function: str = None,
+            # params_after: dict = None,
+            is_massive: bool = False,
+            models: list = None,
+            **kwargs
+    ):
+        # RICK TASK2: TODO: Revisar si se puede quitar el from_aws
         self.from_aws = from_aws
         if main_task:
             self.main_task = main_task
@@ -37,6 +50,7 @@ class TaskBuilder(TaskHelper):
         self.model_obj = model_obj
 
         self.keep_tasks = keep_tasks
+        self.main_task.is_massive = is_massive
         if subgroup:
             self.main_task.subgroup = subgroup
             self.main_task.is_massive = "|" in subgroup
@@ -53,10 +67,10 @@ class TaskBuilder(TaskHelper):
 
         if function_after:
             self.main_task.function_after = function_after
-        if params_after:
-            self.main_task.params_after = params_after
-        else:
-            self.main_task.params_after = {}
+        # if params_after:
+        #     self.main_task.params_after = params_after
+        # else:
+        #     self.main_task.params_after = {}
         # self.params_after = params_after or {}
 
         if self.main_task.user:
@@ -76,12 +90,16 @@ class TaskBuilder(TaskHelper):
             self.set_models(remain_models)
 
     def set_function_name(self, function_name=None):
+        from task.serverless import camel_to_snake
         if function_name:
             task_function, created = TaskFunction.objects.get_or_create(
                 name=function_name)
             if created:
+                model_name = camel_to_snake(self.model_obj.__class__.__name__)
+                task_function.model_name = model_name
                 task_function.public_name = (
                     f"{function_name} (Creada por excepción)")
+                task_function.is_active = True
                 task_function.save()
             print("Task function", task_function.name)
             self.params["function_name"] = function_name
@@ -132,12 +150,13 @@ class TaskBuilder(TaskHelper):
             if task.child_tasks.filter(is_current=True).exists():
                 self.update_previous_tasks(task.child_tasks.all())
 
+    # RICK TASK2: Esto ya no me convenció nadita
     def get_child_base(self, function_name=None, **kwargs):
         if not function_name:
             function_name = self.main_task.task_function_id
-        task_params = TaskBuilder(
+        child_task = TaskBuilder(
             function_name=function_name, parent_class=self, **kwargs)
-        return task_params
+        return child_task
 
     def set_model(self, model):
         model_name = camel_to_snake(model.__class__.__name__)

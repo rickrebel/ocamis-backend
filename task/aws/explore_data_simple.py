@@ -4,14 +4,14 @@ from task.aws.common import (
     send_simple_response, BotoUtils)
 
 
-def divide_rows(data_rows, delimiter):
-    # print("DIVIDE_ROWS", data_rows)
-    structured_data = []
-    for row_seq, row in enumerate(data_rows, 1):
+def divide_rows(rows, delimiter):
+    # print("DIVIDE_ROWS", rows)
+    final_rows = []
+    for row_seq, row in enumerate(rows, 1):
         # print("\n")
         row_data = row.split(delimiter)
-        structured_data.append(row_data)
-    return structured_data
+        final_rows.append(row_data)
+    return final_rows
 
 
 def calculate_delimiter_own(data):
@@ -23,8 +23,6 @@ def calculate_delimiter_own(data):
 
 # def explore_data_simple(event, context):
 def lambda_handler(event, context):
-    # import boto3
-    import io
     import json
 
     errors = []
@@ -37,6 +35,7 @@ def lambda_handler(event, context):
     data_rows = complete_file.readlines()
     # print("INICIO", data_rows)
     total_rows = len(data_rows)
+    tail_data = data_rows[-50:]
     data_rows = data_rows[:220]
     # print("FINAL", data_rows)
     decode = event.get("decode")
@@ -55,7 +54,12 @@ def lambda_handler(event, context):
         if not delimiter:
             delimiter = calculate_delimiter(data_rows)
         validated_data_default = divide_rows(all_rows, delimiter)
-        sample_data = {"all_data": validated_data_default[:200]}
+        tail_rows = decode_content(tail_data, decode)
+        validated_tail = divide_rows(tail_rows, delimiter)
+        sample_data = {
+            "all_data": validated_data_default[:200],
+            "tail_data": validated_tail,
+        }
         sample_data = json.dumps(sample_data)
         s3_utils.save_file_in_aws(sample_data, sample_path)
 

@@ -5,15 +5,14 @@ from rest_framework.response import Response
 from rest_framework import (permissions, status)
 from rest_framework.decorators import action
 
-from task.base_views import TaskBuilder
-from inai.api.common import send_response, send_response2
+from task.builder import TaskBuilder
+from inai.api.common import send_response, send_response2, get_orphan_data_files
 
 from inai.models import Petition, PetitionFileControl
-from inai.petition_mixins.petition_mix import PetitionTransformsMixReal
+from inai.petition_mixins.petition_mix import PetitionTransformMix
 from respond.reply_file_mixins.reply_mix import ReplyFileMixReal
 from respond.models import DataFile
-from api.mixins import (
-    MultiSerializerListRetrieveMix as ListRetrieveView)
+from api.mixins import MultiSerializerListRetrieveMix as ListRetrieveView
 
 last_final_path = None
 
@@ -27,65 +26,77 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     }
 
     def retrieve(self, request, *args, **kwargs):
-        from data_param.models import FileControl
 
         petition = self.get_object()
+        orphan_pfc, data_files = get_orphan_data_files(petition)
+
+        base_task = TaskBuilder(
+            models=[petition, orphan_pfc],
+            function_name="auto_explore", request=request)
+        petition_class = PetitionTransformMix(
+            petition, data_files, base_task=base_task)
+        petition_class.find_matches_for_data_files()
+
+        return send_response2(petition, base_task)
+
+    @action(detail=True, methods=["get"], url_path="data_file")
+    def data_file(self, request, *args, **kwargs):
+
+        petition = self.get_object()
+        file_id = request.query_params.get("file_id", False)
+        try:
+            data_file = DataFile.objects.get(id=file_id)
+        except DataFile.DoesNotExist:
+            error = "No se encontró el archivo para explorar"
+            return send_response(petition, errors=[error])
+        base_task = TaskBuilder(
+            "auto_explore_file", models=[petition, data_file], request=request)
+
+        petition_class = PetitionTransformMix(
+            petition, data_file, base_task=base_task)
+        petition_class.find_matches_for_data_files()
+
+        return send_response2(petition, base_task)
+
+    @action(detail=True, methods=["get"], url_path="pull_orphans")
+    def pull_orphans(self, request, *args, **kwargs):
+        from data_param.models import FileControl
+
+        petition: Petition = self.get_object()
+        orphan_pfc, data_files = get_orphan_data_files(petition)
 
         file_ctrl_id = request.query_params.get("file_ctrl", False)
-        file_control = None
-        if file_ctrl_id:
-            file_control = FileControl.objects.filter(id=file_ctrl_id).first()
-        file_id = request.query_params.get("file_id", False)
-        if file_id:
-            models = []
-        if file_control:
-            models = [petition, file_control]
-        else:
-            models = [petition]
+        file_control = FileControl.objects.filter(id=file_ctrl_id).first()
 
-        orphan_pfc = get_orphan_pfc(petition)
-        if file_id:
-            data_files = DataFile.objects.filter(id=file_id)
-            data_file = data_files.first()
-            if data_file:
-                models.append(data_file)
-        else:
-            data_files = orphan_pfc.data_files.all()
-            if not file_control:
-                models.append(orphan_pfc)
         base_task = TaskBuilder(
-            models=models, function_name="auto_explore", request=request)
-        if not data_files.exists():
-            error = "No se encontró el archivo para explorar" if file_id else \
-                "No hay archivos huérfanos para explorar"
-            base_task.add_errors([error], True, comprobate=True)
-        else:
-            petition_class = PetitionTransformsMixReal(
-                petition, base_task=base_task)
-            petition_class.find_matches_for_data_files(data_files, file_ctrl_id)
+            models=[petition, file_control], function_name="pull_orphans",
+            request=request)
+        petition_class = PetitionTransformMix(
+            petition, data_files, base_task=base_task)
+        petition_class.match_direct_for_data_files(file_control)
 
         return send_response2(petition, base_task)
 
     @action(detail=True, methods=["get"], url_path="decompress_remain")
     def decompress_remain(self, request, pk=None):
+        from rest_framework.exceptions import ParseError
         from respond.models import ReplyFile
 
         petition = self.get_object()
-        orphan_pfc = get_orphan_pfc(petition)
 
-        remain_reply_files = ReplyFile.objects\
-            .filter(petition=petition, has_data=True,
-                    data_file_childs__isnull=True)
+        remain_reply_files = ReplyFile.objects.filter(
+            petition=petition, has_data=True, data_file_childs__isnull=True)
+        if not remain_reply_files.exists():
+            raise ParseError(
+                detail={"errors": ["No hay archivos por descomprimir"]})
+
         base_task = TaskBuilder(
-            models=[petition], function_name="auto_explore", request=request)
+            models=[petition], function_name="decompress_remain", request=request)
 
         for reply_file in remain_reply_files:
             reply_file_class = ReplyFileMixReal(reply_file, base_task=base_task)
-            reply_file_class.decompress_reply(orphan_pfc)
+            reply_file_class.decompress_reply()
 
-        if not remain_reply_files.exists():
-            error = "Ya se han descomprimido todos los archivos"
-            base_task.add_errors([error], True, comprobate=True)
         base_task.comprobate_status()
 
         return send_response2(petition, base_task)
@@ -94,27 +105,6 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
     def finished(self, request, pk=None):
         petition = self.get_object()
         return send_response(petition)
-
-
-def get_orphan_pfc(petition):
-    from data_param.models import FileControl
-    name_control = "Archivos por agrupar. Solicitud %s" % (
-        petition.folio_petition)
-    prev_file_controls = FileControl.objects.filter(
-        data_group_id='orphan',
-        petition_file_control__petition=petition)
-    if prev_file_controls.exists():
-        file_control = prev_file_controls.first()
-    else:
-        file_control, created = FileControl.objects.get_or_create(
-            name=name_control,
-            data_group_id='orphan',
-            final_data=False,
-            agency=petition.agency,
-        )
-    orphan_pfc, created_pfc = PetitionFileControl.objects \
-        .get_or_create(file_control=file_control, petition=petition)
-    return orphan_pfc
 
 
 class OpenDataInaiViewSet(ListRetrieveView):

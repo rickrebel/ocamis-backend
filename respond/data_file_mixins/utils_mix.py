@@ -73,7 +73,7 @@ class DataUtilsMix:
                     all_errors = stage_sheets\
                         .filter(status__macro_status='with_errors')\
                         .values_list('error_process', flat=True)
-                    print("all_errors", all_errors)
+                    # print("all_errors", all_errors)
                     every_errors = []
                     for error in all_errors:
                         every_errors += error

@@ -45,7 +45,6 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': '3. Archivos con datos',
                 'ordering': ['-id'],
             },
-            bases=(models.Model, respond.data_file_mixins.explore_mix.ExploreMix, respond.data_file_mixins.utils_mix.DataUtilsMix, respond.data_file_mixins.get_data_mix.ExtractorsMix),
         ),
         migrations.CreateModel(
             name='MonthAgency',

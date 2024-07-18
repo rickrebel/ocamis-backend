@@ -134,10 +134,10 @@ class Gz:
 
     def divide_rows(self, data_rows):
         # print("DIVIDE_ROWS", data_rows)
-        structured_data = []
+        final_rows = []
         for row_seq, row in enumerate(data_rows, 1):
             # print("\n")
             row_data = row.split(self.delimiter)
             row_data = [x.strip() for x in row_data]
-            structured_data.append(row_data)
-        return structured_data
+            final_rows.append(row_data)
+        return final_rows

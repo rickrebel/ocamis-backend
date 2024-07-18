@@ -1,5 +1,5 @@
 from respond.models import DataFile, LapSheet
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 
 
 def sheet_name_to_file_name(sheet_name):
@@ -14,20 +14,17 @@ def sheet_name_to_file_name(sheet_name):
 
 class BaseDataFile:
 
-    def __init__(self, data_file: DataFile, task_params=None,
-                 base_task: TaskBuilder = None):
+    def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
         self.data_file = data_file
-        self.task_params = task_params
+        self.base_task = base_task
 
 
 class BaseTransform(BaseDataFile):
 
-    def __init__(self, data_file: DataFile, task_params=None,
-                 base_task: TaskBuilder = None):
-        super().__init__(data_file, task_params)
+    def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
+        super().__init__(data_file, base_task=base_task)
         self.is_prepare = False
         self.init_data = {}
-        self.all_tasks = []
         self.file_control = data_file.petition_file_control.file_control
         full_name = data_file.file.name
         if "/reply_file_" in full_name:
@@ -64,7 +61,7 @@ class BaseTransform(BaseDataFile):
             init_data["sheet_name"] = sheet_file.sheet_name
             init_data["sheet_file_id"] = sheet_file.id
             sheet_name2 = sheet_name_to_file_name(sheet_file.sheet_name)
-            init_data["final_path"] = self.final_path.replace(
+            init_data["final_path"] = self.data_file.final_path.replace(
                 "SHEET_NAME", sheet_name2)
             sheet = {
                 "params": {
@@ -77,8 +74,3 @@ class BaseTransform(BaseDataFile):
 
         return files_to_process
 
-    def send_lambda(self, function_name, params):
-        from task.serverless import async_in_lambda
-        async_task = async_in_lambda(function_name, params, self.task_params)
-        if async_task:
-            self.all_tasks.append(async_task)

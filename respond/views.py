@@ -25,11 +25,12 @@ class SampleFile:
         json_lines = self.s3_utils.get_json_file(self.final_path)
         return json_lines
 
-    def get_sample(self, file_obj):
+    def get_sample(self, file_obj) -> dict:
         if file_obj.sample_file:
             return self.get_json_content(file_obj.sample_file.name)
         else:
-            return file_obj.sample_data
+            sample_data = file_obj.sample_data.copy()
+            return sample_data
 
     def get_file_path(self, file_obj):
         if file_obj.sample_file:
@@ -85,9 +86,11 @@ class SampleFile:
         file_obj.sample_file = self.final_path
         file_obj.save()
 
-    def get_many_samples(self, sheet_files: QuerySet[SheetFile]) -> dict:
-        samples = {}
-        for sheet_file in sheet_files:
+    # def get_many_samples(self, sheet_files: QuerySet[SheetFile]) -> dict:
+    def get_sheet_samples(self, data_file: DataFile) -> dict:
+        sheets_data = {}
+        for sheet_file in data_file.sheet_files.all():
             sample = self.get_sample(sheet_file)
-            samples[sheet_file.sheet_name] = sample
-        return samples
+            sample.update({"file_type": sheet_file.file_type})
+            sheets_data[sheet_file.sheet_name] = sample
+        return sheets_data

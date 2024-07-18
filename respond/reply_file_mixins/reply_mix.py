@@ -1,16 +1,15 @@
 from respond.models import ReplyFile
-from task.base_views import TaskBuilder
-from inai.petition_mixins.petition_mix import PetitionTransformsMixReal
+from task.builder import TaskBuilder
+from inai.petition_mixins.petition_mix import PetitionTransformMix
 
 
 class ReplyFileMixReal:
 
     def __init__(self, reply_file: ReplyFile, base_task: TaskBuilder = None):
         self.reply_file = reply_file
-        self.task_params = {"parent_task": base_task.main_task}
         self.base_task = base_task
 
-    def decompress_reply(self, pet_file_ctrl):
+    def decompress_reply(self):
         import pathlib
         from inai.models import set_upload_path
 
@@ -29,39 +28,25 @@ class ReplyFileMixReal:
             "suffixes": list(suffixes),
             "upload_path": upload_path,
         }
-        params_after = {"pet_file_ctrl_id": pet_file_ctrl.id}
         decompress_task = TaskBuilder(
             function_name="decompress_zip_aws", parent_class=self.base_task,
-            models=[self.reply_file], params_after=params_after, params=params)
+            models=[self.reply_file], params=params)
         decompress_task.async_in_lambda(comprobate=True)
 
 
 class FromAws:
 
-    def __init__(self, reply_file: ReplyFile, task_params=None,
-                 base_task: TaskBuilder = None):
+    def __init__(self, reply_file: ReplyFile, base_task: TaskBuilder = None):
         self.reply_file = reply_file
-        self.task_params = task_params
         self.base_task = base_task
 
     def decompress_zip_aws_after(self, **kwargs):
         print("decompress_zip_aws_after---------------------------------")
-        from inai.models import PetitionFileControl
+        # from inai.models import PetitionFileControl
         from respond.models import DataFile
-        # print("kwargs", kwargs)
-        params_after = self.base_task.main_task.params_after or {}
-        pet_file_ctrl_id = params_after["pet_file_ctrl_id"]
-        # RICK TASK: No contemplamos errorMessage en ningún lugar
-        # if "errorMessage" in kwargs:
-        #     errors.append(kwargs["errorMessage"])
-        #     return None, errors
-        # RICK TASK: No contemplamos errores en ningún lugar
-        if new_errors := kwargs.get('errors'):
-            # errors += kwargs['errors']
-            self.base_task.add_errors(new_errors, True, comprobate=False)
         all_data_files_ids = []
-        pet_file_ctrl = PetitionFileControl.objects.get(id=pet_file_ctrl_id)
         all_files = kwargs.get("files", [])
+        orphan_pfc = self.reply_file.petition.get_orphan_pfc(forced_create=True)
         # print("all_files", all_files)
         petition = self.reply_file.petition
         provider = petition.real_provider or petition.agency.provider
@@ -71,7 +56,7 @@ class FromAws:
                 provider=provider,
                 reply_file=self.reply_file,
                 directory=data_file["directory"],
-                petition_file_control=pet_file_ctrl,
+                petition_file_control=orphan_pfc,
             )
             new_file.finished_stage('initial|finished')
             all_data_files_ids.append(new_file.id)
@@ -80,7 +65,6 @@ class FromAws:
         all_data_files = DataFile.objects.filter(id__in=all_data_files_ids)\
             .prefetch_related("petition_file_control")
 
-        petition_class = PetitionTransformsMixReal(
-            petition, base_task=self.base_task)
-        petition_class.find_matches_for_data_files(all_data_files)
-        return self.base_task.new_tasks, self.base_task.errors, None
+        petition_class = PetitionTransformMix(
+            petition, all_data_files, base_task=self.base_task)
+        petition_class.find_matches_for_data_files()

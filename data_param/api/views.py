@@ -12,8 +12,7 @@ from inai.api.serializers import (
 from respond.api.serializers import DataFileSerializer
 from inai.models import PetitionFileControl
 from respond.models import DataFile, SheetFile
-from task.views import build_task_params, comprobate_status
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from task.helpers import HttpResponseError
 from . import serializers
 from rest_framework.response import Response
@@ -457,67 +456,69 @@ class FileControlViewSet(MultiSerializerModelViewSet):
     @action(methods=["put"], detail=True, url_path='massive_change_stage')
     def massive_change_stage(self, request, **kwargs):
         from classify_task.models import Stage
+        from respond.data_file_mixins.explore_mix import ExploreRealMix
 
         file_control = self.get_object()
-        # status_req = request.data.get("status", { })
-        # status_id = status_req.get("id", False)
-        # status_name = status_req.get("name", False)
         stage_init = request.data.get("stage_init")
         status_init = request.data.get("status_init")
-        all_data_files = DataFile.objects.filter(
-            petition_file_control__file_control=file_control,
-            status_id=status_init, stage_id=stage_init)
-        stage_final = request.data.get("stage_final")
         batch_size = request.data.get("batch_size", 30)
         batch_size = int(batch_size)
+
+        stage_final = request.data.get("stage_final")
         target_stage = Stage.objects.get(name=stage_final)
-        function_name = target_stage.main_function.name
-        after_aws = "find_coincidences_from_aws" if \
-            target_stage.name == "cluster" else "build_sample_data_after"
-        # RICK TASK: Revisar perfecto esto de after_if_empty
-        curr_kwargs = {"task_kwargs": {"function_after": after_aws}}
+        target_name = target_stage.main_function.name
+
+        all_data_files = DataFile.objects.filter(
+            petition_file_control__file_control=file_control,
+            status_id=status_init, stage_id=stage_init)[:batch_size*2]
+        curr_kwargs = {}
+        function_after = None
+        if target_stage.function_after:
+            function_after = target_stage.function_after.name
+            curr_kwargs = {"function_after": function_after}
         subgroup = f"{stage_init}|{status_init}"
-        key_task, task_params = build_task_params(
-            file_control, function_name, request, subgroup=subgroup)
-        all_tasks = []
-        all_errors = []
+
+        base_task = TaskBuilder(
+            function_name=target_name, is_massive=True,
+            models=[file_control], request=request, subgroup=subgroup)
         final_count = 0
-        for data_file in all_data_files[:batch_size*2]:
+        for data_file in all_data_files:
             if not data_file.can_repeat:
                 continue
             if final_count >= batch_size:
                 break
             final_count += 1
-            df_task, task_params = build_task_params(
-                data_file, function_name, request, parent_task=key_task)
-            re_process_stages = target_stage.re_process_stages.all()
-            # stages = ["sample", "cluster", "prepare"]
-            for stage in re_process_stages:
-                current_function = stage.main_function.name
-                task_params["models"] = [data_file]
-                method = getattr(data_file, current_function)
-                if not method:
-                    break
-                new_tasks, new_errors, data_file = method(
-                    task_params, **curr_kwargs)
+            df_task = TaskBuilder(
+                function_name=target_stage.main_function.name,
+                models=[data_file], request=request, is_massive=True,
+                subgroup=subgroup, parent_class=base_task)
 
-                if new_errors or new_tasks:
-                    if new_errors:
-                        data_file.save_errors(
-                            new_errors, f"{stage.name}|with_errors")
-                    all_errors.extend(new_errors)
-                    all_tasks.extend(new_tasks)
-                    comprobate_status(df_task, all_errors, new_tasks)
+            for re_stage in target_stage.re_process_stages.all():
+                current_function = re_stage.main_function.name
+                on_target = re_stage.name == target_name
+
+                re_task = TaskBuilder(
+                    function_name=current_function, parent_class=df_task,
+                    models=[data_file], request=request,
+                    function_after=function_after)
+                explore = ExploreRealMix(data_file, base_task=re_task)
+                try:
+                    # possible_functions: get_sample_data, verify_coincidences,
+                    # prepare_transform, transform_data
+                    getattr(explore, current_function)(**curr_kwargs)
+                except HttpResponseError as e:
+                    if e.errors:
+                        data_file.save_errors(e.errors, f"{re_stage.name}|with_errors")
                     break
-                elif stage.name == stage_final:
-                    data_file = data_file.finished_stage(f"{stage.name}|finished")
-                    comprobate_status(df_task, all_errors, new_tasks)
+                if on_target:
+                    data_file = data_file.finished_stage(f"{target_name}|finished")
+                    df_task.comprobate_status(want_http_response=False)
+        base_task.comprobate_status(want_http_response=False)
         data = {
-            "errors": all_errors,
+            "errors": base_task.errors,
             "file_control": FileControlFullSerializer(file_control).data,
+            "new_tasks": base_task.main_task.id
         }
-        comprobate_status(key_task, errors=all_errors, new_tasks=all_tasks)
-        data["new_task"] = key_task.id
         return Response(data, status=status.HTTP_200_OK)
 
 

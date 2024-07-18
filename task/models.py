@@ -172,8 +172,10 @@ def async_task_post_save(sender, instance, created, **kwargs):
     from task.api.serializers import (
         AsyncTaskFullSerializer, AsyncTaskSerializer)
     channel_layer = get_channel_layer()
-    serializer = AsyncTaskFullSerializer \
-        if instance.is_current else AsyncTaskSerializer
+    if instance.is_current:
+        serializer = AsyncTaskFullSerializer
+    else:
+        serializer = AsyncTaskSerializer
     # serializer = AsyncTaskSerializer
     # print("channel_layer", channel_layer)
     async_to_sync(channel_layer.group_send)(

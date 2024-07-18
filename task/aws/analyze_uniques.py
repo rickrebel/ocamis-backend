@@ -149,12 +149,12 @@ class UniquesAws:
 
             for medicament_key, values in medicines.items():
                 unique_medicines.add(medicament_key)
-                current_sheets = set()
+                unique_sheets = set()
                 for sheet_id, uuid_folio in values:
                     current_folios_uuid.add(uuid_folio)
                     all_sheets.add(sheet_id)
-                    current_sheets.add(sheet_id)
-                len_sheets = len(current_sheets)
+                    unique_sheets.add(sheet_id)
+                len_sheets = len(unique_sheets)
                 if len_sheets > 1:
                     some_dupli = True
 

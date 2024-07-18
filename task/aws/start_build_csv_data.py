@@ -7,7 +7,7 @@ import re
 from task.aws.common import (
     calculate_delivered_final, send_simple_response, BotoUtils,
     convert_to_str, text_normalizer)
-from task.aws.complement import GetAllData, Report
+from task.aws.complement import GetAllRows, Report
 
 
 class ValueProcessError(Exception):
@@ -53,7 +53,7 @@ class TransformToCsv:
     med_cat_flat_fields = {}
     initial_data = {}
 
-    # Only to get_all_data
+    # Only to get_all_rows
     delimiter = None
     columns_count = None
 
@@ -241,14 +241,14 @@ class TransformToCsv:
 
     def build_csv_to_data(self, file):
 
-        all_data = GetAllData(self)(file)
+        all_rows = GetAllRows(self)(file)
 
-        self.report.add_count("total_count", len(all_data))
+        self.report.add_count("total_count", len(all_rows))
         self.report.add_count("discarded_count", self.row_start_data - 1)
 
-        self.special_cols = self.build_special_cols(all_data)
+        self.special_cols = self.build_special_cols(all_rows)
 
-        for row in all_data[self.row_start_data - 1:]:
+        for row in all_rows[self.row_start_data - 1:]:
             self.process_row(row)
         # report_errors = self.build_report()
         report_errors = self.report.data
@@ -483,7 +483,7 @@ class TransformToCsv:
         # if len(self.all_rx) > self.sample_size:
         #     break
 
-    def build_special_cols(self, all_data):
+    def build_special_cols(self, all_rows):
         if self.special_cols:
             return self.special_cols
 
@@ -497,7 +497,7 @@ class TransformToCsv:
             "global": get_columns_by_type("global"),
             "tab": get_columns_by_type("tab"),
             "file_name": get_columns_by_type("file_name"),
-            "ceil": self.get_ceil_cols(all_data),
+            "ceil": self.get_ceil_cols(all_rows),
             "copy_from_up": self.copy_from_up,
         }
 
@@ -537,7 +537,7 @@ class TransformToCsv:
             divided_cols.append(parent_col)
         return divided_cols
 
-    def get_ceil_cols(self, all_data):
+    def get_ceil_cols(self, all_rows):
         ceil_cols = []
         ceil_excel_cols = [col for col in self.existing_fields
                            if col["column_type"] == 'ceil_excel']
@@ -548,7 +548,7 @@ class TransformToCsv:
                 continue
             row_position = int(ceil[1:])
             col_position = ord(ceil[0]) - 64
-            col["final_value"] = all_data[row_position - 1][col_position]
+            col["final_value"] = all_rows[row_position - 1][col_position]
             ceil_cols.append(col)
         return ceil_cols
 

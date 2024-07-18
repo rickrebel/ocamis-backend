@@ -1,8 +1,8 @@
 from scripts.common import text_normalizer
-from task.base_views import TaskBuilder
+from task.builder import TaskBuilder
 from respond.models import DataFile
 from task.helpers import HttpResponseError
-from respond.data_file_mixins.explore_mix_real import ExploreRealMix
+from respond.data_file_mixins.explore_mix import ExploreRealMix
 
 
 class BuildComplexHeaders(ExploreRealMix):
@@ -19,29 +19,22 @@ class BuildComplexHeaders(ExploreRealMix):
         from data_param.models import NameColumn
 
         # De acá obtendremos self.file_control
-        try:
-            data = self.get_data_from_file()
-        except HttpResponseError as e:
-            if e.errors:
-                self.data_file.save_errors(e.errors, "explore|with_errors")
-            return self.base_task.add_errors_and_raise(e.errors)
+        full_sheet_data, filtered_sheets = self.get_data_from_file()
 
-        validated_data = data["structured_data"]
-        current_sheets = data["current_sheets"]
-        first_valid_sheet = None
-        for sheet_name in current_sheets:
-            sheet_data = validated_data[sheet_name]
-            # if getattr(sheet_data, "headers"):
-            if "headers" in sheet_data and sheet_data["headers"]:
-                first_valid_sheet = sheet_data
-                break
-        if not first_valid_sheet:
-            first_valid_sheet = validated_data[current_sheets[0]]
-            if not first_valid_sheet:
+        if not self.file_control.row_headers:
+            try:
+                first_valid_sheet = full_sheet_data.values()[0]
+                return self._build_first_headers(first_valid_sheet)
+            except IndexError:
                 error = "WARNING: No se encontró algo que coincidiera"
                 self.base_task.add_errors_and_raise([error])
-            else:
-                return self._build_first_headers(first_valid_sheet)
+
+        first_valid_sheet = None
+        for sheet_name in filtered_sheets:
+            sheet_data = full_sheet_data[sheet_name]
+            if sheet_data.get("headers"):
+                first_valid_sheet = sheet_data
+                break
         try:
             df_headers = first_valid_sheet["headers"]
             data_groups = [self.file_control.data_group_id, 'catalogs']
@@ -70,10 +63,9 @@ class BuildComplexHeaders(ExploreRealMix):
         return valid_sheet
 
     def _build_first_headers(self, first_valid_sheet):
-        real_headers = first_valid_sheet["all_data"][0]
+        len_first_row = len(first_valid_sheet.get("all_data", [])[0])
         self.complex_headers = [
-            {"position_in_data": posit}
-            for posit, head in enumerate(real_headers, start=1)]
+            {"position_in_data": x} for x in range(1, len_first_row + 1)]
         return self._send_results(first_valid_sheet)
 
     def _build_unique_dicts(self, worked_name_columns, provider_id):

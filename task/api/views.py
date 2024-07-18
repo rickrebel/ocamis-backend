@@ -40,7 +40,7 @@ class AsyncTaskViewSet(ListRetrieveView):
 
     @action(methods=["get"], detail=False, url_path='restart_queue')
     def restart_queue(self, request, **kwargs):
-        from task.views_main_aws import debug_queue
+        from task.main_views_aws import debug_queue
         debug_queue()
         return Response(
             {"message": "Cola reiniciada"}, status=status.HTTP_200_OK)

@@ -1,503 +1,182 @@
+from task.builder import TaskBuilder
+from task.helpers import HttpResponseError
+from respond.data_file_mixins.data_file_aws import FromAws as DataFileAws
+from respond.data_file_mixins.get_data_mix import ExtractorRealMix
+from respond.data_file_mixins.find_coincidences import MatchControls
 
-class ExploreMix:
-    final_path: str
-    petition_file_control: None
 
-    # Guardado en funciones
-    def get_sample_data(self, task_params=None, **kwargs):
-        # from task.models import AsyncTask
-        from category.models import FileFormat
+def get_readeable_suffixes():
+    from category.models import FileFormat
+    readable_suffixes = FileFormat.objects.filter(readable=True) \
+        .values_list("suffixes", flat=True)
+    final_readeable = []
+    for suffix in list(readable_suffixes):
+        final_readeable += suffix
+    return final_readeable
+
+
+class ExploreRealMix(DataFileAws, ExtractorRealMix):
+    readable_suffixes = get_readeable_suffixes()
+
+    def __init__(self, want_response=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.want_response = want_response
+
+    # Guardado en funciones y directo
+    def get_sample_data(self, comprobate=False, **kwargs):
+
+        sheet_names = self.data_file.sheet_names_list
+
+        if sheet_names:
+            return self.data_file
+
+        self.data_file.warning = []
+        self.data_file.error_process = []
+        self.data_file.save()
+
+        if not self.data_file.suffix:
+            self._decompress_and_save_suffix()
+        else:
+            self.check_suffix_legible([self.data_file.suffix])
+        self._get_sheet_files(**kwargs)
+        if comprobate:
+            self.base_task.comprobate_status(
+                want_http_response=True, explore_parent=False)
+
+    def _get_sheet_files(self, **kwargs):
         from respond.views import SampleFile
         from respond.models import SheetFile
-        from scripts.common import get_readeable_suffixes
-
-        data_file = self
-        task_params = task_params or {}
-        data_file.error_process = []
-        data_file.warning = []
-        # parent_task = task_params.get("parent_task")
-        # # previous_tasks
-        # previous_tasks = AsyncTask.objects\
-        #     .filter(data_file=data_file)\
-        #     .exclude(parent_task=parent_task)\
-        #     .exclude(id=parent_task.id)
-        # for task in previous_tasks:
-        #     task.is_current = False
-        #     task.save()
-        data_file.save()
-        task_params["models"] = [data_file]
-        if not data_file.suffix:
-            (data_file, errors, suffix), first_task = data_file.decompress_file(
-                task_params=task_params, **kwargs)
-            if data_file and suffix:
-                data_file.suffix = suffix
-                data_file.save()
-            if first_task:
-                return [first_task], errors, self
-            elif errors:
-                self.save_errors(errors, 'explore|with_errors')
-                return [], errors, self
-        else:
-            readable_suffixes = get_readeable_suffixes()
-            if data_file.suffix not in readable_suffixes:
-                errors = ["Formato no legible", "%s" % data_file.suffix]
-                return [], errors, data_file
 
         sample_file = SampleFile()
-        forced_save = kwargs.get("forced_save", False)
-        sheet_names = data_file.sheet_names_list
-        if not sheet_names:
-            xls_format = FileFormat.objects.get(short_name="xls")
-            if data_file.suffix in xls_format.suffixes:
-                forced_save = True
-            elif not data_file.sample_data:
-                forced_save = True
-            else:
-                # sample_data = data_file.sample_data or {}
-                sample_data = sample_file.get_sample(data_file)
-                default_sample = sample_data.get("default", {})
-                previous_explore = default_sample and data_file.explore_ready
-                if previous_explore and default_sample.get("tail_data"):
-                    total_rows = default_sample.pop("total_rows", 0)
-                    sample_file.create_file(
-                        data_file,
-                        cat_name="default_samples",
-                        sample_data=default_sample)
-                    SheetFile.objects.create(
-                        file=data_file.file,
-                        data_file=data_file,
-                        sheet_name="default",
-                        file_type_id="clone",
-                        matched=True,
-                        sample_data=default_sample,
-                        sample_file=sample_file.final_path,
-                        total_rows=total_rows
-                    )
-                    data_file.filtered_sheets = ["default"]
-                    data_file.save()
-                    sheet_names = ["default"]
-                else:
-                    forced_save = True
-        new_errors = []
-        # if not data_file.sample_data or forced_save:
-        if forced_save:
-            # print("NO HAY SAMPLE DATA O NO HAY SHEET NAMES")
-            task_params["function_after"] = kwargs.get("after_if_empty")
-            current_file_ctrl = kwargs.get("current_file_ctrl")
-            params_after = task_params.get("params_after", {})
-            after_params_if_empty = kwargs.get("after_params_if_empty", {})
-            params_after.update(after_params_if_empty)
-            task_params["params_after"] = params_after
-            if forced_save or not sheet_names:
-                type_explor = 'forced_save'
-            else:
-                type_explor = 'only_save'
-            data_file, new_errors, new_task = data_file.convert_file_in_data(
-                type_explor, file_control=current_file_ctrl,
-                task_params=task_params)
-            if new_task:
-                return [new_task], new_errors, data_file
-        if new_errors:
-            self.save_errors(new_errors, 'explore|with_errors')
-            return [], new_errors, data_file
-        return [], [], data_file
-
-    def transform_data(self, task_params, **kwargs):
-        from respond.data_file_mixins.matches_mix import MatchTransform
-        from respond.data_file_mixins.intermediary_mix import Intermediary
-        file_control = self.petition_file_control.file_control
-        if file_control.is_intermediary:
-            my_intermediary = Intermediary(self, task_params)
-            return my_intermediary.split_columns()
+        sample_data = sample_file.get_sample(self.data_file)
+        if self.data_file.suffix in self.xls_suffixes:
+            return self.build_data_from_file(**kwargs)
+        elif not sample_data:
+            return self.build_data_from_file(**kwargs)
+        # Esto pasa cuando ya hay guardados datos, pero no sus sheet_files
         else:
-            match_transform = MatchTransform(self, task_params)
-            return match_transform.build_csv_converted(is_prepare=False)
+            default_sample = sample_data.get("default", {})
+            previous_explore = default_sample and self.data_file.stage_ready()
+            if previous_explore and default_sample.get("tail_data"):
+                total_rows = default_sample.pop("total_rows", 0)
+                sample_file.create_file(
+                    self.data_file,
+                    cat_name="default_samples",
+                    sample_data=default_sample)
+                SheetFile.objects.create(
+                    file=self.data_file.file,
+                    data_file=self.data_file,
+                    sheet_name="default",
+                    file_type="clone",
+                    matched=True,
+                    sample_data=default_sample,
+                    sample_file=sample_file.final_path,
+                    total_rows=total_rows
+                )
+                self.data_file.filtered_sheets = ["default"]
+                self.data_file.save()
+            else:
+                return self.build_data_from_file(**kwargs)
 
-    def prepare_transform(self, task_params, **kwargs):
+    # Guardado en funciones
+    def verify_coincidences(self, **kwargs):
+        match_controls = MatchControls(self.data_file, self.base_task)
+        match_controls.match_file_control()
+
+    # Guardado en funciones
+    def prepare_transform(self, **kwargs):
         from respond.data_file_mixins.matches_mix import MatchTransform
-        data_file = self.count_file_rows()
-        file_control = data_file.petition_file_control.file_control
+        self._count_file_rows()
+        file_control = self.data_file.petition_file_control.file_control
         if file_control.is_intermediary:
             error = (
                 "No se puede preparar muestra con la función " 
                 "'Se repiten las mismas columnas', enviar 'Transformar'")
-            return [], [error], data_file
-        match_transform = MatchTransform(data_file, task_params)
-        return match_transform.build_csv_converted(is_prepare=True)
+            self.base_task.add_errors_and_raise([error])
+        match_transform = MatchTransform(self.data_file, self.base_task)
+        match_transform.build_csv_converted(is_prepare=True)
 
-    def insert_data(self, task_params, **kwargs):
-        raise "Esta función ya no se usa"
+    # Guardado en funciones
+    def transform_data(self, **kwargs):
+        from respond.data_file_mixins.matches_mix import MatchTransform
+        from respond.data_file_mixins.intermediary_mix import Intermediary
+        file_control = self.data_file.petition_file_control.file_control
+        if file_control.is_intermediary:
+            my_intermediary = Intermediary(
+                self.data_file, base_task=self.base_task)
+            my_intermediary.split_columns()
+        else:
+            match_transform = MatchTransform(self.data_file, self.base_task)
+            match_transform.build_csv_converted(is_prepare=False)
 
-    def count_file_rows(self):
+    def _count_file_rows(self):
         from respond.models import SheetFile
         from django.db.models import Sum
-        file_control = self.petition_file_control.file_control
+        file_control = self.data_file.petition_file_control.file_control
         minus_headers = file_control.row_start_data - 1
         total_count_query = SheetFile.objects.filter(
-            data_file=self,
-            sheet_name__in=self.filtered_sheets
+            data_file=self.data_file,
+            sheet_name__in=self.data_file.filtered_sheets
         ).aggregate(Sum("total_rows"))
         total_count = total_count_query.get("total_rows__sum", 0)
-        minus_headers = len(self.filtered_sheets) * minus_headers
+        minus_headers = len(self.data_file.filtered_sheets) * minus_headers
         total_count -= minus_headers
-        self.total_rows = total_count
-        self.save()
-        return self
+        self.data_file.total_rows = total_count
+        self.data_file.save()
 
-    def find_coincidences_from_aws(self, task_params=None, **kwargs):
-        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
-        data_file, saved, errors = data_file.find_coincidences(saved=False)
-        if not saved and not errors:
-            errors = ["No coincide con el formato del archivo 3"]
-        if errors:
-            data_file.save_errors(errors, "explore|with_errors")
-            return [], errors, None
-        elif data_file.stage_id == 'cluster':
-            data_file.finished_stage("cluster|finished")
-        return [], errors, None
-
-    def find_and_counting_from_aws(self, task_params=None, **kwargs):
-        n_t, errors, data_file = self.find_coincidences_from_aws(
-            task_params=task_params, **kwargs)
-        if errors:
-            return [], errors, None
-        return [], errors, None
-
-    def verify_coincidences(self, task_params, **kwargs):
-        data_file = self
-        data_file, saved, new_errors = data_file.find_coincidences()
-        if not saved and not new_errors:
-            new_errors = ["No coincide con el grupo de control (4)"]
-        return [], new_errors, data_file
-
-    def has_exact_matches(self, filtered_sheets=None):
-        # print("filtered_sheets", filtered_sheets)
-        if not filtered_sheets or not self.sheet_files.exists():
-            return False
-        sheets_matched = self.sheet_files.filter(matched=True)\
-            .values_list("sheet_name", flat=True).distinct()
-        # print("sheets_matched", sheets_matched)
-        if not sheets_matched.exists():
-            return False
-        set_sheets_matched = set(sheets_matched)
-        set_filtered_sheets = set(filtered_sheets)
-        # print("set_filtered_sheets", set_filtered_sheets)
-        # print("set_sheets_matched", set_sheets_matched)
-        return set_filtered_sheets.issubset(set_sheets_matched)
-
-    def find_coincidences(
-            self, saved=False, petition=None, file_ctrl=None,
-            task_params=None, **kwargs):
-        from scripts.common import similar, text_normalizer
-        from respond.views import SampleFile
-        from inai.models import PetitionFileControl
-        from respond.models import DataFile
-        data_file = self
-        print("data_file_id 1:", data_file.id)
-        already_cluster = not bool(file_ctrl)
-        data, errors, new_task = data_file.convert_file_in_data(
-            'auto_explore', task_params=task_params, file_control=file_ctrl)
-        print("data_file_id 2:", data_file.id)
-        if not petition or not file_ctrl:
-            pfc = data_file.petition_file_control
-            if not petition:
-                petition = pfc.petition
-            if not file_ctrl:
-                file_ctrl = pfc.file_control
-        if errors:
-            return data_file, saved, errors
-        if not data and not errors and not new_task:
-            return data_file, saved, errors
-        # print("data", data)
-        current_sheets = data["current_sheets"]
-        structured_data = data["structured_data"]
-        print("data_file_id 3:", data_file.id)
-        if already_cluster:
-            # print("INTENTO GUARDAR current_sheets", current_sheets)
-            data_file.filtered_sheets = current_sheets
-            data_file.save()
-        # RICK BUGS
-        is_match_ready = data_file.has_exact_matches(current_sheets)
-        if is_match_ready:
-            return data_file, True, []
-        print("data_file_id 4:", data_file.id)
-        # is_orphan = file_ctrl.data_group.name == "orphan"
-        all_data_files = {}
-        same_data_files = DataFile.objects\
-            .filter(file=self.file)\
-            .exclude(petition_file_control__file_control__data_group_id="orphan")
-        for df in same_data_files:
-            all_data_files[df.petition_file_control_id] = df
-        # name_columns_simple = NameColumn.objects.filter(
-        #     file_control=file_ctrl, position_in_data__isnull=False)
-        name_columns_simple = file_ctrl.columns.filter(
-            position_in_data__isnull=False)
-        sorted_sheet_names = current_sheets.copy()
-        other_sheets = [sheet for sheet in structured_data.keys()
-                        if sheet not in sorted_sheet_names]
-        sorted_sheet_names.extend(other_sheets)
-        current_pfc = data_file.petition_file_control_id
-        only_cols_with_headers = file_ctrl.file_transformations\
-            .filter(clean_function__name="only_cols_with_headers").exists()
-        sheets_matched_ids = []
-        sample_file = SampleFile()
-
-        for sheet_name in sorted_sheet_names:
-            # headers = validated_rows[row_headers-1] if row_headers else []
-            if not structured_data[sheet_name].get("headers"):
-                if not file_ctrl.row_headers:
-                    try:
-                        total_cols = len(structured_data[sheet_name]["all_data"][0])
-                        if total_cols == len(name_columns_simple):
-                            same_headers = True
-                        else:
-                            continue
-                    except Exception as e:
-                        print("error intentando obtener headers", e)
-                        continue
-                else:
-                    continue
-            else:
-                name_columns = name_columns_simple \
-                    .values_list("std_name_in_data", flat=True)
-                name_columns = list(name_columns)
-                headers = structured_data[sheet_name]["headers"]
-                headers = [text_normalizer(head, True) for head in headers]
-                final_headers = headers
-                if only_cols_with_headers:
-                    final_headers = [head for head in headers if head]
-                    name_columns = [head for head in name_columns if head]
-                # print("name_columns_list", name_columns_list)
-                # print("headers", headers, "\n")
-                same_headers = name_columns == final_headers
-                # print("same_headers", same_headers)
-                if not same_headers:
-                    total_cols = len(structured_data[sheet_name]["all_data"][0])
-                    if total_cols != len(name_columns_simple):
-                        continue
-                    coincidences = 0
-                    need_save = []
-                    for (idx, name_col) in enumerate(name_columns_simple):
-                        st_name = name_col.std_name_in_data
-                        header = headers[idx]
-                        if st_name == header:
-                            coincidences += 1
-                            continue
-                        if name_col.alternative_names:
-                            if header in name_col.alternative_names:
-                                coincidences += 1
-                                continue
-                        if not already_cluster:
-                            continue
-                        if not st_name or not header:
-                            coincidences += 1
-                            continue
-                        if similar(st_name, header) > 0.8:
-                            alt_names = name_col.alternative_names or []
-                            name_col.alternative_names = alt_names + [header]
-                            need_save.append(name_col)
-                            coincidences += 1
-                    if coincidences + 1 >= len(name_columns_simple):
-                        same_headers = True
-                        for name_col in need_save:
-                            name_col.save()
-
-            if not same_headers:
-                continue
-            print("data_file_id 5:", data_file.id)
-
-            def save_sheet_file(d_file=data_file, save_sample_data=False):
-                from respond.models import SheetFile
-
-                try:
-                    sheet_f = d_file.sheet_files\
-                        .filter(sheet_name=sheet_name).first()
-                    if not sheet_f:
-                        original_sheet_f = data_file.sheet_files\
-                            .filter(sheet_name=sheet_name).first()
-                        sheet_f = SheetFile.objects.create(
-                            data_file=d_file,
-                            sheet_name=sheet_name,
-                            total_rows=original_sheet_f.total_rows,
-                            sample_data=original_sheet_f.sample_data,
-                            sample_file=original_sheet_f.sample_file,
-                        )
-                    if save_sample_data:
-                        # sheet_f.sample_data = structured_data[sheet_name]
-                        sample_file.save_sample(sheet_f, structured_data[sheet_name])
-                    sheet_f.matched = True
-                    sheet_f.save()
-                    sheets_matched_ids.append(sheet_f.id)
-                except Exception as e:
-                    raise Exception(f"Para el archivo {data_file.id} no se "
-                                    f"encontró la hoja {sheet_name}; "
-                                    f"current_sheets: {current_sheets}\n-->{e}")
-
-            print("data_file_id 6:", data_file.id)
-            if sheet_name not in current_sheets:
-                if data_file.petition_file_control_id in all_data_files:
-                    save_sheet_file(data_file)
-                    data_file.add_warning(
-                        "Hay hojas con el mismo formato, no incluidas en "
-                        "por los filtros de inclusión y exclusión")
-                continue
-            try:
-                succ_pet_file_ctrl, created_pfc = PetitionFileControl.objects \
-                    .get_or_create(
-                        file_control=file_ctrl, petition=petition)
-            except PetitionFileControl.MultipleObjectsReturned:
-                errors = ["El grupo de control está duplicado en la solicitud"]
-                return data_file, saved, errors
-            # validated_data[sheet_name] = structured_data[sheet_name]
-            current_pfc = succ_pet_file_ctrl.id
-            already_in_pfc = current_pfc in all_data_files
-            # if pet_file_saved:
-            #     continue
-            if all_data_files and not already_in_pfc:
-                original_sheet_files = data_file.sheet_files.all()
-                info_text = "El archivo está en varios grupos de control"
-                data_file.add_warning(info_text)
-                new_data_file = data_file
-                new_data_file.pk = None
-                new_data_file.petition_file_control = succ_pet_file_ctrl
-                new_data_file.filtered_sheets = current_sheets
-                # new_data_file.change_status("explore|finished")
-                new_data_file.finished_stage('explore|finished')
-                # new_data_file.sample_data = validated_data
-                new_data_file.save()
-                new_data_file.add_warning(info_text)
-                all_data_files[current_pfc] = new_data_file
-                for sheet_file in original_sheet_files:
-                    sheet_file.pk = None
-                    sheet_file.data_file = new_data_file
-                    if sheet_file.sheet_name == sheet_name:
-                        sheet_file.matched = True
-                        sheet_file.sample_data = structured_data[sheet_name]
-                        sample_file.save_sample(
-                            sheet_file, structured_data[sheet_name])
-                    elif sheet_file.matched == None:
-                        sheet_file.matched = False
-                    sheet_file.save()
-            else:
-                current_file = all_data_files.get(current_pfc, data_file)
-                # current_file.sample_data = validated_data
-                save_sheet_file(current_file, True)
-                if not saved and not already_cluster:
-                    current_file.filtered_sheets = current_sheets
-                saved = True
-                if not already_in_pfc:
-                    current_file.petition_file_control = succ_pet_file_ctrl
-                    # current_file = current_file.change_status("explore|finished")
-                    current_file.stage_id = "explore"
-                    current_file.status_id = "finished"
-                current_file.save()
-                all_data_files[current_pfc] = current_file
-        if current_pfc in all_data_files:
-            data_file.sheet_files.exclude(id__in=sheets_matched_ids)\
-                                 .update(matched=False)
-            is_match_ready = data_file.has_exact_matches(current_sheets)
-            print("is_match_ready", is_match_ready)
-            if not is_match_ready:
-                errors = ["No todas las hojas filtradas coinciden con "
-                          "el grupo de control"]
-                return data_file, saved, errors
-            return all_data_files[current_pfc], saved, []
-        return data_file, saved, []
-        # return all_data_files, saved, []
-
-    def decompress_file(self, task_params=None, **kwargs):
+    def _decompress_and_save_suffix(self):
         import pathlib
         import re
-        from category.models import FileFormat
-        from scripts.common import get_readeable_suffixes
-        # Se obienen todos los tipos del archivo inicial:
+        # Se obtienen todos los tipos del archivo inicial:
         # print("final_path: ", self.final_path)
-        suffixes = pathlib.Path(self.final_path).suffixes
-        re_is_suffix = re.compile(r'^\.([a-zA-Z]{3,4})$')
-        suffixes = [suffix.lower() for suffix in suffixes
-                    if bool(re.search(re_is_suffix, suffix)) or suffix == '.gz']
-        # print("suffixes", suffixes)
-        errors = []
-        main_error = None
-        new_task = None
-        data_file = None
-        task_params["function_after"] = "decompress_gz_after"
-        split_sheet_files = self.sheet_files.filter(file_type='split')
+        final_path = self.data_file.final_path
+        suffixes = pathlib.Path(final_path).suffixes
+        suffixes = set([suffix.lower() for suffix in suffixes])
+        re_is_suffix = re.compile(r'^\.([a-z]{3,4}|gz)$')
+        suffixes = [suffix for suffix in suffixes
+                    if bool(re.search(re_is_suffix, suffix))]
+        split_sheet_files = self.data_file.sheet_files.filter(file_type='split')
         if '.gz' in suffixes:
-            if not self.sheet_files.exists():
-                new_task, errors, data_file = self.decompress_file_gz(
-                    task_params=task_params)
-                main_error = "descomprimir el archivo gz"
+            if not self.data_file.sheet_files.exists():
+                self._decompress_gz_file()
             suffixes.remove('.gz')
         elif '.zip' in suffixes or '.rar' in suffixes:
-            errors = ["Mover a 'archivos no finales' para descomprimir desde allí"]
+            error = "Mover a 'archivos no finales' para descomprimir desde allí"
+            self.base_task.add_errors_and_raise([error])
         elif len(suffixes) == 1 and not split_sheet_files.exists():
-            file_size = self.file.size
+            # RICK TASK2: A veces ocurre que esto está vacío...
+            file_size = self.data_file.file.size
             if file_size > 440000000:
-                real_suffix = suffixes[0]
-                xls_format = FileFormat.objects.get(short_name="xls")
-                if real_suffix not in xls_format.suffixes:
-                    new_task, errors, data_file = self.decompress_file_gz(
-                        task_params=task_params)
-                    main_error = "dividir el archivo gigante"
-        if errors or new_task:
-            if errors and main_error:
-                errors = [f"No se pudo {main_error}: {self.final_path}"]
-            return (data_file, errors, None), new_task
+                if suffixes[0] not in self.xls_suffixes:
+                    self._decompress_gz_file()
 
-        # Obtener el tamaño
-        # file_name = self.file_name
         real_suffixes = suffixes
         if len(real_suffixes) != 1:
             errors = [("Tiene más o menos extensiones de las que"
                        " podemos reconocer: %s" % real_suffixes)]
-            return (None, errors, None), None
-        real_suffixes = set(real_suffixes)
-        # final_readeable = [suffix for suffix in list(readable_suffixes)]
-        readable_suffixes = get_readeable_suffixes()
-        first_suffix = list(real_suffixes)[0]
-        if not real_suffixes.issubset(readable_suffixes):
-            errors = ["Formato no legible", "%s" % suffixes]
-            return (self, errors, first_suffix), None
-        # print("Parece que todo está bien")
-        return (self, [], first_suffix), None
+            return self.base_task.add_errors_and_raise(errors)
+        # real_suffixes = set(real_suffixes)
+        first_suffix = real_suffixes[0]
+        if first_suffix:
+            self.data_file.suffix = first_suffix
+            self.data_file.save()
+        self.check_suffix_legible(real_suffixes)
 
-    def find_matches_between_controls(self, task_params=None, **kwargs):
-        from data_param.models import FileControl
-        data_file, kwargs = self.corroborate_save_data(task_params, **kwargs)
-        saved = False
-        all_errors = []
-        all_file_controls = kwargs.get("all_file_controls", None)
-        if not all_file_controls:
-            all_file_controls_ids = kwargs.get("all_file_controls_ids", [])
-            all_file_controls = FileControl.objects.filter(
-                id__in=all_file_controls_ids)
-        for file_ctrl in all_file_controls:
-            if data_file.suffix not in file_ctrl.file_format.suffixes:
-                continue
-            data_file, saved, errors = data_file.find_coincidences(
-                saved, file_ctrl=file_ctrl)
-            if errors:
-                all_errors.extend(errors)
-        if not saved:
-            all_errors.append("No existe ningún grupo de control coincidente")
-            data_file.save_errors(all_errors, "explore|with_errors")
-        return None, all_errors, None
+    def check_suffix_legible(self, suffixes: list):
+        real_suffixes = set(suffixes)
+        if not real_suffixes.issubset(self.readable_suffixes):
+            error = "Formato no legible %s" % suffixes
+            self.base_task.add_errors_and_raise([error])
 
-    def corroborate_save_data(self, task_params=None, **kwargs):
-        from respond.data_file_mixins.df_from_aws import (
-            FromAws as DataFileMix)
-        from_aws = kwargs.get("from_aws", False)
-        print("from_aws", from_aws)
+    def _decompress_gz_file(self):
+        from inai.models import set_upload_path
 
-        if from_aws:
-            data_file_from_aws = DataFileMix(self, task_params)
-            # x, y, data_file = self.build_sample_data_after(**kwargs)
-            x, y, data_file = data_file_from_aws.build_sample_data_after(
-                **kwargs)
-            parent_task = task_params.get("parent_task", None)
-            if parent_task.params_after:
-                kwargs.update(parent_task.params_after)
-        else:
-            data_file = self
-        return data_file, kwargs
+        directory = set_upload_path(self.data_file, "split/NEW_FILE_NAME")
+        params = {
+            "file": self.data_file.file.name,
+            "directory": directory,
+        }
+        gz_task = TaskBuilder(
+            function_name="decompress_gz", parent_class=self.base_task,
+            models=[self.data_file], params=params)
+        gz_task.async_in_lambda(http_response=True)

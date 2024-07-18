@@ -65,23 +65,23 @@ def get_duplicate_folios(filters):
         # sheets_count = len(values)
         # sheets_count = 0
         is_same_month = False
-        current_sheets = set()
+        unique_sheets = set()
         current_uuid = set()
         for uuid_folio, sheet_id, month in values:
-            current_sheets.add(sheet_id)
+            unique_sheets.add(sheet_id)
             current_uuid.add(uuid_folio)
             if not is_same_month:
                 is_same_month = current_month == int(month)
         if is_same_month:
             month_counts["total"] += 1
         len_uuids = len(current_uuid)
-        len_sheets = len(current_sheets)
+        len_sheets = len(unique_sheets)
         if len_sheets > 1:
             group_name = "shared" if len_uuids == 1 else "dupli"
-            folios[group_name][folio_ocamis] = current_sheets
+            folios[group_name][folio_ocamis] = unique_sheets
             if is_same_month:
                 month_counts[group_name] += 1
-        for sheet_id in current_sheets:
+        for sheet_id in unique_sheets:
             shared_plus = 0
             duplicates_plus = 0
             if len_sheets > 1:

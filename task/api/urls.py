@@ -3,7 +3,7 @@ from rest_framework import routers
 from task.api.views import (
     AsyncTaskViewSet, CutOffViewSet, StepViewSet, ActivityView,
     OfflineTaskViewSet)
-from task.views_main_aws import AWSErrors, AWSSuccess, AWSMessage
+from task.main_views_aws import AWSErrors, AWSSuccess, AWSMessage
 from task.api.views_channel import MessageSendAPIView
 
 router = routers.DefaultRouter()
