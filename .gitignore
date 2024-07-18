@@ -54,3 +54,9 @@ Thumbs.db
 
 core/production.py
 core/local.py
+
+
+# Ignore all .env files
+.env
+.env.local
+.env.prod
