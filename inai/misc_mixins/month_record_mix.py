@@ -443,6 +443,7 @@ class MonthRecordMix:
         except Exception as e:
             error = f"El proveedor no está asociado a ningún cluster:"
             self.base_task.add_errors([error], http_response=True)
+            raise e
         formula_tables = ["rx", "drug", "missingrow", "missingfield",
                           "complementrx", "complementdrug", "diagnosisrx"]
         self.check_temp_tables()

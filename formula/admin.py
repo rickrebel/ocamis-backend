@@ -5,7 +5,7 @@ from .models import (
     Rx,
     # DocumentType,
 )
-from med_cat.models import Doctor, Delivered
+from med_cat.models import Delivered
 
 
 # class DocumentTypeAdmin(admin.ModelAdmin):

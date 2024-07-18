@@ -4,7 +4,6 @@ from category.models import FileFormat
 from respond.views import SampleFile
 from data_param.models import FileControl
 from typing import Any, Optional
-from task.helpers import HttpResponseError
 raws = {}
 
 
@@ -159,7 +158,7 @@ class ExtractorRealMix:
         # print("filtered_sheets", self.filtered_sheets)
         return self.full_sheet_data, self.filtered_sheets
 
-    def _get_data_excel(self) -> list:
+    def _get_data_excel(self):
         sheet_names = self.data_file.sheet_names_list
 
         incl_names, excl_names, incl_idx, excl_idx = self._explore_sheets()

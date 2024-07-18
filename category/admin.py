@@ -1,7 +1,6 @@
 from django.contrib import admin
 from inai.admin import ocamis_admin_site
 
-from transparency.admin import AnomalyAdmin, TransparencyIndexAdmin, TransparencyLevelAdmin
 from .models import (
     FileType, StatusControl, ColumnType, NegativeReason, DateBreak,
     InvalidReason, FileFormat)

@@ -1,7 +1,5 @@
 from task.models import AsyncTask
 from task.serverless import Serverless, TaskChecker
-from task.rds_balance import (
-    has_enough_balance, delayed_execution, comprobate_waiting_balance)
 
 
 class HttpResponseError(Exception):
@@ -224,7 +222,7 @@ class TaskHelper(Serverless):
         if not group_queue:
             return self.save_queue()
 
-        filter_group = {f"{task_function.group_queue}": group_obj}
+        filter_group = {f"{task_function.group_queue}": group_queue}
         group_tasks = pending_tasks.filter(**filter_group)
         many_same_group = group_tasks.count() >= task_function.queue_size
         if many_same_group:

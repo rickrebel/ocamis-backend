@@ -42,14 +42,13 @@ def read_pdf_table():
     print(abc[0].df)
 
 
-
 def read_pdf():
     # from PyPDF2 import PdfReader
     # reader = PdfReader(file_path)
     # page = reader.pages[0]
     # text = page.extract_text()
     # print(text)
-
+    pass
 
 
 def split_data(file_path="fixture/especiales/farmacias.txt"):

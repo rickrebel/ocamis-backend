@@ -1,4 +1,3 @@
-from django.db.models import QuerySet
 from task.builder import TaskBuilder
 from respond.models import DataFile
 from data_param.models import FileControl

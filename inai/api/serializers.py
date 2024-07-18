@@ -4,8 +4,7 @@ from data_param.api.serializers import FileControlSerializer, NameColumnSerializ
 from inai.models import (
     Petition, PetitionFileControl, MonthRecord, RequestTemplate, Variable,
     PetitionBreak, PetitionNegativeReason, WeekRecord, Complaint)
-from respond.api.serializers import (
-    ReplyFileSerializer, DataFileSerializer, DataFileSimpleSerializer)
+from respond.api.serializers import ReplyFileSerializer, DataFileSerializer
 from respond.models import TableFile
 from data_param.models import Transformation, NameColumn, FileControl
 

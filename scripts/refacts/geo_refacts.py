@@ -1,6 +1,6 @@
 
 def move_delegation_clues():
-    from geo.models import Delegation, CLUES, Provider
+    from geo.models import Delegation, Provider
     all_delegations = Delegation.objects.all()
     for delegation in all_delegations:
         clues = delegation.clues

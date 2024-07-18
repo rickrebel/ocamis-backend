@@ -135,9 +135,7 @@ def revert_own_mistake():
 
 
 def revert_own_mistake2():
-    from respond.models import TableFile
     from respond.models import SheetFile
-    from data_param.models import Collection
     import time
     count_fields = ["drugs_count", "rx_count"]
     # space

@@ -133,8 +133,7 @@ def create_lambda_layer(layer_name, final_path, python_version):
     return response
 
 
-def build_lambda_layer(
-        layer_name="my_layer1", packages=[], python_version="3.10"):
+def build_lambda_layer(layer_name, packages: list, python_version="3.10"):
     zip_layer = create_zip_packages(packages)
     resp, layer_path = upload_to_s3(zip_layer, layer_name)
     create_lambda_layer(layer_name, layer_path, python_version)

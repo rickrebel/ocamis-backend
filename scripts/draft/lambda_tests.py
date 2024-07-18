@@ -3,7 +3,6 @@ from io import BytesIO
 import os
 import re
 import zipfile
-from lambda_aws import start_session_lambda, upload_to_s3, random_string
 
 
 def create_zip_file(function_name, packages, function_text=None):

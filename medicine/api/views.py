@@ -27,7 +27,7 @@ class ComponentList(MultiSerializerListRetrieveMix):
         "priority_all": serializers.ComponentVizAllSerializer,
     }
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         from django.db.models import Q
         q = request.query_params.get("q")
         if q:

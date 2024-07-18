@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.contrib.admin import AdminSite, register
+from django.contrib.admin import register
 from rds.models import Cluster, Operation, OperationGroup
 from inai.admin import ocamis_admin_site
 

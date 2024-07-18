@@ -1,5 +1,4 @@
 import json
-import channels
 from channels.generic.websocket import (
     AsyncJsonWebsocketConsumer, AsyncWebsocketConsumer)
 

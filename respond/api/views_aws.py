@@ -16,7 +16,6 @@ def move_and_duplicate(data_files, petition, request):
     from rest_framework.exceptions import ParseError
     from respond.models import ReplyFile
     from data_param.models import FileControl
-    from classify_task.models import Stage
 
     destination = request.data.get("destination")
     is_duplicate = request.data.get("duplicate")

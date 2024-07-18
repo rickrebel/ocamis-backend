@@ -2,7 +2,6 @@
 def groups_assignation():
     from django.db.models import Count
     from medicine.models import Presentation
-    from report.models import Supply
     from med_cat.models import Medicament
     all_presentations = Presentation.objects.filter(group__isnull=False)
     # for presentation in all_presentations:

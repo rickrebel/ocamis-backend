@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from task.builder import TaskBuilder
 from inai.api.common import send_response, send_response2, get_orphan_data_files
 
-from inai.models import Petition, PetitionFileControl
+from inai.models import Petition
 from inai.petition_mixins.petition_mix import PetitionTransformMix
 from respond.reply_file_mixins.reply_mix import ReplyFileMixReal
 from respond.models import DataFile

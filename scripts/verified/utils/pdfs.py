@@ -32,7 +32,8 @@ def coding_and_read_with_pdfminer(font='DejaVu Sans'):
     # file_path = "fixture/especiales/330018021009264.pdf"
     output_string = io.StringIO()
     with open(file_path, 'rb') as f:
-        extract_text_to_fp(f, output_string, laparams=LAParams(), output_type='text', codec=None)
+        extract_text_to_fp(
+            f, output_string, laparams=LAParams(), output_type='text', codec=None)
 
 
 # # BUENOS

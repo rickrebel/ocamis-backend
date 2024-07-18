@@ -1,5 +1,3 @@
-import requests
-import json
 from task.aws.common import send_simple_response, create_connection, BotoUtils
 
 

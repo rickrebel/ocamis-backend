@@ -5,7 +5,6 @@ from django.conf import settings
 def obtain_names_from_s3(
         path, folio_petition, is_reply_file=False, file_control_id=None):
     from inai.models import PetitionFileControl, Petition
-    from category.models import FileType
     from respond.models import DataFile, ReplyFile
 
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
@@ -93,7 +92,6 @@ def delete_paths_from_aws(path):
 
 
 def upload_s3_files(local_file, s3_dir):
-    import boto3
     from django.utils import timezone
     # import boto3.s3.transfer as s3transfer
     from scripts.common import build_s3, start_session

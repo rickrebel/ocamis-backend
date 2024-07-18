@@ -1,8 +1,6 @@
-from scripts.common import start_session, create_file
 from scripts.common import build_s3
 from task.aws.common import BotoUtils
 from respond.models import SheetFile, DataFile
-from django.db.models import QuerySet
 
 
 class SampleFile:

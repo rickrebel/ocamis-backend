@@ -1,6 +1,5 @@
 from django.conf import settings
 from io import BytesIO
-import functools
 
 bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
 aws_location = getattr(settings, "AWS_LOCATION")
@@ -49,19 +48,6 @@ def get_or_none(model, *args, **kwargs):
         return model.objects.get(*args, **kwargs)
     except model.DoesNotExist:
         return None
-
-
-def read_data_dict_CSV(filename, delimiter=',', quotechar='"'):
-    import csv
-    dictReader = csv.DictReader(open(filename, 'rb'),
-                                delimiter=delimiter, quotechar=quotechar)
-
-    datos = []
-
-    for row in dictReader:
-        datos.append(row)
-
-    return datos
 
 
 def get_datetime_mx(datetime_utc):
@@ -182,7 +168,6 @@ def create_file(file_bytes, s3_client=None, file_obj=None, only_name=None, final
 
 def create_file_big(file_obj, zip_content, only_name, s3_client=None):
     from inai.models import set_upload_path
-    from django.core.files import File
     all_errors = []
     final_file = None
     final_bucket_name = bucket_name

@@ -1,5 +1,4 @@
 import os
-import json
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 

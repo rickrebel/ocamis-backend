@@ -1,4 +1,4 @@
-from respond.models import DataFile, LapSheet
+from respond.models import DataFile
 from task.builder import TaskBuilder
 
 

@@ -1,5 +1,5 @@
 import boto3
-from scripts.common import build_s3, start_session
+from scripts.common import build_s3
 from datetime import datetime, timedelta
 
 service = 'cloudwatch'

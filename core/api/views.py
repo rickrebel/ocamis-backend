@@ -5,8 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from data_param.models import (
-    Collection, FinalField, DataType, CleanFunction,
-    ParameterGroup, FileControl, DataGroup)
+    Collection, FinalField, DataType, CleanFunction, ParameterGroup, DataGroup)
 from data_param.api.serializers import (
     DataGroupSimpleSerializer, CollectionSimpleSerializer,
     FinalFieldSimpleSerializer, DataTypeSimpleSerializer,
@@ -21,10 +20,10 @@ from respond.models import Behavior
 from transparency.models import Anomaly, TransparencyIndex
 
 from category.models import (
-    FileType, StatusControl, ColumnType, NegativeReason,
+    StatusControl, ColumnType, NegativeReason,
     DateBreak, InvalidReason, FileFormat)
 from category.api.serializers import (
-    FileTypeSimpleSerializer, StatusControlSimpleSerializer,
+    StatusControlSimpleSerializer,
     ColumnTypeSimpleSerializer, NegativeReasonSimpleSerializer,
     DateBreakSimpleSerializer, AnomalySimpleSerializer,
     InvalidReasonSimpleSerializer, FileFormatSimpleSerializer,
@@ -36,7 +35,7 @@ from task.api.serializers import (
 
 from geo.models import Agency, Provider
 from geo.api.serializers import (
-    AgencySerializer, ProviderSerializer, ProviderCatSerializer)
+    AgencySerializer, ProviderCatSerializer)
 
 from rds.models import Cluster
 from rds.api.serializers import ClusterSerializer

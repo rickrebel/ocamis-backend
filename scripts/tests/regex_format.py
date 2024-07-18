@@ -200,11 +200,11 @@ def init_examples():
 
     re_no_point = re.compile(r'(\sNO.?)$')
     regex_format = RegexFormat(re_no_point, cases=case_tests)
-    regex_format.replace()
+    # regex_format.replace()
 
     re_consul = re.compile(r'( CONSULTA MEDICINA FAMILIAR)')
     regex_format = RegexFormat(re_consul, cases=case_tests)
-    regex_format.replace(new_value='|CONSULTA MEDICINA FAMILIAR')
+    # regex_format.replace(new_value='|CONSULTA MEDICINA FAMILIAR')
 
 
 def inai_examples():

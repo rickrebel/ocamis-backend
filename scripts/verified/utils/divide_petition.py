@@ -1,5 +1,4 @@
-from datetime import datetime
-from inai.models import Petition, PetitionFileControl
+from inai.models import Petition
 from respond.models import ReplyFile, DataFile
 
 

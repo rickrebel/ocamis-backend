@@ -305,8 +305,8 @@ class AgencyViewSet(ListRetrieveUpdateMix):
         detailed_controls = FileControlViz2Serializer(
             detailed_controls_query, many=True).data
         for file_ctrl in detailed_controls:
-            anomalies = set(file_ctrl["anomalies"])
-            file_formats = set([file_ctrl["file_format"]])
+            anomalies = {file_ctrl["anomalies"]}
+            file_formats = {file_ctrl["file_format"]}
             final_operatib = "other_oper"
             #print(file_formats)
             for level in operability_levels:

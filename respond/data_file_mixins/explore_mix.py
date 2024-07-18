@@ -1,5 +1,4 @@
 from task.builder import TaskBuilder
-from task.helpers import HttpResponseError
 from respond.data_file_mixins.data_file_aws import FromAws as DataFileAws
 from respond.data_file_mixins.get_data_mix import ExtractorRealMix
 from respond.data_file_mixins.find_coincidences import MatchControls

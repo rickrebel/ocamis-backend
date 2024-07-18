@@ -313,7 +313,7 @@ class PetitionFileControlViewSet(CreateRetrieveView):
         #        petition=self.kwargs["petition_id"])
         return PetitionFileControl.objects.all()
 
-    def create(self, request, petition_id=False):
+    def create(self, request, **kwargs):
 
         petition_file_control = request.data
         new_pet_file_ctrl = PetitionFileControl()

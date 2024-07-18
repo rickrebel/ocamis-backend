@@ -7,8 +7,6 @@ from geo.models import State, Institution, CLUES
 
 def import_clues():
     import csv
-    from pprint import pprint
-    from django.utils.dateparse import parse_datetime
     with open('clues.csv') as csv_file:
         #contents = f.read().decode("UTF-8")
         csv_reader = csv.reader(csv_file, delimiter=',')

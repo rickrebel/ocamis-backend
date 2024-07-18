@@ -155,7 +155,6 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["put"], detail=True, url_path='change_behavior')
     def change_behavior(self, request, **kwargs):
-        from django.utils import timezone
         from inai.api.views import get_related_months
         from respond.models import Behavior
         sheet_file = self.get_object()

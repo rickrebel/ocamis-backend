@@ -2,7 +2,6 @@ from respond.models import DataFile, SheetFile
 from django.db.models import QuerySet
 from data_param.models import FileControl
 from task.builder import TaskBuilder
-from task.helpers import HttpResponseError
 from respond.data_file_mixins.get_data_mix import ExtractorRealMix
 from respond.data_file_mixins.get_data_mix import EarlyFinishError
 

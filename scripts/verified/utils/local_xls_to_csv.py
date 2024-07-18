@@ -5,7 +5,6 @@ from django.conf import settings
 def local_xls_to_csv(folder_path, file_name):
     import pandas as pd
     import io
-    import csv
 
     xls_filepath = f"{folder_path}\\{file_name}"
     excel_file = pd.ExcelFile(xls_filepath)
