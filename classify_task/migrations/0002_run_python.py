@@ -3,34 +3,6 @@
 from django.db import migrations
 
 
-def update_model_name(apps, schema_editor):
-    TaskFunction = apps.get_model("classify_task", "TaskFunction")
-    # from classify_task.models import TaskFunction
-    for task_function in TaskFunction.objects.all():
-        if task_function.model_name == "entity_week":
-            task_function.model_name = "week_record"
-            task_function.save()
-        elif task_function.model_name == "entity_month":
-            task_function.model_name = "month_record"
-            task_function.save()
-        if task_function.group_queue == "entity_week":
-            task_function.group_queue = "week_record"
-            task_function.save()
-        elif task_function.group_queue == "entity_month":
-            task_function.group_queue = "month_record"
-            task_function.save()
-
-
-def update_stage_group_queue(apps, schema_editor):
-    Stage = apps.get_model("classify_task", "Stage")
-    # from classify_task.models import Stage
-    for stage in Stage.objects.all():
-        if "entity" in stage.stage_group:
-            new_name = stage.stage_group.replace("entity", "provider")
-            stage.stage_group = new_name
-            stage.save()
-
-
 def add_function_after(apps, schema_editor):
     Stage = apps.get_model('classify_task', 'Stage')
     # RICK TASK: Verificar este tema
@@ -57,6 +29,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(update_model_name),
         migrations.RunPython(add_function_after),
     ]
