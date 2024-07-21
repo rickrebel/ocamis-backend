@@ -21,7 +21,8 @@ class DataGroup(models.Model):
             sheet_file__data_file__petition_file_control__file_control__data_group=self,
             inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
     def __str__(self):
@@ -189,7 +190,8 @@ class FileControl(models.Model):
             sheet_file__data_file__petition_file_control__file_control=self,
             inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
     def __str__(self):
@@ -225,15 +227,15 @@ class FinalField(models.Model):
     data_type = models.ForeignKey(
         DataType, null=True, blank=True, on_delete=models.CASCADE)
     addl_params = JSONField(
-        blank=True, null=True, 
-        verbose_name="Otras configuraciones", 
+        blank=True, null=True,
+        verbose_name="Otras configuraciones",
         help_text="Por ejemplo, max_length, null, blank, help_text, "
                      "django_field, así como otras que aparezcan")
     variations = JSONField(
-        blank=True, null=True, 
+        blank=True, null=True,
         verbose_name="Otros posibles nombres (variaciones)",
         help_text="Nombres como pueden venir en las tablas de INAI",
-        )
+    )
     regex_format = models.CharField(max_length=255, blank=True, null=True)
     is_required = models.BooleanField(
         default=False, verbose_name="Es indispensable para registrar fila")
@@ -268,46 +270,13 @@ class FinalField(models.Model):
 
     def __str__(self):
         return "%s: %s (%s - %s)" % (
-            self.verbose_name, self.parameter_group or "NA", 
+            self.verbose_name, self.parameter_group or "NA",
             self.collection, self.name)
 
     class Meta:
         ordering = ["parameter_group", "-is_common", "verbose_name"]
         verbose_name = "Campo final"
         verbose_name_plural = "1.4 Campos finales (DB)"
-
-
-class DictionaryFile(models.Model):
-    provider = models.ForeignKey(
-        Provider, on_delete=models.CASCADE, blank=True, null=True)
-    # institution = models.ForeignKey(
-    #     Institution, on_delete=models.CASCADE, blank=True, null=True)
-    # delegation = models.ForeignKey(
-    #     Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    file_control = models.ForeignKey(
-        FileControl, on_delete=models.CASCADE, blank=True, null=True)
-    collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE)
-    file = models.FileField(upload_to="dictionary_files")
-    unique_field = models.ForeignKey(
-        FinalField, on_delete=models.CASCADE, blank=True, null=True,
-        related_name="dictionary_files")
-    final_fields = models.ManyToManyField(
-        FinalField, blank=True, verbose_name="Campos finales",
-        related_name="m2m_dictionary_files")
-    last_update = models.DateTimeField(auto_now=True)
-
-    def save(self, *args, **kwargs):
-        from django.utils import timezone
-        self.last_update = timezone.now()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.file} - {self.collection}"
-
-    class Meta:
-        verbose_name = "Catálogo para match"
-        verbose_name_plural = "4.2 Diccionarios para match"
 
 
 class CleanFunction(models.Model):
@@ -326,7 +295,7 @@ class CleanFunction(models.Model):
     public_name = models.CharField(max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     priority = models.SmallIntegerField(
-        default=5, 
+        default=5,
         verbose_name="orden",
         help_text="Nivel de prioridad (ordenación)")
     for_all_data = models.BooleanField(

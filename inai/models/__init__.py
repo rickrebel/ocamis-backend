@@ -293,7 +293,8 @@ class PetitionFileControl(models.Model):
             sheet_file__data_file__petition_file_control=self,
             inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
     def __str__(self):

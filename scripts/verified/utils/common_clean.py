@@ -10,6 +10,19 @@ def move_data_files_to_real_provider():
     bad_data_files.update(provider_id=57, stage_id="pre_transform")
 
 
+def assign_priority(apps, schema_editor):
+    PrioritizedComponent = apps.get_model(
+        'intl_medicine', 'PrioritizedComponent')
+    prior_components = PrioritizedComponent.objects.filter(
+        group_answer__respondent__isnull=True,
+        is_prioritized=True).distinct()
+    for prior_component in prior_components:
+        if prior_component.component.priority < 10:
+            continue
+        prior_component.component.priority = 5
+        prior_component.component.save()
+
+
 def move_data_files_to_real_provider2():
     from respond.models import DataFile
     bad_data_files = DataFile.objects.filter(

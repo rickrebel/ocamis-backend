@@ -304,32 +304,3 @@ class OfflineTask(models.Model):
         verbose_name = "Tarea offline"
         verbose_name_plural = "Tareas offline"
         ordering = ["-date_start"]
-
-
-class FilePath(models.Model):
-    reply_file = models.ForeignKey(
-        ReplyFile, on_delete=models.CASCADE, blank=True, null=True,
-        related_name="file_paths")
-    data_file = models.ForeignKey(
-        DataFile, on_delete=models.CASCADE, blank=True, null=True)
-    sheet_file = models.ForeignKey(
-        SheetFile, on_delete=models.CASCADE, blank=True, null=True)
-    table_file = models.ForeignKey(
-        TableFile, on_delete=models.CASCADE, blank=True, null=True)
-    path_to_file = models.CharField(
-        max_length=400, verbose_name="Ruta al archivo deseable")
-    path_in_bucket = models.CharField(
-        max_length=400, verbose_name="Ruta al archivo actual")
-    size = models.IntegerField(blank=True, null=True)
-    is_correct_path = models.BooleanField(blank=True, null=True)
-    # status = models.CharField(
-    #     max_length=100, blank=True, null=True)
-
-    def __str__(self):
-        return self.path_to_file
-
-    class Meta:
-        verbose_name = "Ruta de archivo"
-        verbose_name_plural = "Rutas de archivo"
-        ordering = ["-id"]
-
