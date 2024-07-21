@@ -8,7 +8,14 @@ class Intermediary(BaseTransform):
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
         super().__init__(data_file, base_task=base_task)
         from inai.models import set_upload_path
-        only_name = f"{self.file_name}_SHEET_NAME_intermediary"
+        full_name = data_file.file.name
+        if "/reply_file_" in full_name:
+            file_name = full_name.rsplit('/reply_file_', 1)[-1]
+        else:
+            file_name = full_name.rsplit('/', 1)[-1]
+        self.file_name = file_name.replace(".", "_")
+        only_name = (f"{self.file_name}_df{self.data_file.id}"
+                     f"_SHEET_NAME_intermediary")
         self.final_path = set_upload_path(self.data_file, only_name)
 
     def split_columns(self):
