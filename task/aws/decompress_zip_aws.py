@@ -23,7 +23,8 @@ class Decompress:
         self.context = context
         self.result = {"files": [], "errors": []}
         self.errors = []
-        self.s3_utils = BotoUtils(event["s3"])
+        # self.s3_utils = BotoUtils(event["s3"])
+        self.s3_utils = BotoUtils(event.get("s3"))
         file = event["file"]
         self.object_bytes = self.s3_utils.get_object_file(file, "zip")
 

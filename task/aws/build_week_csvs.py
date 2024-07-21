@@ -72,9 +72,6 @@ class BuildWeekAws:
 
         self.headers = {"all": [], "drug": [], "rx": []}
         self.len_drug = 0
-        self.basic_fields = [
-            "sheet_file_id", "folio_ocamis", "uuid_folio",
-            "delivered_final_id"]
         self.basic_models = [
             "drug", "rx", "complement_drug", "complement_rx", "diagnosis_rx"]
         self.real_models = []

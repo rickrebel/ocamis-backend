@@ -22,8 +22,13 @@ class BaseDataFile:
 class BaseTransform(BaseDataFile):
 
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
+        from inai.models import set_upload_path
         super().__init__(data_file, base_task=base_task)
         self.is_prepare = False
+        file_name = self.data_file.file_name
+        only_name = f"NEW_ELEM_NAME/{file_name}_SHEET_NAME_NEW_ELEM_NAME" \
+                    f"_lap{self.lap}.csv"
+        self.final_path = set_upload_path(self.data_file, only_name)
         self.init_data = {}
         self.file_control = data_file.petition_file_control.file_control
         full_name = data_file.file.name
@@ -61,7 +66,7 @@ class BaseTransform(BaseDataFile):
             init_data["sheet_name"] = sheet_file.sheet_name
             init_data["sheet_file_id"] = sheet_file.id
             sheet_name2 = sheet_name_to_file_name(sheet_file.sheet_name)
-            init_data["final_path"] = self.data_file.final_path.replace(
+            init_data["final_path"] = self.final_path.replace(
                 "SHEET_NAME", sheet_name2)
             sheet = {
                 "params": {

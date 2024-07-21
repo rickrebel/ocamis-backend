@@ -8,7 +8,7 @@ def lambda_handler(event, context):
 
     try:
         init_data = event["init_data"]
-        split_aws = SplitAws(init_data, context, event["s3"])
+        split_aws = SplitAws(init_data, context, event.get("s3"))
     except Exception as e:
         errors = [f"Hay Un error raro en la inicialización: {str(e)}"]
         return send_simple_response(event, context, errors=errors)
@@ -27,10 +27,10 @@ def lambda_handler(event, context):
 class SplitAws:
 
     def __init__(self, init_data: dict, context, s3):
+        self.final_path = ""
         for key, value in init_data.items():
             setattr(self, key, value)
         self.destinations = []
-        self.final_path = ""
 
         self.s3_utils = BotoUtils(s3)
         self.context = context
@@ -52,7 +52,8 @@ class SplitAws:
             csv_buffer = io.StringIO()
             subset_df.to_csv(csv_buffer, index=False,
                              header=False, sep="|", escapechar="\\")
-            final_name = f"{self.final_path}_DEST_{destination}.csv"
+            final_name = self.final_path.replace("NEW_ELEM_NAME", "destination")
+            final_name = f"{final_name}_DEST_{destination}.csv"
             self.s3_utils.save_file_in_aws(csv_buffer.getvalue(), final_name)
             new_files.append(final_name)
 

@@ -1,4 +1,4 @@
-from task.aws.common import send_simple_response, create_connection, BotoUtils
+from task.aws.common import send_simple_response, create_connection
 
 
 # def save_csv_in_db(event, context):
@@ -11,7 +11,6 @@ def lambda_handler(event, context):
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries", [])
     queries_by_model = event.get("queries_by_model", {})
-    s3_utils = BotoUtils(event.get("s3"))
     print("start", datetime.now())
     connection = create_connection(db_config)
     print("connection", datetime.now())

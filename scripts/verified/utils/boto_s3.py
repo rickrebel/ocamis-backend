@@ -6,7 +6,6 @@ def obtain_names_from_s3(
         path, folio_petition, is_reply_file=False, file_control_id=None):
     from inai.models import PetitionFileControl, Petition
     from respond.models import DataFile, ReplyFile
-
     bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
     aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
     aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
@@ -42,8 +41,7 @@ def obtain_names_from_s3(
                 provider = petition.real_provider or petition.agency.provider
                 DataFile.objects.get_or_create(
                     petition_file_control=pet_file_ctrl,
-                    provider=provider,
-                    file=final_name)
+                    provider=provider, file=final_name)
                 print(f"Exitosamente creado {pet_file_ctrl}")
             except Exception as e:
                 print("No fue posible obtener el pet_file_ctrl")
@@ -52,8 +50,8 @@ def obtain_names_from_s3(
 
 
 # obtain_names_from_s3(
-#     "data_files/nacional/imss_imss-bienestar/330018024006508/dvd3/",
-#     "330018024006508", True)
+#     "data_files/estatal/sspue/211200722000896/",
+#     "211200722000896", True)
 
 # obtain_names_from_s3("data_files/nacional/issste/202107/", "0063700513521", True)
 # obtain_names_from_s3("data_files/nacional/imss/202112/", "330018022027342", True)

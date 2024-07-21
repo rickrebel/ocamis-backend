@@ -80,7 +80,7 @@ def start_session(service='s3', endpoint_url=None):
     else:
         config = Config(
             read_timeout=600,
-            retries={ 'max_attempts': 0 },
+            retries={'max_attempts': 0},
             s3={"use_accelerate_endpoint": True, "addressing_style": "path"}
         )
     # print("endpoint_url", endpoint_url)

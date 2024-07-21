@@ -64,7 +64,8 @@ class FromAws:
             sheet_file=self.sheet_file, lap=next_lap)
         fields_in_report = report_errors.keys()
         for field in fields_in_report:
-            setattr(lap_sheet, field, report_errors.get(field, 0))
+            if hasattr(lap_sheet, field):
+                setattr(lap_sheet, field, report_errors.get(field, 0))
         lap_sheet.last_edit = timezone.now()
         lap_sheet.save()
 

@@ -1,7 +1,29 @@
 import boto3
 import json
 import requests
+import math
 request_headers = {"Content-Type": "application/json"}
+
+
+class ValueProcessError(Exception):
+    def __init__(self, message, value=None, error_msg=None):
+        final_msg = message
+        if error_msg:
+            final_msg = f"{message}; error detallado: {error_msg}"
+        super().__init__(final_msg)
+        self.value = value
+        self.message = final_msg
+
+
+class EarlyResult(Exception):
+
+    def __init__(self, result, delivered, warning=None):
+        self.result = result
+        self.delivered = delivered
+        self.warning = None
+        if warning:
+            self.warning = f"warning: {warning}"
+        super().__init__("Early result")
 
 
 class SendResultToWebhook:
@@ -127,30 +149,31 @@ def create_connection(db_config):
 
 class BotoUtils:
 
-    def __init__(self, s3, service="s3"):
-        self.s3 = s3
-        aws_access_key_id = self.s3["aws_access_key_id"]
-        aws_secret_access_key = self.s3["aws_secret_access_key"]
-        self.s3_client = boto3.client(
-            service, aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key)
+    def __init__(self, s3=None, service="s3"):
+        import os
 
-        self.dev_resource = boto3.resource(
-            service, aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key)
+        self.bucket_name = os.getenv('AWS_STORAGE_BUCKET_NAME', 'cdn-desabasto')
+        self.aws_location = os.getenv('AWS_LOCATION', 'data_files')
+        if s3:
+            self.s3_client = boto3.client(
+                service, aws_access_key_id=s3["aws_access_key_id"],
+                aws_secret_access_key=s3["aws_secret_access_key"])
+
+            self.dev_resource = boto3.resource(
+                service, aws_access_key_id=s3["aws_access_key_id"],
+                aws_secret_access_key=s3["aws_secret_access_key"])
+        else:
+            self.s3_client = boto3.client(service)
+            self.dev_resource = boto3.resource(service)
         self.errors = []
 
     def get_object_file(self, file, file_type="csv", delimiter="|"):
         import csv
         import io
 
-        bucket_name = self.s3["bucket_name"]
-        aws_location = self.s3["aws_location"]
-
         content_object = self.dev_resource.Object(
-            bucket_name=bucket_name,
-            key=f"{aws_location}/{file}"
-        )
+            bucket_name=self.bucket_name,
+            key=f"{self.aws_location}/{file}")
         streaming_body_1 = content_object.get()['Body']
         if file_type == "gz":
             return streaming_body_1
@@ -170,12 +193,9 @@ class BotoUtils:
     def get_csv_lines(self, file, file_type="csv"):
         import io
 
-        bucket_name = self.s3["bucket_name"]
-        aws_location = self.s3["aws_location"]
-
         content_object = self.dev_resource.Object(
-            bucket_name=bucket_name,
-            key=f"{aws_location}/{file}"
+            bucket_name=self.bucket_name,
+            key=f"{self.aws_location}/{file}"
         )
         streaming_body_1 = content_object.get()['Body']
         object_final = io.BytesIO(streaming_body_1.read())
@@ -185,22 +205,18 @@ class BotoUtils:
 
     def get_json_file(self, file_name, decode="utf-8"):
         import json
-        bucket_name = self.s3["bucket_name"]
-        aws_location = self.s3["aws_location"]
 
         obj = self.s3_client.get_object(
-            Bucket=bucket_name,
-            Key=f"{aws_location}/{file_name}")
+            Bucket=self.bucket_name,
+            Key=f"{self.aws_location}/{file_name}")
 
         return json.loads(obj['Body'].read().decode(decode))
 
     def save_file_in_aws(self, body, final_name, content_type="text/csv"):
-        bucket_name = self.s3.get("bucket_name")
-        aws_location = self.s3.get("aws_location")
         final_object = {
             "Body": body,
-            "Bucket": bucket_name,
-            "Key": f"{aws_location}/{final_name}",
+            "Bucket": self.bucket_name,
+            "Key": f"{self.aws_location}/{final_name}",
             "ACL": "public-read",
         }
         if content_type:
@@ -296,6 +312,166 @@ def calculate_delivered_final(all_delivered, all_write=None):
     return "unknown", error
 
 
+class DeliveredCalculator:
+
+    def __init__(self, global_delivered=None, available_deliveries=None):
+        self.global_delivered = global_delivered
+        self.available_deliveries = available_deliveries
+        self.available_data = {}
+        self.final_class = None
+        self.class_med = None
+        self.prescribed_amount = None
+        self.delivered_amount = None
+        self.is_cancelled = False
+
+    # def calculate_delivered(self, available_data):
+    def __call__(self, available_data):
+
+        self.available_data = available_data
+
+        self.class_med = self._get_and_normalize("clasif_assortment")
+        class_presc = self._get_and_normalize("clasif_assortment_presc")
+        self.final_class = self.class_med or class_presc
+        self.is_cancelled = self.final_class == "CANCELADA"
+
+        self.prescribed_amount = self.calc_main_quantity("prescribed_amount")
+        self.delivered_amount = self.calc_main_quantity("delivered_amount")
+
+        if self.global_delivered:
+            return self.set_delivered(self.global_delivered)
+
+        if self.prescribed_amount == self.delivered_amount:
+            if self.is_cancelled:
+                delivered = "cancelled"
+            elif self.prescribed_amount == 0:
+                delivered = "zero"
+            else:
+                delivered = "complete"
+        elif not self.delivered_amount:
+            if self.is_cancelled:
+                delivered = "cancelled"
+            else:
+                delivered = "denied"
+        elif self.delivered_amount < self.prescribed_amount:
+            delivered = "partial"
+        elif self.delivered_amount > self.prescribed_amount:
+            delivered = "over_delivered"
+        elif self.is_cancelled:
+            delivered = "cancelled"
+        else:
+            raise ValueProcessError(
+                "No se puede determinar el status de entrega")
+
+        if self.prescribed_amount > 30:
+            if delivered == "denied":
+                delivered = "big_denied"
+            elif delivered == "partial":
+                delivered = "big_partial"
+
+        return self.set_delivered(delivered)
+
+    def calc_main_quantity(self, field):
+        is_delivered = field == "delivered_amount"
+        err_text = "entregada" if is_delivered else "prescrita"
+
+        amount = self.available_data.get(field)
+
+        if amount is None and is_delivered:
+            amount = self._calc_delivered_with_opposite()
+
+        if amount is not None:
+            try:
+                amount = int(amount)
+            except ValueError:
+                error = f"No se pudo convertir; la cantidad {err_text}"
+                raise ValueProcessError(error, amount)
+
+        if amount is None:
+            if self.is_cancelled:
+                self.set_default("prescribed_amount")
+                self.set_default("delivered_amount")
+                self.set_delivered("cancelled", True)
+            elif self.global_delivered:
+                pass
+            elif is_delivered and self.final_class:
+                self._calc_write_delivered()
+            else:
+                err = f"No se puede determinar el status; cantidad {err_text}"
+                raise ValueProcessError(err, amount)
+        elif amount > 30000:
+            err = f"Existe una cantidad inusualmente alta; cantidad {err_text}"
+            raise ValueProcessError(err, amount)
+        elif amount < 0:
+            err = f"Existe una cantidad negativa; cantidad {err_text}"
+            raise ValueProcessError(err, amount)
+
+        self.available_data[field] = amount
+        return amount
+
+    def _calc_write_delivered(self):
+        amount = None
+        real_class = self.available_deliveries[self.final_class]
+        if real_class in ['cancelled', 'denied']:
+            amount = 0
+        elif real_class == 'complete':
+            amount = self.prescribed_amount
+        elif real_class == 'partial':
+            if self.class_med:
+                amount = int(math.floor(self.prescribed_amount / 2))
+            else:
+                amount = self.prescribed_amount
+                real_class = 'forced_partial'
+        if amount is not None:
+            self.available_data["delivered_amount"] = amount
+            self.set_delivered(real_class, True)
+        else:
+            raise ValueProcessError(
+                f"No se pudo obtener la cantidad entregada; "
+                f"de la clasificación {self.final_class}")
+
+    def _get_and_normalize(self, field_name):
+        if value := self.available_data.get(field_name):
+            value = text_normalizer(value)
+            if value not in self.available_deliveries:
+                err = f"Clasificación de surtimiento no contemplada"
+                raise ValueProcessError(err, value)
+            return value
+        return None
+
+    def set_default(self, field_name):
+        if self.available_data.get(field_name) is None:
+            self.available_data[field_name] = 0
+
+    def set_delivered(self, delivered, want_raise=False):
+        warning = None
+        if self.class_med:
+            if delivered != self.available_deliveries[self.class_med]:
+                warning = (f"El status escrito '{self.class_med}' no"
+                           f" coincide con el status calculado: '{delivered}'")
+        if self.prescribed_amount > 30:
+            if delivered == "denied":
+                delivered = "big_denied"
+            elif delivered == "partial":
+                delivered = "big_partial"
+        self.available_data["delivered_id"] = delivered
+        if want_raise or warning:
+            raise EarlyResult(
+                self.available_data, delivered, warning)
+        return delivered, self.available_data
+
+    def _calc_delivered_with_opposite(self):
+        not_delivered_amount = self.available_data.get("not_delivered_amount")
+        if not_delivered_amount is not None:
+            try:
+                not_delivered_amount = int(not_delivered_amount)
+            except ValueError:
+                error = (f"No se pudo convertir la cantidad 'no entregada'; "
+                         f"{not_delivered_amount}")
+                raise ValueProcessError(error, not_delivered_amount)
+            return self.prescribed_amount - not_delivered_amount
+        return None
+
+
 def convert_to_str(x):
     undict = {
         'â€¦': '…', "â€ž": "„", 'â€“': '–', 'â€™': '’', "â€\x9d": "”",
@@ -321,6 +497,8 @@ def convert_to_str(x):
 def text_normalizer(text):
     import unidecode
     import re
+    if not text:
+        return ""
     text = text.upper().strip()
     text = unidecode.unidecode(text)
     text = re.sub(r'[^a-zA-Z\s]', '', text)

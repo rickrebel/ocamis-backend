@@ -91,7 +91,7 @@ class MatchTransform(BaseTransform):
 
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
         super().__init__(data_file, base_task=base_task)
-        from inai.models import set_upload_path
+
         from data_param.models import NameColumn
         self.lap = self.data_file.next_lap
         petition = data_file.petition_file_control.petition
@@ -104,10 +104,7 @@ class MatchTransform(BaseTransform):
             if self.global_clues else None
         # print("global_delegation", self.global_delegation)
         # only_name = f"NEW_ELEM_NAME/{self.data_file.id}_SHEET_NAME_lap{self.lap}.csv"
-        file_name = self.file_name
-        only_name = f"NEW_ELEM_NAME/{file_name}_SHEET_NAME_NEW_ELEM_NAME" \
-                    f"_lap{self.lap}.csv"
-        self.final_path = set_upload_path(self.data_file, only_name)
+
         self.name_columns = NameColumn.objects \
             .filter(file_control=self.file_control) \
             .prefetch_related(
@@ -202,7 +199,8 @@ class MatchTransform(BaseTransform):
         self.build_init_data(final_lap, string_date)
 
         sample_file = SampleFile()
-        for sf in self.calculate_sheets():
+        sheet_files_to_process = self.calculate_sheets()
+        for sf in sheet_files_to_process:
             sheet_file = sf["sheet_file"]
             params = sf["params"]
             lap_sheet, created = LapSheet.objects.get_or_create(

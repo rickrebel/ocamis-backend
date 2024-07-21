@@ -29,6 +29,7 @@ def camel_to_snake(name):
 class Serverless:
     errors: list = []
     api_url = getattr(settings, "API_URL", False)
+    use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
 
     def __init__(
             self, main_task: AsyncTask, errors=None, params: dict = None):
@@ -45,10 +46,9 @@ class Serverless:
         elif main_task.original_request:
             new_params = main_task.original_request
             self.params = new_params
-        self.params.update({
-            "webhook_url": f"{self.api_url}task/webhook_aws/",
-            "s3": build_s3(),
-        })
+        self.params["webhook_url"] = f"{self.api_url}task/webhook_aws/"
+        if self.use_local_lambda:
+            self.params["s3"] = build_s3()
 
     def set_function_name(self, function_name=None):
         raise NotImplementedError("set_function_name")
@@ -62,14 +62,15 @@ class Serverless:
 
     def execute_async(self):
         print("SE VA A EJECUTAR:", self.main_task.task_function_id)
-        use_local_lambda = getattr(settings, "USE_LOCAL_LAMBDA", False)
-        if use_local_lambda:
+
+        if self.use_local_lambda:
             return self._execute_in_local()
         else:
             return self._execute_in_lambda()
 
     def _execute_in_lambda(self):
-        s3_client, _ = build_s3()
+        from scripts.common import start_session
+        s3_client, dev_resource = start_session("lambda")
         function_final = f"{self.main_task.task_function_id}:normal"
         dumb_params = json.dumps(self.params)
         try:
