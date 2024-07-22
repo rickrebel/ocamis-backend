@@ -56,7 +56,9 @@ core/production.py
 core/local.py
 
 
-# Ignore all .env files
-.env
+# Ignore all .env.local files
+*.env
+*.env.*
+core/settings/.env.local
 .env.local
 .env.prod

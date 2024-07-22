@@ -14,10 +14,10 @@ def get_readeable_suffixes():
     return final_readeable
 
 
-class ExploreRealMix(DataFileAws, ExtractorRealMix):
+class ExploreRealMix(ExtractorRealMix, DataFileAws):
     readable_suffixes = get_readeable_suffixes()
 
-    def __init__(self, want_response=False, *args, **kwargs):
+    def __init__(self, *args, want_response=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.want_response = want_response
 

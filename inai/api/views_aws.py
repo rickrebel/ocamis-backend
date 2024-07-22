@@ -6,6 +6,7 @@ from rest_framework import (permissions, status)
 from rest_framework.decorators import action
 
 from task.builder import TaskBuilder
+from task.helpers import HttpResponseError
 from inai.api.common import send_response, send_response2, get_orphan_data_files
 
 from inai.models import Petition
@@ -15,6 +16,20 @@ from respond.models import DataFile
 from api.mixins import MultiSerializerListRetrieveMix as ListRetrieveView
 
 last_final_path = None
+
+
+def send_find_matches(data_files, petition, base_task):
+    petition_class = PetitionTransformMix(
+        petition, data_files, base_task=base_task)
+    try:
+        petition_class.find_matches_for_data_files()
+    except HttpResponseError as e:
+        print("Error en send_find_matches 1: ", e)
+        return send_response2(petition, base_task)
+    except Exception as e:
+        print("Error en send_find_matches 2: ", e)
+        return send_response2(petition, base_task)
+    return send_response2(petition, base_task)
 
 
 class AutoExplorePetitionViewSet(ListRetrieveView):
@@ -33,11 +48,15 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         base_task = TaskBuilder(
             models=[petition, orphan_pfc],
             function_name="auto_explore", request=request)
-        petition_class = PetitionTransformMix(
-            petition, data_files, base_task=base_task)
-        petition_class.find_matches_for_data_files()
-
-        return send_response2(petition, base_task)
+        return send_find_matches(data_files, petition, base_task)
+        # petition_class = PetitionTransformMix(
+        #     petition, data_files, base_task=base_task)
+        # try:
+        #     petition_class.find_matches_for_data_files()
+        # except HttpResponseError as e:
+        #     return send_response2(petition, base_task)
+        # except Exception as e:
+        #     return send_response2(petition, base_task)
 
     @action(detail=True, methods=["get"], url_path="data_file")
     def data_file(self, request, *args, **kwargs):
@@ -51,12 +70,12 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
             return send_response(petition, errors=[error])
         base_task = TaskBuilder(
             "auto_explore_file", models=[petition, data_file], request=request)
-
-        petition_class = PetitionTransformMix(
-            petition, data_file, base_task=base_task)
-        petition_class.find_matches_for_data_files()
-
-        return send_response2(petition, base_task)
+        return send_find_matches([data_file], petition, base_task)
+        # petition_class = PetitionTransformMix(
+        #     petition, [data_file], base_task=base_task)
+        # petition_class.find_matches_for_data_files()
+        #
+        # return send_response2(petition, base_task)
 
     @action(detail=True, methods=["get"], url_path="pull_orphans")
     def pull_orphans(self, request, *args, **kwargs):

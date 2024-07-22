@@ -194,6 +194,7 @@ class AwsFunction(TaskHelper):
         from inai.misc_mixins.month_record_from_aws import FromAws as MonthRecord
         from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
         from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
+        from respond.data_file_mixins.data_file_aws import FromAws as DataFile
         from rds.misc_mixins.cluster_mix import FromAws as Cluster
         from rds.misc_mixins.mat_view_mix import FromAws as MatView
         from respond.reply_file_mixins.reply_mix import FromAws as ReplyFile
@@ -231,6 +232,8 @@ class AwsBody(AwsFunction):
         # print("RESULT: ", result)
         main_task.result = result
         main_task.save()
+        next_function = main_task.function_after
         new_result = result.copy()
-        super().__init__(main_task=main_task, new_result=new_result)
+        super().__init__(main_task=main_task, new_result=new_result,
+                         function_name=next_function)
         self.execute_next_function()

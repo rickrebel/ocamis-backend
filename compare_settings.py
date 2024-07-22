@@ -3,10 +3,12 @@ import sys
 from importlib import import_module
 from pprint import pprint
 
+
 def load_settings(settings_module):
     os.environ['DJANGO_SETTINGS_MODULE'] = settings_module
     settings = import_module(settings_module)
     return {k: v for k, v in settings.__dict__.items() if k.isupper()}
+
 
 def compare_settings(settings_module_1, settings_module_2):
     settings_1 = load_settings(settings_module_1)
@@ -31,6 +33,7 @@ def compare_settings(settings_module_1, settings_module_2):
             print(f"{key}:")
             print(f"  {settings_module_1}: {settings_1[key]}")
             print(f"  {settings_module_2}: {settings_2[key]}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

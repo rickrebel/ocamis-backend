@@ -35,6 +35,7 @@ class ExtractorRealMix:
         self.has_split = False
 
     def _set_file_control(self, file_control):
+        print("-x file_control", file_control)
         if file_control:
             if isinstance(file_control, str):
                 file_control = int(file_control)
@@ -45,7 +46,8 @@ class ExtractorRealMix:
             else:
                 raise ValueError(
                     "file_control debe ser un entero o un objeto FileControl")
-        elif not self.file_control:
+
+        if not self.file_control:
             self.file_control = self.data_file.petition_file_control.file_control
         self.is_orphan = self.file_control.data_group_id == "orphan"
         self.row_headers = self.file_control.row_headers or 0

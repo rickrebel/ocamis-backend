@@ -308,7 +308,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
             anomalies = {file_ctrl["anomalies"]}
             file_formats = {file_ctrl["file_format"]}
             final_operatib = "other_oper"
-            #print(file_formats)
+            # print(file_formats)
             for level in operability_levels:
                 if not set(level["file_formats"]).isdisjoint(file_formats):
                     final_operatib = level["short_name"]
@@ -366,7 +366,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
 
             final_data["agencies"].append(agency)
 
-        #return Response(
+        # return Response(
         #    serializer.data, status=status.HTTP_200_OK)
         return Response(final_data, status=status.HTTP_200_OK)
 

@@ -26,9 +26,11 @@ class SampleFile:
     def get_sample(self, file_obj) -> dict:
         if file_obj.sample_file:
             return self.get_json_content(file_obj.sample_file.name)
-        else:
+        elif file_obj.sample_data:
             sample_data = file_obj.sample_data.copy()
             return sample_data
+        else:
+            return {}
 
     def get_file_path(self, file_obj):
         if file_obj.sample_file:

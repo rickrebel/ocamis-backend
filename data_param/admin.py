@@ -190,13 +190,13 @@ class TransformationAdmin(admin.ModelAdmin):
     raw_id_fields = ["name_column", "file_control"]
 
 
-class DictionaryFileAdmin(admin.ModelAdmin):
-    list_display = [
-        "provider",
-        "file_control",
-        "file",
-        "unique_field",
-    ]
+# class DictionaryFileAdmin(admin.ModelAdmin):
+#     list_display = [
+#         "provider",
+#         "file_control",
+#         "file",
+#         "unique_field",
+#     ]
 
 
 ocamis_admin_site.register(FinalField, FinalFieldAdmin)

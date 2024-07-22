@@ -3,9 +3,6 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import inai.models
-import respond.data_file_mixins.explore_mix
-import respond.data_file_mixins.get_data_mix
-import respond.data_file_mixins.utils_mix
 import respond.models
 
 
@@ -66,7 +63,6 @@ class Migration(migrations.Migration):
                 'db_table': 'inai_datafile',
                 'ordering': ['-id'],
             },
-            bases=(models.Model, respond.data_file_mixins.explore_mix.ExploreMix, respond.data_file_mixins.utils_mix.DataUtilsMix, respond.data_file_mixins.get_data_mix.ExtractorsMix),
         ),
         migrations.CreateModel(
             name='SheetFile',

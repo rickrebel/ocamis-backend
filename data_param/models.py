@@ -138,12 +138,12 @@ class FileControl(models.Model):
     final_data = models.BooleanField(
         verbose_name="Es información final", blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
-    row_start_data = models.IntegerField(
-        default=1, verbose_name='# de fila donde inician los datos',
-        blank=True, null=True)
     row_headers = models.IntegerField(
         blank=True, null=True,
         verbose_name='# de fila donde se encuentran los encabezados')
+    row_start_data = models.IntegerField(
+        default=1, verbose_name='# de fila donde inician los datos',
+        blank=True, null=True)
     # in_percent = models.BooleanField(default=False)
     is_intermediary = models.BooleanField(
         default=False, verbose_name="Es intermediario entre archivos")

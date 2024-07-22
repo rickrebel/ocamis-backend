@@ -110,7 +110,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         try:
             return format_html(div)
         except Exception as e:
-            print("e", e)
+            print("e 2", e)
             return format_html(div_simple)
     display_status.short_description = "Status"
 
@@ -133,7 +133,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
                 hours = round(abs(minutes) / 60, 2)
                 return f"<b>{hours} hrs</b>"
             except TypeError as e:
-                print("e", e)
+                print("e 3", e)
                 return f"NADA, {e}"
         all_texts = []
         fields2 = [

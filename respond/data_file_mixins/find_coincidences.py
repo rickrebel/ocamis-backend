@@ -296,9 +296,9 @@ class MatchControls(ExtractorRealMix):
                 is_matched = sheet_file.sheet_name in self.matched_sheets
             sheet_file.matched = is_matched
             if is_matched:
-                sheet_data.headers = sheet_data.get("headers")
+                sheet_data["headers"] = sheet_data.get("headers")
             else:
-                sheet_data.headers = []
+                sheet_data["headers"] = []
             # sheet_file.stage_id = "cluster"
             # sheet_file.status_id = "finished"
             sheet_file.save()

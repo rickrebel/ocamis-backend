@@ -62,6 +62,9 @@ class Petition(models.Model):
     send_response = models.DateField(
         verbose_name="Fecha de última respuesta",
         blank=True, null=True)
+    complain_send_limit = models.DateField(
+        verbose_name="Fecha límite de envío de queja",
+        blank=True, null=True)
     status_petition = models.ForeignKey(
         StatusControl, null=True, blank=True,
         related_name="petitions_petition",
