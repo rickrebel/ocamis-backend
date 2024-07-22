@@ -55,14 +55,13 @@ class AnomaliesVizSerializer(serializers.RelatedField):
 
 class AgencyCLUESVizSerializer(serializers.RelatedField):
     def to_representation(self, value):
-        #return (value.name)
         return value.petition.agency.clues_id
 
 
-class AgencyViz2Serializer(serializers.RelatedField):
-    def to_representation(self, value):
-        #return (value.name)
-        return value.petition.agency_id
+# class AgencyViz2Serializerio(serializers.RelatedField):
+# #     def to_representation(self, value):
+# #         # return (value.name)
+# #         return value.petitn.agency_id
 
 
 class FileControlViz2Serializer(serializers.ModelSerializer):
@@ -70,8 +69,8 @@ class FileControlViz2Serializer(serializers.ModelSerializer):
     columns = NameColumnVizSerializer(many=True, read_only=True,)
     anomalies = AnomaliesVizSerializer(many=True, read_only=True)
     petition_file_control = AgencyCLUESVizSerializer(many=True, read_only=True)
-    agencies = AgencyViz2Serializer(
-        many=True, read_only=True, source="petition_file_control")
+    # agencies = AgencyViz2Serializer(
+    #     many=True, read_only=True, source="petition_file_control")
     # format_file = serializers.ReadOnlyField(source="file_format_id")
 
     class Meta:
@@ -82,10 +81,10 @@ class FileControlViz2Serializer(serializers.ModelSerializer):
             "file_format",
             "anomalies",
             "name",
-            #"data_group",
+            # "data_group",
             "columns",
             "petition_file_control",
-            "agencies"
+            "agency"
         ]
 
 

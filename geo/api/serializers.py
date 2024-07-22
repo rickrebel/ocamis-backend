@@ -330,8 +330,8 @@ class AgencyVizSerializer(AgencySerializer):
 
     agency_type = serializers.ReadOnlyField()
     petitions = PetitionVizSerializer(many=True)
-    months = MonthRecordVizSerializer(
-        many=True, read_only=True, source="provider.month_records")
+    # months = MonthRecordVizSerializer(
+    #     many=True, read_only=True, source="provider.month_records")
     # months = serializers.SerializerMethodField(read_only=True)
 
     # def get_months(self, obj):
@@ -351,7 +351,7 @@ class AgencyVizSerializer(AgencySerializer):
             "provider",
             "agency_type",
             "petitions",
-            "months",
+            # "months",
             "population",
         ]
 

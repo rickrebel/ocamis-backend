@@ -276,65 +276,10 @@ class AgencyViewSet(ListRetrieveUpdateMix):
 
         serializer = self.get_serializer_class()(
             all_agencies, many=True, context={'request': request})
-        detailed_controls_query = FileControl.objects\
-            .filter(
-                data_group_id="detailed",
-                petition_file_control__isnull=False
-            )\
-            .prefetch_related(
-                "anomalies",
-                "columns__final_field",
-                "columns__final_field__collection",
-                "petition_file_control__petition__agency"
-            )\
-            .distinct()
-        # detailed_controls_query
-        # detailed_controls = {}
-        # detailed_controls = FileControlSimpleSerializer(
-        detailed_controls = FileControlViz2Serializer(
-            detailed_controls_query, many=True).data
-        for file_ctrl in detailed_controls:
-            anomalies = set(file_ctrl["anomalies"])
-            file_formats = set([file_ctrl["file_format"]])
-            final_operatib = "other_oper"
-            #print(file_formats)
-            for level in operability_levels:
-                if not set(level["file_formats"]).isdisjoint(file_formats):
-                    final_operatib = level["short_name"]
-                if not set(level["anomalies"]).isdisjoint(anomalies):
-                    final_operatib = level["short_name"]
-                # for other_cond in level["other_conditions"]:
-                #    if locals()[other_cond]:
-                #        final_operatib = leved["short_name"]
-            file_ctrl["operability_name"] = final_operatib
-            try:
-                file_ctrl["has_ent_clues"] = bool(
-                    file_ctrl["petition_file_control"][0])
-            except:
-                file_ctrl["has_ent_clues"] = False
-            # clues, formula, drug = build_quality_simple(file_ctrl)
-            file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
-            file_ctrl["agency"] = file_ctrl["agencies"][0]
-            # file_ctrl["quality_names"] = {}
-            # file_ctrl["quality_names"]["clues"] = clues
-            # file_ctrl["quality_names"]["formula"] = formula
-            # file_ctrl["quality_names"]["drug"] = drug
-            # all_comps = [clues, formula, drug]
-            final_qual = "not_enough"
-            quality_levels = ["enough", "almost_enough", "not_enough"]
-            for qual_level in quality_levels:
-                #if qual_level in all_comps:
-                if qual_level in file_ctrl["quality_names"].values():
-                    final_qual = qual_level
-            file_ctrl["quality_names"]["final"] = final_qual
-        # detailed_controls
-        # .filter(petition_file_control="detailed")\
-
         status_negative = ["negative_response"]
         status_delivered = ["with_data", "partial_data", "with_data_contained"]
         status_other = ["waiting", "pick_up",]
-        # enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
-        final_data = {"file_controls": detailed_controls, "agencies": []}
+        final_data = {"file_controls": [], "agencies": []}
         for agency in serializer.data:
             # agency["file_ctrls"] = [ctrl for ctrl in detailed_controls
             #    if ctrl["agency"] and agency["id"]]
@@ -355,8 +300,69 @@ class AgencyViewSet(ListRetrieveUpdateMix):
 
             final_data["agencies"].append(agency)
 
-        #return Response(
-        #    serializer.data, status=status.HTTP_200_OK)
+        detailed_controls_query = FileControl.objects\
+            .filter(
+                data_group_id="detailed",
+                petition_file_control__isnull=False
+            )\
+            .prefetch_related(
+                "anomalies",
+                "columns__final_field",
+                "columns__final_field__collection",
+                "petition_file_control__petition__agency"
+            )\
+            .distinct()
+        # detailed_controls_query
+        # detailed_controls = {}
+        # detailed_controls = FileControlSimpleSerializer(
+        detailed_controls = FileControlViz2Serializer(
+            detailed_controls_query, many=True).data
+        for file_ctrl in detailed_controls:
+            anomalies = set(file_ctrl["anomalies"])
+            file_formats = {file_ctrl["file_format"]}
+            final_operati = "other_oper"
+            # print(file_formats)
+            for level in operability_levels:
+                if not set(level["file_formats"]).isdisjoint(file_formats):
+                    final_operati = level["short_name"]
+                if not set(level["anomalies"]).isdisjoint(anomalies):
+                    final_operati = level["short_name"]
+                # for other_cond in level["other_conditions"]:
+                #    if locals()[other_cond]:
+                #        final_operati = leved["short_name"]
+            file_ctrl["operability_name"] = final_operati
+            try:
+                file_ctrl["has_ent_clues"] = bool(
+                    file_ctrl["petition_file_control"][0])
+            except:
+                file_ctrl["has_ent_clues"] = False
+            # clues, formula, drug = build_quality_simple(file_ctrl)
+            file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
+            # file_ctrl["agency"] = file_ctrl["agencies"][0]
+            # file_ctrl["quality_names"] = {}
+            # file_ctrl["quality_names"]["clues"] = clues
+            # file_ctrl["quality_names"]["formula"] = formula
+            # file_ctrl["quality_names"]["drug"] = drug
+            # all_comps = [clues, formula, drug]
+            final_qual = "not_enough"
+            quality_levels = ["enough", "almost_enough", "not_enough"]
+            for qual_level in quality_levels:
+                # if qual_level in all_comps:
+                if qual_level in file_ctrl["quality_names"].values():
+                    final_qual = qual_level
+            file_ctrl["quality_names"]["final"] = final_qual
+        # detailed_controls
+        # .filter(petition_file_control="detailed")\
+
+        # enoughs = ["not_enough", "enough", "almost_enough", "not_enough"]
+        # final_data = {"file_controls": detailed_controls, "agencies": []}
+        final_data["file_controls"] = detailed_controls
+
+        std_months = MonthRecord.objects\
+            .filter(provider__acronym="ISSSTE")\
+            .values_list("year_month", flat=True)
+        final_data["std_months"] = list(std_months)
+
         return Response(final_data, status=status.HTTP_200_OK)
 
 
