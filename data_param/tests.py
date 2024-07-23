@@ -4,11 +4,21 @@ from datetime import datetime
 from django.test import TestCase
 from category.models import ColumnType
 from data_param.models import NameColumn, FileControl, DataType, FinalField
+from respond.models import DataFile
+from inai.models import Petition
 from scripts.common import similar, text_normalizer
 from geo.models import Agency, Provider
 
 
+class Request:
+    user = None
+
+    def __init__(self, file_id):
+        self.query_params = {"file_id": file_id}
+
+
 class NameColumnTestCase(TestCase):
+
     def setUp(self):
         self.column_original = ColumnType.objects.get(name="original_column")
         self.provider = Provider.objects.create(
@@ -38,6 +48,8 @@ class NameColumnTestCase(TestCase):
 
     # el más simple, sin transformaciones ni nada
     def test_file_control_creation(self):
+        from inai.api.views_aws import AutoExplorePetitionViewSet
+
         names_columns = [
              {
                  "name_in_data": "",
@@ -108,6 +120,32 @@ class NameColumnTestCase(TestCase):
             name_col_data["std_name_in_data"] = std_name
             name_column = NameColumn.objects.create(**name_col_data)
 
+        # Subir el xls a S3 manualmente
+
+        # CREAR LA SOLICITUD (Petition)
+        new_petition = Petition.objects.create(
+            agency=self.first_agency,
+            provider=self.provider,
+            name="Petition Test 1",
+        )
+
+        data_file = DataFile.objects.create(
+            file="s3/test_file.xls",
+            provider=self.provider,
+            file_control=self.file_control,
+        )
+
+        request = Request(data_file.id)
+
+        class NewAutoExplorePetitionViewSet(AutoExplorePetitionViewSet):
+            def get_object(self):
+                return new_petition
+
+        view = NewAutoExplorePetitionViewSet()
+        view.data_file(request)
+
+
+        # get a auto_explore/data_file con el file_id
 
 
 

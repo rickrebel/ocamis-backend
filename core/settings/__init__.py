@@ -78,8 +78,8 @@ SITE_ID = getenv_int("SITE_ID", 1)
 
 # ---------------------------------SECURITY-----------------------------------
 
-# SECRET_KEY = os.getenv("DESABASTO_SECRET_KEY", "secret_key_value")
-SECRET_KEY = os.getenv("DESABASTO_SECRET_KEY", "SECRET_KEY_value")
+SECRET_KEY = os.getenv("DESABASTO_SECRET_KEY", "secret_key_value")
+# SECRET_KEY = os.getenv("DESABASTO_SECRET_KEY", "SECRET_KEY_value")
 ALLOWED_HOSTS = getenv_list("ALLOWED_HOSTS", ["*"])
 
 DEBUG = getenv_bool("DESABASTO_DEBUG", True)
@@ -209,8 +209,8 @@ AWS_S3_FILE_OVERWRITE = getenv_bool('AWS_S3_FILE_OVERWRITE', False)
 
 URL_AMAZON_S3_FILES_UPLOADED = os.getenv('URL_AMAZON_S3_FILES_UPLOADED')
 
-# if AWS_STORAGE_BUCKET_NAME:
-#     INSTALLED_APPS += ("storages", )
+if AWS_STORAGE_BUCKET_NAME:
+    INSTALLED_APPS += ("storages", )
 # -------------------------------END STORAGE---------------------------------
 
 # ----------------------------------MEDIA------------------------------------

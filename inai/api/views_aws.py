@@ -68,6 +68,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         except DataFile.DoesNotExist:
             error = "No se encontró el archivo para explorar"
             return send_response(petition, errors=[error])
+
         base_task = TaskBuilder(
             "auto_explore_file", models=[petition, data_file], request=request)
         return send_find_matches([data_file], petition, base_task)
