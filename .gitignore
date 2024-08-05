@@ -65,3 +65,4 @@ core/settings/.env.local
 
 
 /fixtures/
+/fixture/

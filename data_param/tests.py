@@ -18,6 +18,18 @@ class Request:
 
 
 class NameColumnTestCase(TestCase):
+    fixtures = [
+        "fixture/db/auth_user.json",
+        "fixture/db/med_cat.json",
+        "fixture/db/respond.json",
+        "fixture/db/category.json",
+        "fixture/db/geo.json",
+        "fixture/db/classify_task.json",
+        "fixture/db/data_param.json",
+        "fixture/db/medicine.json",
+        "fixture/db/transparency.json",
+        "fixture/db/rds.json",
+    ]
 
     def setUp(self):
         self.column_original = ColumnType.objects.get(name="original_column")
@@ -142,7 +154,7 @@ class NameColumnTestCase(TestCase):
 
         view = TestAutoExplorePetitionViewSet()
         view.data_file(request)
-        self.assert
+        self.assertTrue(True)
 
         # get a auto_explore/data_file con el file_id
 
