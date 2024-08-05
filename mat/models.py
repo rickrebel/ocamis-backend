@@ -1,14 +1,14 @@
 from django.db import models
 from django.conf import settings
 from med_cat.models import MedicalUnit, Delivered, Medicament
+from geo.models import CLUES, Delegation, Provider
+from inai.models import WeekRecord
+from medicine.models import Container
 is_big_active = getattr(settings, "IS_BIG_ACTIVE")
 is_managed = not is_big_active
 
 
 class MotherDrugPriority(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from inai.models import WeekRecord
-    from medicine.models import Container
     delegation = models.ForeignKey(
         Delegation, on_delete=models.DO_NOTHING, db_column="delegation_id")
     clues = models.ForeignKey(
@@ -36,9 +36,6 @@ class MotherDrugPriority(models.Model):
 
 
 class MotherDrug(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from inai.models import WeekRecord
-    from medicine.models import Container
     key = models.CharField(max_length=255, primary_key=True, db_column="key")
     clues = models.ForeignKey(
         CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
@@ -66,8 +63,6 @@ class MotherDrug(models.Model):
 
 
 class MotherDrugEntity(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from medicine.models import Container
     iso_year = models.PositiveSmallIntegerField(
         db_column="iso_year", primary_key=True)
     iso_week = models.PositiveSmallIntegerField(
@@ -127,8 +122,6 @@ class MotherDrugEntity(models.Model):
 
 
 class MotherDrugTotals(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from inai.models import WeekRecord
     clues = models.ForeignKey(
         CLUES, on_delete=models.DO_NOTHING, db_column="clues_id")
     delegation = models.ForeignKey(

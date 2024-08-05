@@ -134,16 +134,15 @@ class NameColumnTestCase(TestCase):
             provider=self.provider,
             file_control=self.file_control,
         )
-
         request = Request(data_file.id)
 
-        class NewAutoExplorePetitionViewSet(AutoExplorePetitionViewSet):
+        class TestAutoExplorePetitionViewSet(AutoExplorePetitionViewSet):
             def get_object(self):
                 return new_petition
 
-        view = NewAutoExplorePetitionViewSet()
+        view = TestAutoExplorePetitionViewSet()
         view.data_file(request)
-
+        self.assert
 
         # get a auto_explore/data_file con el file_id
 

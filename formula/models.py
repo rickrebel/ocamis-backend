@@ -8,6 +8,8 @@ import uuid as uuid_lib
 
 from med_cat.models import (
     Doctor, Diagnosis, Area, MedicalUnit, Medicament, Delivered)
+from geo.models import CLUES, Delegation, Provider
+from medicine.models import Component, Presentation, Container
 
 
 class MedicalSpeciality(models.Model):
@@ -22,7 +24,6 @@ class MedicalSpeciality(models.Model):
 
 
 class Rx(models.Model):
-    from geo.models import CLUES, Delegation, Provider
     uuid_folio = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
@@ -157,7 +158,7 @@ class ComplementDrug(models.Model):
         verbose_name_plural = "Insumos (medicamentos)"
 
     def __str__(self):
-        return str(self.uuid)
+        return str(self.uuid_comp_drug)
 
 
 class MissingRow(models.Model):
@@ -212,8 +213,7 @@ class MissingField(models.Model):
 
 
 class MatDrugPriority(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from medicine.models import Container
+
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
     clues = models.ForeignKey(
@@ -261,8 +261,6 @@ class MatDrugPriority(models.Model):
 
 
 class MatDrugEntity(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from medicine.models import Container
     iso_year = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     entity = models.ForeignKey(
@@ -286,9 +284,6 @@ class MatDrugEntity(models.Model):
 
 
 class MatDrug(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from inai.models import WeekRecord
-    from medicine.models import Container
     key = models.CharField(max_length=255)
     clues = models.ForeignKey(
         CLUES, on_delete=models.CASCADE)
@@ -313,9 +308,6 @@ class MatDrug(models.Model):
 
 
 class MatDrugExtended(models.Model):
-    from geo.models import Delegation, Provider
-    from inai.models import WeekRecord
-    from medicine.models import Component, Presentation, Container
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE)
     iso_year = models.PositiveSmallIntegerField()
@@ -341,8 +333,7 @@ class MatDrugExtended(models.Model):
 
 
 class MatDrugTotals(models.Model):
-    from geo.models import CLUES, Delegation, Provider
-    from inai.models import WeekRecord
+
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
     clues = models.ForeignKey(

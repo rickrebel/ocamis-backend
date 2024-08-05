@@ -62,3 +62,6 @@ core/local.py
 core/settings/.env.local
 .env.local
 .env.prod
+
+
+/fixtures/

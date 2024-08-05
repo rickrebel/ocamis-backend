@@ -13,7 +13,7 @@ def move_delegation_clues():
             try:
                 delegation.provider = Provider.objects.get(
                     institution=delegation.institution,
-                    state=delegation.state, ent_clues__isnull=True)
+                    state=delegation.state, prov_clues__isnull=True)
             except Provider.DoesNotExist:
                 print("Provider not found: ", delegation)
             except Provider.MultipleObjectsReturned:
@@ -27,8 +27,7 @@ def generate_agency_delegations():
     for agency in agencies_with_clues:
         name = f"{agency.name}"
         Delegation.objects.get_or_create(
-            name=name, state=agency.state,
-            institution=agency.institution, clues=agency.clues)
+            name=name, state=agency.state, institution=agency.institution)
 
 
 def create_provider_by_agency():

@@ -1,11 +1,9 @@
-from django.shortcuts import render
 from scripts.common import text_normalizer
 
 
 def build_catalog_delegation_by_id(institution, key_field='name'):
     from geo.models import Delegation
-    delegation_value_list = [
-        'name', 'other_names', 'id']
+    delegation_value_list = ['name', 'other_names', 'id']
     curr_delegations = Delegation.objects.filter(institution=institution)
     delegations_query = list(curr_delegations.values(*delegation_value_list))
     catalog_delegation = {}

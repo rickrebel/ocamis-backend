@@ -135,9 +135,7 @@ class DelegationAdmin(admin.ModelAdmin):
         "name",
         "state",
         "institution",
-        "clues",
     ]
-    raw_id_fields = ["clues"]
     search_fields = [
         "name",
         "institution__code",

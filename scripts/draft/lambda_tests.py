@@ -43,7 +43,7 @@ def create_lambda_function(function_name, final_path):
         Role="arn:aws:iam::032892915740:role/full_lambda",
         Handler=f"{function_name}.lambda_handler",
         Code={
-            #'ZipFile': zip_file,
+            # 'ZipFile': zip_file,
             'S3Bucket': getattr(settings, "AWS_STORAGE_BUCKET_NAME"),
             'S3Key': s3_key
         },

@@ -194,7 +194,7 @@ class CLUES(models.Model):
         Institution, on_delete=models.CASCADE)
     provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE, blank=True, null=True,
-        related_name="ent_clues")
+        related_name="prov_clues")
     # institution = models.IntegerField()
     name = models.CharField(
         max_length=255, verbose_name="NOMBRE DE LA UNIDAD")
@@ -328,14 +328,9 @@ class Delegation(models.Model):
     state = models.ForeignKey(
         State, verbose_name="Entidad",
         on_delete=models.CASCADE)
-    # RICK 21 Borrar en al futuro:
     institution = models.ForeignKey(
         Institution, verbose_name="Institución",
         on_delete=models.CASCADE)
-    clues = models.OneToOneField(
-        CLUES, blank=True, null=True,
-        on_delete=models.CASCADE,
-        related_name="related_delegation")
 
     def __str__(self):
         return "%s -- %s --%s" % (
@@ -368,7 +363,6 @@ class Jurisdiction(models.Model):
 
 
 class Agency(models.Model):
-
     provider = models.ForeignKey(
         Provider, verbose_name="Entidad",
         on_delete=models.CASCADE, blank=True, null=True,

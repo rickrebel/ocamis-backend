@@ -318,11 +318,11 @@ class AgencyViewSet(ListRetrieveUpdateMix):
                 #    if locals()[other_cond]:
                 #        final_operatib = leved["short_name"]
             file_ctrl["operability_name"] = final_operatib
-            try:
-                file_ctrl["has_ent_clues"] = bool(
-                    file_ctrl["petition_file_control"][0])
-            except:
-                file_ctrl["has_ent_clues"] = False
+            # try:
+            #     file_ctrl["has_ent_clues"] = bool(
+            #         file_ctrl["petition_file_control"][0])
+            # except:
+            #     file_ctrl["has_ent_clues"] = False
             # clues, formula, drug = build_quality_simple(file_ctrl)
             file_ctrl["quality_names"] = build_quality_simple(file_ctrl)
             file_ctrl["agency"] = file_ctrl["agencies"][0]
@@ -334,7 +334,7 @@ class AgencyViewSet(ListRetrieveUpdateMix):
             final_qual = "not_enough"
             quality_levels = ["enough", "almost_enough", "not_enough"]
             for qual_level in quality_levels:
-                #if qual_level in all_comps:
+                # if qual_level in all_comps:
                 if qual_level in file_ctrl["quality_names"].values():
                     final_qual = qual_level
             file_ctrl["quality_names"]["final"] = final_qual

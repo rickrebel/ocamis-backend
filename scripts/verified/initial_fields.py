@@ -289,7 +289,7 @@ def generate_imss_delegations():
         short_name = state.short_name.upper()
         if short_name in ["VERACRUZ", "CIUDAD DE MÉXICO", "ESTADO DE MÉXICO"]:
             continue
-        deleg, created = Delegation.objects.get_or_create(
+        Delegation.objects.get_or_create(
             name=short_name, state=state, institution=imss)
     for delegation_name, clues_clave in UMAES:
         clues = CLUES.objects.get(clues=clues_clave)

@@ -1,8 +1,4 @@
-import uuid as uuid_lib
-import hashlib
-
 from django.db import models
-
 from geo.models import Institution, Delegation, Provider, Typology, CLUES
 from medicine.models import Component, Presentation, Container
 
@@ -73,7 +69,6 @@ class Area(models.Model):
 
 
 class Doctor(models.Model):
-    from geo.models import Institution, Delegation
 
     hex_hash = models.CharField(max_length=32, primary_key=True)
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)

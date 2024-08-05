@@ -51,7 +51,7 @@ class CatalogView(views.APIView):
             "institution", "state", "clues")
         providers_query = Provider.objects.all() \
             .order_by("status_priority__order", "state__name", "acronym") \
-            .prefetch_related("institution", "state", "ent_clues", "cut_offs")
+            .prefetch_related("institution", "state", "prov_clues", "cut_offs")
         final_fields_query = FinalField.objects.filter(dashboard_hide=False)
         general_templates = RequestTemplate.objects.filter(provider__isnull=True)
         last_template = general_templates.first()

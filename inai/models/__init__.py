@@ -40,14 +40,16 @@ def set_upload_path(instance, filename):
     folio_petition = pet_obj.folio_petition
     elems = [agency_type, acronym, folio_petition]
     if settings.IS_LOCAL:
-        elems.append("localhost")
+        elems.insert(1, "localhost")
     if reply_file := getattr(instance, "reply_file", False):
+        # TODO Future: Esto está repetido en algunos lugares
         elems.append(f"reply_file_{reply_file.id}")
         if instance.directory:
             elems += instance.directory.split("/")
     elems.append(filename)
 
-    return "/".join([agency_type, acronym, folio_petition, filename])
+    # return "/".join([agency_type, acronym, folio_petition, filename])
+    return "/".join(elems)
 
 
 class WeekRecord(models.Model):

@@ -97,7 +97,8 @@ class MatchTransform(BaseTransform):
 
         self.provider = petition.real_provider or petition.agency.provider
         self.institution = self.provider.institution
-        self.global_clues = self.provider.ent_clues.first() if self.provider.is_clues else None
+        self.global_clues = self.provider.prov_clues.first() \
+            if self.provider.is_clues else None
         # print("self.institution.code", self.institution.code)
         self.global_delegation = self.global_clues.delegation \
             if self.global_clues else None

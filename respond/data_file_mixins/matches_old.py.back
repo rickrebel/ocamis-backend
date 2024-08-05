@@ -60,8 +60,8 @@ class MatchOld:
             print("INSABI")
             if self.global_state:
                 delegation_name = f"{self.global_state.short_name} - INSABI"
-                self.global_delegation = Delegation.objects.filter(
-                    name=delegation_name).first()
+                self.global_delegation = Delegation.objects\
+                    .filter(name=delegation_name).first()
         elif self.global_clues:
             self.global_delegation = self.global_clues.related_delegation
         print("global_delegation", self.global_delegation)

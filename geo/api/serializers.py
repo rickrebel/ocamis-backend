@@ -63,7 +63,7 @@ class CLUESSerializer(serializers.ModelSerializer):
 class ProviderCatSerializer(serializers.ModelSerializer):
     institution = InstitutionSerializer(read_only=True)
     state = StateSimpleSerializer(read_only=True)
-    clues = CLUESSerializer(read_only=True, source="ent_clues", many=True)
+    clues = CLUESSerializer(read_only=True, source="prov_clues", many=True)
     cut_offs = CutOffSerializer(many=True)
 
     class Meta:
