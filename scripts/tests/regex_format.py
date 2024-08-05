@@ -85,10 +85,11 @@ def cie_10_codes(measure_times=0):
         "M819",
         "K40K",
         "K746",
+        "U071"
     ]
     keys_res = [
-        re.compile(r'^[A-TV-Z][0-9]{2}(?:\.?[0-9]{1,2})?$'),
-        re.compile(r'^[A-TV-Z][0-9]{2}(?:\.?[0-9]{1,2})?X?$'),
+        re.compile(r'^[A-Z][0-9]{2}(?:\.?[0-9]{1,2})?$'),
+        re.compile(r'^[A-Z][0-9]{2}(?:\.?[0-9]{1,2})?X?$'),
     ]
 
     regex_format = RegexFormat(keys_res, cases=all_codes, measure_times=measure_times)

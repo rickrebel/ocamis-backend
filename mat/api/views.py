@@ -112,6 +112,8 @@ class DrugViewSet(ListRetrieveUpdateMix):
             first_values = {
                 'iso_week': f'{prev_iso}iso_week',
                 'iso_year': f'{prev_iso}iso_year',
+                'year': f'{prev_iso}year',
+                'month': f'{prev_iso}month',
             }
             comp_string = "medicament__container__presentation__component"
             if is_mini:
@@ -186,7 +188,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 if key != value:
                     annotates[key] = F(value)
                 display_values.append(key)
-            order_values = ["iso_year", "iso_week"]
+            order_values = ["year", "month", "iso_year", "iso_week"]
             if by_delegation:
                 order_values.insert(0, "delegation")
 
