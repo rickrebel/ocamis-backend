@@ -7,7 +7,8 @@ from django.contrib.auth.models import User
 class TestLoadCatalog(TestCase):
     # Carga de fixtures en este orden para evitar problemas de integridad referencial
     fixtures = [
-        "fixture/db/auth_user.json",
+        # "fixture/db/auth_user.json",
+        "fixture/db/auth_user2.json",
         # "fixture/db/med_cat.json",
         # "fixture/db/respond.json",
         # "fixture/db/category.json",
