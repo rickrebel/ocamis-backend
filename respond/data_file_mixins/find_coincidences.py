@@ -175,7 +175,7 @@ class MatchControls(ExtractorRealMix):
     def _add_warning(self, text):
         self.warnings.append(text)
 
-    def _set_match(self, sheet_name, full=True):
+    def _set_match(self, sheet_name):
         self.matched_sheets[sheet_name] = True
 
     def _find_coincidences_in_sheet(self, sheet_name):
@@ -185,12 +185,12 @@ class MatchControls(ExtractorRealMix):
 
         try:
             first_row = sheet_data.get("all_data", [])[0]
-            first_col = first_row[0]
+            # first_col = first_row[0]
             total_cols = len(first_row)
         except IndexError:
             raise "No se encontró información en la hoja"
 
-        if not self.name_columns.count() != total_cols:
+        if self.name_columns.count() != total_cols:
             return False
         # RICK FUTURE: esto lo voy a dejar sin usar por ahora
         # if self.only_cols_with_headers:
@@ -248,7 +248,7 @@ class MatchControls(ExtractorRealMix):
         if coincidences + 2 >= len(self.name_columns):
             for name_col in need_save:
                 name_col.save()
-            return self._set_match(sheet_name, False)
+            return self._set_match(sheet_name)
         return False
 
     # def _set_pfc(self, data_file: DataFile, file_control: FileControl = None):
@@ -281,7 +281,7 @@ class MatchControls(ExtractorRealMix):
             data_file = self._set_pfc(data_file)
 
         data_file.filtered_sheets = self.filtered_sheets
-        data_file.errors = self.errors or None
+        data_file.error_process = self.errors or None
         data_file.warnings = self.warnings or None
         for sheet_file in self.data_file.sheet_files.all():
             if is_create:
@@ -302,7 +302,7 @@ class MatchControls(ExtractorRealMix):
             # sheet_file.stage_id = "cluster"
             # sheet_file.status_id = "finished"
             sheet_file.save()
-        status = "finished" if not self.errors else "with_errors"
+        status = "with_errors" if self.errors else "finished"
         data_file.finished_stage(f"cluster|{status}")
 
     # def _save_new_data_file(self, control_data):
@@ -319,13 +319,13 @@ class MatchControls(ExtractorRealMix):
         return DataFile(
             file=self.data_file.file,
             provider=self.data_file.provider,
-            is_duplicate=False,
+            is_duplicated=False,
             date=self.data_file.date,
             suffix=self.data_file.suffix,
             directory=self.data_file.directory,
             total_rows=self.data_file.total_rows,
             sample_file=self.data_file.sample_file,
-            sheet_names=self.full_sheet_data.keys(),
+            sheet_names=list(self.full_sheet_data.keys()),
             notes=self.data_file.notes,
         )
 

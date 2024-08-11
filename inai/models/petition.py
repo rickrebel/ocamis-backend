@@ -179,7 +179,7 @@ class Petition(models.Model):
 
         try:
             return self.file_controls.get(file_control__data_group_id='orphan')
-        except FileControl.DoesNotExist:
+        except PetitionFileControl.DoesNotExist:
             if not forced_create:
                 return None
 

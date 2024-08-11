@@ -153,7 +153,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         #     "finished_function": stage.finished_function
         # }
         seconds_sleep = 10 if provider.split_by_delegation else 1
-        # accumulated_sleep = 0
+        accumulated_sleep = 0
 
         for month_record in month_records:
             if base_task:
@@ -167,26 +167,29 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             month_errors = []
             month_methods = MonthRecordMix(
                 month_record, base_task=month_base_task)
+            # print("month_methods", month_methods)
 
-            def run_in_thread():
+            def run_in_thread(seconds_wait):
                 main_method = getattr(month_methods, main_function_name)
                 try:
                     main_method()
                 except HttpResponseError as err:
                     if not base_task:
                         return Response(err.body_response, status=err.http_status)
-                time.sleep(seconds_sleep)
+
+                time.sleep(seconds_wait)
 
             stage_merge = Stage.objects.get(name="merge")
             all_classified = stage.order >= stage_merge.order
             if all_classified:
                 if month_record.sheet_files.filter(behavior_id="pending").exists():
-                    month_errors.append(
-                        f"Hay hojas pendientes de clasificar para el mes "
-                        f"{month_record.year_month}")
+                    error = (f"Hay hojas pendientes de clasificar para el mes "
+                             f"{month_record.year_month}")
+                    month_errors.append(error)
 
             if month_errors:
                 # print("month_errors", month_errors)
+                month_base_task.add_errors(month_errors)
                 month_record.save_stage(stage.name, month_errors)
                 month_base_task.comprobate_status()
             elif is_revert:
@@ -197,17 +200,20 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 t = threading.Thread(target=run_in_thread)
                 t.start()
             else:
-                run_in_thread()
+                accumulated_sleep += seconds_sleep
+                run_in_thread(accumulated_sleep)
                 # time.sleep(seconds_sleep)
 
         if base_task:
-            try:
-                base_task.comprobate_status(want_http_response=None)
-            except HttpResponseError as e:
-                print("ERROR EN BASE TASK", e)
-                return Response(e.body_response, status=e.http_status)
+            if not base_task.new_tasks:
+                try:
+                    base_task.comprobate_status(want_http_response=None)
+                except HttpResponseError as e:
+                    print("ERROR EN BASE TASK", e)
+                    return Response(e.body_response, status=e.http_status)
         elif month_base_task:
-            month_base_task.comprobate_status(want_http_response=False)
+            if not month_base_task.new_tasks:
+                month_base_task.comprobate_status(want_http_response=False)
 
         if not month_records_ids:
             month_records_ids = [month_record_id]

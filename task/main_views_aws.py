@@ -170,10 +170,6 @@ class AwsFunction(TaskHelper):
         if self.final_method:
             try:
                 self.final_method(**self.new_result)
-                # else:
-                #     new_tasks, final_errors, _data = self.final_method(
-                #         **self.new_result)
-                #     self.errors.extend(final_errors or [])
             except HttpResponseError as e:
                 self.add_errors(e.errors, comprobate=False)
             except Exception as error:
@@ -187,7 +183,7 @@ class AwsFunction(TaskHelper):
         if self.errors:
             print("ERRORES en ExecuteAwsFunction: ", self.errors)
         # return comprobate_status(self.main_task, self.errors, self.new_tasks)
-        return self.comprobate_status(want_http_response=False)
+        self.comprobate_status(want_http_response=False)
 
     def _get_method(self):
         from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
@@ -206,9 +202,6 @@ class AwsFunction(TaskHelper):
             try:
                 model_name = self.model_obj.__class__.__name__
                 from_aws_class = locals()[model_name]
-                # base_task = TaskBuilder(
-                #     model_obj=self.model_obj, parent_task=self.main_task)
-                # base_task = TaskBuilder(main_task=self.main_task, from_aws=True)
                 base_aws_mix = from_aws_class(self.model_obj, base_task=self)
                 return getattr(base_aws_mix, self.next_function)
             except Exception as error3:

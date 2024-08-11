@@ -29,9 +29,9 @@ class ReplyFileMixReal:
             "upload_path": upload_path,
         }
         decompress_task = TaskBuilder(
-            function_name="decompress_zip_aws", parent_class=self.base_task,
+            "decompress_zip_aws", parent_class=self.base_task,
             models=[self.reply_file], params=params)
-        decompress_task.async_in_lambda(comprobate=True)
+        decompress_task.async_in_lambda()
 
 
 class FromAws:

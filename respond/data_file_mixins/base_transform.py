@@ -23,6 +23,7 @@ class BaseTransform(BaseDataFile):
 
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
         from inai.models import set_upload_path
+        super().__init__(data_file, base_task=base_task)
 
         self.is_prepare = False
         self.init_data = {}
@@ -38,7 +39,6 @@ class BaseTransform(BaseDataFile):
             f"NEW_ELEM_NAME/{file_name}_df_{self.data_file.id}_SHEET_NAME"
             f"_NEW_ELEM_NAME_lap{self.lap}_fc{self.file_control.id}.csv")
         self.final_path = set_upload_path(self.data_file, only_name)
-        super().__init__(data_file, base_task=base_task)
 
     def calculate_sheets(self):
         from classify_task.models import Stage, StatusTask

@@ -82,9 +82,8 @@ class InsertMonth:
             "week_record_id": week_record.id,
         }
         week_task = TaskBuilder(
-            model_obj=week_record, parent_class=self.base_task,
-            function_name="build_week_csvs", params=params,
-            models=[week_record, self.month_record],
+            "build_week_csvs", parent_class=self.base_task,
+            params=params, models=[week_record, self.month_record],
             function_after="save_merged_from_aws")
         return week_task.async_in_lambda()
 
@@ -153,9 +152,8 @@ class InsertMonth:
             "table_files_ids": table_files_ids,
         }
         week_task = TaskBuilder(
-            model_obj=week_record, parent_class=self.base_task,
-            function_name="save_week_base_models", params=params,
-            models=[week_record, self.month_record])
+            "save_week_base_models", parent_class=self.base_task,
+            params=params, models=[week_record, self.month_record])
         return week_task.async_in_lambda()
         # return async_in_lambda(
         #     "save_week_base_models", params, current_task_params)
@@ -194,11 +192,11 @@ class InsertMonth:
             "lap_sheet_id": lap_sheet.id,
             "table_files_ids": table_files_ids,
         }
-        models = [lap_sheet.sheet_file, lap_sheet.sheet_file.data_file,
-                  self.month_record]
+        models = [lap_sheet, lap_sheet.sheet_file,
+                  lap_sheet.sheet_file.data_file, self.month_record]
         lap_task = TaskBuilder(
-            model_obj=lap_sheet, parent_class=self.base_task,
-            function_name=function_name, params=params, models=models,
+            function_name, parent_class=self.base_task,
+            params=params, models=models,
             function_after=function_after, subgroup=subgroup)
         lap_task.async_in_lambda()
 

@@ -192,7 +192,7 @@ class MatchTransform(BaseTransform):
                 f"aún no está lista para ser usado")
         if missing_criteria:
             # print("missing_criteria", missing_criteria)
-            missing_criteria.insert(0, "No pasó la validación básica")
+            missing_criteria.insert(0, "No pasó la validación básica -->")
             self.base_task.add_errors_and_raise(missing_criteria)
 
         # self.build_existing_fields()
@@ -213,7 +213,8 @@ class MatchTransform(BaseTransform):
                 try:
                     params["file"] = sample_file.get_file_path(sheet_file)
                 except ValueError as e:
-                    return [], [str(e)], self.data_file
+                    # return [], [str(e)], self.data_file
+                    self.base_task.add_errors_and_raise([str(e)])
                 # init_data["sample_data"] = sheet_file.sample_data
             sf_task = TaskBuilder(
                 "start_build_csv_data", function_after="build_csv_data_from_aws",

@@ -23,17 +23,18 @@ def lambda_handler(event, context):
         errors = [f"Hay 1 error raro en la inicialización: {str(e)}", error_]
         return send_simple_response(event, context, errors=errors)
 
-    try:
-        file = event["file"]
-        final_result = match_aws.build_csv_to_data(file)
-    except ValueError as e:
-        errors = [str(e)]
-        return send_simple_response(event, context, errors=errors)
-    except Exception as e:
-        error_ = traceback.format_exc()
-        print("Error en la construcción", error_)
-        errors = [f"Hay un error raro en la construcción: \n{str(e)}\n{error_}"]
-        return send_simple_response(event, context, errors=errors)
+    # try:
+    file = event["file"]
+    # print("file", file)
+    final_result = match_aws.build_csv_to_data(file)
+    # except ValueError as e:
+    #     errors = [str(e)]
+    #     return send_simple_response(event, context, errors=errors)
+    # except Exception as e:
+    #     error_ = traceback.format_exc()
+    #     print("Error en la construcción", error_)
+    #     errors = [f"Hay un error raro en la construcción: \n{str(e)}\n{error_}"]
+    #     return send_simple_response(event, context, errors=errors)
 
     return send_simple_response(event, context, result=final_result)
 
@@ -329,7 +330,7 @@ class TransformToCsv:
         curr_rx = self.real_buffers.get_rx_data(complex_date, folio_ocamis)
 
         if curr_rx:
-            uuid_folio = curr_rx["uuid_folio"]
+            uuid_folio = curr_rx["uuid"]
             # available_data["uuid_folio"] = uuid_folio
             # available_data["rx_id"] = uuid_folio
             all_delivered = curr_rx.get("all_delivered", set())

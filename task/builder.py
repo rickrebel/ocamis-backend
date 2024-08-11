@@ -15,39 +15,29 @@ class TaskBuilder(TaskHelper):
     def __init__(
             self,
             function_name: str = None,
-            model_obj=None,
-            main_task: AsyncTask = None,
-            request=None,
-            parent_task: AsyncTask = None,
-            function_after: str = None,
-            keep_tasks: bool = False,
-            parent_class: TaskHelper = None,
-            subgroup: str = None,
-            from_aws: bool = False,
-            finished_function: str = None,
-            # params_after: dict = None,
-            is_massive: bool = False,
             models: list = None,
+            parent_task: AsyncTask = None,
+            parent_class: TaskHelper = None,
+            request=None,
+            function_after: str = None,
+            finished_function: str = None,
+            is_massive: bool = False,
+            subgroup: str = None,
+            keep_tasks: bool = False,
+            from_aws: bool = False,
             **kwargs
     ):
         # RICK TASK2: TODO: Revisar si se puede quitar el from_aws
-        self.from_aws = from_aws
-        if main_task:
-            self.main_task = main_task
-        else:
-            self.main_task = AsyncTask(date_start=datetime.now())
 
-        if not models:
-            remain_models = []
-        elif not model_obj:
+        self.from_aws = from_aws
+        self.expired_tasks = []
+        self.main_task = AsyncTask(date_start=datetime.now())
+
+        remain_models = []
+        model_obj = None
+        if models:
             model_obj = models[0]
             remain_models = models[1:]
-        else:
-            remain_models = models
-        if main_task and model_obj:
-            raise Exception("No se puede crear una nueva tarea con un modelo")
-
-        self.model_obj = model_obj
 
         self.keep_tasks = keep_tasks
         self.main_task.is_massive = is_massive
@@ -82,9 +72,9 @@ class TaskBuilder(TaskHelper):
 
         print("-x Function name", function_name)
         super().__init__(self.main_task, parent_class=parent_class,
-                         model_obj=self.model_obj, **kwargs)
+                         model_obj=model_obj, **kwargs)
         self.set_function_name(function_name)
-        if self.model_obj and not main_task:
+        if self.model_obj:
             self.build()
         if remain_models:
             self.set_models(remain_models)
@@ -101,7 +91,7 @@ class TaskBuilder(TaskHelper):
                     f"{function_name} (Creada por excepción)")
                 task_function.is_active = True
                 task_function.save()
-            print("Task function", task_function.name)
+            # print("Task function", task_function.name)
             self.params["function_name"] = function_name
             self.main_task.task_function = task_function
 
@@ -141,21 +131,41 @@ class TaskBuilder(TaskHelper):
         if not self.main_task.is_massive and not self.keep_tasks:
             previous_tasks = AsyncTask.objects.filter(**filter_kwargs)
             self.update_previous_tasks(previous_tasks)
+            self.send_channel_update()
 
     def update_previous_tasks(self, tasks):
-        tasks = tasks.filter(is_current=True)
-        for task in tasks:
-            task.is_current = False
-            task.save()
-            if task.child_tasks.filter(is_current=True).exists():
-                self.update_previous_tasks(task.child_tasks.all())
+        to_expired_tasks = tasks.filter(is_current=True)
+        if to_expired_tasks.exists():
+            self.expired_tasks += to_expired_tasks
+            to_expired_tasks.update(is_current=False)
+        all_children = AsyncTask.objects.filter(parent_task__in=tasks)
+        if all_children.exists():
+            self.update_previous_tasks(all_children)
+        # for task in tasks:
+        #     # task.is_current = False
+        #     # task.save()
+        #     if task.child_tasks.filter(is_current=True).exists():
+        #         self.update_previous_tasks(task.child_tasks.all())
+
+    def send_channel_update(self):
+        from task.models import send_result_to_channel
+        if not self.expired_tasks:
+            return
+        expired_ids = [task.id for task in self.expired_tasks]
+        # print("Expired tasks", expired_ids)
+        result = {
+            "model": "AsyncTask",
+            "expired_ids": expired_ids,
+            "new_task_id": self.main_task.id
+        }
+        send_result_to_channel(result)
 
     # RICK TASK2: Esto ya no me convenció nadita
     def get_child_base(self, function_name=None, **kwargs):
         if not function_name:
             function_name = self.main_task.task_function_id
         child_task = TaskBuilder(
-            function_name=function_name, parent_class=self, **kwargs)
+            function_name, parent_class=self, **kwargs)
         return child_task
 
     def set_model(self, model):

@@ -109,25 +109,16 @@ class DataFileViewSet(CreateRetrieveView):
         target_name = target_stage.name
 
         curr_kwargs = {}
-        function_after = None
         if target_stage.function_after:
-            function_after = target_stage.function_after.name
-            curr_kwargs = {"function_after": function_after}
+            curr_kwargs = {"function_after": target_stage.function_after}
 
         base_task = TaskBuilder(
-            function_name=target_stage.main_function.name,
-            models=[data_file], request=request, is_massive=True)
-
+            target_stage.main_function.name,
+            models=[data_file], request=request)
         for re_stage in target_stage.re_process_stages.all():
             current_function = re_stage.main_function.name
-            on_target = re_stage.name == target_name
-
-            re_task = TaskBuilder(
-                function_name=current_function, parent_class=base_task,
-                models=[data_file], request=request,
-                function_after=function_after)
             explore = ExploreRealMix(
-                data_file, base_task=re_task, want_response=True)
+                data_file, base_task=base_task, want_response=True)
             try:
                 # possible_functions: get_sample_data, verify_coincidences,
                 # prepare_transform, transform_data
@@ -135,7 +126,9 @@ class DataFileViewSet(CreateRetrieveView):
             except HttpResponseError as e:
                 if e.errors:
                     data_file.save_errors(e.errors, f"{re_stage.name}|with_errors")
+                base_task.comprobate_status(want_http_response=False)
                 return e.send_response()
+            on_target = re_stage.name == target_name
             if on_target:
                 data_file = data_file.finished_stage(f"{target_name}|finished")
                 base_task.comprobate_status(want_http_response=False)
@@ -152,7 +145,7 @@ class DataFileViewSet(CreateRetrieveView):
         from respond.data_file_mixins.explore_mix import ExploreRealMix
 
         base_task = TaskBuilder(
-            function_name="build_columns", models=[data_file], request=request)
+            "build_columns", models=[data_file], request=request)
 
         curr_kwargs = {"function_after": "build_sample_data_after"}
         explore = ExploreRealMix(
@@ -166,6 +159,7 @@ class DataFileViewSet(CreateRetrieveView):
             data_file, base_task=base_task)
         try:
             data = build_complex_headers()
+            base_task.comprobate_status(want_http_response=False)
             return Response(data, status=status.HTTP_201_CREATED)
         except HttpResponseError as e:
             return e.send_response()

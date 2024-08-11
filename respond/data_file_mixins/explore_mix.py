@@ -81,6 +81,8 @@ class ExploreRealMix(ExtractorRealMix, DataFileAws):
     def verify_coincidences(self, **kwargs):
         match_controls = MatchControls(self.data_file, self.base_task)
         match_controls.match_file_control()
+        if match_controls.errors:
+            self.base_task.add_errors_and_raise(match_controls.errors)
 
     # Guardado en funciones
     def prepare_transform(self, **kwargs):
@@ -176,6 +178,6 @@ class ExploreRealMix(ExtractorRealMix, DataFileAws):
             "directory": directory,
         }
         gz_task = TaskBuilder(
-            function_name="decompress_gz", parent_class=self.base_task,
+            "decompress_gz", parent_class=self.base_task,
             models=[self.data_file], params=params)
         gz_task.async_in_lambda(http_response=True)

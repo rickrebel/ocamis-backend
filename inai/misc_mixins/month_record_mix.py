@@ -165,13 +165,14 @@ class MonthRecordMix:
                 "has_medicine_key": bool(medicine_key),
             }
             week_base_task = TaskBuilder(
-                function_name="analyze_uniques", parent_class=self.base_task,
+                "analyze_uniques", parent_class=self.base_task,
                 models=[week, self.month_record], params=params,
                 function_after="analyze_uniques_after")
             # print("week_base_task", week_base_task)
             week_base_task.async_in_lambda(comprobate=False)
 
     def merge_files_by_week(self):
+        print("merge_files_by_week")
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from respond.models import TableFile
         from django.utils import timezone
@@ -275,8 +276,8 @@ class MonthRecordMix:
             print("error", errors)
 
         cats_task = TaskBuilder(
-            function_name="save_month_cat_tables", keep_tasks=True,
-            parent_class=self.base_task, model_obj=self.month_record)
+            "save_month_cat_tables", keep_tasks=True,
+            parent_class=self.base_task, models=[self.month_record])
 
         my_insert_cat = InsertMonth(self.month_record, base_task=cats_task)
 
@@ -299,8 +300,8 @@ class MonthRecordMix:
             inserted=False)
 
         formula_task = TaskBuilder(
-            function_name="save_month_base_tables", keep_tasks=True,
-            model_obj=self.month_record, parent_class=self.base_task)
+            "save_month_base_tables", keep_tasks=True,
+            models=[self.month_record], parent_class=self.base_task)
         my_insert_base = InsertMonth(self.month_record, base_task=formula_task)
         for week in self.month_record.weeks.all():
             week_base_table_files = week.table_files.filter(
@@ -394,8 +395,8 @@ class MonthRecordMix:
         }
 
         validate_task = TaskBuilder(
-            function_name="validate_temp_tables", params=params,
-            parent_class=self.base_task, model_obj=self.month_record)
+            "validate_temp_tables", params=params,
+            parent_class=self.base_task, models=[self.month_record])
         validate_task.async_in_lambda(comprobate=False)
 
     def indexing_month(self):
@@ -427,8 +428,8 @@ class MonthRecordMix:
         }
 
         indexing_task = TaskBuilder(
-            function_name="indexing_temp_tables", params=params,
-            parent_class=self.base_task, model_obj=self.month_record)
+            "indexing_temp_tables", params=params,
+            parent_class=self.base_task, models=[self.month_record])
         indexing_task.async_in_lambda(comprobate=False)
 
     def final_insert_month(self):
@@ -490,8 +491,8 @@ class MonthRecordMix:
             "last_query": last_query,
         }
         insert_task = TaskBuilder(
-            function_name="insert_temp_tables", params=params,
-            parent_class=self.base_task, model_obj=self.month_record)
+            "insert_temp_tables", params=params,
+            parent_class=self.base_task, models=[self.month_record])
         insert_task.async_in_lambda(comprobate=False)
 
     def save_sums(self, all_sheet_ids):

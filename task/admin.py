@@ -32,6 +32,16 @@ class NullFilterTask(SimpleListFilter):
         return queryset
 
 
+class AsyncTaskInline(admin.StackedInline):
+    raw_id_fields = [
+        "petition", "file_control", "data_file", "reply_file", "sheet_file",
+        "parent_task", "user", "week_record", "provider", "month_record"]
+    model = AsyncTask
+    classes = ["collapse"]
+    show_change_link = True
+    extra = 0
+
+
 class AsyncTaskAdmin(admin.ModelAdmin):
     list_display = [
         "request_short",
@@ -52,6 +62,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         "function_after", "parent_task__task_function",
         "is_current", "is_massive"]
     search_fields = ["data_file_id", "request_id", "task_function__name"]
+    inlines = [AsyncTaskInline]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
 
     @staticmethod

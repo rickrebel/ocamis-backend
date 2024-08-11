@@ -29,13 +29,12 @@ class ExtractorRealMix:
         self.file_control: Optional[FileControl] = None
         self.row_headers = 0
 
-        self.full_sheet_data = {}
-        self.filtered_sheets = []
-        self.first_headers = []
+        self.full_sheet_data: dict[str, dict] = {}
+        self.filtered_sheets: list[str] = []
+        self.first_headers: list[str] = []
         self.has_split = False
 
     def _set_file_control(self, file_control):
-        print("-x file_control", file_control)
         if file_control:
             if isinstance(file_control, str):
                 file_control = int(file_control)
@@ -80,11 +79,12 @@ class ExtractorRealMix:
 
         self._set_file_control(file_control_id)
         type_format = self._validate_and_get_type_format()
+        # print("-x File Control", self.file_control)
         function_name, params = self._assemble_params(type_format)
         if not function_after:
             function_after = "find_matches_between_controls"
         convert_task = TaskBuilder(
-            function_name=function_name, parent_class=self.base_task,
+            function_name, parent_class=self.base_task,
             function_after=function_after, models=[self.data_file],
             params=params)
         convert_task.async_in_lambda()
@@ -111,13 +111,14 @@ class ExtractorRealMix:
     def get_data_from_file(self, file_control=None):
         from scripts.common import text_normalizer
 
-        self.full_sheet_data: dict[str, dict] = {}
-        self.filtered_sheets: list[str] = []
-        self.first_headers: list[str] = []
+        self.full_sheet_data = {}
+        self.filtered_sheets = []
+        self.first_headers = []
         self.has_split = False
 
         self._set_file_control(file_control)
         type_format = self._validate_and_get_type_format()
+        # print("-x file_control", self.file_control)
         sample_file = SampleFile()
         all_sheets_data = sample_file.get_sheet_samples(self.data_file)
         if type_format == 'excel':

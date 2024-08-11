@@ -164,48 +164,42 @@ class AsyncTask(models.Model):
         verbose_name_plural = "1. Tareas solicitadas"
 
 
-@receiver(post_save, sender=AsyncTask)
-def async_task_post_save(sender, instance, created, **kwargs):
-    # print("kwargs", kwargs)
+def send_result_to_channel(result, layer_type="send_task_info"):
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
+    channel_layer = get_channel_layer()
+    # print("channel_layer", channel_layer)
+    async_to_sync(channel_layer.group_send)(
+        "dashboard", {
+            "type": layer_type,
+            "result": result
+        },
+    )
+
+
+@receiver(post_save, sender=AsyncTask)
+def async_task_post_save(sender, instance, created, **kwargs):
     from task.api.serializers import (
         AsyncTaskFullSerializer, AsyncTaskSerializer)
-    channel_layer = get_channel_layer()
     if instance.is_current:
         serializer = AsyncTaskFullSerializer
     else:
         serializer = AsyncTaskSerializer
-    # serializer = AsyncTaskSerializer
-    # print("channel_layer", channel_layer)
-    async_to_sync(channel_layer.group_send)(
-        "dashboard", {
-            "type": "send_task_info",
-            "result": {
-                "model": sender.__name__,
-                "created": created,
-                "task_data": serializer(instance).data,
-            }
-        },
-    )
+    send_result_to_channel({
+        "model": sender.__name__,
+        "created": created,
+        "task_data": serializer(instance).data,
+    })
 
 
 @receiver(post_delete, sender=AsyncTask)
 def async_task_post_delete(sender, instance, **kwargs):
     # print("kwargs", kwargs)
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        "dashboard", {
-            "type": "send_task_info",
-            "result": {
-                "model": sender.__name__,
-                "deleted": True,
-                "task_id": instance.id,
-            }
-        },
-    )
+    send_result_to_channel({
+        "model": sender.__name__,
+        "deleted": True,
+        "task_id": instance.id,
+    })
 
 
 class CutOff(models.Model):

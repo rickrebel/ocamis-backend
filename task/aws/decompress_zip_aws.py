@@ -1,7 +1,11 @@
 from task.aws.common import BotoUtils, send_simple_response_2
 import zipfile
 import rarfile
-rarfile.UNRAR_TOOL = '/opt/bin/unrar2'
+import os
+unrar_tool = os.environ.get("UNRAR_TOOL", None)
+if unrar_tool:
+    rarfile.UNRAR_TOOL = '/opt/bin/unrar2'
+# get enviroment variable AWS_LOCATION
 
 
 # def decompress_zip_aws(event, context):

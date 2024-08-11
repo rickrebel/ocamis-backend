@@ -39,7 +39,8 @@ class TaskHelper(Serverless):
             print(error)
             self.errors.append(error)
             return None
-        self.comprobate_send(comprobate=comprobate, http_response=http_response)
+        # TODO Task: Corroborar que no debemos corroborar nadita
+        self.comprobate_send(comprobate=False, http_response=http_response)
 
     def comprobate_send(self, comprobate=True, http_response=False):
         task_function = self.main_task.task_function
@@ -54,7 +55,7 @@ class TaskHelper(Serverless):
         else:
             self._individual_queueable(task_function)
         if comprobate or http_response is not False:
-            return self.comprobate_status(want_http_response=http_response)
+            self.comprobate_status(want_http_response=http_response)
 
     def comprobate_status(self, want_http_response=None, explore_parent=True):
 
@@ -63,23 +64,25 @@ class TaskHelper(Serverless):
 
         if not self.main_task:
             raise Exception("No se ha encontrado la tarea enviada")
-        if self.errors and not explore_parent:
+        if self.errors and (not explore_parent or not self.parent_class):
             original_errors = self.main_task.errors or []
             original_errors.extend(self.errors)
-            self.main_task.errors = original_errors
+            unique_errors = list(set(original_errors))
+            self.main_task.errors = unique_errors
             new_status_task_id = "with_errors"
-            for error in self.errors:
-                if "AWSError" in error:
-                    new_status_task_id = "not_executed"
-                    break
+            if any("AWSError" in error for error in self.errors):
+                new_status_task_id = "not_executed"
+        # RICK TODO: Esto debemos implementarlo cuando se crean las tareas
         elif self.new_tasks:
             new_status_task_id = "children_tasks"
         else:
             new_status_task_id = "finished"
         self.save_new_status(new_status_task_id)
-        self.add_new_task(self.new_tasks)
+        # RICK TODO: No tengo claro para qué esto otra vez
+        self.add_many_tasks(self.new_tasks)
 
         self.checker.comprobate_queue()
+
         if self.want_http_response is not False:
             body_response = {"new_task": self.main_task.id}
             if self.errors:
@@ -89,13 +92,12 @@ class TaskHelper(Serverless):
             elif self.want_http_response:
                 if self.new_tasks:
                     raise HttpResponseError(body_response, 202)
-                # RICK TASK2: no estoy seguro de esto
-                parent_tasks = self.parent_class.new_tasks if self.parent_class else []
-                if explore_parent and parent_tasks:
+                # RICK TASK2 TODO: no estoy seguro de esto
+                if explore_parent and self.parent_class and self.parent_class.new_tasks:
+                    print("ESTOY EN EXPLORE_PARENT !!!!!")
                     return self.parent_class.comprobate_status(
-                        http_responese=True, explore_parent=False)
+                        want_http_response=True, explore_parent=False)
                     # return HttpResponse(body_response, status=200)
-        return self.main_task
 
     def add_many_tasks(self, new_tasks: list, from_child=False):
         for new_task in new_tasks:
@@ -127,41 +129,38 @@ class TaskHelper(Serverless):
     def add_errors_and_raise(self, errors: list):
         self.add_errors(errors, save=True, http_response=True)
 
-    def _comprobate_brothers_with_errors(self):
+    def _comprobate_children_errors(self):
+        parent_task = self.main_task.parent_task
         children_with_errors = AsyncTask.objects.filter(
-            parent_task=self.main_task.parent_task,
+            parent_task=parent_task,
             status_task__macro_status="with_errors")
         if children_with_errors.exists():
             return "some_errors"
         else:
             return "finished"
 
-    def _execute_finished_function(self):
+    def _run_parent_finished_function(self):
         from task.main_views_aws import AwsFunction
         from task.builder import TaskBuilder
         # print("EJECUTANDO FINISHED FUNCTION")
         parent_task = self.main_task.parent_task
         finished_function = parent_task.finished_function
-        if not parent_task.finished_function:
-            return self._comprobate_brothers_with_errors()
+        if not finished_function:
+            return self._comprobate_children_errors()
         # print("FINISHED FUNCTION: ", finished_function)
         brothers_in_finish = parent_task.child_tasks.filter(
             task_function_id=finished_function)
         if brothers_in_finish.exists():
-            return self._comprobate_brothers_with_errors()
+            return self._comprobate_children_errors()
 
         models = self._find_task_model(parent_task, many=True)
         finished_task = TaskBuilder(
-            function_name=finished_function, models=models,
+            finished_function, models=models,
             parent_task=parent_task, keep_tasks=True)
         aws_function = AwsFunction(
             main_task=finished_task.main_task,
             parent_task=parent_task, function_name=finished_function)
-        new_task2 = aws_function.execute_next_function()
-        if new_task2.status_task.is_completed:
-            return self._comprobate_brothers_with_errors()
-        else:
-            return "children_tasks"
+        aws_function.execute_next_function()
 
     def _find_task_model(self, async_task=None, many=False):
         task_models = [
@@ -187,9 +186,9 @@ class TaskHelper(Serverless):
             error = (f"ERROR AL GUARDAR NUEVO STATUS, tarea: "
                      f"{self.main_task.id}, error: {e}")
             self.errors.append(error)
-        self._comprobate_brothers()
+        self._comprobate_brothers_and_finished_function()
 
-    def _comprobate_brothers(self):
+    def _comprobate_brothers_and_finished_function(self):
         is_final = self.main_task.status_task.is_completed
         parent_task = self.main_task.parent_task
         if is_final and parent_task:
@@ -199,9 +198,10 @@ class TaskHelper(Serverless):
             if brothers_incomplete.exists():
                 parent_status_task_id = "children_tasks"
             else:
-                parent_status_task_id = self._execute_finished_function()
-            parent_helper = TaskHelper(parent_task)
-            parent_helper.save_new_status(parent_status_task_id)
+                parent_status_task_id = self._run_parent_finished_function()
+            if parent_status_task_id:
+                parent_helper = TaskHelper(parent_task)
+                parent_helper.save_new_status(parent_status_task_id)
 
     def _individual_queueable(self, task_function):
         pending_tasks = AsyncTask.objects \

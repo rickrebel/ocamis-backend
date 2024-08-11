@@ -46,8 +46,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         orphan_pfc, data_files = get_orphan_data_files(petition)
 
         base_task = TaskBuilder(
-            models=[petition, orphan_pfc],
-            function_name="auto_explore", request=request)
+            "auto_explore", models=[petition, orphan_pfc], request=request)
         return send_find_matches(data_files, petition, base_task)
         # petition_class = PetitionTransformMix(
         #     petition, data_files, base_task=base_task)
@@ -86,14 +85,17 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
         orphan_pfc, data_files = get_orphan_data_files(petition)
 
         file_ctrl_id = request.query_params.get("file_ctrl", False)
+        if not file_ctrl_id:
+            error = "No se encontró el control de archivo"
+            return send_response(petition, errors=[error])
         file_control = FileControl.objects.filter(id=file_ctrl_id).first()
 
         base_task = TaskBuilder(
-            models=[petition, file_control], function_name="pull_orphans",
-            request=request)
+            "pull_orphans", models=[petition, file_control], request=request)
         petition_class = PetitionTransformMix(
             petition, data_files, base_task=base_task)
         petition_class.match_direct_for_data_files(file_control)
+        base_task.comprobate_status()
 
         return send_response2(petition, base_task)
 
@@ -111,7 +113,7 @@ class AutoExplorePetitionViewSet(ListRetrieveView):
                 detail={"errors": ["No hay archivos por descomprimir"]})
 
         base_task = TaskBuilder(
-            models=[petition], function_name="decompress_remain", request=request)
+            "decompress_remain", models=[petition], request=request)
 
         for reply_file in remain_reply_files:
             reply_file_class = ReplyFileMixReal(reply_file, base_task=base_task)

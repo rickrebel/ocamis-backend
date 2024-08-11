@@ -72,6 +72,8 @@ class AsyncTaskFullSerializer(AsyncTaskSerializer):
     def get_month_record_full(self, obj):
         from inai.api.serializers import MonthRecordFullSerializer
         function = obj.task_function
+        # is_error = obj.status_task.macro_status == "with_errors"
+        # if function.is_from_aws and not (is_error and not obj.parent_task):
         if function.is_from_aws:
             return None
         if not obj.month_record or function.model_name != "month_record":

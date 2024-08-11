@@ -466,20 +466,18 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
         stage_final = request.data.get("stage_final")
         target_stage = Stage.objects.get(name=stage_final)
-        target_name = target_stage.main_function.name
+        target_name = target_stage.name
 
         all_data_files = DataFile.objects.filter(
             petition_file_control__file_control=file_control,
             status_id=status_init, stage_id=stage_init)[:batch_size*2]
         curr_kwargs = {}
-        function_after = None
         if target_stage.function_after:
-            function_after = target_stage.function_after.name
-            curr_kwargs = {"function_after": function_after}
+            curr_kwargs = {"function_after": target_stage.function_after}
         subgroup = f"{stage_init}|{status_init}"
 
         base_task = TaskBuilder(
-            function_name=target_name, is_massive=True,
+            target_name, is_massive=True,
             models=[file_control], request=request, subgroup=subgroup)
         final_count = 0
         for data_file in all_data_files:
@@ -495,13 +493,7 @@ class FileControlViewSet(MultiSerializerModelViewSet):
 
             for re_stage in target_stage.re_process_stages.all():
                 current_function = re_stage.main_function.name
-                on_target = re_stage.name == target_name
-
-                re_task = TaskBuilder(
-                    function_name=current_function, parent_class=df_task,
-                    models=[data_file], request=request,
-                    function_after=function_after)
-                explore = ExploreRealMix(data_file, base_task=re_task)
+                explore = ExploreRealMix(data_file, base_task=df_task)
                 try:
                     # possible_functions: get_sample_data, verify_coincidences,
                     # prepare_transform, transform_data
@@ -509,11 +501,15 @@ class FileControlViewSet(MultiSerializerModelViewSet):
                 except HttpResponseError as e:
                     if e.errors:
                         data_file.save_errors(e.errors, f"{re_stage.name}|with_errors")
+                    if not base_task.new_tasks:
+                        base_task.comprobate_status(want_http_response=False)
                     break
+                on_target = re_stage.name == target_name
                 if on_target:
                     data_file = data_file.finished_stage(f"{target_name}|finished")
                     df_task.comprobate_status(want_http_response=False)
-        base_task.comprobate_status(want_http_response=False)
+        if not base_task.new_tasks:
+            base_task.comprobate_status(want_http_response=False)
         data = {
             "errors": base_task.errors,
             "file_control": FileControlFullSerializer(file_control).data,

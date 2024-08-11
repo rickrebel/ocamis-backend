@@ -10,7 +10,7 @@ def lambda_handler(event, context):
 
     uniques_aws = BuildWeekAws(event, context)
 
-    print("before build_week_csvs")
+    # print("before build_week_csvs")
     try:
         final_result = uniques_aws.build_week_csvs()
     except Exception as e:

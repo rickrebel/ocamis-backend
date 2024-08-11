@@ -37,7 +37,7 @@ class SampleFile:
             self.final_path = file_obj.sample_file.name
         else:
             self.create_file(file_obj)
-        return self.sample_data
+        return self.final_path
 
     def build_path_name(self, file_obj=None, cat_name=None):
         if file_obj:
