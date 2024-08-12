@@ -24,7 +24,7 @@ class TaskHelper(Serverless):
         self.model_obj = model_obj
         self.checker = TaskChecker(self.main_task)
 
-    def async_in_lambda(self, comprobate=True, http_response=False):
+    def async_in_lambda(self, http_response=False):
         task_function = self.main_task.task_function
         if not self.main_task.function_after:
             self.main_task.function_after = f"{task_function.name}_after"
@@ -165,7 +165,7 @@ class TaskHelper(Serverless):
     def _find_task_model(self, async_task=None, many=False):
         task_models = [
             "file_control", "reply_file", "sheet_file", "data_file",
-            "week_record", "month_record"]
+            "week_record", "month_record", "cluster", "mat_view"]
         # "cluster", "mat_view"]
         if not async_task:
             async_task = self.main_task

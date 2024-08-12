@@ -18,6 +18,7 @@ from task.aws.analyze_uniques import lambda_handler as analyze_uniques
 from task.aws.decompress_zip_aws import lambda_handler as decompress_zip_aws
 from task.aws.build_week_csvs import lambda_handler as build_week_csvs
 from task.aws.rebuild_week_csv import lambda_handler as rebuild_week_csv
+from task.aws.add_constraint import lambda_handler as add_constraint
 
 
 def camel_to_snake(name):
@@ -47,6 +48,9 @@ class Serverless:
             new_params = main_task.original_request
             self.params = new_params
         self.params["webhook_url"] = f"{self.api_url}task/webhook_aws/"
+        self.is_from_aws = None
+        # if main_task.task_function:
+        #     self.is_from_aws = self.main_task.task_function.is_from_aws
         if self.use_local_lambda:
             self.params["s3"] = build_s3()
 
@@ -61,9 +65,9 @@ class Serverless:
         return True
 
     def execute_async(self):
-        print("SE VA A EJECUTAR:", self.main_task.task_function_id)
+        # print("SE VA A EJECUTAR:", self.main_task.task_function_id)
 
-        if self.use_local_lambda:
+        if self.use_local_lambda or self.is_from_aws is False:
             return self._execute_in_local()
         else:
             return self._execute_in_lambda()
@@ -102,7 +106,7 @@ class Serverless:
         if not globals().get(function_name, False):
             return self._execute_in_lambda()
 
-        print("SE EJECUTA EN LOCAL:", function_name)
+        # print("SE EJECUTA EN LOCAL:", function_name)
         request_id = self.main_task.id
         self.params["artificial_request_id"] = str(request_id)
         self.main_task.request_id = request_id

@@ -31,6 +31,7 @@ class Cluster(models.Model):
     public_name = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name="Nombre público")
+    icon = models.CharField(max_length=60, blank=True, null=True)
     stage = models.ForeignKey(
         Stage, on_delete=models.CASCADE,
         default='init_cluster', verbose_name="Etapa actual")

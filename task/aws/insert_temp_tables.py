@@ -77,19 +77,19 @@ def lambda_handler(event, context):
             if week_id not in week_ids_in_db and week_count:
                 not_inserted_weeks.append(int(week_id))
 
-        if len(not_founded_weeks) > 0:
-            warnings.append(f"Hubo {len(not_founded_weeks)} semanas no encontradas \
-                en la base de datos, semanas: {not_founded_weeks}; \
-                week_counts: {week_counts}")
-        if len(not_inserted_weeks) > 0:
-            warnings.append(f"Hubo {len(not_inserted_weeks)} semanas no insertadas \
-                en la base de datos, semanas: {not_inserted_weeks}")
-        if len(above_weeks) > 0:
-            warnings.append(f"Hubo {len(above_weeks)} semanas con más medicamentos \
-                de los esperados, semanas: {above_weeks}")
-        if len(below_weeks) > 0:
-            warnings.append(f"Hubo {len(below_weeks)} semanas con menos medicamentos \
-                de los esperados, semanas: {below_weeks}")
+        comparisons = [
+            (not_founded_weeks, "no encontradas", True),
+            (not_inserted_weeks, "no insertadas", False),
+            (above_weeks, "con más medicamentos", False),
+            (below_weeks, "con menos medicamentos", False),
+        ]
+        for weeks, message, add_week_counts in comparisons:
+            message = f"Hubo {len(weeks)} semanas {message} en la base de datos"
+            if len(weeks) > 0:
+                message += f", semanas: {weeks}"
+                if add_week_counts:
+                    message += f"; week_counts: {week_counts}"
+                warnings.append(message)
 
     if not errors and constraint_queries:
         print("before constraint_query", datetime.now())

@@ -1,6 +1,135 @@
 from django.db import connection
 
 
+class ConstraintBuilder:
+
+    def __init__(self, is_create=True, prov_year_month=None, group='month'):
+        self.is_create = is_create
+        self.prov_year_month = prov_year_month
+        self.group = group
+        self.cursor = None
+        if not self.prov_year_month:
+            self.cursor = connection.cursor()
+        self.valid_strings = [" on TABLE ", " table TABLE ", " index if not exists TABLE"]
+        self.valid_tables = ["rx", "drug", "missingrow", "missingfield",
+                             "complementrx", "complementdrug", "diagnosisrx"]
+        self.invalid_fields = ["lap_sheet_id", "sheet_file_id", "_like"]
+        self.new_constraints = []
+        if self.group == "month":
+            self.schema = "tmp"
+            self.abbrev = "fm"
+        elif self.group == "cluster":
+            self.schema = "base"
+            self.abbrev = "frm"
+        else:
+            self.schema = "public"
+            self.abbrev = "formula"
+        # self.schema = "tmp" if self.group == "month" else "public"
+        # self.abbrev = "fm" if self.schema == "tmp" else "frm"
+        self.init_table_name = f"{self.schema}.{self.abbrev}_{self.prov_year_month}"
+        self.constraint = None
+
+    def modify_constraints(self):
+        from rds.models import Operation
+        from datetime import datetime
+        main_field = "script" if self.is_create else "drop_script"
+        order_by = "order" if self.is_create else "-order"
+        q_filter = {
+            "operation_type__in": ["constraint", "index"],
+            "is_active": True}
+        if self.group == "cluster":
+            q_filter["low_priority"] = False
+        # constraint_list = Operation.objects\
+        operations = Operation.objects\
+            .filter(**q_filter)\
+            .order_by(order_by)
+        # .values_list(main_field, flat=True)
+        # print("START", datetime.now())
+        for operation in operations:
+            constraint = getattr(operation, main_field)
+            constraint = constraint.replace("\n", " \n")
+            valid_constraint = not bool(self.prov_year_month)
+            for valid_string in self.valid_strings:
+                for valid_table in self.valid_tables:
+                    final_valid_string = valid_string.replace(
+                        "TABLE", f"formula_{valid_table}")
+                    if final_valid_string in constraint:
+                        valid_constraint = True
+            if self.is_create and valid_constraint:
+                for invalid_field in self.invalid_fields:
+                    if invalid_field in constraint:
+                        valid_constraint = False
+            if not valid_constraint:
+                print("invalid_constraint", constraint, "\n\n")
+                continue
+
+            try:
+                self.constraint = constraint
+                self.custom_constraint()
+                self.new_constraints.append((self.constraint, operation))
+
+            except Exception as e:
+                str_e = str(e)
+                if "already exists" in str_e:
+                    continue
+                if "multiple primary keys" in str_e:
+                    continue
+                print("constraint", constraint)
+                print(f"ERROR:\n, {e}, \n--------------------------")
+                raise e
+        print("FINAL", datetime.now())
+        if not self.prov_year_month:
+            self.cursor.close()
+            connection.close()
+        if self.prov_year_month:
+            return self.new_constraints
+
+    def custom_constraint(self):
+        from datetime import datetime
+        if not self.prov_year_month:
+            print(">>>>> time:", datetime.now())
+            print("constraint:", self.constraint)
+            self.cursor.execute(self.constraint)
+            print("--------------------------")
+            return
+
+        replaces = [
+            (" on formula_", f" on {self.init_table_name}_"),
+            ("alter table formula_", f" alter table {self.init_table_name}_"),
+            ("\n", " \n")]
+        special_replaces = [
+            ("references formula_", f"references {self.init_table_name}_"),
+            # ("references ", f"references {self.schema}.")]
+            ("references ", f"references public.")]
+
+        def run_replace(original, replace):
+            self.constraint = self.constraint.replace(original, replace)
+
+        for replace in special_replaces:
+            if replace[0] in self.constraint:
+                run_replace(*replace)
+                break
+        for replace in replaces:
+            run_replace(*replace)
+
+        if "add constraint " in self.constraint:
+            split_txt = "add constraint "
+        elif " exists " in self.constraint:
+            split_txt = " exists "
+        else:
+            raise Exception("Constraint name not found")
+        original_name = self.constraint.split(split_txt)[1].split(" ")[0]
+        name_replaces = [
+            ("missingrow", "mr"),
+            ("missingfield", "mf"),
+            ("fk_formula", "fk_fm"),
+            ("formula_", f"{self.abbrev}_{self.prov_year_month}_")]
+        new_constraint_name = original_name
+        for replace in name_replaces:
+            new_constraint_name = new_constraint_name.replace(*replace)
+        self.constraint.replace(original_name, new_constraint_name)
+
+
 def custom_constraint(constraint, prov_year_month, schema="tmp"):
     abbrev = "fm" if schema == "tmp" else "frm"
     init_table_name = f"{schema}.{abbrev}_{prov_year_month}"
@@ -31,7 +160,8 @@ def custom_constraint(constraint, prov_year_month, schema="tmp"):
     return clean_constraint.replace(original_constraint_name, constraint_name)
 
 
-def modify_constraints(is_create=True, is_rebuild=False, prov_year_month=None):
+def modify_constraints(
+        is_create=True, is_rebuild=False, prov_year_month=None):
     from rds.models import Operation
     from scripts.verified.indexes.constrains import get_constraints
     from datetime import datetime
@@ -64,16 +194,16 @@ def modify_constraints(is_create=True, is_rebuild=False, prov_year_month=None):
             for valid_table in valid_tables:
                 final_valid_string = valid_string.replace(
                     "TABLE", f"formula_{valid_table}")
-                print(f"final_valid_string >{final_valid_string}<")
+                # print(f"final_valid_string >{final_valid_string}<")
                 if final_valid_string in constraint:
-                    print("valid_constraint", constraint)
+                    # print("valid_constraint", constraint)
                     valid_constraint = True
         if is_create and valid_constraint:
             for invalid_field in invalid_fields:
                 if invalid_field in constraint:
                     valid_constraint = False
         if not valid_constraint:
-            print("invalid_constraint", constraint, "\n\n")
+            print("invalid_constraint:\n", constraint, "\n\n")
             continue
         try:
             if prov_year_month:

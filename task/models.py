@@ -57,15 +57,16 @@ class AsyncTask(models.Model):
     sheet_file = models.ForeignKey(
         SheetFile, related_name="async_tasks",
         on_delete=models.CASCADE, blank=True, null=True)
-    # cluster = models.ForeignKey(
-    #     Cluster, related_name="async_tasks",
-    #     on_delete=models.CASCADE, blank=True, null=True)
-    # operation = models.ForeignKey(
-    #     Operation, related_name="async_tasks",
-    #     on_delete=models.CASCADE, blank=True, null=True)
-    # mat_view = models.ForeignKey(
-    #     MatView, related_name="async_tasks",
-    #     on_delete=models.CASCADE, blank=True, null=True)
+
+    cluster = models.ForeignKey(
+        Cluster, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    operation = models.ForeignKey(
+        Operation, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
+    mat_view = models.ForeignKey(
+        MatView, related_name="async_tasks",
+        on_delete=models.CASCADE, blank=True, null=True)
 
     status_task = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE,

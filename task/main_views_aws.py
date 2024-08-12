@@ -191,7 +191,7 @@ class AwsFunction(TaskHelper):
         from respond.misc_mixins.lap_sheet_mix import FromAws as LapSheet
         from respond.misc_mixins.sheet_file_mix import FromAws as SheetFile
         from respond.data_file_mixins.data_file_aws import FromAws as DataFile
-        from rds.misc_mixins.cluster_mix import FromAws as Cluster
+        from rds.misc_mixins.cluster_from_aws import FromAws as Cluster
         from rds.misc_mixins.mat_view_mix import FromAws as MatView
         from respond.reply_file_mixins.reply_mix import FromAws as ReplyFile
         task_parameters = {"parent_task": self.main_task}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.admin import register
-from rds.models import Cluster, Operation, OperationGroup
+from rds.models import Cluster, Operation, OperationGroup, MatView
 from inai.admin import ocamis_admin_site
 
 
@@ -32,3 +32,11 @@ class OperationAdmin(admin.ModelAdmin):
     # list_select_related = ["collection", "mat_view"]
     # list_display_links = ["operation_type", "operation_group"]
     list_editable = ["order", "low_priority", "is_active", "operation_group"]
+
+
+@register(MatView, site=ocamis_admin_site)
+class MatViewAdmin(admin.ModelAdmin):
+    list_display = ["name", "public_name", "is_active", "stage_belongs",
+                    "stage", "status"]
+    list_filter = ["stage_belongs", "is_active"]
+

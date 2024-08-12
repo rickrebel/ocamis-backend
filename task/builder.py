@@ -70,7 +70,7 @@ class TaskBuilder(TaskHelper):
         elif request:
             self.main_task.user = request.user
 
-        print("-x Function name", function_name)
+        # print("-x Function name", function_name)
         super().__init__(self.main_task, parent_class=parent_class,
                          model_obj=model_obj, **kwargs)
         self.set_function_name(function_name)
@@ -81,6 +81,7 @@ class TaskBuilder(TaskHelper):
 
     def set_function_name(self, function_name=None):
         from task.serverless import camel_to_snake
+        from scripts.common import build_s3
         if function_name:
             task_function, created = TaskFunction.objects.get_or_create(
                 name=function_name)
@@ -91,6 +92,9 @@ class TaskBuilder(TaskHelper):
                     f"{function_name} (Creada por excepción)")
                 task_function.is_active = True
                 task_function.save()
+            self.is_from_aws = task_function.is_from_aws
+            if self.is_from_aws:
+                self.params["s3"] = build_s3()
             # print("Task function", task_function.name)
             self.params["function_name"] = function_name
             self.main_task.task_function = task_function

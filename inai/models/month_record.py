@@ -16,7 +16,8 @@ class MonthRecord(models.Model):
         verbose_name="Proveedor de servicios de salud",
         on_delete=models.CASCADE, blank=True, null=True)
     cluster = models.ForeignKey(
-        Cluster, on_delete=models.CASCADE, blank=True, null=True)
+        Cluster, on_delete=models.CASCADE,
+        blank=True, null=True, related_name="month_records")
     year_month = models.CharField(max_length=10)
     year = models.SmallIntegerField(blank=True, null=True)
     month = models.SmallIntegerField(blank=True, null=True)

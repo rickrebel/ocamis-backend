@@ -6,6 +6,7 @@ from data_param.models import NameColumn
 from django.db.models import JSONField
 import uuid as uuid_lib
 
+from rds.models import Cluster
 from med_cat.models import (
     Doctor, Diagnosis, Area, MedicalUnit, Medicament, Delivered)
 from geo.models import CLUES, Delegation, Provider
@@ -214,10 +215,13 @@ class MissingField(models.Model):
 
 class MatDrugPriority(models.Model):
 
+    cluster = models.ForeignKey(
+        Cluster, on_delete=models.DO_NOTHING,
+        blank=True, null=True, default='first')
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    clues = models.ForeignKey(
-        CLUES, on_delete=models.CASCADE, blank=True, null=True)
+    # clues = models.ForeignKey(
+    #     CLUES, on_delete=models.CASCADE, blank=True, null=True)
     week_record = models.ForeignKey(
         WeekRecord, on_delete=models.CASCADE)
     delivered = models.ForeignKey(
@@ -261,6 +265,9 @@ class MatDrugPriority(models.Model):
 
 
 class MatDrugEntity(models.Model):
+    cluster = models.ForeignKey(
+        Cluster, on_delete=models.DO_NOTHING,
+        blank=True, null=True, default='first')
     iso_year = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     entity = models.ForeignKey(
@@ -334,10 +341,15 @@ class MatDrugExtended(models.Model):
 
 class MatDrugTotals(models.Model):
 
+    cluster = models.ForeignKey(
+        Cluster, on_delete=models.DO_NOTHING,
+        blank=True, null=True, default='first')
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    clues = models.ForeignKey(
-        CLUES, on_delete=models.CASCADE, blank=True, null=True)
+    # clues = models.ForeignKey(
+    #     CLUES, on_delete=models.CASCADE, blank=True, null=True)
+    medical_unit = models.ForeignKey(
+        MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
     week_record = models.ForeignKey(
         WeekRecord, on_delete=models.CASCADE)
     delivered = models.ForeignKey(

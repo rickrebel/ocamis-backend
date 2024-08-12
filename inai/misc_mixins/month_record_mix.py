@@ -169,7 +169,7 @@ class MonthRecordMix:
                 models=[week, self.month_record], params=params,
                 function_after="analyze_uniques_after")
             # print("week_base_task", week_base_task)
-            week_base_task.async_in_lambda(comprobate=False)
+            week_base_task.async_in_lambda()
 
     def merge_files_by_week(self):
         print("merge_files_by_week")
@@ -397,7 +397,7 @@ class MonthRecordMix:
         validate_task = TaskBuilder(
             "validate_temp_tables", params=params,
             parent_class=self.base_task, models=[self.month_record])
-        validate_task.async_in_lambda(comprobate=False)
+        validate_task.async_in_lambda()
 
     def indexing_month(self):
         from formula.views import modify_constraints
@@ -430,7 +430,7 @@ class MonthRecordMix:
         indexing_task = TaskBuilder(
             "indexing_temp_tables", params=params,
             parent_class=self.base_task, models=[self.month_record])
-        indexing_task.async_in_lambda(comprobate=False)
+        indexing_task.async_in_lambda()
 
     def final_insert_month(self):
         # counts_object = {}
@@ -442,7 +442,7 @@ class MonthRecordMix:
         try:
             base_table = self.month_record.cluster.name
         except Exception as e:
-            error = f"El proveedor no está asociado a ningún cluster:"
+            error = f"El mes no está asociado a ningún cluster:"
             self.base_task.add_errors([error], http_response=True)
             raise e
         formula_tables = ["rx", "drug", "missingrow", "missingfield",
@@ -493,7 +493,7 @@ class MonthRecordMix:
         insert_task = TaskBuilder(
             "insert_temp_tables", params=params,
             parent_class=self.base_task, models=[self.month_record])
-        insert_task.async_in_lambda(comprobate=False)
+        insert_task.async_in_lambda()
 
     def save_sums(self, all_sheet_ids):
         from respond.models import LapSheet

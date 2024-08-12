@@ -26,6 +26,7 @@ urlpatterns = [
     re_path(r'^inai/', include('inai.api.urls')),
     re_path(r'^respond/', include('respond.api.urls')),
     re_path(r'^task/', include('task.api.urls')),
+    re_path(r'^rds/', include('rds.api.urls')),
     re_path(r'^intl_medicine/', include('intl_medicine.api.urls')),
     re_path(r'^', include('core.api.urls')),
 ]

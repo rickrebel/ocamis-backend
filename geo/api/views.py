@@ -59,6 +59,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
     @action(methods=["post"], detail=True, url_path='move_months')
     def move_months(self, request, **kwargs):
         from rds.models import Cluster
+        from classify_task.models import Stage
         month_records_ids = request.data.get("month_records", None)
         cluster_id = request.data.get("cluster", None)
         cluster = Cluster.objects.get(name=cluster_id)
@@ -67,6 +68,13 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 {"error": "No se especificaron meses a mover"},
                 status=status.HTTP_400_BAD_REQUEST)
         month_records = MonthRecord.objects.filter(id__in=month_records_ids)
+        stage_merge = Stage.objects.get(name="merge")
+        some_down = month_records.filter(stage__order__lt=stage_merge.order)
+        if some_down:
+            error = (f"No se pueden mover meses si alguno está en etapas "
+                     f"previas a {stage_merge.public_name}")
+            return Response(
+                {"errors": [error]}, status=status.HTTP_400_BAD_REQUEST)
         month_records.update(cluster=cluster)
         return Response(
             {"cluster": cluster_id, "month_records": month_records_ids},
