@@ -133,8 +133,9 @@ class TaskChecker:
 
     def debug_all(self):
         success_executed = self.debug_success()
+        print("SUCCESS EXECUTED:", success_executed)
         if not success_executed:
-            queue_executed = self.debug_queue()
+            self.debug_queue()
         self.debug_aged_running()
 
     def debug_success(self):
@@ -155,13 +156,19 @@ class TaskChecker:
 
     def debug_queue(self):
         queue_tasks = AsyncTask.objects.in_queue()
+        print("QUEUE TASKS:", queue_tasks.count())
+        if queue_tasks.exists():
+            print("first task_id:", queue_tasks.first().id)
+            print("first task:", queue_tasks.first())
         if queue_tasks.exists():
             some = False
             queue_tasks = queue_tasks.exclude(
                 task_function__group_queue__isnull=False)
+            print("QUEUE TASKS:", queue_tasks.count())
             self._execute_many_tasks(queue_tasks)
             next_group_task = queue_tasks.filter(
                 task_function__group_queue__isnull=False).first()
+            print("next_group_task:", next_group_task)
             if next_group_task:
                 self.main_task = next_group_task
                 group_queue = queue_tasks.filter(

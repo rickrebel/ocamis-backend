@@ -10,9 +10,11 @@ class ConstraintBuilder:
         self.cursor = None
         if not self.prov_year_month:
             self.cursor = connection.cursor()
-        self.valid_strings = [" on TABLE ", " table TABLE ", " index if not exists TABLE"]
-        self.valid_tables = ["rx", "drug", "missingrow", "missingfield",
-                             "complementrx", "complementdrug", "diagnosisrx"]
+        self.valid_strings = [
+            " on TABLE ", " table TABLE ", " index if not exists TABLE"]
+        self.valid_tables = [
+            "rx", "drug", "missingrow", "missingfield", "complementrx",
+            "complementdrug", "diagnosisrx"]
         self.invalid_fields = ["lap_sheet_id", "sheet_file_id", "_like"]
         self.new_constraints = []
         if self.group == "month":
@@ -127,7 +129,10 @@ class ConstraintBuilder:
         new_constraint_name = original_name
         for replace in name_replaces:
             new_constraint_name = new_constraint_name.replace(*replace)
-        self.constraint.replace(original_name, new_constraint_name)
+        self.constraint = self.constraint.replace(
+            original_name, new_constraint_name)
+        if len(new_constraint_name) > 63:
+            self.constraint = self.constraint[:63]
 
 
 def custom_constraint(constraint, prov_year_month, schema="tmp"):

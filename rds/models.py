@@ -104,15 +104,25 @@ class Operation(models.Model):
     low_priority = models.BooleanField(default=False, verbose_name="low")
     is_active = models.BooleanField(default=True, verbose_name="active")
     collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE, blank=True, null=True)
+        Collection, on_delete=models.CASCADE,
+        blank=True, null=True, related_name="collection")
+    collection_related = models.ForeignKey(
+        Collection, on_delete=models.CASCADE, blank=True, null=True,
+        related_name="collection_related")
     mat_view = models.ForeignKey(
         MatView, on_delete=models.CASCADE, blank=True, null=True)
     script = models.TextField()
     script_drop = models.TextField(blank=True, null=True)
-    comment = models.TextField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return self.script
+        related = ""
+        if self.operation_type == "constraint":
+            if self.collection_related:
+                related = f" --> {self.collection_related}"
+            else:
+                related = " - PK"
+        return f"{self.operation_type} ({self.collection}{related})"
 
     class Meta:
         verbose_name = "Operación"

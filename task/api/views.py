@@ -43,7 +43,8 @@ class AsyncTaskViewSet(ListRetrieveView):
         # from task.main_views_aws import debug_queue
         from task.serverless import TaskChecker
         task_checker = TaskChecker()
-        task_checker.debug_queue()
+        # task_checker.debug_queue()
+        task_checker.debug_all()
         # debug_queue()
         return Response(
             {"message": "Cola reiniciada"}, status=status.HTTP_200_OK)

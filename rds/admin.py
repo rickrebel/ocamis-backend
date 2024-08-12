@@ -20,8 +20,10 @@ class OperationGroupAdmin(admin.ModelAdmin):
 
 @register(Operation, site=ocamis_admin_site)
 class OperationAdmin(admin.ModelAdmin):
-    list_display = ["operation_type", "order", "low_priority", "is_active",
-                    "operation_group", "collection", "script"]
+    list_display = [
+        "operation_type", "order", "low_priority", "is_active",
+        "operation_group", "collection", "collection_related", "script",
+        "script_drop"]
     list_filter = [
         "operation_group", "operation_type", "is_active", "low_priority",
         "collection"]
@@ -31,7 +33,7 @@ class OperationAdmin(admin.ModelAdmin):
     # list_max_show_all = 100
     # list_select_related = ["collection", "mat_view"]
     # list_display_links = ["operation_type", "operation_group"]
-    list_editable = ["order", "low_priority", "is_active", "operation_group"]
+    list_editable = ["order", "low_priority", "is_active", "collection_related"]
 
 
 @register(MatView, site=ocamis_admin_site)

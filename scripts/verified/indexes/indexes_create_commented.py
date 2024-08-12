@@ -79,6 +79,7 @@ new_operations = [
         "drop_script": "alter table formula_drug drop constraint if exists formula_drug_rx_id_cdf044b3_fk_formula_p;",
         "order": 11,
         "collection": "Drug",
+        "collection_related": "Rx",
         "operation_type": "constraint",
         "comment": "INDISPENSABLES \n44 minutos, 35%"
     },
@@ -99,6 +100,7 @@ new_operations = [
         "drop_script": "alter table formula_drug drop constraint if exists formula_drug_delivered_id_ff5c08d9_fk_med_cat_d;",
         "order": 13,
         "collection": "Drug",
+        "collection_related": "Delivered",
         "operation_type": "constraint",
         "comment": "INDISPENSABLES"
     },
@@ -119,6 +121,7 @@ new_operations = [
         "drop_script": "alter table formula_rx drop constraint if exists formula_rx_delivered_final_id_331bd9fa_fk_med_cat_d;",
         "order": 15,
         "collection": "Rx",
+        "collection_related": "Delivered",
         "operation_type": "constraint",
         "comment": "INDISPENSABLES \n8 minutos, 9%"
     },
@@ -139,6 +142,7 @@ new_operations = [
         "drop_script": "alter table formula_rx drop constraint if exists formula_rx_provider_id_d8660a11_fk_geo_provider_id;",
         "order": 17,
         "collection": "Rx",
+        "collection_related": "Provider",
         "operation_type": "constraint",
         "comment": "INDISPENSABLES \n 7 minutos, 10%"
     },
@@ -159,6 +163,7 @@ new_operations = [
         "drop_script": "alter table formula_drug drop constraint if exists formula_drug_medicament_id_630af6c3_fk_med_cat_m;",
         "order": 19,
         "collection": "Drug",
+        "collection_related": "Medicament",
         "operation_type": "constraint",
         "comment": "INDISPENSABLES"
     },
@@ -240,6 +245,7 @@ new_operations = [
         "drop_script": "alter table formula_rx drop constraint if exists formula_rx_medical_unit_id_27e254eb_fk_med_c_liat_m;",
         "order": 31,
         "collection": "Rx",
+        "collection_related": "MedicalUnit",
         "operation_type": "constraint",
         "comment": "IMPORTANTES \n 8 minutos, 9%"
     },
@@ -260,6 +266,7 @@ new_operations = [
         "drop_script": "alter table formula_rx drop constraint if exists formula_rx_doctor_id_6f41a184_fk_med_cat_d;",
         "order": 33,
         "collection": "Rx",
+        "collection_related": "Doctor",
         "operation_type": "constraint",
         "comment": "IMPORTANTES"
     },
@@ -280,6 +287,7 @@ new_operations = [
         "drop_script": "alter table formula_complementrx drop constraint if exists formula_complementrx_area_id_b0ff963e_fk_med_cat_area_hex_hash;",
         "order": 61,
         "collection": "ComplementRx",
+        "collection_related": " med_cat_area",
         "operation_type": "constraint",
         "comment": "POCO IMPORTANTES"
     },
@@ -320,6 +328,7 @@ new_operations = [
         "drop_script": "alter table formula_drug drop constraint if exists formula_drug_lap_sheet_id_65587308_fk_inai_lapsheet_id;",
         "order": 71,
         "collection": "Drug",
+        "collection_related": "LapSheet",
         "operation_type": "constraint",
         "comment": "NO INDISPENSABLES"
     },
@@ -340,6 +349,7 @@ new_operations = [
         "drop_script": "alter table formula_drug drop constraint if exists formula_drug_sheet_file_id_568cdddf_fk_inai_sheetfile_id;",
         "order": 73,
         "collection": "Drug",
+        "collection_related": "SheetFile",
         "operation_type": "constraint",
         "comment": "NO INDISPENSABLES"
     },
@@ -558,18 +568,24 @@ def create_operations(reset=False):
             group.low_priority = low_priority
             group.save()
         collection = Collection.objects.get(model_name=operation["collection"])
-        Operation.objects.create(
+        collection_related = None
+        if col_rel := operation.get("collection_related"):
+            collection_related = Collection.objects.get(model_name=col_rel)
+
+        new_operation, created = Operation.objects.get_or_create(
             operation_type=operation["operation_type"],
             operation_group=group,
-            order=order,
-            low_priority=low_priority,
-            is_active=True,
             collection=collection,
-            script=operation["script"],
             script_drop=operation["drop_script"],
-            comment=comment
         )
-
+        new_operation.order = order
+        new_operation.collection_related = collection_related
+        new_operation.script = operation["script"]
+        new_operation.save()
+        new_operation.comment = comment
+        #     low_priority=low_priority,
+        #     is_active=True,
+        #     collection=collection,
 
 
 create_constraints = [

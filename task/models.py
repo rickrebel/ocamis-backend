@@ -16,7 +16,7 @@ class TaskManager(models.Manager):
 
     def in_queue(self, ebs=False, **kwargs):
         query_task = self\
-            .filter(status_task__name="queued", **kwargs)\
+            .filter(status_task__name="queue", **kwargs)\
             .order_by("id")
         if ebs:
             query_task = query_task.filter(task_function__ebs_percent__gt=0)

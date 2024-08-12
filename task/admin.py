@@ -53,7 +53,8 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     ]
     raw_id_fields = [
         "petition", "file_control", "data_file", "reply_file", "sheet_file",
-        "parent_task", "user", "week_record", "provider", "month_record"]
+        "parent_task", "user", "week_record", "provider", "month_record",
+        "cluster", "operation", "mat_view"]
     list_filter = [
         NullFilterTask,
         "status_task", "task_function__is_queueable",

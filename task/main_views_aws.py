@@ -174,7 +174,7 @@ class AwsFunction(TaskHelper):
                 self.add_errors(e.errors, comprobate=False)
             except Exception as error:
                 error_tb = traceback.format_exc()
-                print("LOG DE ERRORES 2: ", error_tb)
+                print(f"LOG DE ERRORES 2 ({function_name}):\n", error_tb)
                 error_tb = (f"Error en el método {self.next_function}:"
                             f"{str(error)} | {str(error_tb)}")
                 self.errors.append(error_tb)

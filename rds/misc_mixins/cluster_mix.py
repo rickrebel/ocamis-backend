@@ -21,14 +21,16 @@ class ClusterMix:
             params = {"constraint": constraint, "db_config": ocamis_db}
             constraint_task = TaskBuilder(
                 'add_constraint', models=[self.cluster, operation],
-                parent_class=self.base_task, params=params)
+                parent_class=self.base_task, params=params, keep_tasks=True)
             constraint_task.async_in_lambda()
 
 
-# def my_test():
-#     from formula.views import ConstraintBuilder
-#     base_table = 'test1'
-#     builder = ConstraintBuilder(prov_year_month=base_table, group='cluster')
-#     constraints = builder.modify_constraints()
-#     print(constraints)
-
+def my_test():
+    from formula.views import ConstraintBuilder
+    base_table = 'test1'
+    builder = ConstraintBuilder(prov_year_month=base_table, group='cluster')
+    constraints = builder.modify_constraints()
+    for (constraint, operation) in constraints:
+        print("-" * 50)
+        print(constraint)
+    print(constraints)

@@ -88,13 +88,13 @@ class FromAws:
         from django.utils import timezone
         # duplicates_count
         fields = [
-            ["drugs_count", "drugs_count"],
-            ["rx_count", "rx_count"],
-            ["duplicates_count", "dupli"],
-            ["shared_count", "shared"],
+            ("drugs_count", "drugs_count"),
+            ("rx_count", "rx_count"),
+            ("duplicates_count", "dupli"),
+            ("shared_count", "shared"),
         ]
-        for field in fields:
-            setattr(self.week_record, field[0], month_week_counts[field[1]])
+        for (field, key) in fields:
+            setattr(self.week_record, field, month_week_counts.get(key, 0))
         self.week_record.crosses = month_pairs
         # self.week_record.drugs_count = month_week_counts["drugs_count"]
         # self.week_record.rx_count = month_week_counts["rx_count"]
