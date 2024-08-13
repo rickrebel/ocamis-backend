@@ -28,6 +28,7 @@ class TaskHelper(Serverless):
         self.checker = TaskChecker(self.main_task)
 
     def async_in_lambda(self, http_response=False):
+        import traceback
         task_function = self.main_task.task_function
         if not self.main_task.function_after:
             self.main_task.function_after = f"{task_function.name}_after"
@@ -36,14 +37,17 @@ class TaskHelper(Serverless):
 
         try:
             self.main_task.save()
+            # TODO Task: Corroborar que no debemos corroborar nadita
+            self.comprobate_send(comprobate=False, http_response=http_response)
         except Exception as e:
             # error = f"ERROR AL CREAR TASK: {e}, vars: {query_kwargs}"
-            error = f"ERROR AL CREAR TASK: {e}, {self.main_task}"
+            error_ = traceback.format_exc()
+            error = f"ERROR AL CREAR TASK: {str(e)}, {self.main_task}\n{error_}"
             print(error)
-            self.errors.append(error)
-            return None
-        # TODO Task: Corroborar que no debemos corroborar nadita
-        self.comprobate_send(comprobate=False, http_response=http_response)
+            print("-" * 50)
+            print(self.main_task.__dict__)
+            # self.errors.append(error)
+            return self.add_errors_and_raise([error])
 
     def comprobate_send(self, comprobate=True, http_response=False):
         task_function = self.main_task.task_function

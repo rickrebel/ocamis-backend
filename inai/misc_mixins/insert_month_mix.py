@@ -145,7 +145,7 @@ class InsertMonth:
         params = {
             "first_query": first_query,
             "last_query": last_query,
-            "queries_by_model": main_queries.values(),
+            "queries_by_model": list(main_queries.values()),
             "db_config": ocamis_db,
             "month_record_id": self.month_record.id,
             "week_record_id": week_record.id,
@@ -188,17 +188,19 @@ class InsertMonth:
         params = {
             "first_query": first_query,
             "last_query": last_query,
-            "queries_by_model": main_queries.values(),
+            "queries_by_model": list(main_queries.values()),
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,
             "table_files_ids": table_files_ids,
         }
         models = [lap_sheet.sheet_file,
                   lap_sheet.sheet_file.data_file, self.month_record]
+        print("previo a TaskBuilder")
         lap_task = TaskBuilder(
             function_name, parent_class=self.base_task,
             params=params, models=models, keep_tasks=True,
             function_after=function_after, subgroup=subgroup)
+        print("previo a async_in_lambda")
         lap_task.async_in_lambda()
 
     def build_catalog_queries(
