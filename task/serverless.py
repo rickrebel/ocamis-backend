@@ -42,7 +42,7 @@ class Serverless:
 
     def __init__(
             self, main_task: AsyncTask, errors=None, params: dict = None):
-
+        # import inspect
         self.main_task = main_task
         if errors:
             self.errors = errors
@@ -61,7 +61,14 @@ class Serverless:
         #     self.is_from_aws = self.main_task.task_function.is_from_aws
         if self.use_local_lambda:
             self.params["s3"] = build_s3()
-        self.function_name: Optional[str] = None
+        fn_name = None
+        if task_function := main_task.task_function:
+            fn_name = task_function.lambda_function or task_function.name
+        self.function_name: Optional[str] = fn_name
+        # curframe = inspect.currentframe()
+        # calframe = inspect.getouterframes(curframe, 2)
+        # for caller in calframe:
+        #     print(caller)
 
     def set_function_name(self, function_name=None):
         raise NotImplementedError("set_function_name")
@@ -75,7 +82,8 @@ class Serverless:
 
     def execute_async(self):
         # print("SE VA A EJECUTAR:", self.main_task.task_function_id)
-
+        if not self.function_name:
+            raise "DEBERÍA TENER UN NOMBRE DE FUNCIÓN"
         if self.use_local_lambda or self.is_from_aws is False:
             return self._execute_in_local()
         else:
@@ -112,6 +120,7 @@ class Serverless:
 
     def _execute_in_local(self):
         import threading
+        print("FUNCTION NAME 2:", self.function_name)
         if not globals().get(self.function_name, False):
             return self._execute_in_lambda()
 
