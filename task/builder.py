@@ -98,6 +98,7 @@ class TaskBuilder(TaskHelper):
             # print("Task function", task_function.name)
             self.params["function_name"] = function_name
             self.main_task.task_function = task_function
+            self.function_name = task_function.lambda_function or function_name
 
     # @staticmethod
     # def build_special(clss, model_obj=None):

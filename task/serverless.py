@@ -2,6 +2,8 @@ import json
 from django.conf import settings
 from datetime import datetime, timedelta
 from django.utils import timezone
+from typing import Any, Optional
+
 from scripts.common import build_s3
 from task.models import AsyncTask
 from task.aws.common import BotoUtils
@@ -25,6 +27,12 @@ def camel_to_snake(name):
     import re
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+class Context:
+    def __init__(self, request_id, function_name):
+        self.aws_request_id = request_id
+        self.function_name = f"{function_name} in local"
 
 
 class Serverless:
@@ -53,6 +61,7 @@ class Serverless:
         #     self.is_from_aws = self.main_task.task_function.is_from_aws
         if self.use_local_lambda:
             self.params["s3"] = build_s3()
+        self.function_name: Optional[str] = None
 
     def set_function_name(self, function_name=None):
         raise NotImplementedError("set_function_name")
@@ -75,7 +84,8 @@ class Serverless:
     def _execute_in_lambda(self):
         from scripts.common import start_session
         s3_client, dev_resource = start_session("lambda")
-        function_final = f"{self.main_task.task_function_id}:normal"
+        # function_name = task_function.lambda_function or task_function.name
+        function_final = f"{self.function_name}:normal"
         dumb_params = json.dumps(self.params)
         try:
             response = s3_client.invoke(
@@ -102,8 +112,7 @@ class Serverless:
 
     def _execute_in_local(self):
         import threading
-        function_name = self.main_task.task_function.name
-        if not globals().get(function_name, False):
+        if not globals().get(self.function_name, False):
             return self._execute_in_lambda()
 
         # print("SE EJECUTA EN LOCAL:", function_name)
@@ -114,12 +123,8 @@ class Serverless:
         self.main_task.save()
 
         def run_in_thread():
-            class Context:
-                def __init__(self):
-                    self.aws_request_id = request_id
-                    self.function_name = f"{function_name} in local"
-
-            globals()[function_name](self.params, Context())
+            context = Context(request_id, self.function_name)
+            globals()[self.function_name](self.params, context)
 
         t = threading.Thread(target=run_in_thread)
         t.start()
