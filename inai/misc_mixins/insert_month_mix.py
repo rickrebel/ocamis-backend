@@ -193,11 +193,11 @@ class InsertMonth:
             "lap_sheet_id": lap_sheet.id,
             "table_files_ids": table_files_ids,
         }
-        models = [lap_sheet, lap_sheet.sheet_file,
+        models = [lap_sheet.sheet_file,
                   lap_sheet.sheet_file.data_file, self.month_record]
         lap_task = TaskBuilder(
             function_name, parent_class=self.base_task,
-            params=params, models=models,
+            params=params, models=models, keep_tasks=True,
             function_after=function_after, subgroup=subgroup)
         lap_task.async_in_lambda()
 

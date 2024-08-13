@@ -15,6 +15,9 @@ class HttpResponseError(Exception):
 
 
 class TaskHelper(Serverless):
+    task_models = [
+        "file_control", "reply_file", "sheet_file", "data_file",
+        "week_record", "month_record", "cluster", "mat_view"]
 
     def __init__(self, main_task: AsyncTask, want_http_response=None,
                  parent_class=None, model_obj=None, **kwargs):
@@ -163,15 +166,12 @@ class TaskHelper(Serverless):
         aws_function.execute_next_function()
 
     def _find_task_model(self, async_task=None, many=False):
-        task_models = [
-            "file_control", "reply_file", "sheet_file", "data_file",
-            "week_record", "month_record", "cluster", "mat_view"]
         # "cluster", "mat_view"]
         if not async_task:
             async_task = self.main_task
 
         models = []
-        for model in task_models:
+        for model in self.task_models:
             current_obj = getattr(async_task, model)
             if current_obj:
                 if not many:
