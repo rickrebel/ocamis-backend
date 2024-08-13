@@ -1,16 +1,69 @@
 from task.aws.common import send_simple_response, create_connection
+from task.aws.query_commons import QueryExecution
+
+
+def lambda_handler(event, context):
+    import traceback
+    final_result = {
+        "lap_sheet_id": event.get("lap_sheet_id"),
+        "month_record_id": event.get("month_record_id")}
+
+    query_execution = SaveQueryExecution(event, context)
+    try:
+        query_execution.execute_all_queries()
+    except Exception as e:
+        if not query_execution.errors:
+            print("Exception", e)
+            error_ = traceback.format_exc()
+            errors = [f"Hay un error raro en la construcción: \n{str(e)}\n{error_}"]
+            return send_simple_response(
+                event, context, errors=errors, result=final_result)
+
+    return send_simple_response(
+        event, context, errors=query_execution.errors, result=final_result)
+
+
+class SaveQueryExecution(QueryExecution):
+
+    def execute_all_queries(self):
+        event = self.event
+        first_query = event.get("first_query")
+        error_message = "Ya se había insertado la hoja y su lap"
+        self.execute_query(first_query, error_msg=error_message)
+        self.execute_many_queries(event.get("sql_queries", []))
+        # self.execute_many_queries(event.get("queries_by_model", []))
+        self._queries_by_model(event.get("queries_by_model", []))
+        self.execute_query(event.get("last_query"), need_raise=False)
+        self.finish_and_save()
+
+    def _queries_by_model(self, queries_by_model):
+        for content in queries_by_model:
+            base_queries = content["base_queries"]
+            # alternative_query = content.get("alternative_query")
+            files = content["files"]
+            for query_base in base_queries:
+                for path in files:
+                    query = query_base.replace("PATH_URL", path)
+                    self.execute_query(query, need_raise=False)
+        self.comprobate_errors()
+
+    def _update_table_files(self, table_files_ids):
+        str_table_files_ids = [str(x) for x in table_files_ids]
+        query = f"UPDATE inai_tablefile SET inserted = true " \
+                f"WHERE id IN ({','.join(str_table_files_ids)})"
+        self.execute_query(query, need_raise=False)
+        self.comprobate_errors()
 
 
 # def save_csv_in_db(event, context):
-def lambda_handler(event, context):
+def lambda_handler_old(event, context):
     from datetime import datetime
-    # print("model_name", event.get("model_name"))
     lap_sheet_id = event.get("lap_sheet_id")
     month_record_id = event.get("month_record_id")
     table_files_ids = event.get("table_files_ids", [])
     db_config = event.get("db_config")
     sql_queries = event.get("sql_queries", [])
-    queries_by_model = event.get("queries_by_model", {})
+    queries_by_model = event.get("queries_by_model", [])
     print("start", datetime.now())
     connection = create_connection(db_config)
     print("connection", datetime.now())
@@ -39,7 +92,8 @@ def lambda_handler(event, context):
             execute_query(sql_query)
     if not errors:
         print("before queries_by_model", datetime.now())
-        for model_name, content in queries_by_model.items():
+        # for model_name, content in queries_by_model.items():
+        for content in queries_by_model:
             base_queries = content["base_queries"]
             alternative_query = content.get("alternative_query")
             files = content["files"]

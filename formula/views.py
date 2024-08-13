@@ -1,13 +1,22 @@
 from django.db import connection
+from rds.models import Cluster, Stage, MatView, Operation
+from django.conf import settings
 
 
 class ConstraintBuilder:
 
-    def __init__(self, is_create=True, prov_year_month=None, group='month'):
+    def __init__(self, is_create=True, prov_year_month=None, group='month',
+                 cluster=None):
         self.is_create = is_create
         self.prov_year_month = prov_year_month
         self.group = group
         self.cursor = None
+
+        self.cluster = cluster
+        self.mat_view = None
+        self.mat_name = None
+        self.file_path = None
+
         if not self.prov_year_month:
             self.cursor = connection.cursor()
         self.valid_strings = [
@@ -30,6 +39,51 @@ class ConstraintBuilder:
         # self.abbrev = "fm" if self.schema == "tmp" else "frm"
         self.init_table_name = f"{self.schema}.{self.abbrev}_{self.prov_year_month}"
         self.constraint = None
+
+    def mat_view_queries(self, mat_view: MatView):
+        from task.serverless import camel_to_snake
+
+        self.mat_view = mat_view
+        snake_name = camel_to_snake(mat_view.name)
+        self.mat_name = f"{self.init_table_name}_{snake_name}"
+        base_path_name = self.mat_name.replace("base.", "")
+        self.file_path = f"mat_views/{self.cluster.name}/{base_path_name}.csv"
+        return [
+            {"name": "create", "script": self.custom_mat_view(mat_view)},
+            {"name": "save", "script": self.save_mat_view_in_s3()},
+            {"name": "copy", "script": self.query_to_copy_export(snake_name)}]
+
+    def custom_mat_view(self, mat_view):
+        main_field = "script" if self.is_create else "drop_script"
+        script = getattr(mat_view, main_field)
+        script = script.replace(";", "")
+        script = script.replace("CLUSTER_NAME", self.cluster.name)
+        script = script.replace(" formula_", f" {self.init_table_name}_")
+        init_script = "CREATE MATERIALIZED VIEW" if self.is_create \
+                      else "DROP MATERIALIZED VIEW"
+        return (f"{init_script} {self.mat_name} AS"
+                f"\n{script}\n    WITH DATA;")
+
+    def save_mat_view_in_s3(self):
+        bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+        region_name = getattr(settings, "AWS_S3_REGION_NAME")
+        return f"""
+        SELECT aws_s3.query_export_to_s3(
+            'SELECT * FROM {self.mat_name}',
+            aws_commons.create_s3_uri('{bucket_name}', '{self.file_path}', '{region_name}'),
+            options := 'format csv, delimiter ''|'', header true'
+        );
+        """
+
+    def query_to_copy_export(self, snake_name):
+        from respond.data_file_mixins.matches_mix import field_of_models
+        from inai.misc_mixins.insert_month_mix import build_copy_sql_aws
+
+        columns = field_of_models({"model": snake_name, "app": "formula"})
+        column_names = [column["name"] for column in columns]
+        columns_join = ",".join(column_names)
+        model_name = f"public.{snake_name}"
+        return build_copy_sql_aws(self.file_path, model_name, columns_join)
 
     def modify_constraints(self):
         from rds.models import Operation
@@ -167,7 +221,6 @@ def custom_constraint(constraint, prov_year_month, schema="tmp"):
 
 def modify_constraints(
         is_create=True, is_rebuild=False, prov_year_month=None):
-    from rds.models import Operation
     from scripts.verified.indexes.constrains import get_constraints
     from datetime import datetime
     if is_rebuild:

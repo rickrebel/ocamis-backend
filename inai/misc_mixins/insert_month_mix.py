@@ -145,7 +145,7 @@ class InsertMonth:
         params = {
             "first_query": first_query,
             "last_query": last_query,
-            "queries_by_model": main_queries,
+            "queries_by_model": main_queries.values(),
             "db_config": ocamis_db,
             "month_record_id": self.month_record.id,
             "week_record_id": week_record.id,
@@ -184,10 +184,11 @@ class InsertMonth:
         else:
             raise Exception("No se encontró el campo de inserción")
         table_files_ids = [table_file.id for table_file in table_files]
+        main_queries = self.build_query_tables(table_files, temp_complement)
         params = {
             "first_query": first_query,
             "last_query": last_query,
-            "queries_by_model": self.build_query_tables(table_files, temp_complement),
+            "queries_by_model": main_queries.values(),
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,
             "table_files_ids": table_files_ids,

@@ -41,8 +41,10 @@ class ClusterViewSet(ListRetrieveUpdateMix):
 
         stage = Stage.objects.get(name=stage_name)
         function_name = stage.main_function.name
+        function_finished = stage.finished_function
         base_task = TaskBuilder(
-            function_name, models=[cluster], request=request)
+            function_name, models=[cluster], request=request,
+            finished_function=function_finished)
         cluster_mix = ClusterMix(cluster, base_task)
         getattr(cluster_mix, function_name)()
 

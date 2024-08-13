@@ -215,13 +215,13 @@ class MissingField(models.Model):
 
 class MatDrugPriority(models.Model):
 
-    cluster = models.ForeignKey(
-        Cluster, on_delete=models.DO_NOTHING,
-        blank=True, null=True, default='first')
+    # cluster = models.ForeignKey(
+    #     Cluster, on_delete=models.DO_NOTHING,
+    #     blank=True, null=True, default='first')
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    # clues = models.ForeignKey(
-    #     CLUES, on_delete=models.CASCADE, blank=True, null=True)
+    clues = models.ForeignKey(
+        CLUES, on_delete=models.CASCADE, blank=True, null=True)
     week_record = models.ForeignKey(
         WeekRecord, on_delete=models.CASCADE)
     delivered = models.ForeignKey(
@@ -265,9 +265,9 @@ class MatDrugPriority(models.Model):
 
 
 class MatDrugEntity(models.Model):
-    cluster = models.ForeignKey(
-        Cluster, on_delete=models.DO_NOTHING,
-        blank=True, null=True, default='first')
+    # cluster = models.ForeignKey(
+    #     Cluster, on_delete=models.DO_NOTHING,
+    #     blank=True, null=True, default='first')
     iso_year = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     entity = models.ForeignKey(
@@ -341,15 +341,10 @@ class MatDrugExtended(models.Model):
 
 class MatDrugTotals(models.Model):
 
-    cluster = models.ForeignKey(
-        Cluster, on_delete=models.DO_NOTHING,
-        blank=True, null=True, default='first')
     delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
-    # clues = models.ForeignKey(
-    #     CLUES, on_delete=models.CASCADE, blank=True, null=True)
-    medical_unit = models.ForeignKey(
-        MedicalUnit, on_delete=models.CASCADE, blank=True, null=True)
+    clues = models.ForeignKey(
+        CLUES, on_delete=models.CASCADE, blank=True, null=True)
     week_record = models.ForeignKey(
         WeekRecord, on_delete=models.CASCADE)
     delivered = models.ForeignKey(
@@ -360,6 +355,31 @@ class MatDrugTotals(models.Model):
 
     class Meta:
         db_table = 'mat_drug_totals'
+
+    def __str__(self):
+        return "%s -- %s -- %s" % (
+            self.week_record, self.delivered, self.clues)
+
+
+class MatDrugTotals2(models.Model):
+
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
+    cluster = models.ForeignKey(
+        Cluster, on_delete=models.DO_NOTHING,
+        blank=True, null=True, default='first')
+    delegation = models.ForeignKey(
+        Delegation, on_delete=models.CASCADE, blank=True, null=True)
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.CASCADE)
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        db_table = 'mat_drug_totals2'
 
     def __str__(self):
         return "%s -- %s -- %s" % (

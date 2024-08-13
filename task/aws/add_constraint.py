@@ -1,35 +1,23 @@
 from task.aws.common import create_connection, send_simple_response
+from task.aws.query_commons import QueryExecution
 
 
 # def insert_temp_tables(event, context):
 def lambda_handler(event, context):
     # from datetime import datetime
     # print("model_name", event.get("model_name"))
-    db_config = event.get("db_config")
 
-    constraint_query = event.get("constraint")
-
-    # print("start", datetime.now())
-    connection = create_connection(db_config)
-    errors = []
-    warnings = []
-    cursor = connection.cursor()
-
+    query_execution = AddQueryExecution(event, context)
     try:
-        cursor.execute(constraint_query)
+        query_execution.execute_all_queries()
     except Exception as e:
-        str_e = str(e)
-        if "current transaction is aborted" in str_e:
-            return
-        errors.append(f"Hubo un error al guardar; \n{constraint_query}; \n{str(e)}")
+        pass
 
-    if errors:
-        connection.rollback()
-        # errors.append(f"Hubo un error al guardar; {str(e)}")
-    else:
-        cursor.close()
-        connection.commit()
-    connection.close()
-    errors.extend(warnings)
+    return send_simple_response(event, context, errors=query_execution.errors)
 
-    return send_simple_response(event, context, errors=errors)
+
+class AddQueryExecution(QueryExecution):
+
+    def execute_all_queries(self):
+        constraint_query = self.event.get("constraint")
+        self.constraint_queries([constraint_query])
