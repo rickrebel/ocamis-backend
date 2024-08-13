@@ -195,12 +195,10 @@ class InsertMonth:
         }
         models = [lap_sheet.sheet_file,
                   lap_sheet.sheet_file.data_file, self.month_record]
-        print("previo a TaskBuilder")
         lap_task = TaskBuilder(
             function_name, parent_class=self.base_task,
             params=params, models=models, keep_tasks=True,
             function_after=function_after, subgroup=subgroup)
-        print("previo a async_in_lambda")
         lap_task.async_in_lambda()
 
     def build_catalog_queries(
