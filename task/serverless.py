@@ -150,6 +150,7 @@ class TaskChecker:
         print("SUCCESS EXECUTED:", success_executed)
         if not success_executed:
             self.debug_queue()
+            self.debug_ebs()
         self.debug_aged_running()
 
     def debug_success(self):
@@ -170,10 +171,10 @@ class TaskChecker:
 
     def debug_queue(self):
         queue_tasks = AsyncTask.objects.in_queue()
-        print("QUEUE TASKS:", queue_tasks.count())
-        if queue_tasks.exists():
-            print("first task_id:", queue_tasks.first().id)
-            print("first task:", queue_tasks.first())
+        # print("QUEUE TASKS:", queue_tasks.count())
+        # if queue_tasks.exists():
+        #     print("first task_id:", queue_tasks.first().id)
+        #     print("first task:", queue_tasks.first())
         if queue_tasks.exists():
             some = False
             queue_tasks = queue_tasks.exclude(
@@ -251,8 +252,10 @@ class TaskChecker:
                         status_task_id="running")
             if running_rds_tasks.exists():
                 return False
-        pending_rds_tasks = AsyncTask.objects.in_queue(
-            ebs=True, task_function=self.main_task.task_function)
+        filter_kwargs = {"ebs": True}
+        if self.main_task:
+            filter_kwargs["task_function"] = self.main_task.task_function
+        pending_rds_tasks = AsyncTask.objects.in_queue(**filter_kwargs)
         if want_send:
             pending_rds_tasks = pending_rds_tasks.exclude(id=self.main_task.id)
         has_pending = pending_rds_tasks.exists()
