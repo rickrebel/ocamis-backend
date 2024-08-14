@@ -161,7 +161,6 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         #     "finished_function": stage.finished_function
         # }
         seconds_sleep = 10 if provider.split_by_delegation else 1
-        accumulated_sleep = 0
 
         for month_record in month_records:
             if base_task:
@@ -204,8 +203,8 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 month_methods.revert_stages(stage)
                 month_record.save_stage(stage.name)
                 month_base_task.comprobate_status()
-            accumulated_sleep += seconds_sleep
-            run_in_thread(accumulated_sleep)
+            # accumulated_sleep += seconds_sleep
+            run_in_thread(seconds_sleep)
             # elif provider.split_by_delegation:
             #     # t = threading.Thread(target=run_in_thread)
             #     # t.start()
