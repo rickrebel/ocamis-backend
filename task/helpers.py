@@ -27,7 +27,7 @@ class TaskHelper(Serverless):
         self.model_obj = model_obj
         self.checker = TaskChecker(self.main_task)
 
-    def async_in_lambda(self, http_response=False):
+    def async_in_lambda(self):
         import traceback
         task_function = self.main_task.task_function
         if not self.main_task.function_after:
@@ -38,7 +38,7 @@ class TaskHelper(Serverless):
         try:
             self.main_task.save()
             # TODO Task: Corroborar que no debemos corroborar nadita
-            self.comprobate_send(comprobate=False, http_response=http_response)
+            self.comprobate_send()
         except Exception as e:
             # error = f"ERROR AL CREAR TASK: {e}, vars: {query_kwargs}"
             error_ = traceback.format_exc()
@@ -49,22 +49,21 @@ class TaskHelper(Serverless):
             # self.errors.append(error)
             return self.add_errors_and_raise([error])
 
-    def comprobate_send(self, comprobate=True, http_response=False):
+    def comprobate_send(self):
         task_function = self.main_task.task_function
         if not task_function.is_queueable:
             self.execute_async()
 
         elif task_function.ebs_percent:
             self.save_queue()
-            res = self.checker.comprobate_ebs(True)
+            res = self.checker.comprobate_ebs(want_send=True)
             if not res:
                 self.main_task.save()
         else:
             self._individual_queueable(task_function)
-        if comprobate or http_response is not False:
-            self.comprobate_status(want_http_response=http_response)
 
-    def comprobate_status(self, want_http_response=None, explore_parent=True):
+    def comprobate_status(
+            self, want_http_response=None, explore_parent=True, force=False):
 
         if want_http_response is not None:
             self.want_http_response = want_http_response
@@ -88,7 +87,7 @@ class TaskHelper(Serverless):
         # RICK TODO: No tengo claro para qué esto otra vez
         self.add_many_tasks(self.new_tasks)
 
-        self.checker.comprobate_queue()
+        self.checker.comprobate_queue(force=force)
 
         if self.want_http_response is not False:
             body_response = {"new_task": self.main_task.id}

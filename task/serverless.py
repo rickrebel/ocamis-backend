@@ -195,8 +195,9 @@ class TaskChecker:
     def debug_ebs(self):
         ebs_tasks = AsyncTask.objects.in_queue(ebs=True)
         if ebs_tasks.exists():
+            first_ebs = ebs_tasks.first()
             return self.comprobate_ebs(
-                want_send=True, ebs_task=ebs_tasks.first())
+                want_send=True, ebs_task=first_ebs, force=True)
 
     def debug_aged_running(self):
         from task.main_views_aws import AwsBody
@@ -224,7 +225,7 @@ class TaskChecker:
             return self.find_stage(task.parent_task)
         return None
 
-    def comprobate_queue(self, is_main=False):
+    def comprobate_queue(self, force=False):
         task_function = self.main_task.task_function
         if not task_function.is_queueable:
             return
@@ -232,7 +233,7 @@ class TaskChecker:
             return
 
         if task_function.ebs_percent:
-            self.comprobate_ebs()
+            self.comprobate_ebs(force=force)
             self._save_main_task()
             return
 
@@ -247,16 +248,18 @@ class TaskChecker:
             self._execute_first(queue_tasks)
         self._save_main_task()
 
-    def comprobate_ebs(self, want_send=False, ebs_task=None):
+    def comprobate_ebs(self, want_send=False, ebs_task=None, force=False):
         if ebs_task:
             self.main_task = ebs_task
-            want_send = True
-        else:
-            running_rds_tasks = AsyncTask.objects\
-                .filter(task_function__ebs_percent__gt=0,
-                        status_task_id="running")
-            if running_rds_tasks.exists():
-                return False
+
+        running_rds_tasks = AsyncTask.objects\
+            .filter(task_function__ebs_percent__gt=0,
+                    status_task_id="running")
+        if running_rds_tasks.exists():
+            return False
+        queue_ebs_tasks = AsyncTask.objects.in_queue(ebs=True)
+        if queue_ebs_tasks.exists() and not force:
+            return False
         filter_kwargs = {}
         if self.main_task:
             filter_kwargs["task_function"] = self.main_task.task_function
@@ -275,10 +278,9 @@ class TaskChecker:
             if has_balance:
                 if has_pending:
                     return self._execute_first(pending_rds_tasks)
-                else:
+                elif self.main_task:
                     return self._execute_main_task()
-            else:
-                delayed_execution(comprobate_waiting_balance, 300)
+            delayed_execution(comprobate_waiting_balance, 300)
         return False
 
     def comprobate_group_queue(self, queue_tasks):

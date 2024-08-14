@@ -21,6 +21,8 @@ class QueryExecution:
 
     def execute_many_queries(self, queries, need_raise=True, need_sleep=False):
         import time
+        if need_sleep:
+            time.sleep(0.5)
         for query in queries:
             if need_sleep:
                 time.sleep(0.5)

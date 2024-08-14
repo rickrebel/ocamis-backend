@@ -443,8 +443,9 @@ def insert_failed_weeks(failed_week_ids):
     print("errors", errors)
 
 
-def erase_last_insertion(provider_id=3):
+def erase_last_insertion(cluster_name='ssa_stable'):
     from inai.models import MonthRecord
     month_records = MonthRecord.objects.filter(
-        last_insertion__isnull=False, provider_id=provider_id)
+        last_insertion__isnull=False, cluster_id=cluster_name)
+    print("month_records", month_records.count())
     month_records.update(last_insertion=None)

@@ -57,7 +57,7 @@ class AWSErrors(generic.View):
                 # current_task.errors = extract_only_message(error)
                 current_task.traceback = request.body
                 task_helper = TaskHelper(current_task, errors=[error])
-                task_helper.comprobate_status()
+                task_helper.comprobate_status(force=True)
                 # comprobate_status(current_task, error, [])
         except Exception as e:
             print("ERROR AL GUARDAR 1.2: ", e)

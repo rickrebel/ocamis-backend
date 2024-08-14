@@ -27,7 +27,6 @@ class ClusterViewSet(ListRetrieveUpdateMix):
     def send_clusters(self, request, *args, **kwargs):
         from classify_task.models import Stage
         from rds.misc_mixins.cluster_mix import ClusterMix
-        print("send_clusters")
         stage_name = request.data.get('stage', None)
         cluster = self.get_object()
 

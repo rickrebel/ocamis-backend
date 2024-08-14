@@ -180,4 +180,4 @@ class ExploreRealMix(ExtractorRealMix, DataFileAws):
         gz_task = TaskBuilder(
             "decompress_gz", parent_class=self.base_task,
             models=[self.data_file], params=params)
-        gz_task.async_in_lambda(http_response=True)
+        gz_task.async_in_lambda()
