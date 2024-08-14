@@ -52,7 +52,7 @@ class QueryExecution:
         ]
         for constraint in constraint_queries:
             if "table_import_from_s3" in constraint:
-                time.sleep(5)
+                time.sleep(3)
             # print("before constraint_query", datetime.now())
             try:
                 self.cursor.execute(constraint)

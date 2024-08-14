@@ -10,6 +10,7 @@ class WeeksGenerator:
         self.years = [year] if year else range(2017, current_year + 1)
         self.provider = provider
         self.all_months = []
+        self.forced = False
 
         self.providers = Provider.objects.all()
         self.month_records = MonthRecord.objects.all()
@@ -38,7 +39,7 @@ class WeeksGenerator:
     def get_all_weeks(self, provider: Provider = None) -> list:
         if not provider:
             return self.generic_weeks
-        if not provider.split_by_delegation:
+        if not provider.split_by_delegation or self.forced:
             return self.generic_weeks
         all_delegation_ids = list(provider.delegations.values_list(
             'id', flat=True))
@@ -120,6 +121,7 @@ class WeeksGenerator:
                 month_record_id = self.already_months[provider.id][week_data["year_month"]]
                 week_data.update({"provider_id": provider.id, "month_record_id": month_record_id})
                 bulk_weeks.append(WeekRecord(**week_data))
+        print("bulk_weeks count", len(bulk_weeks))
         WeekRecord.objects.bulk_create(bulk_weeks)
         self.week_records = WeekRecord.objects.all()
 
@@ -127,6 +129,16 @@ class WeeksGenerator:
 def create_year(year: int = 2024):
     # from scripts.verified.initial_fields import WeeksGenerator
     weeks_gen = WeeksGenerator(year=year)
+    weeks_gen.generate_months()
+    weeks_gen.generate_weeks()
+
+
+def create_missing_imss_weeks():
+    # from scripts.verified.initial_fields import WeeksGenerator
+    from geo.models import Provider
+    provider = Provider.objects.get(acronym="IMSS (Ordinario)")
+    weeks_gen = WeeksGenerator(provider=provider)
+    weeks_gen.forced = True
     weeks_gen.generate_months()
     weeks_gen.generate_weeks()
 
