@@ -19,9 +19,14 @@ class QueryExecution:
         self.errors = []
         self.warnings = []
 
-    def execute_many_queries(self, queries, need_raise=True):
+    def execute_many_queries(self, queries, need_raise=True, need_sleep=False):
+        import time
         for query in queries:
+            if need_sleep:
+                time.sleep(0.5)
             self.execute_query(query, need_raise=False)
+        if need_sleep:
+            time.sleep(0.5)
         if self.errors and need_raise:
             raise self.errors
 

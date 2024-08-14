@@ -36,7 +36,8 @@ class InsertQueryExecution(QueryExecution):
         if count_query := event.get("count_query"):
             self._count_query(count_query, event.get("drugs_object"))
         self.constraint_queries(event.get("constraint_queries", []))
-        self.execute_many_queries(event.get("insert_queries", []))
+        self.execute_many_queries(
+            event.get("insert_queries", []), need_sleep=True)
         self.execute_many_queries(event.get("drop_queries", []))
         if last_query := event.get("last_query"):
             self.execute_query(last_query)
