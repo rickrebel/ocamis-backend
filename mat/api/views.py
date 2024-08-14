@@ -211,7 +211,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
             #     model_name = f"{prev_model}DrugPriority"
             print("model_name: ", model_name)
             # app_label = "mat" if is_big_active else "formula"
-            app_label = "mat"
+            app_label = "formula"
             mother_model = apps.get_model(app_label, model_name)
 
             return mother_model.objects\

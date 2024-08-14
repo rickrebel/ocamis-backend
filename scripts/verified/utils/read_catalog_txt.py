@@ -442,3 +442,9 @@ def insert_failed_weeks(failed_week_ids):
     connection.close()
     print("errors", errors)
 
+
+def erase_last_insertion(provider_id=3):
+    from inai.models import MonthRecord
+    month_records = MonthRecord.objects.filter(
+        last_insertion__isnull=False, provider_id=provider_id)
+    month_records.update(last_insertion=None)
