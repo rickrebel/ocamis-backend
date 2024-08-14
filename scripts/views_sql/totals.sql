@@ -109,6 +109,22 @@ GROUP BY
 	drug.delivered_id,
 	drug.medicament_id;
 
+
+SELECT
+	gen_random_uuid() AS uuid,
+	'CLUSTER_NAME'::text AS cluster_id,
+	drug.week_record_id,
+	drug.delivered_id,
+	drug.medicament_id,
+	sum(drug.prescribed_amount) AS prescribed_total,
+	sum(drug.delivered_amount) AS delivered_total,
+	count(*) AS total
+FROM formula_drug drug
+GROUP BY
+	drug.week_record_id,
+	drug.delivered_id,
+	drug.medicament_id;
+
 --command " "\\copy public.mat_drug_totals2 (uuid, cluster_id, delegation_id, week_record_id, delivered_id, prescribed_total, delivered_total, total) FROM 'C:/Users/Ricardo/DOWNLO~1/DA7428~1.CSV' DELIMITER ',' CSV HEADER ENCODING 'UTF8' QUOTE '\"' NULL 'NULL' ESCAPE '''';""
 -- SELECT
 -- 	gen_random_uuid() AS uuid,

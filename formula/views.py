@@ -67,10 +67,12 @@ class ConstraintBuilder:
     def save_mat_view_in_s3(self):
         bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
         region_name = getattr(settings, "AWS_S3_REGION_NAME")
+        aws_location = getattr(settings, "AWS_LOCATION")
+        final_path = f"{aws_location}/{self.file_path}"
         return f"""
         SELECT aws_s3.query_export_to_s3(
             'SELECT * FROM {self.mat_name}',
-            aws_commons.create_s3_uri('{bucket_name}', '{self.file_path}', '{region_name}'),
+            aws_commons.create_s3_uri('{bucket_name}', '{final_path}', '{region_name}'),
             options := 'format csv, delimiter ''|'', header true'
         );
         """

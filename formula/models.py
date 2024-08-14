@@ -265,9 +265,6 @@ class MatDrugPriority(models.Model):
 
 
 class MatDrugEntity(models.Model):
-    # cluster = models.ForeignKey(
-    #     Cluster, on_delete=models.DO_NOTHING,
-    #     blank=True, null=True, default='first')
     iso_year = models.PositiveSmallIntegerField()
     iso_week = models.PositiveSmallIntegerField()
     entity = models.ForeignKey(
@@ -288,6 +285,28 @@ class MatDrugEntity(models.Model):
     def __str__(self):
         return "%s -- %s -- %s -- %s" % (
             self.iso_year, self.iso_week, self.delivered, self.medicament)
+
+
+class MatDrugEntity2(models.Model):
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
+    cluster = models.ForeignKey(
+        Cluster, on_delete=models.DO_NOTHING, default='first')
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.CASCADE)
+    delivered = models.ForeignKey(
+        Delivered, on_delete=models.CASCADE)
+    medicament = models.ForeignKey(
+        Medicament, on_delete=models.CASCADE)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        db_table = 'mat_drug_entity2'
+
+    def __str__(self):
+        return f"{self.week_record} -- {self.delivered} -- {self.medicament}"
 
 
 class MatDrug(models.Model):
