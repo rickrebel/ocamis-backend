@@ -151,10 +151,13 @@ class CatalogShortageViz(views.APIView):
         from medicine.api.serializers import (
             ComponentVizAllSerializer, GroupSerializer)
         from medicine.models import Component, Group
+        from geo.models import Provider
+        from geo.api.serializers import ProviderCatSerializer
 
         components = Component.objects\
             .filter(priority__lte=10)\
             .order_by("priority", "-frequency")
+        providers = Provider.objects.filter(status_priority='insert_ready')
 
         data = {
             # CATÁLOGOS GENERALES:
@@ -162,6 +165,7 @@ class CatalogShortageViz(views.APIView):
                 components, many=True).data,
             "groups": GroupSerializer(
                 Group.objects.all(), many=True).data,
+            "providers": ProviderCatSerializer(providers, many=True).data,
         }
         return Response(data)
 
