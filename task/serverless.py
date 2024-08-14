@@ -258,6 +258,8 @@ class TaskChecker:
         if running_rds_tasks.exists():
             return False
         queue_ebs_tasks = AsyncTask.objects.in_queue(ebs=True)
+        if want_send:
+            queue_ebs_tasks = queue_ebs_tasks.exclude(id=self.main_task.id)
         if queue_ebs_tasks.exists() and not force:
             return False
         filter_kwargs = {}
