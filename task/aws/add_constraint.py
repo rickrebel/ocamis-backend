@@ -21,3 +21,4 @@ class AddQueryExecution(QueryExecution):
     def execute_all_queries(self):
         constraint_query = self.event.get("constraint")
         self.constraint_queries([constraint_query])
+        self.finish_and_save()
