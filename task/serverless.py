@@ -21,6 +21,7 @@ from task.aws.decompress_zip_aws import lambda_handler as decompress_zip_aws
 from task.aws.build_week_csvs import lambda_handler as build_week_csvs
 from task.aws.rebuild_week_csv import lambda_handler as rebuild_week_csv
 from task.aws.add_constraint import lambda_handler as add_constraint
+from task.aws.add_mat_view import lambda_handler as add_mat_view
 
 
 def camel_to_snake(name):

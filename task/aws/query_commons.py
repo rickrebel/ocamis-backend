@@ -59,6 +59,7 @@ class QueryExecution:
                 #     if valid_error in str_e:
                 #         continue
                 if any([valid_error in str_e for valid_error in valid_errors]):
+                    print(f"str_e en constraint {constraint}", str_e)
                     continue
                 # print("constraint", constraint)
                 # print(f"ERROR:\n, {e}, \n--------------------------")

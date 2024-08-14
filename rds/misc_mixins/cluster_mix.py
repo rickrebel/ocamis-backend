@@ -33,12 +33,23 @@ class ClusterMix:
         builder = ConstraintBuilder(
             prov_year_month=self.cluster.name, group='cluster',
             cluster=self.cluster)
+        # for mat_view in mat_views:
+        #     queries = builder.mat_view_queries(mat_view)
+        #     query_scripts = [query["script"] for query in queries]
+        #     params = {
+        #         "main_scripts": query_scripts, "db_config": ocamis_db}
+        #     constraint_task = TaskBuilder(
+        #         'add_mat_view', models=[self.cluster, mat_view],
+        #         parent_class=self.base_task, params=params,
+        #         keep_tasks=True)
+        #     constraint_task.async_in_lambda()
         for mat_view in mat_views:
             mat_view_task = TaskBuilder(
                 'basic_mat_views_by_view', models=[self.cluster, mat_view],
                 parent_class=self.base_task, keep_tasks=True)
             queries = builder.mat_view_queries(mat_view)
             for query in queries:
+                print("query_name", query["name"])
                 params = {
                     "main_script": query["script"], "db_config": ocamis_db}
                 constraint_task = TaskBuilder(

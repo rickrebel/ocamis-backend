@@ -79,7 +79,7 @@ class ConstraintBuilder:
         from respond.data_file_mixins.matches_mix import field_of_models
         from inai.misc_mixins.insert_month_mix import build_copy_sql_aws
 
-        columns = field_of_models({"model": snake_name, "app": "formula"})
+        columns = field_of_models({"model": self.mat_view.name, "app": "formula"})
         column_names = [column["name"] for column in columns]
         columns_join = ",".join(column_names)
         model_name = f"public.{snake_name}"

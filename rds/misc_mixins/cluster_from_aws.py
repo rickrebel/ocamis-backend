@@ -15,8 +15,8 @@ class FromAws:
         pass
 
     def save_success_indexing(self, **kwargs):
-        children_tasks = self.base_task.main_task.children_tasks.all()
-        if not children_tasks.filter(status_task__macro_status="with_errors"):
+        child_tasks = self.base_task.main_task.child_tasks.all()
+        if not child_tasks.filter(status_task__macro_status="with_errors"):
             self.cluster.status_id = "finished"
             self.cluster.save()
         else:
