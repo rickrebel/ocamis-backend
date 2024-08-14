@@ -280,7 +280,7 @@ class TaskChecker:
             if has_balance:
                 if has_pending:
                     return self._execute_first(pending_rds_tasks)
-                elif self.main_task:
+                else:
                     return self._execute_main_task()
             delayed_execution(comprobate_waiting_balance, 300)
         return False
