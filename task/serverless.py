@@ -225,7 +225,7 @@ class TaskChecker:
             return self.find_stage(task.parent_task)
         return None
 
-    def comprobate_queue(self, force=False):
+    def comprobate_queue(self, force_ebs=False):
         task_function = self.main_task.task_function
         if not task_function.is_queueable:
             return
@@ -233,7 +233,7 @@ class TaskChecker:
             return
 
         if task_function.ebs_percent:
-            self.comprobate_ebs(force=force)
+            self.comprobate_ebs(force=force_ebs)
             self._save_main_task()
             return
 

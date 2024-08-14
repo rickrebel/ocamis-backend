@@ -63,7 +63,7 @@ class TaskHelper(Serverless):
             self._individual_queueable(task_function)
 
     def comprobate_status(
-            self, want_http_response=None, explore_parent=True, force=False):
+            self, want_http_response=None, explore_parent=True, force_ebs=False):
 
         if want_http_response is not None:
             self.want_http_response = want_http_response
@@ -87,7 +87,7 @@ class TaskHelper(Serverless):
         # RICK TODO: No tengo claro para qué esto otra vez
         self.add_many_tasks(self.new_tasks)
 
-        self.checker.comprobate_queue(force=force)
+        self.checker.comprobate_queue(force_ebs=force_ebs)
 
         if self.want_http_response is not False:
             body_response = {"new_task": self.main_task.id}

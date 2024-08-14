@@ -57,7 +57,7 @@ class AWSErrors(generic.View):
                 # current_task.errors = extract_only_message(error)
                 current_task.traceback = request.body
                 task_helper = TaskHelper(current_task, errors=[error])
-                task_helper.comprobate_status(force=True)
+                task_helper.comprobate_status(force_ebs=True)
                 # comprobate_status(current_task, error, [])
         except Exception as e:
             print("ERROR AL GUARDAR 1.2: ", e)
@@ -183,7 +183,7 @@ class AwsFunction(TaskHelper):
         if self.errors:
             print("ERRORES en ExecuteAwsFunction: ", self.errors)
         # return comprobate_status(self.main_task, self.errors, self.new_tasks)
-        self.comprobate_status(want_http_response=False)
+        self.comprobate_status(want_http_response=False, force_ebs=True)
 
     def _get_method(self):
         from inai.misc_mixins.week_record_mix import FromAws as WeekRecord
