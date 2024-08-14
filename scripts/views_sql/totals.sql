@@ -141,71 +141,27 @@ GROUP BY
 -- 	week_record_id,
 -- 	delivered_id;
 
+-- SELECT aws_s3.table_import_from_s3(
+-- 	'public.provisional_mat_drug',
+-- 	'uuid,cluster_id,week_record_id,delivered_id,medicament_id,prescribed_total,delivered_total,total',
+-- 	'(format csv, header true, delimiter "|", encoding "UTF8")',
+-- 	'cdn-desabasto',
+-- 	'data_files/mat_views/mat_drug_entity2.csv',
+-- 	'us-west-2',
+-- 	'AKIAICSGL3ROH3GVALGQ',
+-- 	'fFq7NwQyj/FmdtK/weXRwgrlEArkOatITD/mJYzL'
+-- );
 
-
--- class MatDrugEntity(models.Model):
---     iso_year = models.PositiveSmallIntegerField()
---     iso_week = models.PositiveSmallIntegerField()
---     entity = models.ForeignKey(
---         Provider, on_delete=models.CASCADE)
---     year = models.PositiveSmallIntegerField()
---     month = models.PositiveSmallIntegerField()
---     delivered = models.ForeignKey(
---         Delivered, on_delete=models.CASCADE)
---     medicament = models.ForeignKey(
---         Medicament, on_delete=models.CASCADE)
---     prescribed_total = models.IntegerField()
---     delivered_total = models.IntegerField()
---     total = models.IntegerField()
---
---     class Meta:
---         db_table = 'mat_drug_entity'
---
--- class MatDrugEntity2(models.Model):
---     uuid = models.UUIDField(
---         primary_key=True, default=uuid_lib.uuid4, editable=False)
---     cluster = models.ForeignKey(
---         Cluster, on_delete=models.DO_NOTHING, default='first')
---     week_record = models.ForeignKey(
---         WeekRecord, on_delete=models.CASCADE)
---     delivered = models.ForeignKey(
---         Delivered, on_delete=models.CASCADE)
---     medicament = models.ForeignKey(
---         Medicament, on_delete=models.CASCADE)
---     prescribed_total = models.IntegerField()
---     delivered_total = models.IntegerField()
---     total = models.IntegerField()
---
---     class Meta:
---         db_table = 'mat_drug_entity2'
-
-
--- class WeekRecord(models.Model):
---     provider = models.ForeignKey(
---         Provider,
---         related_name="weeks",
---         on_delete=models.CASCADE, blank=True, null=True)
---     month_record = models.ForeignKey(
---         MonthRecord,
---         related_name="weeks",
---         on_delete=models.CASCADE, blank=True, null=True)
---     year_week = models.CharField(max_length=8, blank=True, null=True)
---     iso_year = models.SmallIntegerField(blank=True, null=True)
---     iso_week = models.SmallIntegerField(blank=True, null=True)
---     # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
---     iso_delegation = models.ForeignKey(
---         Delegation, on_delete=models.CASCADE, blank=True, null=True)
---     year_month = models.CharField(max_length=10, blank=True, null=True)
---     year = models.SmallIntegerField(blank=True, null=True)
---     month = models.SmallIntegerField(blank=True, null=True)
---
---     class Meta:
---         db_table = "inai_entityweek"
+-- SELECT aws_commons.create_s3_uri(
+--    'cdn-desabasto',
+--    'data_files/mat_views/mat_drug_entity2.csv',
+--    'us-west-2'
+-- ) AS s3_uri
 
 
 SELECT
 	gen_random_uuid() AS uuid,
-	'first'::text AS cluster,
+	'first'::text AS cluster_id,
 	week.id AS week_record_id,
 	mde.delivered_id,
 	mde.medicament_id,

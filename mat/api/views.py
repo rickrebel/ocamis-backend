@@ -85,7 +85,8 @@ class DrugViewSet(ListRetrieveUpdateMix):
         if component_id:
             try:
                 component = Component.objects.get(id=component_id)
-                has_delegation = component.priority < 5
+                # has_delegation = component.priority < 5
+                has_delegation = False
             except Component.DoesNotExist:
                 has_delegation = False
 
@@ -107,7 +108,8 @@ class DrugViewSet(ListRetrieveUpdateMix):
             if not is_mini:
                 prefetches = ['week_record']
 
-            prev_iso = "" if is_mini else "week_record__"
+            # prev_iso = "" if is_mini else "week_record__"
+            prev_iso = "week_record__"
 
             first_values = {
                 'iso_week': f'{prev_iso}iso_week',
@@ -115,11 +117,12 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 'year': f'{prev_iso}year',
                 'month': f'{prev_iso}month',
             }
+            # if is_mini:
+            #     field_ent = "entity_id"
+            # else:
+            #     field_ent = f"{prev_iso}provider_id"
+            field_ent = f"{prev_iso}provider_id"
             comp_string = "medicament__container__presentation__component"
-            if is_mini:
-                field_ent = "entity_id"
-            else:
-                field_ent = f"{prev_iso}provider_id"
             if is_mini:
                 field_comp = f"{comp_string}_id"
             elif is_complex:
@@ -192,23 +195,23 @@ class DrugViewSet(ListRetrieveUpdateMix):
             if by_delegation:
                 order_values.insert(0, "delegation")
 
-            prev_model = "Mother" if is_big_active else "Mat"
+            # prev_model = "Mother" if is_big_active else "Mat"
             # model = "Totals" if is_total else "Priority"
-            if is_total:
-                model = "Totals"
-            elif is_mini:
-                model = "Entity"
-            else:
-                model = "Priority"
+            model = "Totals" if is_total else "Entity"
+            # elif is_mini:
+            #     model = "Entity"
+            # else:
+            #     model = "Priority"
             # model = "Totals" if is_total else "Entity"
-            model_name = f"{prev_model}Drug{model}"
+            model_name = f"MatDrug{model}2"
             # if is_total:
             #     model_name = f"{prev_model}DrugTotals"
             # else:
             #     # model_name = "MotherDrug" if is_complex else "MotherDrugExtended"
             #     model_name = f"{prev_model}DrugPriority"
             print("model_name: ", model_name)
-            app_label = "mat" if is_big_active else "formula"
+            # app_label = "mat" if is_big_active else "formula"
+            app_label = "mat"
             mother_model = apps.get_model(app_label, model_name)
 
             return mother_model.objects\
