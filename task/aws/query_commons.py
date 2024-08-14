@@ -30,7 +30,7 @@ class QueryExecution:
             self.cursor.execute(query_content)
             if error_msg:
                 result = self.cursor.fetchone()
-                if result:
+                if result[0]:
                     self.errors.append(error_msg)
         except Exception as e:
             str_e = str(e)

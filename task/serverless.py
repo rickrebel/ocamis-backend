@@ -231,11 +231,15 @@ class TaskChecker:
             return
 
         if task_function.ebs_percent:
-            return self.comprobate_ebs()
+            self.comprobate_ebs()
+            self._save_main_task()
+            return
 
         queue_tasks = AsyncTask.objects.in_queue(task_function=task_function)
         if not queue_tasks.exists():
-            return
+            queue_tasks = AsyncTask.objects.in_queue()
+            if not queue_tasks.exists():
+                return
         if task_function.group_queue:
             self.comprobate_group_queue(queue_tasks)
         else:
@@ -252,15 +256,20 @@ class TaskChecker:
                         status_task_id="running")
             if running_rds_tasks.exists():
                 return False
-        filter_kwargs = {"ebs": True}
+        filter_kwargs = {}
         if self.main_task:
             filter_kwargs["task_function"] = self.main_task.task_function
-        pending_rds_tasks = AsyncTask.objects.in_queue(**filter_kwargs)
+        pending_rds_tasks = AsyncTask.objects.in_queue(ebs=True, **filter_kwargs)
         if want_send:
             pending_rds_tasks = pending_rds_tasks.exclude(id=self.main_task.id)
         has_pending = pending_rds_tasks.exists()
-        task_function = self.main_task.task_function
+        if not has_pending:
+            pending_rds_tasks = AsyncTask.objects.in_queue(ebs=True)
+            if want_send:
+                pending_rds_tasks = pending_rds_tasks.exclude(id=self.main_task.id)
+            has_pending = pending_rds_tasks.exists()
         if has_pending or want_send:
+            task_function = self.main_task.task_function
             has_balance = has_enough_balance(task_function)
             if has_balance:
                 if has_pending:

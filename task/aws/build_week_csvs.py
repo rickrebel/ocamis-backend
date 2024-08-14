@@ -230,8 +230,10 @@ class BuildWeekAws:
                     data[-1] = self.week_record_id
                 final_row[model] = data
 
-            def write_in_buffer(model_name):
+            def write_in_buffer(model_name, uuid_folio=None):
                 if row_data := final_row.get(model_name):
+                    if uuid_folio:
+                        row_data[1] = uuid_folio
                     self.buffers[model_name].writerow(row_data)
 
             def write_diagnosis_rx(model_name="diagnosis_rx"):
@@ -255,17 +257,17 @@ class BuildWeekAws:
                     "delivered": {current_delivered},
                     "rx_data": final_row["rx"],
                 }
-                write_in_buffer("drug")
+                write_in_buffer("drug", uuid_folio=current_uuid)
                 write_in_buffer("complement_drug")
                 write_in_buffer("complement_rx")
                 write_diagnosis_rx()
                 continue
             current_folio = every_folios[folio_ocamis]
             # rx_id = row[self.pos_rx_id]
-            prev_rx_id = final_row["drug"][1]
-            if current_folio["first_uuid"] != prev_rx_id:
-                final_row["drug"][1] = current_folio["first_uuid"]
-            write_in_buffer("drug")
+            # prev_rx_id = final_row["drug"][1]
+            # if current_folio["first_uuid"] != prev_rx_id:
+            #     final_row["drug"][1] = current_folio["first_uuid"]
+            write_in_buffer("drug", uuid_folio=current_folio["first_uuid"])
             write_in_buffer("complement_drug")
             delivered_included = current_delivered in current_folio["delivered"]
             sheet_included = sheet_id in current_folio["sheet_ids"]

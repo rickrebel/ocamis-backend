@@ -841,8 +841,10 @@ class TransformToCsv:
 
         folio_ocamis = "|".join([
             str(self.provider_id),
-            str(iso_year), str(iso_week),
-            str(iso_delegation) or '0', folio_document])
+            str(iso_year),
+            str(iso_week),
+            str(iso_delegation) or '0',
+            folio_document])
         if len(folio_ocamis) > 70:
             raise NotImplementedError(f"El folio Ocamis es muy largo; {folio_ocamis}")
         self.months.add((year, month))
