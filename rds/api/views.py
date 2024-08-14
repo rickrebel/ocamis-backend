@@ -42,6 +42,9 @@ class ClusterViewSet(ListRetrieveUpdateMix):
         stage = Stage.objects.get(name=stage_name)
         function_name = stage.main_function.name
         function_finished = stage.finished_function
+        cluster.stage = stage
+        cluster.status_id = "created"
+        cluster.save()
         base_task = TaskBuilder(
             function_name, models=[cluster], request=request,
             finished_function=function_finished)

@@ -22,4 +22,3 @@ class FromAws:
         else:
             self.cluster.status_id = "with_errors"
             self.cluster.save()
-

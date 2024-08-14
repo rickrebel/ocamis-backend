@@ -2,7 +2,7 @@ from task.aws.common import create_connection, send_simple_response
 from task.aws.query_commons import QueryExecution
 
 
-# def insert_temp_tables(event, context):
+# def add_constraint(event, context):
 def lambda_handler(event, context):
     # from datetime import datetime
     # print("model_name", event.get("model_name"))
