@@ -42,6 +42,7 @@ class QueryExecution:
                 raise self.errors
 
     def constraint_queries(self, constraint_queries):
+        import time
         valid_errors = [
             "already exists", "ya existe",
             "multiple primary keys", "tiples llaves primarias",
@@ -50,6 +51,8 @@ class QueryExecution:
             "no existe la relación"
         ]
         for constraint in constraint_queries:
+            if "table_import_from_s3" in constraint:
+                time.sleep(5)
             # print("before constraint_query", datetime.now())
             try:
                 self.cursor.execute(constraint)
@@ -64,7 +67,7 @@ class QueryExecution:
                 # print("constraint", constraint)
                 # print(f"ERROR:\n, {e}, \n--------------------------")
                 self.errors.append(
-                    f"Error en constraint {constraint}; --> {str_e} <--")
+                    f"Error en constraint: {constraint}; --> {str_e} <--")
                 raise self.errors
 
     def comprobate_errors(self):
