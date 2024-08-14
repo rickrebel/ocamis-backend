@@ -27,8 +27,9 @@ class InsertQueryExecution(QueryExecution):
         self.execute_many_queries(create_base_tables, need_raise=False)
 
         error_message = "Ya se había insertado este mes completo"
-        first_query = event.get("first_query")
-        self.execute_query(first_query, need_raise=False, error_msg=error_message)
+        if first_query := event.get("first_query"):
+            self.execute_query(
+                first_query, need_raise=False, error_msg=error_message)
         self.comprobate_errors()
 
         self.execute_many_queries(event.get("clean_queries", []))

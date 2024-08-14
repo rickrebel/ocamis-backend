@@ -32,7 +32,7 @@ class ClusterViewSet(ListRetrieveUpdateMix):
         cluster = self.get_object()
 
         months_not_inserted = cluster.month_records\
-            .exclude(stage_id='insert', status_id='inserted')
+            .exclude(stage_id='insert', status_id='finished')
         if months_not_inserted.exists():
             return Response(
                 {"errors": ["Para enviar los clusters a la siguiente etapa, "
