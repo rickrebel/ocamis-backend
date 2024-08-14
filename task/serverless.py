@@ -58,8 +58,8 @@ class Serverless:
             self.params = new_params
         self.params["webhook_url"] = f"{self.api_url}task/webhook_aws/"
         self.is_from_aws = None
-        # if main_task.task_function:
-        #     self.is_from_aws = self.main_task.task_function.is_from_aws
+        if main_task.task_function:
+            self.is_from_aws = self.main_task.task_function.is_from_aws
         if self.use_local_lambda:
             self.params["s3"] = build_s3()
         fn_name = None
