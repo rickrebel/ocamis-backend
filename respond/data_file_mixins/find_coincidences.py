@@ -86,7 +86,7 @@ class MatchControls(ExtractorRealMix):
             # ya estaba agrupado para que no tarde tanto
             is_match_ready = self._has_exact_matches()
             if is_match_ready:
-                self.data_file.filtered_sheets = self.filtered_sheets
+                self.data_file.filtered_sheets = list(self.filtered_sheets)
                 self.data_file.save()
                 return True
 
@@ -280,7 +280,7 @@ class MatchControls(ExtractorRealMix):
         elif not self.init_fc_id != self.file_control.id:
             data_file = self._set_pfc(data_file)
 
-        data_file.filtered_sheets = self.filtered_sheets
+        data_file.filtered_sheets = list(self.filtered_sheets)
         data_file.error_process = self.errors or None
         data_file.warnings = self.warnings or None
         for sheet_file in self.data_file.sheet_files.all():

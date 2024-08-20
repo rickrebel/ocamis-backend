@@ -141,8 +141,10 @@ class DataFile(models.Model, DataUtilsMix):
                     old_instance.file.delete(save=False)
             except DataFile.DoesNotExist:
                 pass
-
-        super().save(*args, **kwargs)
+        try:
+            super().save(*args, **kwargs)
+        except Exception as error:
+            print("Error en DataFile.save: ", self.__dict__)
 
     def delete(self, *args, **kwargs):
         some_lap_inserted = LapSheet.objects.filter(

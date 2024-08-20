@@ -67,11 +67,11 @@ def lambda_handler(event, context):
             "default": {
                 # "all_data": validated_data_default[:200],
                 "total_rows": total_rows,
-                "final_path": sample_path,
+                # "final_path": sample_path,
+                "sample_path": sample_path,
             }
         }
         result["new_sheets"] = validated_data
         result["all_sheet_names"] = ["default"]
         result["decode"] = decode
-    print("result", result)
     return send_simple_response(event, context, errors=errors, result=result)
