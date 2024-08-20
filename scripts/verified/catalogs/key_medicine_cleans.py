@@ -12,18 +12,22 @@ def get_medicament_fields():
     return final_fields
 
 
-def update_med_container_simple():
+def update_med_container_simple(update=True):
     from med_cat.models import Medicament
     from medicine.models import Container
     print_count = 0
+    # medicaments_with_key2 = Medicament.objects.filter(
+    #     key2__isnull=False, own_key2__isnull=True, container__isnull=True)
     medicaments_with_key2 = Medicament.objects.filter(
-        key2__isnull=False, own_key2__isnull=True, container__isnull=True)
+        key2__isnull=False, container__isnull=True)
     print("medicaments_remains", medicaments_with_key2.count())
     medicaments_ready = Medicament.objects.filter(
-        key2__isnull=False, own_key2__isnull=True, container__isnull=False)
+        key2__isnull=False, container__isnull=False)
     print("medicaments_ready", medicaments_ready.count())
     all_fields = get_medicament_fields()
     remains = {"010": [], "others": []}
+    if not update:
+        return remains
     for medicament in medicaments_with_key2:
         key2 = medicament.key2
         container_found = Container.objects.filter(key2=key2).first()

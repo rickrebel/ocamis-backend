@@ -44,6 +44,7 @@ class SaveQueryExecution(QueryExecution):
             for query_base in base_queries:
                 for path in files:
                     query = query_base.replace("PATH_URL", path)
+                    query = query.replace(", price,", ",")
                     self.execute_query(query, need_raise=False)
         self.comprobate_errors()
 

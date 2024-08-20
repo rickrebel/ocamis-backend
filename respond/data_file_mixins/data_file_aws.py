@@ -60,9 +60,9 @@ class FromAws:
             is_not_xls = sheet_count == 1 and sheet_name == "default"
             simple_path = self.data_file.file if is_not_xls else None
             file_type = "clone" if is_not_xls else "sheet"
-            final_path = sheet_details.pop("final_path", simple_path)
-            total_rows = sheet_details.pop("total_rows")
-            sample_path = sheet_details.pop("sample_path")
+            final_path = sheet_details.get("final_path", simple_path)
+            total_rows = sheet_details.get("total_rows")
+            sample_path = sheet_details.get("sample_path")
             sample_sheet = sample_file.get_json_content(sample_path)
             # sample_file.create_file(self, sample_sheet)
             SheetFile.objects.create(

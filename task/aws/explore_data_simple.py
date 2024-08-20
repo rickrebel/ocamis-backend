@@ -73,4 +73,5 @@ def lambda_handler(event, context):
         result["new_sheets"] = validated_data
         result["all_sheet_names"] = ["default"]
         result["decode"] = decode
-    return send_simple_response(event, context, errors, result)
+    print("result", result)
+    return send_simple_response(event, context, errors=errors, result=result)

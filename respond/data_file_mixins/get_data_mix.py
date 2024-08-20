@@ -221,8 +221,8 @@ class ExtractorRealMix:
         headers = []
         if self.row_headers and len(first_rows) > self.row_headers - 1:
             headers = first_rows[self.row_headers - 1]
-            not_null_isolated = calculate_isolated(headers)
-            few_nulls = len(not_null_isolated) < 4
+            few_nulls = self.calculate_isolated(headers)
+
         if (few_nulls and headers) or not self.row_headers:
             start_data = self.file_control.row_start_data - 1
             sample_rows = first_rows[start_data:]
@@ -231,16 +231,20 @@ class ExtractorRealMix:
             print("No pasó las pruebas básicas -", sheet_name)
             return None, headers
 
-
-def calculate_isolated(current_headers):
-    not_null_alone = []
-    some_null = False
-    for header in current_headers[1:]:
-        if not header:
-            some_null = True
-        if some_null and header:
-            not_null_alone.append(header)
-    return not_null_alone
+    def calculate_isolated(self, current_headers):
+        not_null_alone = []
+        some_null = False
+        for header in current_headers[1:]:
+            if not header:
+                some_null = True
+            if some_null and header:
+                not_null_alone.append(header)
+        # return not_null_alone
+        if len(not_null_alone) < 4:
+            return True
+        else:
+            return self.file_control.file_transformations \
+                .filter(clean_function__name="many_null_headers").exists()
 
     # RICK: Considero que esto ya no es necesario:
     # def _get_data_simple(self, sheets_data: dict) -> list:
