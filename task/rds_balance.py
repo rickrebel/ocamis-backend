@@ -74,7 +74,7 @@ def comprobate_waiting_balance():
     # waiting_balance_task = AsyncTask.objects\
     #     .filter(status_task_id="queue", task_function__ebs_percent__gt=0)\
     #     .order_by("id").first()
-    waiting_balance_task = AsyncTask.objects.in_queue().first()
+    waiting_balance_task = AsyncTask.objects.in_queue(ebs=True).first()
     if waiting_balance_task:
         if has_enough_balance(waiting_balance_task.task_function):
             serverless_task = Serverless(waiting_balance_task)

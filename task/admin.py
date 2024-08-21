@@ -63,7 +63,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
         "function_after", "parent_task__task_function",
         "is_current", "is_massive"]
     search_fields = ["data_file_id", "request_id", "task_function__name"]
-    inlines = [AsyncTaskInline]
+    # inlines = [AsyncTaskInline]
     # return format_html(obj.final_level.public_name) if obj.final_level else ""
 
     @staticmethod

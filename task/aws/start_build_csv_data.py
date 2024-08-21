@@ -714,6 +714,12 @@ class TransformToCsv:
                 self.real_buffers.add_cat_row(every_values, cat_name)
                 self.cat_keys[cat_name].add(hash_key)
 
+        def add_hash_to_cat2(hash_key, flat_values):
+            if is_first or hash_key not in self.cat_keys[cat_name]:
+                every_values = [hash_key] + initial_all_values + flat_values
+                return every_values
+            return None
+
         hash_id = None
         if not data_values:
             pass
@@ -734,7 +740,11 @@ class TransformToCsv:
                 value_string = "".join(diagnosis_data_values)
                 value_string = value_string.encode(self.decode_final)
                 hash_id = hashlib.md5(value_string).hexdigest()
-                add_hash_to_cat(hash_id, diagnosis_values)
+                # add_hash_to_cat(hash_id, diagnosis_values)
+                if e_values := add_hash_to_cat2(hash_id, diagnosis_values):
+                    self.real_buffers.add_cat_row(e_values, cat_name)
+                    self.cat_keys[cat_name].add(hash_id)
+
                 hash_ids.append(hash_id)
             hash_ids = ";".join(hash_ids)
             available_data[f"{cat_name}_id"] = hash_ids
@@ -744,7 +754,10 @@ class TransformToCsv:
             value_string = "".join(final_data_values)
             value_string = value_string.encode(self.decode_final)
             hash_id = hashlib.md5(value_string).hexdigest()
-            add_hash_to_cat(hash_id, all_values)
+            # add_hash_to_cat(hash_id, all_values)
+            if e_values := add_hash_to_cat2(hash_id, diagnosis_values):
+                self.real_buffers.add_cat_row(e_values, cat_name)
+                self.cat_keys[cat_name].add(hash_id)
 
         if medicament_key:
             available_data["medicament_key"] = medicament_key
