@@ -249,8 +249,8 @@ class MatDrugPriority(models.Model):
 # 	week.month,
 # 	drug.delivered_id,
 # 	drug.medicament_id,
-# 	SUM (drug.prescribed_amount) as prescribed,
-# 	SUM (drug.delivered_amount) as delivered,
+#   COALESCE(sum(drug.prescribed_amount), 0) AS prescribed_total,
+#   COALESCE(sum(drug.delivered_amount), 0) AS delivered_total,
 # 	COUNT(*) as total
 # FROM fm_55_201907_drug drug
 # JOIN inai_entityweek week ON drug.entity_week_id = week.id

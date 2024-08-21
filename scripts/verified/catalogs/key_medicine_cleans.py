@@ -31,6 +31,15 @@ def update_med_container_simple(update=True):
     for medicament in medicaments_with_key2:
         key2 = medicament.key2
         container_found = Container.objects.filter(key2=key2).first()
+        if not container_found and len(key2) == 13:
+            new_key2 = medicament.key2[:-2]
+            new_key2 = f"0{new_key2}"
+            container_found = Container.objects\
+                .filter(key2=new_key2).first()
+        if not container_found and len(key2) == 14:
+            new_key2 = medicament.key2[:-2]
+            container_found = Container.objects\
+                .filter(key2=new_key2).first()
         if container_found:
             medicament.container = container_found
             medicament.save()
@@ -70,6 +79,10 @@ def update_med_container_id():
         medi_own_key2 = medicament.own_key2[:-2]
         container_found = Container.objects\
             .filter(key2=medi_own_key2).first()
+        if not container_found:
+            new_medi_own_key2 = f"0{medi_own_key2}"
+            container_found = Container.objects\
+                .filter(key2=new_medi_own_key2).first()
         if container_found:
             medicament.container = container_found
             medicament.save()

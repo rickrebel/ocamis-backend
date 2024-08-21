@@ -481,45 +481,44 @@ def erase_last_insertion(cluster_name='ssa_stable'):
 #         blank=True, null=True, help_text="cont")
 
 provider_id = 3
-# def upload_medicament_keys(provider_id=3):
-from respond.models import TableFile
-from scripts.common import build_s3
-from task.aws.common import BotoUtils
-from med_cat.models import Medicament
-all_hashes = {}
-s3 = build_s3()
-s3_utils = BotoUtils(s3)
-table_files = TableFile.objects.filter(
-    provider_id=provider_id,
-    collection__model_name="Medicament")\
-    .values_list("file", flat=True)
+def upload_medicament_keys(provider_id=3):
+    from respond.models import TableFile
+    from scripts.common import build_s3
+    from task.aws.common import BotoUtils
+    from med_cat.models import Medicament
+    all_hashes = {}
+    s3 = build_s3()
+    s3_utils = BotoUtils(s3)
+    table_files = TableFile.objects.filter(
+        provider_id=provider_id,
+        collection__model_name="Medicament")\
+        .values_list("file", flat=True)
     columns = [
         "hex_hash, provider_id, component_id, presentation_id, container_id, "
         "key2, own_key2, medicine_type, component_name, presentation_type, "
         "presentation_description, container_name"]
-for table_file in table_files:
-    csv_content = s3_utils.get_object_file(table_file)
-    for (idx, row) in enumerate(csv_content):
-        if idx == 0:
-            continue
-        hex_hash = row[0]
-        all_hashes[hex_hash] = row
+    for table_file in table_files:
+        csv_content = s3_utils.get_object_file(table_file)
+        for (idx, row) in enumerate(csv_content):
+            if idx == 0:
+                continue
+            hex_hash = row[0]
+            all_hashes[hex_hash] = row
 
-
-for key, value in all_hashes.items():
-    medicament = Medicament.objects.get(hex_hash=key)
-    medicament.provider_id = value[1]
-    medicament.component_id = value[2]
-    medicament.presentation_id = value[3]
-    medicament.container_id = value[4]
-    medicament.key2 = value[5]
-    medicament.own_key2 = value[6]
-    medicament.medicine_type = value[7]
-    medicament.component_name = value[8]
-    medicament.presentation_type = value[9]
-    medicament.presentation_description = value[10]
-    medicament.container_name = value[11]
-    medicament.save()
+    for key, value in all_hashes.items():
+        medicament = Medicament.objects.get(hex_hash=key)
+        medicament.provider_id = value[1]
+        medicament.component_id = value[2]
+        medicament.presentation_id = value[3]
+        medicament.container_id = value[4]
+        medicament.key2 = value[5]
+        medicament.own_key2 = value[6]
+        medicament.medicine_type = value[7]
+        medicament.component_name = value[8]
+        medicament.presentation_type = value[9]
+        medicament.presentation_description = value[10]
+        medicament.container_name = value[11]
+        medicament.save()
 
 
 
