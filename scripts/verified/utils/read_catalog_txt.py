@@ -480,7 +480,7 @@ def erase_last_insertion(cluster_name='ssa_stable'):
 #     container_name = models.TextField(
 #         blank=True, null=True, help_text="cont")
 
-provider_id = 3
+
 def upload_medicament_keys(provider_id=3):
     from respond.models import TableFile
     from scripts.common import build_s3
@@ -519,7 +519,3 @@ def upload_medicament_keys(provider_id=3):
         medicament.presentation_description = value[10]
         medicament.container_name = value[11]
         medicament.save()
-
-
-
-

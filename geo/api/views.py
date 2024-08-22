@@ -84,6 +84,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
     def send_months(self, request, **kwargs):
         import time
         from inai.misc_mixins.month_record_mix import MonthRecordMix
+        from inai.misc_mixins.insert_cats import PreInsertMix
         from task.builder import TaskBuilder
         from inai.api.views import get_related_months
         from inai.api.serializers import MonthRecordSerializer
@@ -156,6 +157,10 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             kwargs["want_http_response"] = False
             month_base_task = None
 
+        # if not is_revert and stage.name == 'pre_insert':
+        #     pre_insert = PreInsertMix(month_records, base_task=base_task)
+
+
         # kwargs = {
         #     "parent_task": key_task,
         #     "finished_function": stage.finished_function
@@ -204,7 +209,8 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 month_record.save_stage(stage.name)
                 month_base_task.comprobate_status()
             # accumulated_sleep += seconds_sleep
-            run_in_thread(seconds_sleep)
+            if not is_revert:
+                run_in_thread(seconds_sleep)
             # elif provider.split_by_delegation:
             #     # t = threading.Thread(target=run_in_thread)
             #     # t.start()

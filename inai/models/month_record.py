@@ -46,11 +46,11 @@ class MonthRecord(models.Model):
         return "%s -- %s" % (self.provider.acronym, self.year_month)
 
     def end_stage(self, stage_id, main_task):
-        child_task_errors = main_task.child_tasks.filter(
+        child_task_errors = main_task.parent_task.child_tasks.filter(
             status_task__macro_status="with_errors")
         all_errors = []
         for child_task_error in child_task_errors:
-            current_errors = child_task_error.errors
+            current_errors = child_task_error.errors or []
             if not current_errors:
                 g_children = child_task_error.child_tasks.filter(
                     status_task__macro_status="with_errors")
@@ -64,7 +64,7 @@ class MonthRecord(models.Model):
                                 f"g_child.errors: {g_child.errors}"
                                 f"current_errors: {current_errors}")
                             raise Exception(message)
-            all_errors += current_errors or []
+            all_errors += (current_errors or [])
         self.stage_id = stage_id
         if child_task_errors.exists():
             self.status_id = "with_errors"

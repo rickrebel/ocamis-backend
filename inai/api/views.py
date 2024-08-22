@@ -419,11 +419,14 @@ class MonthRecordViewSet(CreateRetrieveView):
         })
 
 
-def get_related_months(sheet_files=None, all_related_months=None):
+def get_related_months(
+        sheet_files=None, all_related_months=None, sheet_files_ids=None):
     from django.utils import timezone
     from respond.models import TableFile
     from geo.api.serializers import (
         calc_sheet_files_summarize, calc_drugs_summarize)
+    if not sheet_files and sheet_files_ids:
+        sheet_files = SheetFile.objects.filter(id__in=sheet_files_ids)
 
     if not all_related_months and not sheet_files:
         raise ValueError("sheet_files or all_related_months must be provided")

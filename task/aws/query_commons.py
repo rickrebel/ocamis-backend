@@ -44,7 +44,7 @@ class QueryExecution:
             if "current transaction is aborted" in str_e:
                 return
             self.errors.append(
-                f"Hubo un error al guardar; \n{query_content}; \n{str(e)}")
+                f"$ Hubo un error al guardar; \n{query_content}; \n{str(e)}")
             if need_raise:
                 raise self.errors
 
@@ -77,9 +77,12 @@ class QueryExecution:
                     f"Error en constraint: {constraint}; --> {str_e} <--")
                 raise self.errors
 
+    def add_error_and_raise(self, error):
+        self.errors.append(error)
+        self.comprobate_errors()
+
     def comprobate_errors(self):
         if self.errors:
-            self.connection.rollback()
             raise self.errors
 
     def rollback(self):
@@ -94,6 +97,3 @@ class QueryExecution:
     def close(self):
         self.connection.close()
         self.errors.extend(self.warnings)
-
-
-

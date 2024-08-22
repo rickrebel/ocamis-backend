@@ -22,6 +22,7 @@ from task.aws.build_week_csvs import lambda_handler as build_week_csvs
 from task.aws.rebuild_week_csv import lambda_handler as rebuild_week_csv
 from task.aws.add_constraint import lambda_handler as add_constraint
 from task.aws.add_mat_view import lambda_handler as add_mat_view
+from task.aws.save_cat_tables import lambda_handler as save_cat_tables
 
 
 def camel_to_snake(name):
@@ -76,7 +77,7 @@ class Serverless:
 
     def save_queue(self):
         if self.main_task.task_function.ebs_percent:
-            delayed_execution(comprobate_waiting_balance, 300)
+            delayed_execution(comprobate_waiting_balance, 300, force=True)
         self.main_task.status_task_id = "queue"
         self.main_task.save()
         return True
@@ -282,7 +283,8 @@ class TaskChecker:
                     return self._execute_first(pending_rds_tasks)
                 else:
                     return self._execute_main_task()
-            delayed_execution(comprobate_waiting_balance, 300)
+            else:
+                delayed_execution(comprobate_waiting_balance, 300)
         return False
 
     def comprobate_group_queue(self, queue_tasks):

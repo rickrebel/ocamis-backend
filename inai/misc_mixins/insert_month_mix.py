@@ -1,6 +1,7 @@
 from django.conf import settings
 from inai.models import MonthRecord, WeekRecord
 from respond.models import LapSheet
+from data_param.models import Collection
 # from task.serverless import async_in_lambda
 from task.builder import TaskBuilder
 
@@ -62,6 +63,7 @@ class InsertMonth:
         self.base_models = [model for model in self.editable_models
                             if model["model"] in self.base_models_names]
         self.base_task = base_task
+        self.collection_table_files = None
 
     def merge_week_base_tables(
             self, week_record: WeekRecord, week_table_files: list):
@@ -116,7 +118,7 @@ class InsertMonth:
                     }
                 else:
                     base_queries = self.build_catalog_queries(
-                        "PATH_URL", columns_join, model_in_db, model_name)
+                        "PATH_URL", columns_join, model_in_db)
                     alternative_query = build_alternative_query(
                         model_in_db, columns_join)
                     queries_by_model[model_name] = {
@@ -157,6 +159,43 @@ class InsertMonth:
         return week_task.async_in_lambda()
         # return async_in_lambda(
         #     "save_week_base_models", params, current_task_params)
+
+    def send_cat_tables_to_db(self):
+        from respond.models import TableFile
+        self.collection_table_files = TableFile.objects.filter(
+            lap_sheet__cat_inserted=False, lap_sheet__lap=0,
+            lap_sheet__sheet_file__month_records__in=[self.month_record],
+            collection__app_label="med_cat", inserted=False)
+
+        collection_ids = self.collection_table_files.values_list(
+            "collection", flat=True).distinct()
+        unique_collections = set(collection_ids)
+        collections = Collection.objects.filter(id__in=unique_collections)
+        for collection in collections:
+            self.insert_collection(collection)
+
+    def insert_collection(self, collection: Collection):
+
+        table_files = self.collection_table_files\
+            .filter(collection=collection)
+        model_name = collection.model_name
+        model_data = self.models_data[model_name]
+        table_files_ids = [table_file.id for table_file in table_files]
+        paths = [table_file.file.name for table_file in table_files]
+
+        params = {
+            "db_config": ocamis_db,
+            "model_in_db": model_data["model_in_db"],
+            "columns_join": model_data["columns_join"],
+            "table_files_ids": table_files_ids,
+            "table_files_paths": paths,
+            "month_record_id": self.month_record.id,
+        }
+        collection_task = TaskBuilder(
+            "save_cat_tables", parent_class=self.base_task,
+            params=params, models=[self.month_record], keep_tasks=True,
+            subgroup=model_name)
+        collection_task.async_in_lambda()
 
     def send_lap_tables_to_db(
             self, lap_sheet: LapSheet, table_files: list, inserted_field):
@@ -201,9 +240,7 @@ class InsertMonth:
             function_after=function_after, subgroup=subgroup)
         lap_task.async_in_lambda()
 
-    def build_catalog_queries(
-            self, path, columns_join, model_in_db, model_name):
-        provider_optional_models = ["Diagnosis", "Medicament"]
+    def build_catalog_queries(self, path, columns_join, model_in_db):
         sql_queries = []
         temp_table = f"temp_{model_in_db}"
         sql_queries.append(f"""
@@ -212,11 +249,6 @@ class InsertMonth:
         """)
         sql_queries.append(build_copy_sql_aws(
             path, temp_table, columns_join))
-        optional_condition = ""
-        if model_name not in provider_optional_models:
-            provider_id = self.provider.id
-            optional_condition = f" AND {model_in_db}.provider_id = {provider_id} "
-        # final_condition += f"{model_in_db}.hex_hash = {temp_table}.hex_hash"
         sql_queries.append(f"""
             INSERT INTO {model_in_db} ({columns_join})
                 SELECT {columns_join}
@@ -224,7 +256,6 @@ class InsertMonth:
                 WHERE NOT EXISTS (
                     SELECT 1 FROM {model_in_db} 
                     WHERE {model_in_db}.hex_hash = {temp_table}.hex_hash
-                        {optional_condition}
                 );
         """)
         sql_queries.append(f"""

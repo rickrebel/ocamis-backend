@@ -60,25 +60,27 @@ def has_enough_balance(task_function) -> bool:
     return ebs_percent >= task_function.ebs_percent
 
 
-def delayed_execution(method, delay):
+def delayed_execution(method, delay, **kwargs):
     def wrapper():
         time.sleep(delay)
-        method()
+        method(**kwargs)
     threading.Thread(target=wrapper).start()
 
 
-def comprobate_waiting_balance():
+def comprobate_waiting_balance(force=True, **kwargs):
+    from task.serverless import TaskChecker
+    task_checker = TaskChecker()
+    task_checker.comprobate_ebs(force=force)
+
+
+def comprobate_waiting_balance_old():
     from task.models import AsyncTask
-    # from task.serverless import execute_async
     from task.serverless import Serverless
-    # waiting_balance_task = AsyncTask.objects\
-    #     .filter(status_task_id="queue", task_function__ebs_percent__gt=0)\
-    #     .order_by("id").first()
     waiting_balance_task = AsyncTask.objects.in_queue(ebs=True).first()
     if waiting_balance_task:
         if has_enough_balance(waiting_balance_task.task_function):
             serverless_task = Serverless(waiting_balance_task)
             serverless_task.execute_async()
         else:
-            delayed_execution(comprobate_waiting_balance, 300)
+            delayed_execution(comprobate_waiting_balance_old, 300)
             return

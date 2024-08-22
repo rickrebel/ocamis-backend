@@ -200,11 +200,11 @@ class TransformToCsv:
                 fields.append(field)
             flat_fields = [field for field in fields if not field["is_relation"]]
             self.med_cat_flat_fields[cat_name] = flat_fields
-            self.initial_data[cat_name] = {"data_values": data_values,
-                                           "all_values": all_values}
+            self.initial_data[cat_name] = {
+                "data_values": data_values, "all_values": all_values}
             # print("cat to set", cat_name)
             self.cat_keys[cat_name] = set()
-            self.generic_match(cat_name, {}, True)
+            # self.generic_match(cat_name, {}, True)
 
             if cat_name != "medicament" and cat["app"] == "med_cat":
                 self.rx_cats.append(cat_name)
@@ -662,7 +662,6 @@ class TransformToCsv:
         return value
 
     def generic_match(self, cat_name, available_data, is_first=False):
-        import hashlib
         flat_fields = self.med_cat_flat_fields.get(cat_name, {})
         init_values = self.initial_data.get(cat_name, {})
         initial_all_values = init_values.get("all_values", []).copy()
@@ -708,23 +707,8 @@ class TransformToCsv:
                     data_values.append(str_value)
             all_values.append(value)
 
-        def add_hash_to_cat(hash_key, flat_values):
-            if is_first or hash_key not in self.cat_keys[cat_name]:
-                every_values = [hash_key] + initial_all_values + flat_values
-                self.real_buffers.add_cat_row(every_values, cat_name)
-                self.cat_keys[cat_name].add(hash_key)
-
-        def add_hash_to_cat2(hash_key, flat_values):
-            if is_first or hash_key not in self.cat_keys[cat_name]:
-                every_values = [hash_key] + initial_all_values + flat_values
-                return every_values
-            return None
-
-        hash_id = None
         if not data_values:
-            pass
-            # if is_first:
-            #     add_hash_to_cat(self.hash_null, all_values)
+            hash_id = None
         elif is_diagnosis:
             max_len = max(len(values) for values in all_values
                           if values is not None)
@@ -737,32 +721,36 @@ class TransformToCsv:
                     diagnosis_values.append(value)
                     if value is not None:
                         diagnosis_data_values.append(value)
-                value_string = "".join(diagnosis_data_values)
-                value_string = value_string.encode(self.decode_final)
-                hash_id = hashlib.md5(value_string).hexdigest()
-                # add_hash_to_cat(hash_id, diagnosis_values)
-                if e_values := add_hash_to_cat2(hash_id, diagnosis_values):
-                    self.real_buffers.add_cat_row(e_values, cat_name)
-                    self.cat_keys[cat_name].add(hash_id)
+                hash_key = self.add_hash_to_cat(
+                    diagnosis_values, diagnosis_data_values, cat_name,
+                    initial_all_values, is_first)
 
-                hash_ids.append(hash_id)
-            hash_ids = ";".join(hash_ids)
-            available_data[f"{cat_name}_id"] = hash_ids
-            return available_data
+                hash_ids.append(hash_key)
+            hash_id = ";".join(hash_ids)
         else:
             final_data_values = initial_data_values + data_values
-            value_string = "".join(final_data_values)
-            value_string = value_string.encode(self.decode_final)
-            hash_id = hashlib.md5(value_string).hexdigest()
-            # add_hash_to_cat(hash_id, all_values)
-            if e_values := add_hash_to_cat2(hash_id, diagnosis_values):
-                self.real_buffers.add_cat_row(e_values, cat_name)
-                self.cat_keys[cat_name].add(hash_id)
-
-        if medicament_key:
-            available_data["medicament_key"] = medicament_key
+            hash_id = self.add_hash_to_cat(
+                all_values, final_data_values, cat_name,
+                initial_all_values, is_first)
+            if medicament_key:
+                available_data["medicament_key"] = medicament_key
         available_data[f"{cat_name}_id"] = hash_id
         return available_data
+
+    def add_hash_to_cat(
+            self, all_values: list, final_data_values: list,
+            cat_name, initial_all_values: list, is_first=False):
+        import hashlib
+
+        value_string = "".join(final_data_values)
+        value_string = value_string.encode(self.decode_final)
+        hash_key = hashlib.md5(value_string).hexdigest()
+
+        if is_first or hash_key not in self.cat_keys[cat_name]:
+            every_values = [hash_key] + initial_all_values + all_values
+            self.real_buffers.add_cat_row(every_values, cat_name)
+            self.cat_keys[cat_name].add(hash_key)
+        return hash_key
 
     def delegation_match(self, available_data):
         if not self.split_by_delegation:

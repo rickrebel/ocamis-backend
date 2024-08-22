@@ -200,7 +200,7 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
 
         if month_record_id:
             sheet_files = sheet_files.filter(
-                month_records__id=month_record_id)
+                month_records__id__in=[month_record_id])
         if sheet_files_ids:
             sheet_files = sheet_files.filter(id__in=sheet_files_ids)
         if behavior_group:
@@ -218,11 +218,12 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
                         duplicates_count=0, shared_count=0)
 
         sheet_files = sheet_files.distinct()
+        sheet_files_ids = list(sheet_files.values_list("id", flat=True))
 
         if new_behavior_obj.is_discarded:
             sheet_files.update(duplicates_count=0, shared_count=0)
         sheet_files.update(behavior=new_behavior_obj)
-        data_response = get_related_months(sheet_files)
+        data_response = get_related_months(sheet_files_ids=sheet_files_ids)
         return Response(data_response, status=status.HTTP_200_OK)
 
 

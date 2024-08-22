@@ -219,8 +219,7 @@ class MonthRecordMix:
     def pre_insert_month(self):
         from django.db import connection
         from inai.misc_mixins.insert_month_mix import InsertMonth
-        from respond.models import TableFile
-        from respond.models import LapSheet
+        from respond.models import TableFile, LapSheet
 
         # CREATE TABLE fm_55_201902_rx (LIKE formula_rx INCLUDING CONSTRAINTS);
         # CREATE TABLE fm_55_201902_drug (LIKE formula_drug INCLUDING CONSTRAINTS);
@@ -277,19 +276,19 @@ class MonthRecordMix:
 
         cats_task = TaskBuilder(
             "save_month_cat_tables", keep_tasks=True,
-            parent_class=self.base_task, models=[self.month_record])
+            parent_class=self.base_task, models=[self.month_record],
+            finished_function="save_lap_sheets_inserted")
 
         my_insert_cat = InsertMonth(self.month_record, base_task=cats_task)
 
-        for lap_sheet in pending_lap_sheets:
-            current_table_files = collection_table_files.filter(
-                lap_sheet=lap_sheet,
-                collection__app_label="med_cat",
-                inserted=False)
-            if not current_table_files.exists():
-                continue
-            my_insert_cat.send_lap_tables_to_db(
-                lap_sheet, current_table_files, "cat_inserted")
+        # for lap_sheet in pending_lap_sheets:
+        #     current_table_files = collection_table_files.filter(
+        #         lap_sheet=lap_sheet)
+        #     if not current_table_files.exists():
+        #         continue
+        #     my_insert_cat.send_lap_tables_to_db(
+        #         lap_sheet, current_table_files, "cat_inserted")
+        my_insert_cat.send_cat_tables_to_db()
 
         if not cats_task.new_tasks:
             cats_task.comprobate_status()

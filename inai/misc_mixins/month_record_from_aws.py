@@ -75,12 +75,14 @@ class FromAws(MonthRecordMix):
     def indexing_temp_tables_after(self, **kwargs):
         pass
 
+    def save_cat_tables_after(self, **kwargs):
+        pass
+
     def all_base_tables_saved(self, **kwargs):
         from django.utils import timezone
         self.month_record.last_pre_insertion = timezone.now()
         self.month_record.end_stage("pre_insert", self.base_task.main_task)
         self.month_record.save()
-        pass
 
     def all_base_tables_validated(self, **kwargs):
         from django.utils import timezone
@@ -102,14 +104,23 @@ class FromAws(MonthRecordMix):
                 self.month_record.save()
                 return [], errors, False
         self.month_record.save()
-        pass
 
     def all_base_tables_indexed(self, **kwargs):
         self.month_record.end_stage("indexing", self.base_task.main_task)
         self.month_record.save()
-        pass
 
     def all_temp_tables_inserted(self, **kwargs):
         self.month_record.end_stage("insert", self.base_task.main_task)
         self.month_record.save()
-        pass
+
+    def save_lap_sheets_inserted(self, **kwargs):
+        from respond.models import LapSheet
+        child_task_errors = self.base_task.main_task.parent_task.child_tasks.filter(
+            status_task__macro_status="with_errors")
+        print("child_task_errors: ", child_task_errors)
+        if not child_task_errors.exists():
+            lap_sheets = LapSheet.objects.filter(
+                cat_inserted=False, lap=0,
+                sheet_file__month_records__in=[self.month_record],
+            )
+            lap_sheets.update(cat_inserted=True)
