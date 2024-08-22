@@ -40,7 +40,6 @@ def lambda_handler(event, context):
 
 
 class TransformToCsv:
-    models_to_save = ["drug", "rx", "unique_helpers"]
     med_cat_flat_fields = {}
     initial_data = {}
 
@@ -68,6 +67,7 @@ class TransformToCsv:
     file_name_simple = None
 
     def __init__(self, init_data: dict, context, s3):
+        self.models_to_save = ["drug", "rx", "unique_helpers"]
         self.examples_count = 0
         self.limit_examples = 0
 
@@ -152,14 +152,13 @@ class TransformToCsv:
             "ComplementDrug": "complement_drug",
             "ComplementRx": "complement_rx",
         }
-
         for formal_name, model_name in complement_models.items():
             if formal_name in self.real_models:
                 self.models_to_save.append(model_name)
         if "Diagnosis" in self.real_models:
             self.models_to_save.append("diagnosis_rx")
 
-        print("\nmodels_to_save", self.models_to_save, "\n")
+        # print("\nmodels_to_save 1.2", self.models_to_save, "\n")
 
         # if self.show_examples():
         #     print("real_models\n", self.real_models, "\n")
@@ -332,7 +331,7 @@ class TransformToCsv:
         if curr_rx:
             uuid_folio = curr_rx["uuid"]
             # available_data["uuid_folio"] = uuid_folio
-            # available_data["rx_id"] = uuid_folio
+            available_data["rx_id"] = uuid_folio
             all_delivered = curr_rx.get("all_delivered", set())
             all_delivered.add(delivered)
             curr_rx["all_delivered"] = all_delivered
@@ -356,7 +355,7 @@ class TransformToCsv:
         else:
             uuid_folio = str(uuid_lib.uuid4())
             # available_data["uuid_folio"] = uuid_folio
-            # available_data["rx_id"] = uuid_folio
+            available_data["rx_id"] = uuid_folio
             if "complement_rx" in self.models_to_save:
                 available_data["uuid_comp_rx"] = str(uuid_lib.uuid4())
             # if "diagnosis_rx" in self.models_to_save:

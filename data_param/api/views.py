@@ -462,15 +462,20 @@ class FileControlViewSet(MultiSerializerModelViewSet):
         stage_init = request.data.get("stage_init")
         status_init = request.data.get("status_init")
         batch_size = request.data.get("batch_size", 30)
+        pfc = request.data.get("pfc")
         batch_size = int(batch_size)
 
         stage_final = request.data.get("stage_final")
         target_stage = Stage.objects.get(name=stage_final)
         target_name = target_stage.name
+        if pfc:
+            filters = {"petition_file_control_id": pfc}
+        else:
+            filters = {"petition_file_control__file_control": file_control}
 
-        all_data_files = DataFile.objects.filter(
-            petition_file_control__file_control=file_control,
-            status_id=status_init, stage_id=stage_init)[:batch_size*2]
+        all_data_files = DataFile.objects\
+            .filter(status_id=status_init, stage_id=stage_init, **filters)\
+            .distinct()[:batch_size*2]
         curr_kwargs = {}
         if target_stage.function_after:
             curr_kwargs = {"function_after": target_stage.function_after}

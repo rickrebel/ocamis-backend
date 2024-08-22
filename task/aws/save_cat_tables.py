@@ -97,6 +97,8 @@ class SaveCats(QueryExecution):
         self.execute_query(f"DROP TABLE {temp_table}")
 
     def _mogrify_and_insert(self, values, final_model=None):
+        if not values:
+            return
         processed_values = [
             tuple(None if item == '' else item for item in row)
             for row in values]
