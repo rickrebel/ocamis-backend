@@ -107,6 +107,12 @@ class SheetFileSerializer(serializers.ModelSerializer):
     # name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
     laps = LapSheetFullSerializer(read_only=True, many=True)
+    sample_data = serializers.SerializerMethodField(read_only=True)
+
+    def get_sample_data(self, obj):
+        from respond.views import SampleFile
+        sample_file = SampleFile()
+        return sample_file.get_sample(obj)
 
     class Meta:
         model = SheetFile

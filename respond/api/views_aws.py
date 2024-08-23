@@ -10,6 +10,7 @@ from geo.api.serializers import AgencyFileControlsSerializer
 from inai.api import serializers
 from inai.models import PetitionFileControl
 from respond.models import DataFile
+from respond.api.serializers import DataFileSerializer, DataFileFullSerializer
 
 
 def move_and_duplicate(data_files, petition, request):
@@ -73,12 +74,12 @@ def send_full_response(petition):
 
 class DataFileViewSet(CreateRetrieveView):
     queryset = DataFile.objects.all()
-    serializer_class = respond.api.serializers.DataFileSerializer
+    serializer_class = DataFileSerializer
     # permission_classes = [permissions.IsAuthenticated]
     permission_classes = [permissions.IsAdminUser]
     action_serializers = {
-        "list": respond.api.serializers.DataFileSerializer,
-        "retrieve": respond.api.serializers.DataFileFullSerializer,
+        "list": DataFileSerializer,
+        "retrieve": DataFileFullSerializer,
     }
 
     def get_queryset(self):
@@ -166,7 +167,6 @@ class DataFileViewSet(CreateRetrieveView):
 
     @action(methods=["get"], detail=True, url_path="back_start")
     def back_start(self, request, **kwargs):
-        from respond.api.serializers import DataFileSerializer
         data_file = self.get_object()
         data_file = data_file.reset_initial()
 
