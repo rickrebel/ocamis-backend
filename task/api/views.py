@@ -55,8 +55,13 @@ class AsyncTaskViewSet(ListRetrieveView):
         from django.contrib.auth.models import User
         from auth.api.serializers import UserProfileSerializer
         total_hours = request.query_params.get("hours", 3)
+        minutes = 0
+        if "." in total_hours:
+            minutes = int(float(total_hours) * 60)
+            total_hours = "0"
         now = datetime.now()
-        last_hours = now - timedelta(hours=int(total_hours))
+        last_hours = now - timedelta(
+            hours=int(total_hours), minutes=minutes)
         task_by_start = AsyncTask.objects\
             .filter(date_start__gte=last_hours)\
             .prefetch_related(*prefetch_async)
