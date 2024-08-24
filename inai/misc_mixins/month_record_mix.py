@@ -296,8 +296,8 @@ class MonthRecordMix:
         #         lap_sheet, current_table_files, "cat_inserted")
         my_insert_cat.send_cat_tables_to_db()
 
-        if not cats_task.new_tasks:
-            cats_task.comprobate_status()
+        # if not cats_task.new_tasks:
+        #     cats_task.comprobate_status()
 
         missing_table_files = TableFile.objects.filter(
             lap_sheet__in=related_lap_sheets,

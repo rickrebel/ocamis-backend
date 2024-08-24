@@ -32,13 +32,17 @@ class QueryExecution:
         if self.errors and need_raise:
             raise self.errors
 
-    def execute_query(self, query_content, need_raise=True, error_msg=None):
+    def execute_query(self, query_content, need_raise=True, error_msg=None,
+                      is_soft=False):
         try:
             self.cursor.execute(query_content)
             if error_msg:
                 result = self.cursor.fetchone()
                 if result[0]:
-                    self.errors.append(error_msg)
+                    if is_soft:
+                        print(f"SOFT ERROR: {error_msg}")
+                    else:
+                        self.errors.append(error_msg)
         except Exception as e:
             str_e = str(e)
             if "current transaction is aborted" in str_e:

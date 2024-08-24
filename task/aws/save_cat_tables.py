@@ -50,15 +50,24 @@ class SaveCats(QueryExecution):
         self._update_table_files(table_files_ids)
         self.finish_and_save()
 
+    def _reconfig_headers(self, headers):
+        # replace if exist the "provider_id" column with "entity_id"
+        if "entity_id" in headers:
+            headers[headers.index("entity_id")] = "provider_id"
+        return headers
+
     def _join_all_files(self, table_files_paths):
         for csv_path in table_files_paths:
             csv_content = self.s3_utils.get_object_file(csv_path)
             for (idx, row) in enumerate(csv_content):
                 if idx == 0:
+                    headers = self._reconfig_headers(row)
                     if not self.headers:
-                        self.headers = row
-                    elif self.headers != row:
-                        self.add_error_and_raise("Las cabeceras no coinciden")
+                        self.headers = headers
+                    elif self.headers != headers:
+                        error = (f"Las cabeceras no coinciden: "
+                                 f"{self.headers} != {headers}")
+                        self.add_error_and_raise(error)
                 else:
                     hex_hash = row[0]
                     if not self.all_hashes.get(hex_hash):
