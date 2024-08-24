@@ -18,11 +18,12 @@ class FromAws(MonthRecordMix):
         related_weeks = self.month_record.weeks.all()
         all_crosses = {}
         all_errors = []
+        all_warnings = []
         for related_week in related_weeks:
             crosses = related_week.crosses
             if not crosses:
-                error = f"La semana {related_week.iso_week} no tiene cruces"
-                all_errors.append(error)
+                warning = f"La semana {related_week.iso_week} no tiene cruces"
+                all_warnings.append(warning)
                 continue
             for pair, value in crosses["dupli"].items():
                 if pair in all_crosses:
@@ -35,6 +36,7 @@ class FromAws(MonthRecordMix):
                 else:
                     all_crosses[pair] = {"dupli": 0, "shared": value}
         print("all_errors in save_month_analysis: ", all_errors)
+        print("all_warnings in save_month_analysis: ", all_warnings)
         if all_errors:
             self.base_task.add_errors_and_raise(all_errors)
         CrossingSheet.objects.filter(month_record=self.month_record).delete()
