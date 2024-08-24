@@ -82,6 +82,7 @@ class MonthRecordMix:
                 lap_sheet__isnull=False)
             lap_table_files.update(
                 rx_count=0,
+                self_repeated_count=0,
                 duplicates_count=0,
                 shared_count=0)
             CrossingSheet.objects.filter(
@@ -90,6 +91,7 @@ class MonthRecordMix:
                 rx_count=0,
                 drugs_count=0,
                 duplicates_count=0,
+                self_repeated_count=0,
                 shared_count=0,
                 last_crossing=None,
                 crosses=None)
@@ -156,8 +158,12 @@ class MonthRecordMix:
                     if file_names.count(file_name) > 1:
                         first_duplicate_file = file_name
                         break
-                error = f"Se están intentando enviar el mismo archivo " \
-                        f"llamado {first_duplicate_file} más de una vez"
+                table_file = table_files\
+                    .filter(file=first_duplicate_file)\
+                    .first()
+                error = (f"Se están intentando enviar el mismo archivo "
+                         f"{table_file.id} "
+                         f"llamado {first_duplicate_file} más de una vez")
                 return self.base_task.add_errors_and_raise([error])
             params = {
                 "provider_id": week.provider_id,
@@ -172,7 +178,7 @@ class MonthRecordMix:
             week_base_task.async_in_lambda()
 
     def merge_files_by_week(self):
-        print("merge_files_by_week")
+        # print("merge_files_by_week")
         from inai.misc_mixins.insert_month_mix import InsertMonth
         from respond.models import TableFile
         from django.utils import timezone
@@ -495,21 +501,40 @@ class MonthRecordMix:
         insert_task.async_in_lambda()
 
     def save_sums(self, all_sheet_ids):
-        from respond.models import LapSheet
+        from respond.models import LapSheet, SheetFile
         from django.db.models import Sum
 
         sum_fields = [
-            "drugs_count", "rx_count", "duplicates_count", "shared_count"]
+            "drugs_count", "rx_count",
+            "duplicates_count", "shared_count", "self_repeated_count"]
         query_sheet_sums = [Sum(field) for field in sum_fields]
         # query_annotations = {field: Sum(field) for field in sum_fields}
-        all_laps = LapSheet.objects.filter(
-            sheet_file_id__in=all_sheet_ids, lap=0)
+        print("all_sheet_ids", all_sheet_ids)
+        # all_laps = LapSheet.objects\
+        #     .filter(sheet_file_id__in=all_sheet_ids, lap=0)\
+        #     .select_related("sheet_file")\
+        #     .prefetch_related("table_files")
+        init_sheets = SheetFile.objects\
+            .filter(id__in=all_sheet_ids)
+        month_sheets = self.month_record.sheet_files.exclude(
+            id__in=all_sheet_ids)
+        all_sheets = init_sheets | month_sheets
+        all_laps = LapSheet.objects\
+            .filter(sheet_file__in=all_sheets, lap=0)\
+            .select_related("sheet_file")\
+            .prefetch_related("table_files")
+        # print("all_laps", all_laps)
         for lap_sheet in all_laps:
             table_sums = lap_sheet.table_files.aggregate(*query_sheet_sums)
             for field in sum_fields:
                 setattr(lap_sheet.sheet_file, field,
                         table_sums[f"{field}__sum"] or 0)
             lap_sheet.sheet_file.save()
+        # for sheet in all_sheets:
+        #     table_sums = sheet.table_files.aggregate(*query_sheet_sums)
+        #     for field in sum_fields:
+        #         setattr(sheet, field, table_sums[f"{field}__sum"] or 0)
+        #     sheet.save()
 
         query_sums = [Sum(field) for field in sum_fields]
         result_sums = self.month_record.weeks.all().aggregate(*query_sums)

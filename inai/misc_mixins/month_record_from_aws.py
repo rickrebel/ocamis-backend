@@ -34,6 +34,7 @@ class FromAws(MonthRecordMix):
                     all_crosses[pair]["shared"] += value
                 else:
                     all_crosses[pair] = {"dupli": 0, "shared": value}
+        print("all_errors in save_month_analysis: ", all_errors)
         if all_errors:
             self.base_task.add_errors_and_raise(all_errors)
         CrossingSheet.objects.filter(month_record=self.month_record).delete()

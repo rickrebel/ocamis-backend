@@ -448,7 +448,10 @@ class DeliveredCalculator:
             if delivered != self.available_deliveries[self.class_med]:
                 warning = (f"El status escrito '{self.class_med}' no"
                            f" coincide con el status calculado: '{delivered}'")
-        if self.prescribed_amount > 30:
+        # FALLA
+        if not self.prescribed_amount and self.global_delivered:
+            pass
+        elif self.prescribed_amount > 30:
             if delivered == "denied":
                 delivered = "big_denied"
             elif delivered == "partial":

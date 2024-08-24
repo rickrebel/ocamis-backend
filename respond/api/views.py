@@ -168,6 +168,7 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
         if new_behavior.is_discarded:
             sheet_file.duplicates_count = 0
             sheet_file.shared_count = 0
+            sheet_file.self_repeated_count = 0
         sheet_file.save()
         if is_merge_changed or is_discarded_changed:
             if related_months := sheet_file.month_records.all():
@@ -211,17 +212,20 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
                 sheet_files = sheet_files.exclude(behavior__is_discarded=True)
                 if behavior_group == "dupli":
                     sheet_files = sheet_files.exclude(
-                        duplicates_count=0, shared_count=0)
+                        duplicates_count=0, shared_count=0,
+                        self_repeated_count=0)
                     # print("sheet_files", sheet_files)
                 else:
                     sheet_files = sheet_files.filter(
-                        duplicates_count=0, shared_count=0)
+                        duplicates_count=0, shared_count=0,
+                        self_repeated_count=0)
 
         sheet_files = sheet_files.distinct()
         sheet_files_ids = list(sheet_files.values_list("id", flat=True))
 
         if new_behavior_obj.is_discarded:
-            sheet_files.update(duplicates_count=0, shared_count=0)
+            sheet_files.update(
+                duplicates_count=0, shared_count=0, self_repeated_count=0)
         sheet_files.update(behavior=new_behavior_obj)
         data_response = get_related_months(sheet_files_ids=sheet_files_ids)
         return Response(data_response, status=status.HTTP_200_OK)

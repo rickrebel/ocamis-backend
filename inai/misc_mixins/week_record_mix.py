@@ -10,7 +10,7 @@ class FromAws:
         self.base_task = base_task
 
     def analyze_uniques_after(self, **kwargs):
-        print("analyze_uniques_after---------------------------------")
+        # print("analyze_uniques_after---------------------------------")
         # RICK TASK2: Estos errores deberíamos ponerlos en otro campo y
         # sacarlos desde el principio
         if self.base_task.errors:
@@ -92,6 +92,7 @@ class FromAws:
             ("rx_count", "rx_count"),
             ("duplicates_count", "dupli"),
             ("shared_count", "shared"),
+            ("self_repeated_count", "self_repeated"),
         ]
         for (field, key) in fields:
             setattr(self.week_record, field, month_week_counts.get(key, 0))
@@ -127,8 +128,9 @@ class FromAws:
             table_file.rx_count = value["rx_count"]
             table_file.duplicates_count = value["dupli"]
             table_file.shared_count = value["shared"]
+            table_file.self_repeated_count = value.get("self_repeated", 0)
 
         TableFile.objects.bulk_update(
             table_files,
-            ["rx_count", "duplicates_count", "shared_count"]
+            ["rx_count", "duplicates_count", "shared_count", "self_repeated_count"]
         )

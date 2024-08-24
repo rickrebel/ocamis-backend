@@ -35,7 +35,8 @@ class MonthRecordSerializer(serializers.ModelSerializer):
         model = MonthRecord
         fields = [
             "id", "year_month", "human_name", "rx_count", "drugs_count",
-            "duplicates_count", "shared_count", "last_transformation",
+            "duplicates_count", "shared_count", "self_repeated_count",
+            "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
             "cluster",
             "error_process", "last_indexing", "last_behavior",
@@ -66,7 +67,8 @@ class MonthRecordFullSerializer(serializers.ModelSerializer):
         model = MonthRecord
         fields = [
             "id", "year_month", "human_name", "rx_count", "drugs_count",
-            "duplicates_count", "shared_count", "last_transformation",
+            "duplicates_count", "shared_count", "self_repeated_count",
+            "last_transformation",
             "last_crossing", "last_merge", "last_pre_insertion",
             "cluster",
             "error_process", "last_indexing", "last_behavior",
@@ -86,7 +88,7 @@ class WeekRecordSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeekRecord
         exclude = [
-            "rx_count", "duplicates_count", "shared_count",
+            "rx_count", "duplicates_count", "shared_count", "self_repeated_count",
             "last_transformation", "last_crossing", "last_behavior"]
 
 

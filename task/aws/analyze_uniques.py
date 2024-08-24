@@ -38,11 +38,11 @@ class GetDrugs:
                 if not idx:
                     self.get_positions(cols)
                     continue
-                uuid_and_sheet = tuple()
                 medicament_key = None
                 folio_ocamis = cols[self.positions.get(self.basic_fields[0])]
                 # uuid_and_sheet = (cols[self.positions.get("sheet_file_id")],
                 #                 cols[self.positions.get("uuid_folio")])
+                uuid_and_sheet = tuple()
                 for field in self.basic_fields[1:]:
                     uuid_and_sheet += (cols[self.positions.get(field)],)
                 if not self.some_med_column_failed:
@@ -70,11 +70,12 @@ class UniquesAws:
 
         self.some_med_column_failed = some_med_column_failed
 
-        field_count = group_names + ["rx_count", "drugs_count"]
+        field_count = group_names + ["rx_count", "drugs_count", "self_repeated"]
         self.counts: dict[str, int] = {field: 0 for field in field_count}
         self.month_sheets = {}
 
         self.every_folios = {}
+        self.self_repeated = {}
         self.month_pairs = {group: {} for group in group_names}
         self.special_group_folios = {group: {} for group in group_names}
 
@@ -103,8 +104,10 @@ class UniquesAws:
                 medicament_key = None
             self.counts["drugs_count"] += 1
             self.every_folios.setdefault(folio_ocamis, {})
-            self.every_folios[folio_ocamis].setdefault(medicament_key, set())
-            self.every_folios[folio_ocamis][medicament_key].add(uuid_and_sheet)
+            # self.every_folios[folio_ocamis].setdefault(medicament_key, set())
+            self.every_folios[folio_ocamis].setdefault(medicament_key, [])
+            self.every_folios[folio_ocamis][medicament_key]\
+                .append(uuid_and_sheet)
 
     def build_pairs_sheets(self):
         self.get_special_group_folios()
@@ -123,20 +126,29 @@ class UniquesAws:
     def get_special_group_folios(self):
         for folio_ocamis, medicines in self.every_folios.items():
             self.counts["rx_count"] += 1
-            current_folios_uuid = set()
+            # current_folios_uuid = set()
             unique_medicines = set()
             some_dupli = False
             all_sheets = set()
 
-            for medicament_key, values in medicines.items():
+            for medicament_key, uuid_and_sheets in medicines.items():
                 unique_medicines.add(medicament_key)
                 unique_sheets = set()
-                for sheet_id, uuid_folio in values:
-                    current_folios_uuid.add(uuid_folio)
+                unique_uuid_and_sheets = set(uuid_and_sheets)
+                for sheet_id, uuid_folio in unique_uuid_and_sheets:
+                    # current_folios_uuid.add(uuid_folio)
                     all_sheets.add(sheet_id)
                     unique_sheets.add(sheet_id)
                 if len(unique_sheets) > 1:
                     some_dupli = True
+                if not self.some_med_column_failed:
+                    seen = set()
+                    sheets = [x[0] for x in uuid_and_sheets]
+                    for sheet_id in sheets:
+                        if sheet_id in seen:
+                            self.self_repeated.setdefault(sheet_id, 0)
+                            self.self_repeated[sheet_id] += 1
+                        seen.add(sheet_id)
 
             group_name = None
             if some_dupli:
@@ -152,8 +164,13 @@ class UniquesAws:
                 self.month_sheets.setdefault(sheet_id, {
                     "rx_count": 0,
                     "dupli": 0,
-                    "shared": 0
+                    "shared": 0,
+                    "self_repeated": 0,
                 })
                 self.month_sheets[sheet_id]["rx_count"] += 1
                 if group_name:
                     self.month_sheets[sheet_id][group_name] += 1
+
+        for sheet_id, repeated_count in self.self_repeated.items():
+            self.month_sheets[sheet_id]["self_repeated"] = repeated_count
+            self.counts["self_repeated"] += repeated_count

@@ -262,7 +262,9 @@ class SheetFileMonthSerializer(SheetFileSimpleSerializer):
 
     def get_table_sums(self, obj):
         from django.db.models import Sum, F
-        sum_fields = ["rx_count", "duplicates_count", "shared_count"]
+        sum_fields = [
+            "rx_count", "duplicates_count", "shared_count",
+            "self_repeated_count"]
         if obj.rx_count:
             final_sums = {field: getattr(obj, field) for field in sum_fields}
             return final_sums
@@ -270,24 +272,31 @@ class SheetFileMonthSerializer(SheetFileSimpleSerializer):
         query_sums = [Sum(field) for field in sum_fields]
         # query_annotations = {field: Sum(field) for field in sum_fields}
         last_lap = obj.laps.filter(lap=0).first()
-        result_sums = last_lap.table_files.filter(
-            collection__isnull=True).aggregate(*query_sums)
-        result_with_init_names = {
-            field: result_sums[f"{field}__sum"] for field in sum_fields}
-        return result_with_init_names
+        if last_lap:
+            result_sums = last_lap.table_files.filter(
+                collection__isnull=True).aggregate(*query_sums)
+            result_with_init_names = {
+                field: result_sums[f"{field}__sum"] for field in sum_fields}
+            return result_with_init_names
+        else:
+            return {field: 0 for field in sum_fields}
 
     def get_month_table_sums(self, obj):
         from django.db.models import Sum, F
         month_record = self.context.get("month_record")
         sum_fields = [
-            "rx_count", "duplicates_count", "shared_count", "drugs_count"]
+            "rx_count", "duplicates_count", "shared_count", "drugs_count",
+            "self_repeated_count"]
         query_sums = [Sum(field) for field in sum_fields]
         last_lap = obj.laps.filter(lap=0).first()
-        result_sums = last_lap.table_files\
-            .filter(collection__isnull=True,
-                    week_record__month_record=month_record)\
-            .aggregate(*query_sums)
-        return {field: result_sums[f"{field}__sum"] for field in sum_fields}
+        if last_lap:
+            result_sums = last_lap.table_files\
+                .filter(collection__isnull=True,
+                        week_record__month_record=month_record)\
+                .aggregate(*query_sums)
+            return {field: result_sums[f"{field}__sum"] for field in sum_fields}
+        else:
+            return {field: 0 for field in sum_fields}
 
     class Meta:
         model = SheetFile

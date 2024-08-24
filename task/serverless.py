@@ -122,7 +122,7 @@ class Serverless:
 
     def _execute_in_local(self):
         import threading
-        print("FUNCTION NAME 2:", self.function_name)
+        # print("FUNCTION NAME 2:", self.function_name)
         if not globals().get(self.function_name, False):
             return self._execute_in_lambda()
 

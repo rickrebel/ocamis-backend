@@ -44,10 +44,12 @@ class BuildWeekAws:
         print("is_example", self.is_example)
         self.week_table_files = event.get("week_table_files", [])
         self.all_inits = {
-            "drug": {"field": "uuid", "basic_fields": ["week_record_id"]},
+            "drug": {"field": "uuid", "basic_fields": [
+                "week_record_id", "medicament_id"]},
             "rx": {
                 "field": "uuid_folio",
-                "basic_fields": ["folio_ocamis", "uuid_folio", "delivered_final_id"]
+                "basic_fields": [
+                    "folio_ocamis", "uuid_folio", "delivered_final_id"]
             },
             "unique_helpers": {"field": "medicament_key", "jump": True},
             "complement_drug": {"field": "uuid_comp_drug"},
@@ -69,16 +71,17 @@ class BuildWeekAws:
         self.pos_delivered = None
         self.sums_by_delivered = {}
         self.drugs_count = 0
+        self.final_row = {}
 
         self.headers = {"all": [], "drug": [], "rx": []}
         self.len_drug = 0
-        self.basic_models = [
-            "drug", "rx", "complement_drug", "complement_rx", "diagnosis_rx"]
         self.real_models = []
         self.csvs = {}
         self.buffers = {}
         self.final_path = event["final_path"]
-        for model in self.basic_models:
+        basic_models = [
+            "drug", "rx", "complement_drug", "complement_rx", "diagnosis_rx"]
+        for model in basic_models:
             self.csvs[model] = io.StringIO()
             self.buffers[model] = csv.writer(self.csvs[model], delimiter="|")
 
@@ -99,12 +102,22 @@ class BuildWeekAws:
     def build_week_csvs(self):
         alone_table_files = [table_file for table_file in self.week_table_files
                              if table_file["sheet_behavior"] == "not_merge"]
-        for table_file in alone_table_files:
-            self.get_basic_data([table_file])
+        if alone_table_files:
+            print("alone_table_files", alone_table_files)
+            for table_file in alone_table_files:
+                self.get_basic_data([table_file])
+        uniques_table_files = [
+            table_file for table_file in self.week_table_files
+            if table_file["sheet_behavior"] == "discard_repeated"]
+        if uniques_table_files:
+            print("uniques_table_files", uniques_table_files)
+            self.get_basic_data(uniques_table_files, jump_duplicates=True)
         merge_behaviors = ["need_merge", "merged"]
         merge_table_files = [table_file for table_file in self.week_table_files
                              if table_file["sheet_behavior"] in merge_behaviors]
-        self.get_basic_data(merge_table_files)
+        if not merge_table_files:
+            print("merge_table_files", merge_table_files)
+            self.get_basic_data(merge_table_files)
 
         print("inside build_week_csvs")
         result = {
@@ -123,7 +136,6 @@ class BuildWeekAws:
         return result
 
     def build_headers_and_positions(self, table_file, row):
-        # if self.pos_uuid_folio is None:
         if table_file.get("ends"):
             return
 
@@ -159,14 +171,12 @@ class BuildWeekAws:
                         self.positions[basic_field] = headers.index(basic_field)
                     else:
                         print("basic_field", basic_field, headers)
-        # second_init = table_file["inits"][1]
-        # self.pos_delivered = \
-        #     self.positions.get("delivered_final_id") - second_init
         self.pos_delivered = self.positions.get("delivered_final_id")
 
         return table_file
 
-    def get_basic_data(self, table_files):
+    def get_basic_data(self, table_files, jump_duplicates=False):
+        print("jump_duplicates", jump_duplicates)
         every_rows = []
         # every_rows = []
         for table_file in table_files:
@@ -184,17 +194,19 @@ class BuildWeekAws:
                     current_row[model] = get_data_from_row(row, table_file, idx)
                 every_rows.append(current_row)
 
-        self.write_basic_tables(every_rows)
+        self.write_basic_tables(every_rows, jump_duplicates)
 
-    def write_basic_tables(self, rows):
-        import uuid as uuid_lib
+    def write_basic_tables(self, rows, jump_duplicates=False):
         every_folios = {}
+        every_unique_keys = set()
+        jumps = 0
 
         for row in rows:
-            final_row = {}
+            self.final_row = {}
 
             self.drugs_count += 1
             sheet_id, folio_ocamis, current_uuid, current_delivered = None, None, None, None
+            medicament_id = None
             for model, values in self.all_inits.items():
                 data = row.get(model)
                 if not data:
@@ -219,7 +231,9 @@ class BuildWeekAws:
                         current_delivered = value
                     elif basic_field == "sheet_file_id":
                         sheet_id = value
-                        
+                    elif basic_field == "medicament_id":
+                        medicament_id = value
+
                     # if self.show_examples():
                     #     print("basic_field", basic_field, "|", data[self.positions.get(basic_field)])
                     # locals()[basic_field] = data[self.positions.get(basic_field)]
@@ -228,26 +242,14 @@ class BuildWeekAws:
                     # data = data[:self.len_drug]
                     # data.append(self.week_record_id)
                     data[-1] = self.week_record_id
-                final_row[model] = data
+                self.final_row[model] = data
 
-            def write_in_buffer(model_name, uuid_folio=None):
-                if row_data := final_row.get(model_name):
-                    if uuid_folio:
-                        row_data[1] = uuid_folio
-                    self.buffers[model_name].writerow(row_data)
-
-            def write_diagnosis_rx(model_name="diagnosis_rx"):
-                if row_data := final_row.get(model_name):
-                    diagnosis_id = row_data[2]
-                    if not diagnosis_id:
-                        return
-                    rx_id = row_data[1]
-                    all_diagnosis = diagnosis_id.split(";")
-                    is_main = len(all_diagnosis) == 1
-                    for diag in all_diagnosis:
-                        uuid_diag_rx = str(uuid_lib.uuid4())
-                        diag_data = [uuid_diag_rx, rx_id, diag, is_main]
-                        self.buffers[model_name].writerow(diag_data)
+            if jump_duplicates:
+                unique_key = (folio_ocamis, medicament_id)
+                if unique_key in every_unique_keys:
+                    jumps += 1
+                    continue
+                every_unique_keys.add(unique_key)
 
             if folio_ocamis not in every_folios:
                 every_folios[folio_ocamis] = {
@@ -255,20 +257,22 @@ class BuildWeekAws:
                     "first_uuid": current_uuid,
                     "first_delivered": current_delivered,
                     "delivered": {current_delivered},
-                    "rx_data": final_row["rx"],
+                    "rx_data": self.final_row["rx"],
                 }
-                write_in_buffer("drug", uuid_folio=current_uuid)
-                write_in_buffer("complement_drug")
-                write_in_buffer("complement_rx")
-                write_diagnosis_rx()
+                self._write_in_buffer("drug", uuid_folio=current_uuid)
+                self._write_in_buffer("complement_drug")
+                self._write_in_buffer("complement_rx")
+                # write_diagnosis_rx()
+                self._write_diagnosis_rx()
+
                 continue
             current_folio = every_folios[folio_ocamis]
             # rx_id = row[self.pos_rx_id]
             # prev_rx_id = final_row["drug"][1]
             # if current_folio["first_uuid"] != prev_rx_id:
             #     final_row["drug"][1] = current_folio["first_uuid"]
-            write_in_buffer("drug", uuid_folio=current_folio["first_uuid"])
-            write_in_buffer("complement_drug")
+            self._write_in_buffer("drug", uuid_folio=current_folio["first_uuid"])
+            self._write_in_buffer("complement_drug")
             delivered_included = current_delivered in current_folio["delivered"]
             sheet_included = sheet_id in current_folio["sheet_ids"]
             if delivered_included and sheet_included:
@@ -284,9 +288,30 @@ class BuildWeekAws:
             every_folios[folio_ocamis] = current_folio
 
         self.limit_examples += 1
+        print("jumps", jumps)
 
         for rx in every_folios.values():
             delivered_final = rx["rx_data"][self.pos_delivered]
             self.sums_by_delivered.setdefault(delivered_final, 0)
             self.sums_by_delivered[delivered_final] += 1
             self.buffers["rx"].writerow(rx["rx_data"])
+
+    def _write_in_buffer(self, model_name, uuid_folio=None):
+        if row_data := self.final_row.get(model_name):
+            if uuid_folio:
+                row_data[1] = uuid_folio
+            self.buffers[model_name].writerow(row_data)
+
+    def _write_diagnosis_rx(self):
+        import uuid as uuid_lib
+        if row_data := self.final_row.get("diagnosis_rx"):
+            diagnosis_id = row_data[2]
+            if not diagnosis_id:
+                return
+            rx_id = row_data[1]
+            all_diagnosis = diagnosis_id.split(";")
+            is_main = len(all_diagnosis) == 1
+            for diag in all_diagnosis:
+                uuid_diag_rx = str(uuid_lib.uuid4())
+                diag_data = [uuid_diag_rx, rx_id, diag, is_main]
+                self.buffers["diagnosis_rx"].writerow(diag_data)

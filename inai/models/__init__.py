@@ -75,6 +75,7 @@ class WeekRecord(models.Model):
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
+    self_repeated_count = models.IntegerField(default=0)
     crosses = JSONField(blank=True, null=True)
 
     last_crossing = models.DateTimeField(blank=True, null=True)

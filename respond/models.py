@@ -297,7 +297,7 @@ class SheetFile(models.Model):
     status = models.ForeignKey(
         StatusTask, on_delete=models.CASCADE, default='finished')
     rx_count = models.IntegerField(
-        verbose_name="Prescripciones procesadas",
+        verbose_name="Prescripciones (rx)",
         default=0)
     duplicates_count = models.IntegerField(
         verbose_name="Duplicados",
@@ -305,6 +305,8 @@ class SheetFile(models.Model):
     shared_count = models.IntegerField(
         verbose_name="Compartidos",
         default=0)
+    self_repeated_count = models.IntegerField(
+        verbose_name="Repetidos", default=0)
     behavior = models.ForeignKey(
         Behavior, on_delete=models.CASCADE, default='pending',
         verbose_name="merge behavior")
@@ -477,10 +479,12 @@ class TableFile(models.Model):
     year = models.PositiveSmallIntegerField(blank=True, null=True)
     month = models.PositiveSmallIntegerField(blank=True, null=True)
     is_for_edition = models.BooleanField(default=False)
+
     drugs_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
     duplicates_count = models.IntegerField(default=0)
     shared_count = models.IntegerField(default=0)
+    self_repeated_count = models.IntegerField(default=0)
 
     def __str__(self):
         return "%s %s" % (self.collection, self.lap_sheet)
