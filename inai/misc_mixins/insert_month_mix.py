@@ -82,6 +82,7 @@ class InsertMonth:
             "week_table_files": week_table_files,
             "final_path": final_path,
             "week_record_id": week_record.id,
+            "provider_id": self.provider.id,
         }
         week_task = TaskBuilder(
             "build_week_csvs", parent_class=self.base_task,
@@ -165,6 +166,7 @@ class InsertMonth:
         self.collection_table_files = TableFile.objects.filter(
             lap_sheet__cat_inserted=False, lap_sheet__lap=0,
             lap_sheet__sheet_file__month_records__in=[self.month_record],
+            lap_sheet__sheet_file__behavior__is_discarded=False,
             collection__app_label="med_cat", inserted=False)
 
         collection_ids = self.collection_table_files.values_list(

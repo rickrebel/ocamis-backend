@@ -47,6 +47,8 @@ class QueryExecution:
             str_e = str(e)
             if "current transaction is aborted" in str_e:
                 return
+            if "0 rows were copied successfully" in str_e and "diagnosisrx" in query_content:
+                return
             self.errors.append(
                 f"$ Hubo un error al guardar; \n{query_content}; \n{str(e)}")
             if need_raise:

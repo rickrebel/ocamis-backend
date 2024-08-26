@@ -151,7 +151,9 @@ class TaskChecker:
         success_executed = self.debug_success()
         print("SUCCESS EXECUTED:", success_executed)
         if not success_executed:
-            self.debug_queue()
+            sucess_queue = self.debug_queue()
+            if not sucess_queue:
+                self.debug_ebs()
             self.debug_ebs()
         self.debug_aged_running()
 

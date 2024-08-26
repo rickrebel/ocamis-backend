@@ -115,7 +115,7 @@ class BuildWeekAws:
         merge_behaviors = ["need_merge", "merged"]
         merge_table_files = [table_file for table_file in self.week_table_files
                              if table_file["sheet_behavior"] in merge_behaviors]
-        if not merge_table_files:
+        if merge_table_files:
             print("merge_table_files", merge_table_files)
             self.get_basic_data(merge_table_files)
 
@@ -288,7 +288,6 @@ class BuildWeekAws:
             every_folios[folio_ocamis] = current_folio
 
         self.limit_examples += 1
-        print("jumps", jumps)
 
         for rx in every_folios.values():
             delivered_final = rx["rx_data"][self.pos_delivered]
