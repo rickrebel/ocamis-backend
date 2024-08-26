@@ -296,9 +296,6 @@ class MonthRecordMix:
         #         lap_sheet, current_table_files, "cat_inserted")
         my_insert_cat.send_cat_tables_to_db()
 
-        if not cats_task.new_tasks:
-            cats_task.comprobate_status()
-
         missing_table_files = TableFile.objects.filter(
             lap_sheet__in=related_lap_sheets,
             collection__app_label="formula",
@@ -317,9 +314,6 @@ class MonthRecordMix:
                 continue
             my_insert_base.send_base_tables_to_db(week, week_base_table_files)
 
-        if not formula_task.new_tasks:
-            formula_task.comprobate_status()
-
         for lap_sheet in related_lap_sheets:
             lap_missing_tables = missing_table_files.filter(
                 lap_sheet=lap_sheet)
@@ -329,6 +323,13 @@ class MonthRecordMix:
             else:
                 my_insert_base.send_lap_tables_to_db(
                     lap_sheet, lap_missing_tables, "missing_inserted")
+
+        if not formula_task.new_tasks:
+            formula_task.comprobate_status()
+
+        if not cats_task.new_tasks:
+            cats_task.comprobate_status()
+
 
     def validate_month(self):
         from respond.models import TableFile
