@@ -206,18 +206,12 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 month_base_task.comprobate_status()
             elif is_revert:
                 month_methods.revert_stages(stage)
-                month_record.save_stage(stage.name)
+                # month_record.save_stage(stage.name)
                 month_base_task.comprobate_status()
             # accumulated_sleep += seconds_sleep
-            if not is_revert and not month_errors:
+            # if not is_revert and not month_errors:
+            else:
                 run_in_thread(seconds_sleep)
-            # elif provider.split_by_delegation:
-            #     # t = threading.Thread(target=run_in_thread)
-            #     # t.start()
-            # else:
-            #     accumulated_sleep += seconds_sleep
-            #     run_in_thread(accumulated_sleep)
-            #     # time.sleep(seconds_sleep)
 
         if base_task:
             if not base_task.new_tasks:

@@ -60,9 +60,8 @@ class MonthRecordMix:
                 "complementrx", "complementdrug", "diagnosisrx"]
             for table_name in formula_models:
                 temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
-                cursor.execute(f"""
-                    DROP TABLE IF EXISTS {temp_table} CASCADE;
-                """)
+                query_drop = f"DROP TABLE IF EXISTS {temp_table} CASCADE;"
+                cursor.execute(query_drop)
             cursor.close()
             connection.commit()
             connection.close()
@@ -71,12 +70,12 @@ class MonthRecordMix:
         if final_stage.order <= stage_merge.order:
             self.month_record.last_merge = None
             base_table_files.delete()
-            week_records.update(
-                last_merge=None)
+            week_records.update(last_merge=None)
 
         stage_analysis = Stage.objects.get(name="analysis")
         if final_stage.order <= stage_analysis.order:
             self.month_record.last_crossing = None
+            self.month_record.last_behavior = None
             lap_table_files = TableFile.objects.filter(
                 week_record__month_record=self.month_record,
                 lap_sheet__isnull=False)
@@ -253,10 +252,8 @@ class MonthRecordMix:
         cursor.close()
 
         month_table_files = TableFile.objects\
-            .filter(
-                week_record__month_record=self.month_record,
-                collection__isnull=True
-            )\
+            .filter(week_record__month_record=self.month_record,
+                    collection__isnull=True)\
             .exclude(inserted=True)
         related_sheet_files = self.month_record.sheet_files.all()
 
@@ -276,7 +273,6 @@ class MonthRecordMix:
             error = ["No existen tablas por insertar para el mes "
                      f"{self.month_record.year_month}"]
             errors.append(error)
-            # return [], errors, False
         if errors:
             print("error", errors)
 
@@ -287,13 +283,6 @@ class MonthRecordMix:
 
         my_insert_cat = InsertMonth(self.month_record, base_task=cats_task)
 
-        # for lap_sheet in pending_lap_sheets:
-        #     current_table_files = collection_table_files.filter(
-        #         lap_sheet=lap_sheet)
-        #     if not current_table_files.exists():
-        #         continue
-        #     my_insert_cat.send_lap_tables_to_db(
-        #         lap_sheet, current_table_files, "cat_inserted")
         my_insert_cat.send_cat_tables_to_db()
 
         missing_table_files = TableFile.objects.filter(
@@ -317,19 +306,17 @@ class MonthRecordMix:
         for lap_sheet in related_lap_sheets:
             lap_missing_tables = missing_table_files.filter(
                 lap_sheet=lap_sheet)
-            if not lap_missing_tables:
-                lap_sheet.missing_inserted = True
-                # lap_sheet.sheet_file.save_stage('insert', [])
-            else:
+            if lap_missing_tables.exists() and not lap_sheet.missing_inserted:
                 my_insert_base.send_lap_tables_to_db(
-                    lap_sheet, lap_missing_tables, "missing_inserted")
-
+                    lap_sheet, lap_missing_tables)
+            else:
+                lap_sheet.missing_inserted = True
+                lap_sheet.save()
         if not formula_task.new_tasks:
             formula_task.comprobate_status()
 
         if not cats_task.new_tasks:
             cats_task.comprobate_status()
-
 
     def validate_month(self):
         from respond.models import TableFile

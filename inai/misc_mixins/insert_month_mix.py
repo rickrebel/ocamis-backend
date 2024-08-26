@@ -132,28 +132,27 @@ class InsertMonth:
 
     def send_base_tables_to_db(
             self, week_record: WeekRecord, table_files: list):
-        first_query = f"""
-            SELECT last_pre_insertion IS NOT NULL AS last_pre_insertion
-            FROM public.inai_entityweek
-            WHERE id = {week_record.id}
-        """
-        last_query = f"""
-            UPDATE public.inai_entityweek
-            SET last_pre_insertion = now()
-            WHERE id = {week_record.id}
-        """
+
+        params = {
+            "db_config": ocamis_db,
+            "week_record_id": week_record.id,
+            "month_record_id": self.month_record.id,
+            "first_query": f"""
+                SELECT last_pre_insertion IS NOT NULL AS last_pre_insertion
+                FROM public.inai_entityweek
+                WHERE id = {week_record.id}
+            """,
+            "last_query": f"""
+                UPDATE public.inai_entityweek
+                SET last_pre_insertion = now()
+                WHERE id = {week_record.id}
+            """
+        }
         temp_complement = self.month_record.temp_table
         main_queries = self.build_query_tables(table_files, temp_complement)
         table_files_ids = [table_file.id for table_file in table_files]
-        params = {
-            "first_query": first_query,
-            "last_query": last_query,
-            "queries_by_model": list(main_queries.values()),
-            "db_config": ocamis_db,
-            "month_record_id": self.month_record.id,
-            "week_record_id": week_record.id,
-            "table_files_ids": table_files_ids,
-        }
+        params["queries_by_model"] = list(main_queries.values())
+        params["table_files_ids"] = table_files_ids
         week_task = TaskBuilder(
             "save_week_base_models", parent_class=self.base_task,
             params=params, models=[week_record, self.month_record])
@@ -199,47 +198,33 @@ class InsertMonth:
             subgroup=model_name)
         collection_task.async_in_lambda()
 
-    def send_lap_tables_to_db(
-            self, lap_sheet: LapSheet, table_files: list, inserted_field):
-        first_query = f"""
-            SELECT {inserted_field}
-            FROM public.inai_lapsheet
-            WHERE id = {lap_sheet.id}
-        """
-        last_query = f"""
-            UPDATE public.inai_lapsheet
-            SET {inserted_field} = true
-            WHERE id = {lap_sheet.id}
-        """
-
-        function_after = None
-        if inserted_field == "missing_inserted":
-            function_name = "save_lap_missing_tables"
-            temp_complement = self.month_record.temp_table
-            function_after = "check_success_insert"
-            subgroup = "missing"
-        elif inserted_field == "cat_inserted":
-            function_name = "save_lap_cat_tables"
-            temp_complement = None
-            subgroup = "med_cat"
-        else:
-            raise Exception("No se encontró el campo de inserción")
-        table_files_ids = [table_file.id for table_file in table_files]
-        main_queries = self.build_query_tables(table_files, temp_complement)
+    def send_lap_tables_to_db(self, lap_sheet: LapSheet, table_files: list):
         params = {
-            "first_query": first_query,
-            "last_query": last_query,
-            "queries_by_model": list(main_queries.values()),
             "db_config": ocamis_db,
             "lap_sheet_id": lap_sheet.id,
-            "table_files_ids": table_files_ids,
+            "first_query": f"""
+                SELECT missing_inserted
+                FROM public.inai_lapsheet
+                WHERE id = {lap_sheet.id}
+            """,
+            "last_query": f"""
+                UPDATE public.inai_lapsheet
+                SET missing_inserted = true
+                WHERE id = {lap_sheet.id}
+            """
         }
+
+        temp_complement = self.month_record.temp_table
+        main_queries = self.build_query_tables(table_files, temp_complement)
+        table_files_ids = [table_file.id for table_file in table_files]
+        params["queries_by_model"] = list(main_queries.values())
+        params["table_files_ids"] = table_files_ids
         models = [lap_sheet.sheet_file,
                   lap_sheet.sheet_file.data_file, self.month_record]
         lap_task = TaskBuilder(
-            function_name, parent_class=self.base_task,
+            "save_lap_missing_tables", parent_class=self.base_task,
             params=params, models=models, keep_tasks=True,
-            function_after=function_after, subgroup=subgroup)
+            function_after="check_success_insert", subgroup="missing")
         lap_task.async_in_lambda()
 
     def build_catalog_queries(self, path, columns_join, model_in_db):

@@ -29,9 +29,9 @@ class SaveQueryExecution(QueryExecution):
 
     def execute_all_queries(self):
         event = self.event
-        first_query = event.get("first_query")
-        error_message = "Ya se había insertado la hoja y su lap"
-        self.execute_query(first_query, error_msg=error_message, is_soft=True)
+        if first_query := event.get("first_query"):
+            error_message = "Ya se había insertado la hoja y su lap"
+            self.execute_query(first_query, error_msg=error_message)
         self.execute_many_queries(event.get("sql_queries", []))
         # self.execute_many_queries(event.get("queries_by_model", []))
         self._queries_by_model(event.get("queries_by_model", []))
