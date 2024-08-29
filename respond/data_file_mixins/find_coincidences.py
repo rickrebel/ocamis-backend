@@ -12,12 +12,14 @@ class MatchControls(ExtractorRealMix):
 
         self.warnings = []
         super().__init__(data_file, base_task, True)
+        self.sheet_files = self.data_file.sheet_files
+        sheets_matched = self.sheet_files.filter(matched=True)\
+            .values_list("sheet_name", flat=True).distinct()
+        self.sheets_matched = set(sheets_matched)
 
         self.find_many = False
         self.match_count = 0
         self.matched_sheets = {}
-
-        self.sheets_matched_ids = []
 
         self.file_control = None
         self.name_columns = None
@@ -115,10 +117,13 @@ class MatchControls(ExtractorRealMix):
     def _get_related_file_controls(self) -> QuerySet[FileControl]:
 
         has_real_provider = getattr(self.petition, "real_provider", None)
-
+        #
         base_controls = FileControl.objects \
-            .filter(file_format__isnull=False) \
-            .exclude(data_group_id="orphan")
+            .filter(file_format__isnull=False,
+                    file_format__suffixes__icontains=self.data_file.suffix) \
+            .exclude(data_group_id="orphan") \
+            .select_related("file_format") \
+            .prefetch_related("columns")
 
         if has_real_provider:
             provider = self.petition.real_provider
@@ -137,14 +142,15 @@ class MatchControls(ExtractorRealMix):
         return provider_controls
 
     def _has_exact_matches(self):
-        sheet_files = self.data_file.sheet_files
-        if not self.filtered_sheets or not sheet_files.exists():
+        # if not self.filtered_sheets or not self.sheet_files.exists():
+        if not self.filtered_sheets:
             return False
-        sheets_matched = sheet_files.filter(matched=True)\
-            .values_list("sheet_name", flat=True).distinct()
-        if not sheets_matched.exists():
+        # sheets_matched = self.sheet_files.filter(matched=True)\
+        #     .values_list("sheet_name", flat=True).distinct()
+        # if not sheets_matched.exists():
+        if not self.sheets_matched:
             return False
-        return set(self.filtered_sheets).issubset(set(sheets_matched))
+        return set(self.filtered_sheets).issubset(self.sheets_matched)
 
     def _all_filtered_are_matched(self):
         matched_sheets = set(self.matched_sheets.keys())

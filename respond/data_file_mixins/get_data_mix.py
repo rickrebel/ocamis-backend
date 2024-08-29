@@ -34,6 +34,9 @@ class ExtractorRealMix:
         self.first_headers: list[str] = []
         self.has_split = False
 
+        self.all_sheets_data = {}
+        self.sheet_names = []
+
     def _set_file_control(self, file_control):
         if file_control:
             if isinstance(file_control, str):
@@ -120,16 +123,17 @@ class ExtractorRealMix:
         type_format = self._validate_and_get_type_format()
         # print("-x file_control", self.file_control)
         sample_file = SampleFile()
-        all_sheets_data = sample_file.get_sheet_samples(self.data_file)
+        if not self.all_sheets_data:
+            self.all_sheets_data = sample_file.get_sheet_samples(self.data_file)
         if type_format == 'excel':
             self._get_data_excel()
         else:  # type_format == 'simple': o incluso para pdf
-            self.filtered_sheets = all_sheets_data.keys()
+            self.filtered_sheets = self.all_sheets_data.keys()
 
         # for sheet_name in all_sheets_data.keys():
         some_is_valid = False
 
-        for (sheet_name, sheet_data) in all_sheets_data.items():
+        for (sheet_name, sheet_data) in self.all_sheets_data.items():
             is_split = sheet_data.get("is_split")
             try:
                 is_second = is_split and int(sheet_name) != 1
@@ -162,11 +166,12 @@ class ExtractorRealMix:
         return self.full_sheet_data, self.filtered_sheets
 
     def _get_data_excel(self):
-        sheet_names = self.data_file.sheet_names_list
+        if not self.sheet_names:
+            self.sheet_names = self.data_file.sheet_names_list
 
         incl_names, excl_names, incl_idx, excl_idx = self._explore_sheets()
 
-        for position, sheet_name in enumerate(sheet_names, start=1):
+        for position, sheet_name in enumerate(self.sheet_names, start=1):
             if incl_names and sheet_name not in incl_names:
                 continue
             if excl_names and sheet_name in excl_names:
