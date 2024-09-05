@@ -87,7 +87,7 @@ class ConstraintBuilder:
         model_name = f"public.{snake_name}"
         return f"""
             DELETE FROM {model_name}
-            WHERE cluster_id = '{self.cluster.id}'
+            WHERE cluster_id = '{self.cluster.name}'
         """
 
     def query_to_copy_export(self, snake_name):
