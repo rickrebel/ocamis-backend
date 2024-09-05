@@ -31,10 +31,15 @@ class SaveQueryExecution(QueryExecution):
         event = self.event
         if first_query := event.get("first_query"):
             error_message = "Ya se había insertado la hoja y su lap"
-            self.execute_query(first_query, error_msg=error_message)
+            is_soft = "missing_inserted" in first_query
+            self.execute_query(
+                first_query, error_msg=error_message, is_soft=is_soft)
         self.execute_many_queries(event.get("sql_queries", []))
         # self.execute_many_queries(event.get("queries_by_model", []))
         self._queries_by_model(event.get("queries_by_model", []))
+        if table_files_ids := event.get("table_files_ids"):
+            self._update_table_files(table_files_ids)
+
         self.execute_query(event.get("last_query"), need_raise=False)
         self.finish_and_save()
 
@@ -48,11 +53,4 @@ class SaveQueryExecution(QueryExecution):
                     query = query_base.replace("PATH_URL", path)
                     # query = query.replace(", price,", ",")
                     self.execute_query(query, need_raise=False)
-        self.comprobate_errors()
-
-    def _update_table_files(self, table_files_ids):
-        str_table_files_ids = [str(x) for x in table_files_ids]
-        query = f"UPDATE inai_tablefile SET inserted = true " \
-                f"WHERE id IN ({','.join(str_table_files_ids)})"
-        self.execute_query(query, need_raise=False)
         self.comprobate_errors()

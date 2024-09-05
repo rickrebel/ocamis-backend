@@ -94,6 +94,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         month_records_ids = request.data.get("month_records", None)
         month_record_id = request.data.get("month_record", None)
         main_function_name = request.data.get("function_name", None)
+        is_self_revert = request.data.get("is_self_revert", False)
         stage_name = request.data.get("stage", None)
         # query_stage = request.data.get("stage", None)
         provider = self.get_object()
@@ -116,8 +117,11 @@ class ProviderViewSet(ListRetrieveUpdateMix):
         current_stage = month_records.first().stage
         # print("month_records", month_records)
 
-        stage = Stage.objects\
-            .filter(main_function__name=main_function_name).last()
+        if is_self_revert:
+            stage = current_stage
+        else:
+            stage = Stage.objects\
+                .filter(main_function__name=main_function_name).last()
         if not stage and stage_name:
             stage = Stage.objects.filter(name=stage_name).last()
         if not stage:
@@ -141,10 +145,12 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                     {"error": error_msg},
                     status=status.HTTP_400_BAD_REQUEST)
 
-        is_revert = (current_stage.order > stage.order
+        is_revert = (is_self_revert or current_stage.order > stage.order
                      or main_function_name == "revert_stages")
 
         kwargs = {"finished_function": stage.finished_function}
+        if is_self_revert:
+            kwargs["subgroup"] = stage.name
 
         if month_record_id:
             base_task = None
@@ -205,7 +211,7 @@ class ProviderViewSet(ListRetrieveUpdateMix):
                 month_record.save_stage(stage.name, month_errors)
                 month_base_task.comprobate_status()
             elif is_revert:
-                month_methods.revert_stages(stage)
+                month_methods.revert_stages(stage, is_self_revert)
                 # month_record.save_stage(stage.name)
                 month_base_task.comprobate_status()
             # accumulated_sleep += seconds_sleep

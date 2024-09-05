@@ -117,7 +117,6 @@ class MatchControls(ExtractorRealMix):
     def _get_related_file_controls(self) -> QuerySet[FileControl]:
 
         has_real_provider = getattr(self.petition, "real_provider", None)
-        #
         base_controls = FileControl.objects \
             .filter(file_format__isnull=False,
                     file_format__suffixes__icontains=self.data_file.suffix) \

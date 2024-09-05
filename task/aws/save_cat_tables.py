@@ -46,8 +46,8 @@ class SaveCats(QueryExecution):
         else:
             self._simple_insert()
 
-        table_files_ids = event.get("table_files_ids")
-        self._update_table_files(table_files_ids)
+        if table_files_ids := event.get("table_files_ids"):
+            self._update_table_files(table_files_ids)
         self.finish_and_save()
 
     def _reconfig_headers(self, headers):
@@ -116,10 +116,4 @@ class SaveCats(QueryExecution):
         args = ','.join(self.cursor.mogrify(f"({s_content})", x).decode("utf-8")
                         for x in processed_values)
         query = f"INSERT INTO {final_model} ({self.columns_join}) VALUES {args}"
-        self.execute_query(query)
-
-    def _update_table_files(self, table_files_ids):
-        str_table_files_ids = [str(x) for x in table_files_ids]
-        query = f"UPDATE inai_tablefile SET inserted = true " \
-                f"WHERE id IN ({','.join(str_table_files_ids)})"
         self.execute_query(query)

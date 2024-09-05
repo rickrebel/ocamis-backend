@@ -13,14 +13,22 @@ class MonthRecordMix:
         self.month_record = month_record
         self.base_task = base_task
 
-    def revert_stages(self, final_stage: Stage):
+    def revert_stages(self, final_stage: Stage, is_self_revert=False):
         from respond.models import TableFile
         from respond.models import LapSheet
         from respond.models import CrossingSheet
         from django.db import connection
 
         self.month_record.stage = final_stage
-        if final_stage.name == "revert_stages":
+        if is_self_revert:
+            previous_stage = Stage.objects\
+                .filter(next_stage=final_stage)\
+                .order_by("order")\
+                .first()
+            if previous_stage:
+                self.month_record.stage = previous_stage
+            self.month_record.status_id = "finished"
+        elif final_stage.name == "revert_stages":
             self.month_record.status_id = "finished"
         else:
             self.month_record.status_id = "created"

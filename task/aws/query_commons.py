@@ -83,6 +83,12 @@ class QueryExecution:
                     f"Error en constraint: {constraint}; --> {str_e} <--")
                 raise self.errors
 
+    def _update_table_files(self, table_files_ids):
+        str_table_files_ids = [str(x) for x in table_files_ids]
+        query = f"UPDATE inai_tablefile SET inserted = true " \
+                f"WHERE id IN ({','.join(str_table_files_ids)})"
+        self.execute_query(query)
+
     def add_error_and_raise(self, error):
         self.errors.append(error)
         self.comprobate_errors()
