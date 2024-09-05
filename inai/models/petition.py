@@ -195,7 +195,7 @@ class Petition(models.Model):
             file_control.real_provider = self.real_provider
             file_control.save()
         orphan_pfc, _ = PetitionFileControl.objects \
-            .create(file_control=file_control, petition=self)
+            .get_or_create(file_control=file_control, petition=self)
         return orphan_pfc
 
     def delete_orphan_pfc(self):

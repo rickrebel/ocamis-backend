@@ -47,7 +47,7 @@ class ClusterViewSet(ListRetrieveUpdateMix):
         base_task = TaskBuilder(
             function_name, models=[cluster], request=request,
             finished_function=function_finished)
-        print("function_name", function_name)
+        # print("function_name", function_name)
         cluster_mix = ClusterMix(cluster, base_task)
         getattr(cluster_mix, function_name)()
 
