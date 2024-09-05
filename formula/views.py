@@ -60,7 +60,7 @@ class ConstraintBuilder:
             {"name": "copy", "script": self.query_to_copy_export(snake_name)}]
 
     def custom_mat_view(self, mat_view):
-        main_field = "script" if self.is_create else "drop_script"
+        main_field = "script" if self.is_create else "script_drop"
         script = getattr(mat_view, main_field)
         script = script.replace(";", "")
         script = script.replace("CLUSTER_NAME", self.cluster.name)
@@ -103,7 +103,7 @@ class ConstraintBuilder:
     def modify_constraints(self):
         from rds.models import Operation
         from datetime import datetime
-        main_field = "script" if self.is_create else "drop_script"
+        main_field = "script" if self.is_create else "script_drop"
         order_by = "order" if self.is_create else "-order"
         q_filter = {
             "operation_type__in": ["constraint", "index"],
@@ -243,7 +243,7 @@ def modify_constraints(
         return
 
     # create_constrains, delete_constrains = get_constraints(is_rebuild)
-    main_field = "script" if is_create else "drop_script"
+    main_field = "script" if is_create else "script_drop"
     order_by = "order" if is_create else "-order"
     constraint_list = Operation.objects\
         .filter(operation_type__in=["constraint", "index"], is_active=True)\
