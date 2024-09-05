@@ -115,6 +115,7 @@ class Stage(models.Model):
     re_process_stages = models.ManyToManyField(
         "Stage", blank=True, related_name="re_processing",
         verbose_name="Etapas a re-procesar")
+    can_self_revert = models.BooleanField(default=False)
     field_last_edit = models.CharField(
         max_length=100, blank=True, null=True,
         verbose_name="Campo de última edición")
