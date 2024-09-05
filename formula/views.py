@@ -48,6 +48,12 @@ class ConstraintBuilder:
         self.mat_name = f"{self.init_table_name}_{snake_name}"
         base_path_name = self.mat_name.replace("base.", "")
         self.file_path = f"mat_views/{self.cluster.name}/{base_path_name}.csv"
+        if not self.is_create:
+            query_drop = f"DROP MATERIALIZED VIEW IF EXISTS {self.mat_name};"
+            return [
+                {"name": "drop", "script": query_drop},
+                {"name": "delete", "script": self.delete_records(snake_name)}
+            ]
         return [
             {"name": "create", "script": self.custom_mat_view(mat_view)},
             {"name": "save", "script": self.save_mat_view_in_s3()},
@@ -59,9 +65,9 @@ class ConstraintBuilder:
         script = script.replace(";", "")
         script = script.replace("CLUSTER_NAME", self.cluster.name)
         script = script.replace(" formula_", f" {self.init_table_name}_")
-        init_script = "CREATE MATERIALIZED VIEW" if self.is_create \
-                      else "DROP MATERIALIZED VIEW"
-        return (f"{init_script} {self.mat_name} AS"
+        # init_text = "CREATE MATERIALIZED VIEW" if self.is_create \
+        #             else "DROP MATERIALIZED VIEW"
+        return (f"CREATE MATERIALIZED VIEW {self.mat_name} AS"
                 f"\n{script}\n    WITH DATA;")
 
     def save_mat_view_in_s3(self):
@@ -75,6 +81,13 @@ class ConstraintBuilder:
             aws_commons.create_s3_uri('{bucket_name}', '{final_path}', '{region_name}'),
             options := 'format csv, delimiter ''|'', header true'
         );
+        """
+
+    def delete_records(self, snake_name):
+        model_name = f"public.{snake_name}"
+        return f"""
+            DELETE FROM {model_name}
+            WHERE cluster_id = {self.cluster.name};
         """
 
     def query_to_copy_export(self, snake_name):

@@ -19,6 +19,8 @@ def lambda_handler(event, context):
 class AddQueryExecution(QueryExecution):
 
     def execute_all_queries(self):
-        constraint_query = self.event.get("constraint")
-        self.constraint_queries([constraint_query])
+        if constraint_query := self.event.get("constraint"):
+            self.constraint_queries([constraint_query])
+        if constraint_queries := self.event.get("constraint_queries"):
+            self.constraint_queries(constraint_queries)
         self.finish_and_save()

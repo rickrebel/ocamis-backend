@@ -52,9 +52,3 @@ class ClusterViewSet(ListRetrieveUpdateMix):
         getattr(cluster_mix, function_name)()
 
         return Response(status=status.HTTP_200_OK)
-
-
-
-
-
-

@@ -46,6 +46,7 @@ class AsyncTaskAdmin(admin.ModelAdmin):
     list_display = [
         "request_short",
         "display_function",
+        "subgroup",
         "display_status",
         "date",
         "display_other_dates",
