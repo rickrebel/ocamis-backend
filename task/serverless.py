@@ -286,7 +286,8 @@ class TaskChecker:
                 else:
                     return self._execute_main_task()
             else:
-                delayed_execution(comprobate_waiting_balance, 300)
+                delayed_execution(
+                    comprobate_waiting_balance, 300, main_task=self.main_task)
         return False
 
     def comprobate_group_queue(self, queue_tasks):
