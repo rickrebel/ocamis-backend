@@ -1,5 +1,4 @@
-from task.aws.common import (
-    create_connection, send_simple_response)
+from task.aws.common import send_simple_response
 from task.aws.query_commons import QueryExecution
 
 
@@ -26,7 +25,8 @@ class InsertQueryExecution(QueryExecution):
     def execute_all_queries(self):
         event = self.event
         create_base_tables = event.get("create_base_tables", [])
-        self.execute_many_queries(create_base_tables, need_raise=False)
+        self.execute_many_queries(
+            create_base_tables, need_raise=False, is_soft=True)
 
         error_message = "Ya se había insertado este mes completo"
         if first_query := event.get("first_query"):

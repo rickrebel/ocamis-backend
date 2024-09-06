@@ -33,11 +33,6 @@ class MonthRecordMix:
         else:
             self.month_record.status_id = "created"
 
-        self.month_record.last_validate = None
-        self.month_record.last_indexing = None
-        self.month_record.last_insertion = None
-        # self.month_record.last_behavior = None
-
         self.month_record.error_process = None
         week_records = self.month_record.weeks.all()
         base_table_files = TableFile.objects.filter(
@@ -45,9 +40,23 @@ class MonthRecordMix:
             collection__isnull=False)
         sheet_files = self.month_record.sheet_files.all()
 
-        stage_pre_insert = Stage.objects.get(name="pre_insert")
-        if final_stage.order <= stage_pre_insert.order:
-            self.month_record.last_pre_insertion = None
+        auto_stages = [
+            "analysis", "merge", "pre_insert", "validate", "indexing", "insert"]
+        month_stages = Stage.objects\
+            .filter(order__gte=final_stage.order, stage_group="months")\
+            .values("name", "order", "field_last_edit")
+
+        next_stages = []
+        for month_stage in month_stages:
+            if month_stage["name"] in auto_stages:
+                self.month_record.__setattr__(
+                    month_stage["field_last_edit"], None)
+            next_stages.append(month_stage["name"])
+
+        # stage_pre_insert = Stage.objects.get(name="pre_insert")
+        # if final_stage.order <= stage_pre_insert.order:
+        if "pre_insert" in next_stages:
+            # self.month_record.last_pre_insertion = None
             week_records.update(last_pre_insertion=None)
 
             related_lap_sheets = LapSheet.objects \
@@ -74,15 +83,17 @@ class MonthRecordMix:
             connection.commit()
             connection.close()
 
-        stage_merge = Stage.objects.get(name="merge")
-        if final_stage.order <= stage_merge.order:
-            self.month_record.last_merge = None
+        # stage_merge = Stage.objects.get(name="merge")
+        # if final_stage.order <= stage_merge.order:
+        if "merge" in next_stages:
+            # self.month_record.last_merge = None
             base_table_files.delete()
             week_records.update(last_merge=None)
 
-        stage_analysis = Stage.objects.get(name="analysis")
-        if final_stage.order <= stage_analysis.order:
-            self.month_record.last_crossing = None
+        # stage_analysis = Stage.objects.get(name="analysis")
+        # if final_stage.order <= stage_analysis.order:
+        if "analysis" in next_stages:
+            # self.month_record.last_crossing = None
             self.month_record.last_behavior = None
             lap_table_files = TableFile.objects.filter(
                 week_record__month_record=self.month_record,
@@ -333,6 +344,7 @@ class MonthRecordMix:
         self.check_temp_tables()
 
         error_process_str = self.get_error_process_str()
+        temp_table_base = f"tmp.fm_{self.month_record.temp_table}"
         if error_process_str:
             if "semanas con más medicamentos" in error_process_str:
                 models = {
@@ -340,7 +352,8 @@ class MonthRecordMix:
                     "drug": "uuid",
                 }
                 for table_name, field in models.items():
-                    temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
+                    # temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
+                    temp_table = f"{temp_table_base}_{table_name}"
                     clean_queries.append(f"""
                         DELETE FROM {temp_table}
                         WHERE {field} IN (
@@ -372,7 +385,8 @@ class MonthRecordMix:
             errors = ["No se encontraron semanas con medicamentos"]
             self.month_record.save_error_process(errors)
             self.base_task.add_errors(errors, http_response=True)
-        temp_drug = f"tmp.fm_{self.month_record.temp_table}_drug"
+        # temp_drug = f"tmp.fm_{self.month_record.temp_table}_drug"
+        temp_drug = f"{temp_table_base}_drug"
         count_query = f"""
             SELECT week_record_id,
             COUNT(*)
@@ -397,8 +411,8 @@ class MonthRecordMix:
         }
 
         validate_task = TaskBuilder(
-            "validate_temp_tables", params=params,
-            parent_class=self.base_task, models=[self.month_record])
+            "validate_temp_tables", params=params, models=[self.month_record],
+            parent_class=self.base_task)
         validate_task.async_in_lambda()
 
     def indexing_month(self):

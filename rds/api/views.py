@@ -30,13 +30,14 @@ class ClusterViewSet(ListRetrieveUpdateMix):
         stage_name = request.data.get('stage', None)
         cluster = self.get_object()
 
-        months_not_inserted = cluster.month_records\
-            .exclude(stage_id='insert', status_id='finished')
-        if months_not_inserted.exists():
-            return Response(
-                {"errors": ["Para enviar los clusters a la siguiente etapa, "
-                            "todos los meses deben estar insertados"]},
-                status=status.HTTP_400_BAD_REQUEST)
+        if stage_name != 'init_cluster':
+            months_not_inserted = cluster.month_records\
+                .exclude(stage_id='insert', status_id='finished')
+            if months_not_inserted.exists():
+                return Response(
+                    {"errors": ["Para enviar los clusters a la siguiente etapa, "
+                                "todos los meses deben estar insertados"]},
+                    status=status.HTTP_400_BAD_REQUEST)
 
         stage = Stage.objects.get(name=stage_name)
         function_name = stage.main_function.name
