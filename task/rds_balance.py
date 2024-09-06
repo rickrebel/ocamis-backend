@@ -61,6 +61,8 @@ def has_enough_balance(task_function) -> bool:
 
 
 def delayed_execution(method, delay, **kwargs):
+    print(f"Delayed execution of {method.__name__}")
+
     def wrapper():
         time.sleep(delay)
         method(**kwargs)
