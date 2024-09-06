@@ -278,9 +278,11 @@ class TaskChecker:
                 pending_rds_tasks = pending_rds_tasks.exclude(id=self.main_task.id)
             has_pending = pending_rds_tasks.exists()
         if has_pending or want_send:
-            # task_function = self.main_task.task_function
-            first_pending_task = pending_rds_tasks.first()
-            task_function = first_pending_task.task_function
+            if want_send:
+                task_function = self.main_task.task_function
+            else:
+                first_pending_task = pending_rds_tasks.first()
+                task_function = first_pending_task.task_function
             has_balance = has_enough_balance(task_function)
             if has_balance:
                 if has_pending:
