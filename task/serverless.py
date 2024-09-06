@@ -278,7 +278,9 @@ class TaskChecker:
                 pending_rds_tasks = pending_rds_tasks.exclude(id=self.main_task.id)
             has_pending = pending_rds_tasks.exists()
         if has_pending or want_send:
-            task_function = self.main_task.task_function
+            # task_function = self.main_task.task_function
+            first_pending_task = pending_rds_tasks.first()
+            task_function = first_pending_task.task_function
             has_balance = has_enough_balance(task_function)
             if has_balance:
                 if has_pending:
@@ -287,7 +289,7 @@ class TaskChecker:
                     return self._execute_main_task()
             else:
                 delayed_execution(
-                    comprobate_waiting_balance, 300, main_task=self.main_task)
+                    comprobate_waiting_balance, 300)
         return False
 
     def comprobate_group_queue(self, queue_tasks):

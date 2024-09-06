@@ -71,8 +71,7 @@ def delayed_execution(method, delay, **kwargs):
 
 def comprobate_waiting_balance(force=True, **kwargs):
     from task.serverless import TaskChecker
-    main_task = kwargs.get("main_task")
-    task_checker = TaskChecker(main_task)
+    task_checker = TaskChecker()
     task_checker.comprobate_ebs(force=force)
 
 
