@@ -20,7 +20,8 @@ class ConstraintBuilder:
         if not self.prov_year_month:
             self.cursor = connection.cursor()
         self.valid_strings = [
-            " on TABLE ", " table TABLE ", " index if not exists TABLE"]
+            " on TABLE ", " table TABLE ",
+            " index if not exists TABLE", " drop index if exists TABLE"]
         self.valid_tables = [
             "rx", "drug", "missingrow", "missingfield", "complementrx",
             "complementdrug", "diagnosisrx"]

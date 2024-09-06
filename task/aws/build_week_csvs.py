@@ -71,6 +71,7 @@ class BuildWeekAws:
         self.pos_delivered = None
         self.sums_by_delivered = {}
         self.drugs_count = 0
+        self.diagnosis_rx_count = 0
         self.final_row = {}
 
         self.headers = {"all": [], "drug": [], "rx": []}
@@ -129,6 +130,8 @@ class BuildWeekAws:
         for model in self.real_models:
             if self.show_examples():
                 print(f"model: {model} \n\n{len(self.csvs[model].getvalue())}")
+            if model == "diagnosis_rx" and not self.diagnosis_rx_count:
+                continue
             name = self.final_path.replace("NEW_ELEM_NAME", model)
             self.s3_utils.save_file_in_aws(self.csvs[model].getvalue(), name)
             result[f"{model}_path"] = name
@@ -314,3 +317,4 @@ class BuildWeekAws:
                 uuid_diag_rx = str(uuid_lib.uuid4())
                 diag_data = [uuid_diag_rx, rx_id, diag, is_main]
                 self.buffers["diagnosis_rx"].writerow(diag_data)
+                self.diagnosis_rx_count += 1
