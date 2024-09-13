@@ -138,7 +138,7 @@ class MonthRecordMix:
         sfs = "petition_file_control__data_files__sheet_files"
         months = "__laps__table_files__week_record__month_record"
         filter_fc = {f"{sfs}{months}": self.month_record,
-                     f"{sfs}behavior__is_discarded": False}
+                     f"{sfs}__behavior__is_discarded": False}
         file_controls = FileControl.objects.filter(**filter_fc).distinct()
         unique_medicines = set()
         medicine_key = None
