@@ -79,7 +79,7 @@ class Doctor(models.Model):
     clave = models.CharField(max_length=30, blank=True, null=True)
     full_name = models.CharField(max_length=255, blank=True, null=True)
     medical_speciality = models.CharField(max_length=255, blank=True, null=True)
-    professional_license = models.CharField(max_length=20, blank=True, null=True)
+    professional_license = models.CharField(max_length=35, blank=True, null=True)
 
     class Meta:
         verbose_name = "Doctor"
