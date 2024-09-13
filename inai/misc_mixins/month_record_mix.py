@@ -6,6 +6,9 @@ from task.main_views_aws import AwsFunction
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
+formula_tables = ["rx", "drug", "missingrow", "missingfield", "diagnosisrx",
+                  "complementrx", "complementdrug"]
+
 
 class MonthRecordMix:
 
@@ -72,10 +75,8 @@ class MonthRecordMix:
 
             base_table_files.update(inserted=False)
             cursor = connection.cursor()
-            formula_models = [
-                "rx", "drug", "missingrow", "missingfield",
-                "complementrx", "complementdrug", "diagnosisrx"]
-            for table_name in formula_models:
+
+            for table_name in formula_tables:
                 temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
                 query_drop = f"DROP TABLE IF EXISTS {temp_table} CASCADE;"
                 cursor.execute(query_drop)
@@ -134,9 +135,10 @@ class MonthRecordMix:
                 collection__isnull=True,
             ).exclude(lap_sheet__sheet_file__behavior__is_discarded=True)
 
-        laps = "petition_file_control__data_files__sheet_files__laps"
-        months = "__table_files__week_record__month_record"
-        filter_fc = {f"{laps}{months}": self.month_record}
+        sfs = "petition_file_control__data_files__sheet_files"
+        months = "__laps__table_files__week_record__month_record"
+        filter_fc = {f"{sfs}{months}": self.month_record,
+                     f"{sfs}behavior__is_discarded": False}
         file_controls = FileControl.objects.filter(**filter_fc).distinct()
         unique_medicines = set()
         medicine_key = None
@@ -253,8 +255,6 @@ class MonthRecordMix:
         cursor = connection.cursor()
         exists_temp_tables = exist_temp_table(drug_table, "tmp")
 
-        formula_tables = ["rx", "drug", "missingrow", "missingfield",
-                          "complementrx", "complementdrug", "diagnosisrx"]
         for table_name in formula_tables:
             temp_table = f"tmp.fm_{self.month_record.temp_table}_{table_name}"
             queries["create"].append(f"""
@@ -461,8 +461,6 @@ class MonthRecordMix:
             error = f"El mes no está asociado a ningún cluster:"
             self.base_task.add_errors([error], http_response=True)
             raise e
-        formula_tables = ["rx", "drug", "missingrow", "missingfield",
-                          "complementrx", "complementdrug", "diagnosisrx"]
         self.check_temp_tables()
         for table_name in formula_tables:
             temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
