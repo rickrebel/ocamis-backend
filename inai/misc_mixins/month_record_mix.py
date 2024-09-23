@@ -514,7 +514,7 @@ class MonthRecordMix:
             app_label="formula", model_name__iexact=table_name)
         MonthTableFile.objects.get_or_create(
             month_record=self.month_record, table_name=temp_table,
-            collection=collection, file_name=file_name)
+            collection=collection, file=file_name)
 
     def add_param_query(self, key, query):
         self.params.setdefault(key, [])
