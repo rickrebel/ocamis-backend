@@ -536,7 +536,7 @@ def final_month_path(month_record, filename):
     provider_type = provider.provider_type[:8].lower()
     acronym = provider.acronym.lower()
     year = month_record.year or "ND"
-    elems = ["month_tables", provider_type, acronym, year]
+    elems = ["month_tables", provider_type, acronym, str(year)]
     if settings.IS_LOCAL:
         elems.insert(1, "localhost")
     elems.append(filename)

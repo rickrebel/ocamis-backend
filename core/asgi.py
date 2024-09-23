@@ -3,7 +3,6 @@ from django.core.asgi import get_asgi_application
 import os
 from core import routing
 
-# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.local")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', "core.settings")
 
 application = ProtocolTypeRouter(
