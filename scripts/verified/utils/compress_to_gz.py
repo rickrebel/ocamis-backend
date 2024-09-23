@@ -114,7 +114,6 @@ def save_and_change_storage_class(mont_record_id=None):
     from task.aws.common import BotoUtils
     from inai.misc_mixins.month_record_mix import (
         MonthRecordMix, formula_tables)
-
     s3_base = build_s3()
     s3_utils = BotoUtils(s3_base)
     if mont_record_id:
@@ -127,14 +126,13 @@ def save_and_change_storage_class(mont_record_id=None):
         base_table = month_record.cluster.name
         for table_name in formula_tables:
             month_method.build_formula_table_queries(base_table, table_name)
-
         event = month_method.params
         query_execution = QueryExecution(event, None)
         if export_tables_s3 := event.get("export_tables_s3", []):
             query_execution.execute_many_queries(
                 export_tables_s3, need_sleep=True)
-
         for month_path in event.get("month_paths", []):
             s3_utils.change_storage_class(month_path, "DEEP-ARCHIVE")
 
 
+# save_and_change_storage_class(4117)

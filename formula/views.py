@@ -72,7 +72,7 @@ class ConstraintBuilder:
         copy_script = copy_export_s3(self.mat_name, self.file_path)
         return [
             {"name": "create", "script": self.custom_mat_view(mat_view)},
-            {"name": "save", "script": copy_script,
+            {"name": "save", "script": copy_script},
             {"name": "copy", "script": self.query_to_copy_export(snake_name)}
         ]
 
