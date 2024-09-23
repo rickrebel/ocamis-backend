@@ -504,7 +504,8 @@ class MonthRecordMix:
         from formula.views import copy_export_s3
         from data_param.models import Collection
 
-        file_name = get_month_file_name(self.month_record, table_name)
+        file_name = get_month_file_name(
+            table_name=table_name, month_record=self.month_record)
         month_path = final_month_path(self.month_record, file_name)
         self.add_param_query("month_paths", month_path)
         export_table_s3 = copy_export_s3(f"tmp.{temp_table}", month_path)

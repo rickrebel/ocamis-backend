@@ -522,10 +522,13 @@ def set_upload_month_path(instance, filename):
     return final_month_path(instance.month_record, filename)
 
 
-def get_month_file_name(month_table_file, table_name=None):
+def get_month_file_name(
+        month_table=None, table_name=None, month_record=None):
     if not table_name:
-        table_name = month_table_file.collection.model_name.lower()
-    return f"{month_table_file.month_record.temp_table}_{table_name}.csv"
+        table_name = month_table.collection.model_name.lower()
+    if not month_record:
+        month_record = month_table.month_record
+    return f"{month_record.temp_table}_{table_name}.csv"
 
 
 def final_month_path(month_record, filename):
