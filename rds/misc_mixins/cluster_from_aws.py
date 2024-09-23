@@ -16,9 +16,16 @@ class FromAws:
 
     def save_success_indexing(self, **kwargs):
         child_tasks = self.base_task.main_task.child_tasks.all()
-        if not child_tasks.filter(status_task__macro_status="with_errors"):
-            self.cluster.status_id = "finished"
-            self.cluster.save()
-        else:
-            self.cluster.status_id = "with_errors"
-            self.cluster.save()
+        has_errors = child_tasks.filter(status_task__macro_status="with_errors")
+        new_status = "with_errors" if has_errors else "finished"
+        self.cluster.status_id = new_status
+        self.cluster.save()
+        return new_status
+
+    def success_drop_base_tables(self, **kwargs):
+        new_status = self.save_success_indexing()
+        if new_status == "with_errors":
+            return
+        months_inserted = self.cluster.month_records.filter(
+            stage_id="insert", status_id="finished")
+        months_inserted.update(stage_id="indexing", last_insertion=None)

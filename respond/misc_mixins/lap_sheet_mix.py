@@ -15,6 +15,8 @@ class FromAws:
         from django.utils import timezone
 
         provider = self.lap_sheet.sheet_file.data_file.provider
+        # RICK TableFile: Es un relajo, hay que estandarizarlo
+        # optional_fields = ["iso_delegation_id"]
         optional_fields = [
             "iso_year", "iso_week", "year_week", "iso_delegation_id",
             "year", "month", "year_month"]

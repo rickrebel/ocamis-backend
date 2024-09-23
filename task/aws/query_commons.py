@@ -1,3 +1,5 @@
+from task.aws.common import BotoUtils
+
 
 def create_connection(db_config):
     import psycopg2
@@ -18,6 +20,7 @@ class QueryExecution:
         self.cursor = self.connection.cursor()
         self.errors = []
         self.warnings = []
+        self.s3_utils = BotoUtils(event.get("s3"))
 
     def execute_many_queries(
             self, queries, need_raise=True, need_sleep=False, is_soft=False):
@@ -60,8 +63,8 @@ class QueryExecution:
         valid_errors = [
             "already exists", "ya existe",
             "multiple primary keys", "tiples llaves primarias",
-            "current transaction is aborted",
-            "la transacción actual ha sido abortada",
+            # "current transaction is aborted",
+            # "la transacción actual ha sido abortada",
             "no existe la relación"
         ]
         for constraint in constraint_queries:

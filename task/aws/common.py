@@ -187,6 +187,8 @@ class BotoUtils:
             csv_content = csv.reader(
                 io.StringIO(object_final), delimiter=delimiter)
             return csv_content
+        elif file_type == "csv_to_gz":
+            return object_final
         else:
             return io.BytesIO(object_final)
 
@@ -212,12 +214,15 @@ class BotoUtils:
 
         return json.loads(obj['Body'].read().decode(decode))
 
-    def save_file_in_aws(self, body, final_name, content_type="text/csv"):
+    def save_file_in_aws(
+            self, body, final_name, content_type="text/csv",
+            storage_class="STANDARD"):
         final_object = {
             "Body": body,
             "Bucket": self.bucket_name,
             "Key": f"{self.aws_location}/{final_name}",
             "ACL": "public-read",
+            "StorageClass": storage_class
         }
         if content_type:
             final_object["ContentType"] = content_type
@@ -225,6 +230,23 @@ class BotoUtils:
         success_file = self.s3_client.put_object(**final_object)
         if not success_file:
             self.errors.append(f"Error al guardar el archivo {final_name}")
+
+    def change_storage_class(
+            self, final_name, storage_class="STANDARD", acl="public-read"):
+        key = f"{self.aws_location}/{final_name}"
+        final_object = {
+            "CopySource": {
+                "Bucket": self.bucket_name,
+                "Key": key
+            },
+            "Bucket": self.bucket_name,
+            "Key": key,
+            "ExtraArgs": {
+                "StorageClass": storage_class,
+                "ACL": acl
+            }
+        }
+        self.s3_client.copy(**final_object)
 
 
 def calculate_delimiter(data):

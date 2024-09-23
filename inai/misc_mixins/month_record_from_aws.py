@@ -3,9 +3,6 @@ from inai.misc_mixins.month_record_mix import MonthRecordMix
 
 class FromAws(MonthRecordMix):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def revert_stages_after(self, **kwargs):
         pass
 
@@ -70,7 +67,13 @@ class FromAws(MonthRecordMix):
         self.month_record.save()
 
     def insert_temp_tables_after(self, **kwargs):
-        pass
+        from respond.models import get_month_file_name
+        month_tables = self.month_record.month_table_files.all()
+        for month_table in month_tables:
+            month_table.inserted = True
+            file_name = get_month_file_name(month_table)
+            month_table.file = file_name
+            month_table.save()
 
     def validate_temp_tables_after(self, **kwargs):
         pass

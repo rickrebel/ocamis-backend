@@ -69,12 +69,13 @@ def assign_year_week_to_week_records():
 
 def assign_year_month_to_month_records():
     from inai.models import MonthRecord
-    all_month_records = MonthRecord.objects.all()
+    all_month_records = MonthRecord.objects.filter(year__isnull=True)
+    print("all_month_records", all_month_records.count())
     for month_record in all_month_records:
         year_month = month_record.year_month
         year, month = year_month.split("-")
-        month_record.year = year
-        month_record.month = month
+        month_record.year = int(year)
+        month_record.month = int(month)
         month_record.save()
 
 

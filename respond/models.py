@@ -451,8 +451,6 @@ class LapSheet(models.Model):
 
 class TableFile(models.Model):
 
-    # sheet_file = models.ForeignKey(
-    #     SheetFile, related_name="process_files", on_delete=models.CASCADE)
     file = models.FileField(max_length=255, upload_to=set_upload_path)
     lap_sheet = models.ForeignKey(
         LapSheet, related_name="table_files", on_delete=models.CASCADE,
@@ -460,8 +458,6 @@ class TableFile(models.Model):
     provider = models.ForeignKey(
         Provider, on_delete=models.CASCADE, blank=True, null=True,
         related_name="table_files")
-    # file_type = models.ForeignKey(
-    #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, blank=True, null=True)
     inserted = models.BooleanField(default=False)
@@ -472,13 +468,11 @@ class TableFile(models.Model):
     year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
     iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
-    # iso_delegation = models.PositiveSmallIntegerField(blank=True, null=True)
     iso_delegation = models.ForeignKey(
         Delegation, on_delete=models.CASCADE, blank=True, null=True)
     year_month = models.CharField(max_length=8, blank=True, null=True)
     year = models.PositiveSmallIntegerField(blank=True, null=True)
     month = models.PositiveSmallIntegerField(blank=True, null=True)
-    is_for_edition = models.BooleanField(default=False)
 
     drugs_count = models.IntegerField(default=0)
     rx_count = models.IntegerField(default=0)
@@ -519,6 +513,52 @@ class TableFile(models.Model):
         verbose_name_plural = "6. Archivos para insertar"
         ordering = ["-id"]
         unique_together = (
-            "lap_sheet", "collection", "is_for_edition", "year",
+            "lap_sheet", "collection", "year",
             "iso_week", "iso_delegation")
         db_table = "inai_tablefile"
+
+
+def set_upload_month_path(instance, filename):
+    return final_month_path(instance.month_record, filename)
+
+
+def get_month_file_name(month_table_file, table_name=None):
+    if not table_name:
+        table_name = month_table_file.collection.model_name.lower()
+    return f"{month_table_file.month_record.temp_table}_{table_name}.csv"
+
+
+def final_month_path(month_record, filename):
+    provider = month_record.provider
+    provider_type = provider.provider_type[:8].lower()
+    acronym = provider.acronym.lower()
+    year = month_record.year or "ND"
+    elems = ["month_tables", provider_type, acronym, year]
+    if settings.IS_LOCAL:
+        elems.insert(1, "localhost")
+    elems.append(filename)
+    return "/".join(elems)
+
+
+class MonthTableFile(models.Model):
+    month_record = models.ForeignKey(
+        MonthRecord, related_name="month_table_files", on_delete=models.CASCADE)
+    table_name = models.CharField(max_length=120)
+    file = models.FileField(
+        max_length=255, upload_to=set_upload_month_path, blank=True, null=True)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    inserted = models.BooleanField(default=False)
+    available_until = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.month_record} - {self.collection}"
+
+    @property
+    def final_path(self):
+        from django.conf import settings
+        is_prod = getattr(settings, "IS_PRODUCTION", False)
+        return self.file.url if is_prod else self.file.path
+
+    class Meta:
+        verbose_name = "Archivo de mes"
+        verbose_name_plural = "7. Archivos de mes"

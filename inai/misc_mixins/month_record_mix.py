@@ -6,8 +6,9 @@ from task.main_views_aws import AwsFunction
 from django.conf import settings
 ocamis_db = getattr(settings, "DATABASES", {}).get("default")
 
-formula_tables = ["rx", "drug", "missingrow", "missingfield", "diagnosisrx",
-                  "complementrx", "complementdrug"]
+formula_tables = [
+    "rx", "drug", "missingrow", "missingfield", "diagnosisrx",
+    "complementrx", "complementdrug"]
 
 
 class MonthRecordMix:
@@ -15,6 +16,11 @@ class MonthRecordMix:
     def __init__(self, month_record: MonthRecord, base_task: AwsFunction = None):
         self.month_record = month_record
         self.base_task = base_task
+        self.params = {
+            "month_record_id": self.month_record.id,
+            "temp_table": self.month_record.temp_table,
+            "db_config": ocamis_db,
+        }
 
     def revert_stages(self, final_stage: Stage, is_self_revert=False):
         from respond.models import TableFile
@@ -400,19 +406,16 @@ class MonthRecordMix:
             WHERE id = {self.month_record.id}
         """
 
-        params = {
-            "month_record_id": self.month_record.id,
-            "temp_table": self.month_record.temp_table,
-            "db_config": ocamis_db,
+        self.params.update({
             "clean_queries": clean_queries,
             "count_query": count_query,
             "drugs_object": drugs_object,
             "last_query": last_query,
-        }
+        })
 
         validate_task = TaskBuilder(
-            "validate_temp_tables", params=params, models=[self.month_record],
-            parent_class=self.base_task)
+            "validate_temp_tables", params=self.params,
+            models=[self.month_record], parent_class=self.base_task)
         validate_task.async_in_lambda()
 
     def indexing_month(self):
@@ -428,33 +431,20 @@ class MonthRecordMix:
 
         constraint_queries = modify_constraints(
             True, False, self.month_record.temp_table)
+        self.params["constraint_queries"] = constraint_queries
 
-        last_query = f"""
+        self.params["last_query"] = f"""
             UPDATE public.inai_entitymonth
             SET last_indexing = now()
             WHERE id = {self.month_record.id}
         """
 
-        params = {
-            "month_record_id": self.month_record.id,
-            "temp_table": self.month_record.temp_table,
-            "db_config": ocamis_db,
-            "constraint_queries": constraint_queries,
-            "last_query": last_query,
-        }
-
         indexing_task = TaskBuilder(
-            "indexing_temp_tables", params=params,
+            "indexing_temp_tables", params=self.params,
             parent_class=self.base_task, models=[self.month_record])
         indexing_task.async_in_lambda()
 
     def final_insert_month(self):
-        # counts_object = {}
-        # for table_file in table_files:
-        #     counts_object[table_file["id"]] = table_file["drugs_count"]
-        create_base_tables = []
-        insert_queries = []
-        drop_queries = []
         try:
             base_table = self.month_record.cluster.name
         except Exception as e:
@@ -463,51 +453,71 @@ class MonthRecordMix:
             raise e
         self.check_temp_tables()
         for table_name in formula_tables:
-            temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
-            exists_temp_tables = exist_temp_table(temp_table, "tmp")
-            if not exists_temp_tables:
-                continue
-            base_table_name = f"frm_{base_table}_{table_name}"
-            exists_base_table = exist_temp_table(base_table_name, "base")
-            if not exists_base_table:
-                create_base_tables.append(f"""
-                    CREATE TABLE base.{base_table_name}
-                    (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
-                """)
-            insert_queries.append(f"""
-                INSERT INTO base.{base_table_name}
-                SELECT *
-                FROM tmp.{temp_table};
-            """)
-            drop_queries.append(f"""
-                DROP TABLE IF EXISTS {temp_table} CASCADE;
-            """)
+            self.build_formula_table_queries(base_table, table_name)
 
-        first_query = f"""
+        self.params["first_query"] = f"""
             SELECT last_insertion IS NOT NULL AS last_insertion
             FROM public.inai_entitymonth
             WHERE id = {self.month_record.id}
         """
-        last_query = f"""
+        self.params["last_query"] = f"""
             UPDATE public.inai_entitymonth
             SET last_insertion = now()
             WHERE id = {self.month_record.id}
         """
 
-        params = {
-            "month_record_id": self.month_record.id,
-            "temp_table": self.month_record.temp_table,
-            "db_config": ocamis_db,
-            "create_base_tables": create_base_tables,
-            "first_query": first_query,
-            "insert_queries": insert_queries,
-            "drop_queries": drop_queries,
-            "last_query": last_query,
-        }
         insert_task = TaskBuilder(
-            "insert_temp_tables", params=params,
+            "insert_temp_tables", params=self.params,
             parent_class=self.base_task, models=[self.month_record])
         insert_task.async_in_lambda()
+
+    def build_formula_table_queries(self, base_table, table_name):
+        temp_table = f"fm_{self.month_record.temp_table}_{table_name}"
+
+        exists_temp_tables = exist_temp_table(temp_table, "tmp")
+        if not exists_temp_tables:
+            return
+
+        base_table_name = f"frm_{base_table}_{table_name}"
+        exists_base_table = exist_temp_table(base_table_name, "base")
+        if not exists_base_table:
+            create_base_table = f"""
+                CREATE TABLE base.{base_table_name}
+                (LIKE public.formula_{table_name} INCLUDING CONSTRAINTS);
+            """
+            self.add_param_query("create_base_tables", create_base_table)
+        insert_query = f"""
+            INSERT INTO base.{base_table_name}
+            SELECT *
+            FROM tmp.{temp_table};
+        """
+        self.add_param_query("insert_queries", insert_query)
+
+        self.export_month_table_queries(table_name, temp_table)
+
+        drop_query = f"DROP TABLE IF EXISTS tmp.{temp_table} CASCADE;"
+        self.add_param_query("drop_queries", drop_query)
+
+    def export_month_table_queries(self, table_name, temp_table):
+        from respond.models import (
+            final_month_path, MonthTableFile, get_month_file_name)
+        from formula.views import copy_export_s3
+        from data_param.models import Collection
+
+        file_name = get_month_file_name(self.month_record, table_name)
+        month_path = final_month_path(self.month_record, file_name)
+        self.add_param_query("month_paths", month_path)
+        export_table_s3 = copy_export_s3(f"tmp.{temp_table}", month_path)
+        self.add_param_query("export_tables_s3", export_table_s3)
+        collection = Collection.objects.get(
+            app_label="formula", model_name__iexact=table_name)
+        MonthTableFile.objects.get_or_create(
+            month_record=self.month_record, table_name=temp_table,
+            collection=collection, file_name=file_name)
+
+    def add_param_query(self, key, query):
+        self.params.setdefault(key, [])
+        self.params[key].append(query)
 
     def save_sums(self, all_sheet_ids):
         from respond.models import LapSheet, SheetFile

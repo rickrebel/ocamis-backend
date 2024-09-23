@@ -1,8 +1,9 @@
 
-def delete_duplicates_months_agency():
+def delete_duplicates_months_agency(delete=False):
     from inai.models import MonthRecord
     from geo.models import Provider
     all_providers = Provider.objects.all()
+    count_delete = 0
     for provider in all_providers:
         all_months_agency = MonthRecord.objects.filter(provider=provider)
         year_months = all_months_agency\
@@ -15,7 +16,12 @@ def delete_duplicates_months_agency():
             month_agencies = month_agencies.order_by("-id")
             first_month_agency = month_agencies.first()
             if month_agencies.count() > 1:
-                month_agencies.exclude(id=first_month_agency.id).delete()
+                count_delete += month_agencies.count() - 1
+                to_delete = month_agencies.exclude(id=first_month_agency.id)
+                print("to_delete", to_delete[0], to_delete[0].id)
+                if delete:
+                    to_delete.delete()
+    print("count_delete", count_delete)
 
 
 def delete_duplicate_table_files():

@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 from django.contrib.auth.models import User
 from inai.models import Petition, MonthRecord, WeekRecord
-from respond.models import ReplyFile, DataFile, SheetFile, TableFile
+from respond.models import ReplyFile, DataFile, SheetFile
 from geo.models import Provider
 from data_param.models import FileControl, Collection
 from classify_task.models import StatusTask, TaskFunction, Stage

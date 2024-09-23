@@ -71,8 +71,7 @@ def reverse_transform(only_count=False, provider=None, every_files=False):
 
 
 def reverse_insert(hard=False):
-    from inai.models import (
-        MonthRecord)
+    from inai.models import MonthRecord
     from respond.models import TableFile
     from inai.models import WeekRecord
     from respond.models import LapSheet

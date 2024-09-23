@@ -1,6 +1,20 @@
 from django.db import connection
-from rds.models import Cluster, Stage, MatView, Operation
+from rds.models import MatView, Operation
 from django.conf import settings
+
+
+def copy_export_s3(table_origin: str, file_path: str):
+    bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
+    region_name = getattr(settings, "AWS_S3_REGION_NAME")
+    aws_location = getattr(settings, "AWS_LOCATION")
+    final_path = f"{aws_location}/{file_path}"
+    return f"""
+    SELECT aws_s3.query_export_to_s3(
+        'SELECT * FROM {table_origin}',
+        aws_commons.create_s3_uri('{bucket_name}', '{final_path}', '{region_name}'),
+        options := 'format csv, delimiter ''|'', header true'
+    );
+    """
 
 
 class ConstraintBuilder:
@@ -55,10 +69,12 @@ class ConstraintBuilder:
                 {"name": "drop", "script": query_drop},
                 {"name": "delete", "script": self.delete_records(snake_name)}
             ]
+        copy_script = copy_export_s3(self.mat_name, self.file_path)
         return [
             {"name": "create", "script": self.custom_mat_view(mat_view)},
-            {"name": "save", "script": self.save_mat_view_in_s3()},
-            {"name": "copy", "script": self.query_to_copy_export(snake_name)}]
+            {"name": "save", "script": copy_script,
+            {"name": "copy", "script": self.query_to_copy_export(snake_name)}
+        ]
 
     def custom_mat_view(self, mat_view):
         main_field = "script" if self.is_create else "script_drop"
@@ -70,19 +86,6 @@ class ConstraintBuilder:
         #             else "DROP MATERIALIZED VIEW"
         return (f"CREATE MATERIALIZED VIEW {self.mat_name} AS"
                 f"\n{script}\n    WITH DATA;")
-
-    def save_mat_view_in_s3(self):
-        bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-        region_name = getattr(settings, "AWS_S3_REGION_NAME")
-        aws_location = getattr(settings, "AWS_LOCATION")
-        final_path = f"{aws_location}/{self.file_path}"
-        return f"""
-        SELECT aws_s3.query_export_to_s3(
-            'SELECT * FROM {self.mat_name}',
-            aws_commons.create_s3_uri('{bucket_name}', '{final_path}', '{region_name}'),
-            options := 'format csv, delimiter ''|'', header true'
-        );
-        """
 
     def delete_records(self, snake_name):
         model_name = f"public.{snake_name}"

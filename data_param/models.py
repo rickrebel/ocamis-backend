@@ -343,21 +343,17 @@ class NameColumn (models.Model):
     alternative_names = JSONField(
         blank=True, null=True,
         verbose_name="Nombres alternativos")
-    # column_type = models.IntegerField(blank=True, null=True)
     column_type = models.ForeignKey(
         ColumnType, on_delete=models.CASCADE)
-    # file_control = models.IntegerField(blank=True, null=True)
     file_control = models.ForeignKey(
         FileControl,
         related_name="columns",
         blank=True, null=True,
         on_delete=models.CASCADE)
-    # data_type = models.IntegerField(blank=True, null=True)
     data_type = models.ForeignKey(
         DataType,
         blank=True, null=True,
         on_delete=models.CASCADE)
-    # final_field = models.IntegerField(blank=True, null=True)
     final_field = models.ForeignKey(
         FinalField,
         blank=True, null=True,

@@ -72,6 +72,8 @@ class TableFileAwsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TableFile
+        # RICK TODO TableFile: los siguientes campos deberíamos obtenerlos
+        # desde el modelo de WeekRecord
         fields = [
             "id", "file", "collection", "year", "month", "year_month",
             "sheet_behavior", "iso_week", "iso_year", "year_week"]

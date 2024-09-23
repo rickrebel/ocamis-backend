@@ -46,6 +46,7 @@ class FromAws:
             if not file_path:
                 continue
             collection = Collection.objects.get(snake_name=model)
+            # RICK TableFile: Debemos eliminar todos los campos de WeekRecord
             table_file, c = TableFile.objects.get_or_create(
                 # week_record=self.week_record,
                 provider=self.week_record.provider,

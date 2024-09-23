@@ -28,6 +28,9 @@ class ClusterViewSet(ListRetrieveUpdateMix):
         from classify_task.models import Stage
         from rds.misc_mixins.cluster_mix import ClusterMix
         stage_name = request.data.get('stage', None)
+        function_name = request.data.get('special_function', None)
+        function_finished = request.data.get(
+            'finished_function', "save_success_indexing")
         cluster = self.get_object()
 
         if stage_name != 'init_cluster':
@@ -40,8 +43,9 @@ class ClusterViewSet(ListRetrieveUpdateMix):
                     status=status.HTTP_400_BAD_REQUEST)
 
         stage = Stage.objects.get(name=stage_name)
-        function_name = stage.main_function.name
-        function_finished = stage.finished_function
+        if not function_name:
+            function_name = stage.main_function.name
+            function_finished = stage.finished_function
         cluster.stage = stage
         cluster.status_id = "created"
         cluster.save()

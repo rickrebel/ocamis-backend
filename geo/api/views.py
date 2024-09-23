@@ -84,7 +84,6 @@ class ProviderViewSet(ListRetrieveUpdateMix):
     def send_months(self, request, **kwargs):
         import time
         from inai.misc_mixins.month_record_mix import MonthRecordMix
-        from inai.misc_mixins.insert_cats import PreInsertMix
         from task.builder import TaskBuilder
         from inai.api.views import get_related_months
         from inai.api.serializers import MonthRecordSerializer

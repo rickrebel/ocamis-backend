@@ -28,7 +28,7 @@ class TableFileInline(admin.StackedInline):
     model = TableFile
     extra = 0
     raw_id_fields = [
-        "provider", "lap_sheet", "week_record", "iso_delegation", "collection"]
+        "provider", "lap_sheet", "week_record", "collection"]
     show_change_link = True
 
 
@@ -133,18 +133,18 @@ class TableFileAdmin(admin.ModelAdmin):
 
     list_display = [
         "collection",
-        "year_month",
-        "year_week",
+        "week_record",
         "rx_count",
         "drugs_count",
         "lap_sheet",
         "file",
     ]
     list_filter = [
-        "inserted", "collection", "provider__acronym", "year", "month",
-        "iso_delegation"]
-    search_fields = ["year_month", "year_week"]
-    raw_id_fields = ["provider", "lap_sheet", "week_record", "iso_delegation"]
+        "inserted", "collection", "provider__acronym",
+        "week_record__year", "week_record__month",
+        "week_record__iso_delegation"]
+    search_fields = ["week_record__year_month", "week_record__year_week"]
+    raw_id_fields = ["provider", "lap_sheet", "week_record"]
 
 
 class CrossingSheetAdmin(admin.ModelAdmin):

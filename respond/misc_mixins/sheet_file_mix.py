@@ -104,13 +104,15 @@ class FromAws:
             error = "No se encontraron meses"
             self.base_task.add_errors([error], comprobate=False)
         else:
-            year_months = []
+            # year_months = []
             for ym in all_months:
                 month = str(ym[1]).zfill(2)
-                year_months.append(f"{ym[0]}-{month}")
-                month_record = MonthRecord.objects.get_or_create(
+                year = ym[0]
+                year_month = f"{year}-{month}"
+                # year_months.append(f"{ym[0]}-{month}")
+                month_record, _ = MonthRecord.objects.get_or_create(
                     provider=self.sheet_file.data_file.provider,
-                    year_month=f"{ym[0]}-{month}")[0]
+                    year_month=year_month, year=year, month=month)
                 self.sheet_file.month_records.add(month_record)
         if len(all_months) == 1:
             ym = all_months[0]

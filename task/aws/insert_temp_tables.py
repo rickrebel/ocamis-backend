@@ -1,4 +1,4 @@
-from task.aws.common import send_simple_response
+from task.aws.common import send_simple_response, BotoUtils
 from task.aws.query_commons import QueryExecution
 
 
@@ -40,6 +40,9 @@ class InsertQueryExecution(QueryExecution):
         self.constraint_queries(event.get("constraint_queries", []))
         self.execute_many_queries(
             event.get("insert_queries", []), need_sleep=True)
+        if export_tables_s3 := event.get("export_tables_s3", []):
+            self.execute_many_queries(export_tables_s3, need_sleep=True)
+            self.send_to_deep(event)
         self.execute_many_queries(event.get("drop_queries", []))
         if last_query := event.get("last_query"):
             self.execute_query(last_query)
@@ -85,3 +88,12 @@ class InsertQueryExecution(QueryExecution):
                 if add_week_counts:
                     message += f"; week_counts: {week_counts}"
                 self.warnings.append(message)
+
+    def send_to_deep(self, event):
+        for month_path in event.get("month_paths", []):
+            try:
+                self.s3_utils.change_storage_class(month_path, "DEEP-ARCHIVE")
+            except Exception as e:
+                self.errors.append(
+                    f"Error al enviar a deep: {month_path}; {str(e)}")
+        self.comprobate_errors()
