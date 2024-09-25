@@ -61,7 +61,6 @@ DATABASES = {
     'default': getenv_db(
         engine=os.getenv("DB_MAIN_ENGINE", "postgres"), base_dir=BASE_DIR)
 }
-print("DATABASES", DATABASES)
 
 IS_BIG_ACTIVE = getenv_bool("IS_BIG_ACTIVE", False)
 USE_BIG_DB_DATABASE = getenv_bool("USE_BIG_DB_DATABASE", False)

@@ -126,8 +126,6 @@ class Gz:
             "new_files": new_files,
             "decode": self.decode,
             "delimiter": self.delimiter,
-            # "all_data": header_validated,
-            # "tail_data": tail_validated,
         }
 
         return result, errors

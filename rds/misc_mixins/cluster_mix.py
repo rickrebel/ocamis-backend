@@ -25,7 +25,7 @@ class ClusterMix:
 
         for table_name in new_formula_tables:
             base_table_name = f"frm_{self.cluster.name}_{table_name}"
-            drop_queries.append(f"DROP TABLE IF EXISTS {base_table_name};")
+            drop_queries.append(f"DROP TABLE IF EXISTS base{base_table_name};")
         params = {"constraint_queries": drop_queries, "db_config": ocamis_db}
         drop_task = TaskBuilder(
             'add_constraint', models=[self.cluster], subgroup="revert_insert",
