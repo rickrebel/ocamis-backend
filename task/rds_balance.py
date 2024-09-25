@@ -1,7 +1,7 @@
 import threading
 import time
 from datetime import datetime, timedelta
-
+from django.conf import settings
 import boto3
 
 from scripts.common import build_s3
@@ -9,6 +9,10 @@ from scripts.common import build_s3
 
 def has_enough_balance(task_function) -> bool:
 
+    databases = getattr(settings, "DATABASES", "")
+    default_database = databases.get("default", "")
+    database_host = default_database.get("HOST", "")
+    db_identifier = database_host.split(".")[0]
     service = 'cloudwatch'
     credentials = build_s3()
     boto_client = boto3.client(
@@ -30,7 +34,7 @@ def has_enough_balance(task_function) -> bool:
                         'Dimensions': [
                             {
                                 'Name': 'DBInstanceIdentifier',
-                                'Value': 'new-alldatabases'
+                                'Value': db_identifier
                             },
                         ]
                     },
