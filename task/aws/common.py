@@ -256,6 +256,14 @@ class BotoUtils:
         }
         self.s3_client.copy(**final_object)
 
+    def check_exist(self, file_name):
+        try:
+            self.dev_resource.Object(
+                bucket_name=self.bucket_name,
+                key=f"{self.aws_location}/{file_name}").load()
+            return True
+        except Exception as e:
+            return False
 
 def calculate_delimiter(data):
     error_count = 0
