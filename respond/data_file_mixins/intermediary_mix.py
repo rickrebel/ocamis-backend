@@ -1,5 +1,6 @@
 from respond.models import DataFile, set_upload_data_file_path
-from respond.data_file_mixins.base_transform import BaseTransform
+from respond.data_file_mixins.base_transform import (
+    BaseTransform, get_only_path_name)
 from task.builder import TaskBuilder
 
 
@@ -7,12 +8,7 @@ class Intermediary(BaseTransform):
 
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
         super().__init__(data_file, base_task=base_task)
-        # if "/reply_file_" in full_name:
-        #     file_name = full_name.rsplit('/reply_file_', 1)[-1]
-        # else:
-        #     file_name = full_name.rsplit('/', 1)[-1]
-        full_name = data_file.file.name
-        file_name = full_name.rsplit('/', 1)[-1]
+        file_name = get_only_path_name(self.data_file)
         self.file_name = file_name.replace(".", "_")
         only_name = (f"{self.file_name}_df_{self.data_file.id}"
                      f"_SHEET_NAME_intermediary")

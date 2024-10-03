@@ -12,6 +12,24 @@ def sheet_name_to_file_name(sheet_name):
     return valid_characters
 
 
+def get_only_path_name(file_obj, petition=None):
+    full_name = file_obj.file.name
+    if "/reply_file_" in full_name:
+        file_name = full_name.rsplit('/reply_file_', 1)[-1]
+        return f"rf_{file_name}"
+    elif "/rf_" in full_name:
+        file_name = full_name.rsplit('/rf_', 1)[-1]
+        return f"/rf_{file_name}"
+    if petition:
+        folio = f"/{petition.folio_petition}/"
+        if folio in full_name:
+            return full_name.rsplit(folio, 1)[-1]
+        short_folio = f"/{petition.folio_petition[-8:]}/"
+        if short_folio in full_name:
+            return full_name.rsplit(short_folio, 1)[-1]
+    return full_name.rsplit('/', 1)[-1]
+
+
 class BaseDataFile:
 
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
@@ -28,12 +46,7 @@ class BaseTransform(BaseDataFile):
         self.init_data = {}
         self.file_control = data_file.petition_file_control.file_control
         self.lap = self.data_file.next_lap
-        full_name = data_file.file.name
-        # if "/reply_file_" in full_name:
-        #     file_name = full_name.rsplit('/reply_file_', 1)[-1]
-        # else:
-        #     file_name = full_name.rsplit('/', 1)[-1]
-        file_name = full_name.rsplit('/', 1)[-1]
+        file_name = get_only_path_name(self.data_file)
         self.file_name = file_name.replace(".", "_")
         only_name = (
             f"NEW_ELEM_NAME/{file_name}_df_{self.data_file.id}_SHEET_NAME"
