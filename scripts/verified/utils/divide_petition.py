@@ -14,7 +14,8 @@ class DividePetition:
             return None
 
         for year in self.years:
-            self.petition = Petition.objects.filter(folio_petition=self.folio_petition).first()
+            self.petition = Petition.objects\
+                .filter(folio_petition=self.folio_petition).first()
             year_month_records = self.petition.month_records.filter(
                 year_month__startswith=f"{year}-")
             new_folio = f"{self.folio_petition}+{year}"

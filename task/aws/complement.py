@@ -384,7 +384,7 @@ class Buffers(Report):
             iso_year, iso_week, iso_delegation, year, month = complex_date
             date_list = list(complex_date)
             elem_list = list(map(str, date_list))
-            elem_name = f"by_week_{'_'.join(elem_list)}"
+            elem_name = f"_by_week_{'_'.join(elem_list)}"
             only_name = self.final_path.replace("_NEW_ELEM_NAME", elem_name)
             only_name = only_name.replace("NEW_ELEM_NAME", "by_week")
             self.all_final_paths.append({

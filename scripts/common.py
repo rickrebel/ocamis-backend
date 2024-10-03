@@ -137,37 +137,8 @@ def get_csv_file(file_obj, s3_client=None):
         return file_obj.final_path
 
 
-def create_file(file_bytes, s3_client=None, file_obj=None, only_name=None, final_path=None):
-    from inai.models import set_upload_path
-    from django.core.files import File
-    bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
-    aws_location = getattr(settings, "AWS_LOCATION")
-    all_errors = []
-    final_file = None
-    try:
-        if s3_client:
-            if not final_path:
-                final_path = set_upload_path(file_obj, only_name)
-            success_file = s3_client.put_object(
-                Key=f"{aws_location}/{final_path}",
-                Body=file_bytes,
-                Bucket=bucket_name,
-                ACL='public-read',
-            )
-            if success_file:
-                final_file = final_path
-            else:
-                all_errors += [f"No se pudo insertar el archivo {final_path}"]
-        else:
-            final_file = File(BytesIO(file_bytes), name=only_name)
-    except Exception as e:
-        print(e)
-        all_errors += ["Error leyendo los datos %s" % e]
-    return final_file, all_errors
-
-
-def create_file_big(file_obj, zip_content, only_name, s3_client=None):
-    from inai.models import set_upload_path
+def create_file_big_back(file_obj, zip_content, only_name, s3_client=None):
+    # from respond.models import set_upload_path_BACK
     all_errors = []
     final_file = None
     final_bucket_name = bucket_name
@@ -175,7 +146,8 @@ def create_file_big(file_obj, zip_content, only_name, s3_client=None):
     # final_bucket_name = 'cdn-desabasto.s3-accelerate.amazonaws.com'
 
     try:
-        final_path = set_upload_path(file_obj, only_name)
+        # final_path = set_upload_path_BACK(file_obj, only_name)
+        final_path = "REVISAR PORQUE YA NO SE USAR SET_UPLOAD_PATH"
         print("COMIENZA EL MULTIPART")
         multipart_upload = s3_client.create_multipart_upload(
             Bucket=final_bucket_name,
@@ -223,14 +195,14 @@ def create_file_big(file_obj, zip_content, only_name, s3_client=None):
     return final_file, all_errors
 
 
-def using_example_big():
+def using_example_big_back():
     from inai.models import Petition
     local_file = 'D:\\info_330018023000822.zip'
     petition = Petition.objects.get(folio_petition='330018023000822')
     endpoint = "cdn-desabasto.s3-accelerate.amazonaws.com"
     s3_client, s3_resource = start_session('s3', endpoint)
     with open(local_file, 'rb') as file_obj:
-        create_file_big(
+        create_file_big_back(
             petition, file_obj, 'info_330018023000822.zip', s3_client)
     # upload_s3_files = upload_s3_files(
     #     'D:\\RecetasIMSS\\req_mayo_2020_02.txt.gz', 'nacional/imss/202107/')

@@ -42,14 +42,14 @@ class InsertMonth:
             get_models_of_app, field_of_models)
         self.month_record = month_record
         self.provider = self.month_record.provider
-        self.editable_models = get_models_of_app("med_cat")
-        self.editable_models += get_models_of_app("formula")
-        self.model_fields = {model["model"]: field_of_models(model)
-                             for model in self.editable_models}
+        editable_models = get_models_of_app("med_cat")
+        editable_models += get_models_of_app("formula")
+        model_fields = {model["model"]: field_of_models(model)
+                        for model in editable_models}
         self.models_data = {}
-        for model in self.editable_models:
+        for model in editable_models:
             model_name = model["model"]
-            columns = self.model_fields[model_name]
+            columns = model_fields[model_name]
             field_names = [field["name"] for field in columns]
             self.models_data[model_name] = {
                 "model_in_db": model["model_in_db"],
@@ -57,16 +57,12 @@ class InsertMonth:
                 "columns_join": ", ".join(field_names),
                 "app": model["app"],
             }
-        self.base_models_names = ["Drug", "Rx"]
-        self.normal_models = [model for model in self.editable_models
-                              if model["model"] not in self.base_models_names]
-        self.base_models = [model for model in self.editable_models
-                            if model["model"] in self.base_models_names]
         self.base_task = base_task
         self.collection_table_files = None
 
     def merge_week_base_tables(
             self, week_record: WeekRecord, week_table_files: list):
+        from respond.models import get_elems_by_provider, join_path
         fields_in_name = ["iso_year", "iso_week", "year", "month"]
         complement_name = "_".join([str(getattr(week_record, field))
                                     for field in fields_in_name])
@@ -75,12 +71,14 @@ class InsertMonth:
         only_name = (
             f"NEW_ELEM_NAME/NEW_ELEM_NAME_by_week_{complement_name}_"
             f"{str(iso_delegation)}.csv")
-        provider_type = self.provider.provider_type[:8].lower()
-        acronym = self.provider.acronym.lower()
-        final_path = "/".join([provider_type, acronym, only_name])
+        elems = get_elems_by_provider(self.provider, "merged_tables")
+        elems.append(week_record.year)
+        # provider_type = self.provider.provider_type[:8].lower()
+        # acronym = self.provider.acronym.lower()
+        # final_path = "/".join([provider_type, acronym, only_name])
         params = {
             "week_table_files": week_table_files,
-            "final_path": final_path,
+            "final_path": join_path(elems, only_name),
             "week_record_id": week_record.id,
             "provider_id": self.provider.id,
         }
@@ -157,8 +155,6 @@ class InsertMonth:
             "save_week_base_models", parent_class=self.base_task,
             params=params, models=[week_record, self.month_record])
         return week_task.async_in_lambda()
-        # return async_in_lambda(
-        #     "save_week_base_models", params, current_task_params)
 
     def send_cat_tables_to_db(self):
         from respond.models import TableFile

@@ -232,15 +232,23 @@ class BotoUtils:
             self.errors.append(f"Error al guardar el archivo {final_name}")
 
     def change_storage_class(
-            self, final_name, storage_class="STANDARD", acl="public-read"):
-        key = f"{self.aws_location}/{final_name}"
+        self,
+        path_origin,
+        storage_class="STANDARD",
+        acl="public-read",
+        path_destiny=None
+    ):
+        key_origin = f"{self.aws_location}/{path_origin}"
+        key_destiny = key_origin
+        if path_destiny:
+            key_destiny = f"{self.aws_location}/{path_destiny}"
         final_object = {
             "CopySource": {
                 "Bucket": self.bucket_name,
-                "Key": key
+                "Key": key_origin
             },
             "Bucket": self.bucket_name,
-            "Key": key,
+            "Key": key_destiny,
             "ExtraArgs": {
                 "StorageClass": storage_class,
                 "ACL": acl

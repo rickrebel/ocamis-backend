@@ -33,7 +33,7 @@ def build_dict(only_data_files=False):
             new_path = None
             # if model_name != 'table_file':
             #     short_name = file_name.split("/")[-1]
-            #     new_path = set_upload_path(model_obj, short_name)
+            #     new_path = set_upload_path_BACK(model_obj, short_name)
             current_elem = {
                 'id': model_obj.id,
                 'model_name': model_name,

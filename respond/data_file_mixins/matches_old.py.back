@@ -5,7 +5,7 @@ import json
 import csv
 import uuid as uuid_lib
 
-from respond.models import DataFile
+from respond.models import DataFile, set_upload_data_file_path
 
 delegation_value_list = [
     'name', 'other_names', 'state__short_name', 'id', 'clues']
@@ -43,7 +43,6 @@ def field_of_models_all(model_data):
 class MatchOld:
 
     def __init__(self, data_file: DataFile):
-        from inai.models import set_upload_path
         from geo.models import Delegation
         from data_param.models import NameColumn
         self.data_file = data_file
@@ -66,7 +65,7 @@ class MatchOld:
             self.global_delegation = self.global_clues.related_delegation
         print("global_delegation", self.global_delegation)
         only_name = f"NEW_ELEM_NAME_{self.data_file.id}_lap{self.lap}.csv"
-        self.final_path = set_upload_path(self.data_file, only_name)
+        self.final_path = set_upload_data_file_path(self.data_file, only_name)
         self.name_columns = NameColumn.objects \
             .filter(file_control=self.file_control) \
             .prefetch_related(
@@ -223,12 +222,12 @@ class MatchOld:
         final_path = f"catalogs/{model.__name__.lower()}_by_{key_field}.json"
         if kwargs.get("by_agency"):
             final_path = f"{self.agency.acronym}/{final_path}"
-        dumb_catalog = json.dumps(catalog_model)
-        file_model, errors = create_file(
-            dumb_catalog, self.s3_client, final_path=final_path)
-        if errors:
-            raise Exception(f"Error creando catálogo {catalog_name}: {errors}")
-        return file_model
+        # dumb_catalog = json.dumps(catalog_model)
+        # file_model, errors = create_file(
+        #     dumb_catalog, self.s3_client, final_path=final_path)
+        # if errors:
+        #     raise Exception(f"Error creando catálogo {catalog_name}: {errors}")
+        # return file_model
 
     # def build_catalog_clues(self):
     #     from data_param.models import DictionaryFile

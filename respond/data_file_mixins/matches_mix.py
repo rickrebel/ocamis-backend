@@ -104,7 +104,6 @@ class MatchTransform(BaseTransform):
             if self.global_clues else None
         self.lap = self.data_file.next_lap
         # print("global_delegation", self.global_delegation)
-        # only_name = f"NEW_ELEM_NAME/{self.data_file.id}_SHEET_NAME_lap{self.lap}.csv"
 
         self.name_columns = NameColumn.objects \
             .filter(file_control=self.file_control) \

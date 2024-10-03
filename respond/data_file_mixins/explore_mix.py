@@ -170,9 +170,10 @@ class ExploreRealMix(ExtractorRealMix, DataFileAws):
             self.base_task.add_errors_and_raise([error])
 
     def _decompress_gz_file(self):
-        from inai.models import set_upload_path
+        from respond.models import set_upload_data_file_path
 
-        directory = set_upload_path(self.data_file, "split/NEW_FILE_NAME")
+        directory = set_upload_data_file_path(
+            self.data_file, "split/NEW_FILE_NAME")
         params = {
             "file": self.data_file.file.name,
             "directory": directory,

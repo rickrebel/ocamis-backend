@@ -16,42 +16,6 @@ from .month_record import MonthRecord
 from rds.models import Cluster
 
 
-def set_upload_path(instance, filename):
-    from django.conf import settings
-    is_sheet_file = getattr(instance, "data_file", False)
-    if is_sheet_file:
-        instance = instance.data_file
-    try:
-        pet_obj = instance.petition_file_control.petition
-    except AttributeError:
-        try:
-            pet_obj = instance.petition
-        except AttributeError:
-            elems = ["sin_instance", filename]
-            if settings.IS_LOCAL:
-                elems.insert(1, "localhost")
-            return "/".join(elems)
-
-    agency_type = pet_obj.agency.agency_type[:8].lower()
-    try:
-        acronym = pet_obj.agency.acronym.lower()
-    except AttributeError:
-        acronym = 'others'
-    folio_petition = pet_obj.folio_petition
-    elems = [agency_type, acronym, folio_petition]
-    if settings.IS_LOCAL:
-        elems.insert(1, "localhost")
-    if reply_file := getattr(instance, "reply_file", False):
-        # TODO Future: Esto está repetido en algunos lugares
-        elems.append(f"reply_file_{reply_file.id}")
-        if instance.directory:
-            elems += instance.directory.split("/")
-    elems.append(filename)
-
-    # return "/".join([agency_type, acronym, folio_petition, filename])
-    return "/".join(elems)
-
-
 class WeekRecord(models.Model):
     provider = models.ForeignKey(
         Provider,

@@ -18,12 +18,6 @@ class FromAws:
         # final_path = kwargs.get("final_path", {})
         # suffixes = pathlib.Path(final_path).suffixes
         sample_file = SampleFile()
-        # generic_sample = {
-        #     "all_data": kwargs.pop("all_data", []),
-        #     "tail_data": kwargs.pop("tail_data", []),
-        # }
-        # sample_file.create_file(
-        #     self, cat_name="default_samples", sample_data=generic_sample)
         decode = kwargs.get("decode")
         for sheet_file in new_files:
             final_path = sheet_file.pop("final_path")
@@ -64,7 +58,6 @@ class FromAws:
             total_rows = sheet_details.get("total_rows")
             sample_path = sheet_details.get("sample_path")
             sample_sheet = sample_file.get_json_content(sample_path)
-            # sample_file.create_file(self, sample_sheet)
             SheetFile.objects.create(
                 file=final_path,
                 data_file=self.data_file,

@@ -1,4 +1,4 @@
-from respond.models import DataFile
+from respond.models import DataFile, set_upload_data_file_path
 from task.builder import TaskBuilder
 
 
@@ -22,7 +22,6 @@ class BaseDataFile:
 class BaseTransform(BaseDataFile):
 
     def __init__(self, data_file: DataFile, base_task: TaskBuilder = None):
-        from inai.models import set_upload_path
         super().__init__(data_file, base_task=base_task)
 
         self.is_prepare = False
@@ -30,15 +29,17 @@ class BaseTransform(BaseDataFile):
         self.file_control = data_file.petition_file_control.file_control
         self.lap = self.data_file.next_lap
         full_name = data_file.file.name
-        if "/reply_file_" in full_name:
-            file_name = full_name.rsplit('/reply_file_', 1)[-1]
-        else:
-            file_name = full_name.rsplit('/', 1)[-1]
+        # if "/reply_file_" in full_name:
+        #     file_name = full_name.rsplit('/reply_file_', 1)[-1]
+        # else:
+        #     file_name = full_name.rsplit('/', 1)[-1]
+        file_name = full_name.rsplit('/', 1)[-1]
         self.file_name = file_name.replace(".", "_")
         only_name = (
             f"NEW_ELEM_NAME/{file_name}_df_{self.data_file.id}_SHEET_NAME"
             f"_NEW_ELEM_NAME_lap{self.lap}_fc{self.file_control.id}.csv")
-        self.final_path = set_upload_path(self.data_file, only_name)
+        self.final_path = set_upload_data_file_path(
+            self.data_file, only_name, "table")
 
     def calculate_sheets(self):
         from classify_task.models import Stage, StatusTask

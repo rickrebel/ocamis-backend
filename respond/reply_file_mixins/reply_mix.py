@@ -1,4 +1,4 @@
-from respond.models import ReplyFile
+from respond.models import ReplyFile, set_upload_reply_path
 from task.builder import TaskBuilder
 from inai.petition_mixins.petition_mix import PetitionTransformMix
 
@@ -11,7 +11,6 @@ class ReplyFileMixReal:
 
     def decompress_reply(self):
         import pathlib
-        from inai.models import set_upload_path
 
         suffixes = pathlib.Path(self.reply_file.final_path).suffixes
         suffixes = set([suffix.lower() for suffix in suffixes])
@@ -21,8 +20,8 @@ class ReplyFileMixReal:
             error = "El archivo no es un archivo comprimido"
             self.base_task.add_errors([error], True, comprobate=True)
             return None
-        file_name = f"reply_file_{self.reply_file.id}/NEW_FILE_NAME"
-        upload_path = set_upload_path(self.reply_file, file_name)
+        file_name = f"rf_{self.reply_file.id}/NEW_FILE_NAME"
+        upload_path = set_upload_reply_path(self.reply_file, file_name, "data")
         params = {
             "file": self.reply_file.file.name,
             "suffixes": list(suffixes),

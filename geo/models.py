@@ -4,16 +4,6 @@ from category.models import StatusControl
 from django.contrib.auth.models import User
 
 
-def set_upload_path_provider(instance, filename):
-
-    provider_type = instance.provider_type[:8].lower()
-    try:
-        acronym = instance.acronym.lower()
-    except AttributeError:
-        acronym = 'others'
-    return "/".join([provider_type, acronym,  filename])
-
-
 def default_alternative_names():
     return []
 

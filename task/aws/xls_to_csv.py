@@ -12,6 +12,7 @@ def lambda_handler(event, context):
     import pandas as pd
     import json
 
+    print("start xls_to_csv")
     final_path = event["final_path"]
     only_name = event["only_name"]
     s3_utils = BotoUtils(event.get("s3"))
@@ -25,6 +26,7 @@ def lambda_handler(event, context):
 
     all_sheets = {}
     for sheet_name in all_sheet_names:
+        print("sheet_name", sheet_name)
         data_excel = excel_file.parse(
             sheet_name,
             dtype='string', na_filter=False,

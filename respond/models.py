@@ -10,10 +10,84 @@ from geo.models import Provider, Delegation
 # from respond.data_file_mixins.get_data_mix import ExtractorsMix
 from respond.data_file_mixins.utils_mix import DataUtilsMix
 from inai.models import (
-    Petition, set_upload_path, PetitionFileControl, MonthRecord, WeekRecord)
+    Petition, PetitionFileControl, MonthRecord, WeekRecord)
 
 can_delete_s3 = getattr(
     settings, "CAN_DELETE_AWS_STORAGE_FILES", False)
+
+
+def join_path(elems, filename):
+    from django.conf import settings
+    if settings.IS_LOCAL:
+        elems.insert(0, "localhost")
+    elems.append(filename)
+    return "/".join(elems)
+
+
+def get_elems_by_provider(provider, first_elem=None):
+    provider_type = provider.provider_type[:8].lower()
+    acronym = provider.acronym.lower()
+    elems = [provider_type, acronym]
+    if first_elem:
+        elems.insert(0, first_elem)
+    return elems
+
+
+def get_path_with_petition(
+        pet_obj, filename, first_elem=None, last_elems=None):
+    elems = get_elems_by_provider(pet_obj.agency.provider, first_elem)
+    elems.append(pet_obj.folio_petition[-8:])
+    if last_elems:
+        elems += last_elems
+    return join_path(elems, filename)
+
+
+def set_upload_data_file_path(
+        data_file, filename, first_elem="data", collection_name=None):
+    pet_obj = data_file.petition_file_control.petition
+    last_elems = []
+    if collection_name:
+        last_elems.append(collection_name)
+    if reply_file := data_file.reply_file:
+        # TODO Future: Esto está repetido en algunos lugares
+        last_elems.append(f"rf_{reply_file.id}")
+        if data_file.directory:
+            last_elems += data_file.directory.split("/")
+    return get_path_with_petition(
+        pet_obj, filename, first_elem, last_elems=last_elems)
+
+
+def set_upload_sheet_file_path(sheet_file, filename):
+    data_file = sheet_file.data_file
+    return set_upload_data_file_path(data_file, filename, "sheet")
+
+
+def set_upload_table_file_path(table_file, filename):
+    collection = table_file.collection
+    lap_sheet = table_file.lap_sheet
+    first_elem = "table"
+    if collection and lap_sheet:
+        collection_name = collection.snake_name
+    elif not collection and lap_sheet:
+        collection_name = "by_week"
+    elif collection and not lap_sheet:
+        collection_name = collection.snake_name
+        first_elem = "merged_tables"
+    else:
+        raise ValueError("No se puede determinar el tipo de archivo")
+    if lap_sheet:
+        data_file = lap_sheet.sheet_file.data_file
+        return set_upload_data_file_path(
+            data_file, filename, first_elem, collection_name)
+    elems = get_elems_by_provider(table_file.provider, first_elem)
+    elems.append(collection_name)
+    elems.append(table_file.week_record.year)
+    return join_path(elems, filename)
+
+
+def set_upload_reply_path(reply_file, filename, first_elem="reply"):
+    pet_obj = reply_file.petition
+    return get_path_with_petition(pet_obj, filename, first_elem)
 
 
 class ReplyFile(models.Model):
@@ -22,8 +96,11 @@ class ReplyFile(models.Model):
         Petition, related_name="reply_files", on_delete=models.CASCADE)
     file = models.FileField(
         verbose_name="archivo",
-        max_length=255, upload_to=set_upload_path,
+        max_length=255, upload_to=set_upload_reply_path,
         blank=True, null=True)
+    instant_access = models.BooleanField(
+        default=True, verbose_name="Acceso instantáneo")
+    available_until = models.DateTimeField(blank=True, null=True)
     date = models.DateTimeField(auto_now_add=True)
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE,
@@ -86,7 +163,8 @@ class ReplyFile(models.Model):
 
 class DataFile(models.Model, DataUtilsMix):
 
-    file = models.FileField(max_length=255, upload_to=set_upload_path)
+    file = models.FileField(
+        max_length=255, upload_to=set_upload_data_file_path)
     provider = models.ForeignKey(
         Provider, related_name="data_files", on_delete=models.CASCADE)
     # zip_path = models.TextField(blank=True, null=True)
@@ -126,7 +204,7 @@ class DataFile(models.Model, DataUtilsMix):
     sample_data = JSONField(
         blank=True, null=True, verbose_name="Primeros datos, de exploración")
     sample_file = models.FileField(
-        max_length=255, upload_to=set_upload_path,
+        max_length=255, upload_to=set_upload_data_file_path,
         blank=True, null=True, verbose_name="Archivo con muestra")
     # RICK2 TASK2: TODO: Eliminar este campo
     all_results = JSONField(
@@ -267,7 +345,8 @@ class SheetFile(models.Model):
     ]
     data_file = models.ForeignKey(
         DataFile, related_name="sheet_files", on_delete=models.CASCADE)
-    file = models.FileField(max_length=255, upload_to=set_upload_path)
+    file = models.FileField(
+        max_length=255, upload_to=set_upload_sheet_file_path)
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     file_type = models.CharField(max_length=20, blank=True, null=True)
@@ -278,7 +357,7 @@ class SheetFile(models.Model):
     sample_data = JSONField(
         blank=True, null=True, default=default_explore_data)
     sample_file = models.FileField(
-        max_length=255, upload_to=set_upload_path,
+        max_length=255, upload_to=set_upload_sheet_file_path,
         blank=True, null=True, verbose_name="Archivo con muestra")
     headers = JSONField(blank=True, null=True)
     row_start_data = models.IntegerField(blank=True, null=True)
@@ -451,7 +530,8 @@ class LapSheet(models.Model):
 
 class TableFile(models.Model):
 
-    file = models.FileField(max_length=255, upload_to=set_upload_path)
+    file = models.FileField(
+        max_length=255, upload_to=set_upload_table_file_path)
     lap_sheet = models.ForeignKey(
         LapSheet, related_name="table_files", on_delete=models.CASCADE,
         blank=True, null=True)
@@ -461,10 +541,17 @@ class TableFile(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, blank=True, null=True)
     inserted = models.BooleanField(default=False)
-
     week_record = models.ForeignKey(
         WeekRecord, on_delete=models.CASCADE,
         blank=True, null=True, related_name="table_files")
+
+    drugs_count = models.IntegerField(default=0)
+    rx_count = models.IntegerField(default=0)
+    duplicates_count = models.IntegerField(default=0)
+    shared_count = models.IntegerField(default=0)
+    self_repeated_count = models.IntegerField(default=0)
+
+    #  ##### Todos estos campos deberían eliminarse, ya están en week_record
     year_week = models.CharField(max_length=8, blank=True, null=True)
     iso_year = models.PositiveSmallIntegerField(blank=True, null=True)
     iso_week = models.PositiveSmallIntegerField(blank=True, null=True)
@@ -473,12 +560,7 @@ class TableFile(models.Model):
     year_month = models.CharField(max_length=8, blank=True, null=True)
     year = models.PositiveSmallIntegerField(blank=True, null=True)
     month = models.PositiveSmallIntegerField(blank=True, null=True)
-
-    drugs_count = models.IntegerField(default=0)
-    rx_count = models.IntegerField(default=0)
-    duplicates_count = models.IntegerField(default=0)
-    shared_count = models.IntegerField(default=0)
-    self_repeated_count = models.IntegerField(default=0)
+    #  ##### Fin de campos a eliminar ############
 
     def __str__(self):
         return "%s %s" % (self.collection, self.lap_sheet)
@@ -518,6 +600,12 @@ class TableFile(models.Model):
         db_table = "inai_tablefile"
 
 
+def final_month_path(month_record, filename):
+    elems = get_elems_by_provider(month_record.provider, "month_tables")
+    elems.append(month_record.year or "ND")
+    return join_path(elems, filename)
+
+
 def set_upload_month_path(instance, filename):
     return final_month_path(instance.month_record, filename)
 
@@ -529,18 +617,6 @@ def get_month_file_name(
     if not month_record:
         month_record = month_table.month_record
     return f"{month_record.temp_table}_{table_name}.csv"
-
-
-def final_month_path(month_record, filename):
-    provider = month_record.provider
-    provider_type = provider.provider_type[:8].lower()
-    acronym = provider.acronym.lower()
-    year = month_record.year or "ND"
-    elems = ["month_tables", provider_type, acronym, str(year)]
-    if settings.IS_LOCAL:
-        elems.insert(1, "localhost")
-    elems.append(filename)
-    return "/".join(elems)
 
 
 class MonthTableFile(models.Model):
