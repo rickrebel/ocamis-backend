@@ -32,7 +32,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
         from django.db.models import F, Sum
         from django.apps import apps
         from medicine.models import Component
-        is_big_active = getattr(settings, "IS_BIG_ACTIVE", False)
+        # is_big_active = getattr(settings, "IS_BIG_ACTIVE", False)
         provider_id = request.data.get('provider')
         delegation_id = request.data.get('delegation', None)
         by_delegation = request.data.get('by_delegation', False)
@@ -54,7 +54,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
             if not some_geo or not some_drug:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         elif group_by == 'provider':
-            if not some_drug:
+            if not some_drug and not therapeutic_group_id:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         elif group_by == 'delegation':
             by_delegation = True
@@ -141,6 +141,9 @@ class DrugViewSet(ListRetrieveUpdateMix):
 
             if group_by == 'provider':
                 first_values['provider'] = field_ent
+                if therapeutic_group_id and not is_total and not some_drug:
+                    first_values['therapeutic_group'] = f"{comp_string}__groups__id"
+                    query_filter[f'{comp_string}__groups__id'] = therapeutic_group_id
             elif by_delegation:
                 first_values["delegation"] = "delegation_id"
             elif group_by == 'therapeutic_group':
