@@ -27,19 +27,38 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
         return ReplyFile.objects.all()
 
     def create(self, request, **kwargs):
+        # from task.aws.common import BotoUtils
+        from storages.backends.s3boto3 import S3Boto3Storage
+        from respond.models import get_path_with_petition
         petition_id = self.kwargs.get("petition_id")
         reply_file = request.data
         new_reply_file = ReplyFile()
         new_reply_file.petition_id = petition_id
+        file_1 = request.FILES.get("file")
+
+        # storage_name = "DEEP_ARCHIVE" if deep else "GLACIER_IR"
+        file_name = None
+        if ".zip" in file_1.name or ".rar" in file_1.name:
+            print("ENCONTRADO EL ZIP!!!", file_1)
+        else:
+            file = reply_file.pop("file")[0]
+            print("file", file)
+            print("file.name", file.name)
+            params = {"object_parameters": {"StorageClass": "GLACIER_IR"}}
+            boto_s3 = S3Boto3Storage(**params)
+            petition = Petition.objects.get(id=petition_id)
+            real_name = get_path_with_petition(petition, file.name, "reply")
+            print("real_name", real_name)
+            file_name = boto_s3.save(real_name, file, 255)
+            reply_file["file"] = file_name
 
         # serializer = serializers.ReplyFileEditSerializer(data=request.data)
         serializer_proc_file = self.get_serializer_class()(
             new_reply_file, data=reply_file)
-
         if serializer_proc_file.is_valid():
             serializer_proc_file.save()
         else:
-            return Response({ "errors": serializer_proc_file.errors },
+            return Response({"errors": serializer_proc_file.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
             serializer_proc_file.data, status=status.HTTP_201_CREATED)
