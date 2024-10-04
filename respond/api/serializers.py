@@ -18,6 +18,8 @@ class ReplyFileSerializer(serializers.ModelSerializer):
         return obj.file.url if obj.file else None
 
     def get_real_name(self, obj):
+        if not obj.file:
+            return None
         return obj.file.name.split("/")[-1]
 
     def get_short_name(self, obj):

@@ -818,6 +818,7 @@ class TransformToCsv:
         self.real_buffers.add_cat_row(missing_field, "missing_field")
 
     def calculate_iso(self, available_data):
+        import hashlib
         try:
             iso_year, iso_week, iso_day = self.some_date.isocalendar()
         except Exception as e:
@@ -838,6 +839,10 @@ class TransformToCsv:
         folio_document = available_data.get("folio_document")
         if not folio_document:
             raise NotImplementedError("No se encontró folio documento; sin ejemplo")
+        if len(folio_document) > 42:
+            folio_encoded = folio_document.encode(self.decode_final)
+            hash_key = hashlib.md5(folio_encoded).hexdigest()
+            folio_document = hash_key[:40]
 
         folio_ocamis = "|".join([
             str(self.provider_id),

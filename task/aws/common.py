@@ -217,6 +217,7 @@ class BotoUtils:
     def save_file_in_aws(
             self, body, final_name, content_type="text/csv",
             storage_class="STANDARD"):
+
         final_object = {
             "Body": body,
             "Bucket": self.bucket_name,
@@ -264,6 +265,7 @@ class BotoUtils:
             return True
         except Exception as e:
             return False
+
 
 def calculate_delimiter(data):
     error_count = 0

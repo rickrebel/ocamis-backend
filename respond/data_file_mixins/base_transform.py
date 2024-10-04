@@ -19,7 +19,7 @@ def get_only_path_name(file_obj, petition=None):
         return f"rf_{file_name}"
     elif "/rf_" in full_name:
         file_name = full_name.rsplit('/rf_', 1)[-1]
-        return f"/rf_{file_name}"
+        return f"rf_{file_name}"
     if petition:
         folio = f"/{petition.folio_petition}/"
         if folio in full_name:
