@@ -40,6 +40,8 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
         file_name = None
         if ".zip" in file_1.name or ".rar" in file_1.name:
             print("ENCONTRADO EL ZIP!!!", file_1)
+            serializer_proc_file = self.get_serializer_class()(
+                new_reply_file, data=reply_file)
         else:
             file = reply_file.pop("file")[0]
             print("file", file)
@@ -50,11 +52,12 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
             real_name = get_path_with_petition(petition, file.name, "reply")
             print("real_name", real_name)
             file_name = boto_s3.save(real_name, file, 255)
-            reply_file["file"] = file_name
+
+            new_reply_file.file = file_name
+            serializer_proc_file = serializers.ReplyFileSerializerNoFile(
+                new_reply_file, data=reply_file)
 
         # serializer = serializers.ReplyFileEditSerializer(data=request.data)
-        serializer_proc_file = self.get_serializer_class()(
-            new_reply_file, data=reply_file)
         if serializer_proc_file.is_valid():
             serializer_proc_file.save()
         else:
@@ -129,7 +132,7 @@ class AscertainableViewSet(CreateRetrieveView):
             # control = serializer_data_file.save()
             serializer_data_file.save()
         else:
-            return Response({ "errors": serializer_data_file.errors },
+            return Response({"errors": serializer_data_file.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(
             serializer_data_file.data, status=status.HTTP_206_PARTIAL_CONTENT)
@@ -195,7 +198,7 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
                     all_related_months=related_months)
                 return Response(data_response, status=status.HTTP_200_OK)
         return Response(
-            {"behavior_counts": [],"drugs_summarize": {},},
+            {"behavior_counts": [], "drugs_summarize": {}, },
             status=status.HTTP_200_OK)
 
     @action(methods=["post"], detail=False, url_path='massive_change_behavior')
@@ -248,7 +251,3 @@ class SheetFileViewSet(ListRetrieveUpdateMix):
         sheet_files.update(behavior=new_behavior_obj)
         data_response = get_related_months(sheet_files_ids=sheet_files_ids)
         return Response(data_response, status=status.HTTP_200_OK)
-
-
-
-
