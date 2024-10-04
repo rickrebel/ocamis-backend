@@ -33,6 +33,14 @@ class ReplyFileSerializer(serializers.ModelSerializer):
         read_only_fields = ["petition"]
 
 
+class ReplyFileSerializerNoFile(serializers.ModelSerializer):
+
+    class Meta:
+        model = ReplyFile
+        fields = "__all__"
+        read_only_fields = ["petition", "file"]
+
+
 class ReplyFileEditSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(source="file.name")
     url = serializers.ReadOnlyField(source="file.url")
@@ -313,4 +321,3 @@ class BehaviorSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Behavior
         fields = "__all__"
-
