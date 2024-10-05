@@ -15,7 +15,15 @@ class DrugExport:
         self.component_id = component_id
         self.therapeutic_group_id = therapeutic_group_id
         self.display_headers = {
-            "display_value": "Display Header"
+            "provider": "Institución proveedora",  # Provider.acronym
+            "therapeutic_group": "Grupo terapeútico",  # TherapeuticGroup.name
+            "component": "Componente",  # Component.name
+            "year": "año",
+            "month": "mes",
+            "year_week": "Semana y año epidemiológico (yyyy-ww)",
+            "prescribed": "Unidades prescritas",
+            "delivered": "Unidades entregadas",
+            "total": "Recetas",
         }
 
     def build_worksheet_data(self, worksheet_name="pestaña", is_total=False):
@@ -27,8 +35,7 @@ class DrugExport:
         prev_iso = "week_record__"
         field_ent = f"{prev_iso}provider_id"
         first_values = {
-            'iso_week': f'{prev_iso}iso_week',
-            'iso_year': f'{prev_iso}iso_year',
+            'year_week': f'{prev_iso}year_week',
             'year': f'{prev_iso}year',
             'month': f'{prev_iso}month',
             'provider': field_ent,
