@@ -55,7 +55,7 @@ class Gz:
         size_hint = 300 * 1000000
         has_cut = False
         cut_lap = 0
-        print("size_hint", size_hint)
+        # print("size_hint", size_hint)
 
         while True and not errors:
             if has_cut:

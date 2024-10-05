@@ -351,7 +351,8 @@ class SheetFile(models.Model):
     data_file = models.ForeignKey(
         DataFile, related_name="sheet_files", on_delete=models.CASCADE)
     file = models.FileField(
-        max_length=255, upload_to=set_upload_sheet_file_path)
+        max_length=255, upload_to=set_upload_sheet_file_path,
+        storage=S3Boto3Storage(**params_glacier_ir))
     # file_type = models.ForeignKey(
     #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     file_type = models.CharField(max_length=20, blank=True, null=True)
@@ -533,10 +534,14 @@ class LapSheet(models.Model):
         db_table = "inai_lapsheet"
 
 
+params_standard_ia = {"object_parameters": {"StorageClass": "STANDARD_IA"}}
+
+
 class TableFile(models.Model):
 
     file = models.FileField(
-        max_length=255, upload_to=set_upload_table_file_path)
+        max_length=255, upload_to=set_upload_table_file_path,
+        storage=S3Boto3Storage(**params_standard_ia))
     lap_sheet = models.ForeignKey(
         LapSheet, related_name="table_files", on_delete=models.CASCADE,
         blank=True, null=True)
@@ -624,12 +629,16 @@ def get_month_file_name(
     return f"{month_record.temp_table}_{table_name}.csv"
 
 
+params_glacier_deep = {"object_parameters": {"StorageClass": "DEEP_ARCHIVE"}}
+
+
 class MonthTableFile(models.Model):
     month_record = models.ForeignKey(
         MonthRecord, related_name="month_table_files", on_delete=models.CASCADE)
     table_name = models.CharField(max_length=120)
     file = models.FileField(
-        max_length=255, upload_to=set_upload_month_path, blank=True, null=True)
+        max_length=255, upload_to=set_upload_month_path,
+        blank=True, null=True, storage=S3Boto3Storage(**params_glacier_deep))
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     inserted = models.BooleanField(default=False)
     available_until = models.DateTimeField(blank=True, null=True)

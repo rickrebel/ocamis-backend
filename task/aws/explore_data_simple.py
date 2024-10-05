@@ -35,8 +35,8 @@ def lambda_handler(event, context):
     data_rows = complete_file.readlines()
     # print("INICIO", data_rows)
     total_rows = len(data_rows)
-    tail_data = data_rows[-50:]
     data_rows = data_rows[:220]
+    tail_data = data_rows[-50:]
     # print("FINAL", data_rows)
     decode = event.get("decode")
     delimiter = event.get("delimiter")

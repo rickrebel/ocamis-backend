@@ -103,21 +103,17 @@ class BuildWeekAws:
     def build_week_csvs(self):
         alone_table_files = [table_file for table_file in self.week_table_files
                              if table_file["sheet_behavior"] == "not_merge"]
-        if alone_table_files:
-            print("alone_table_files", alone_table_files)
-            for table_file in alone_table_files:
-                self.get_basic_data([table_file])
+        for table_file in alone_table_files:
+            self.get_basic_data([table_file])
         uniques_table_files = [
             table_file for table_file in self.week_table_files
             if table_file["sheet_behavior"] == "discard_repeated"]
         if uniques_table_files:
-            print("uniques_table_files", uniques_table_files)
             self.get_basic_data(uniques_table_files, jump_duplicates=True)
         merge_behaviors = ["need_merge", "merged"]
         merge_table_files = [table_file for table_file in self.week_table_files
                              if table_file["sheet_behavior"] in merge_behaviors]
         if merge_table_files:
-            print("merge_table_files", merge_table_files)
             self.get_basic_data(merge_table_files)
 
         print("inside build_week_csvs")
