@@ -27,7 +27,6 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
         return ReplyFile.objects.all()
 
     def create(self, request, **kwargs):
-        # from task.aws.common import BotoUtils
         from storages.backends.s3boto3 import S3Boto3Storage
         from respond.models import get_path_with_petition
         petition_id = self.kwargs.get("petition_id")
@@ -37,27 +36,20 @@ class ReplyFileViewSet(MultiSerializerModelViewSet):
         file_1 = request.FILES.get("file")
 
         # storage_name = "DEEP_ARCHIVE" if deep else "GLACIER_IR"
-        file_name = None
         if ".zip" in file_1.name or ".rar" in file_1.name:
-            print("ENCONTRADO EL ZIP!!!", file_1)
-            serializer_proc_file = self.get_serializer_class()(
-                new_reply_file, data=reply_file)
+            pass
         else:
             file = reply_file.pop("file")[0]
-            print("file", file)
-            print("file.name", file.name)
             params = {"object_parameters": {"StorageClass": "GLACIER_IR"}}
             boto_s3 = S3Boto3Storage(**params)
             petition = Petition.objects.get(id=petition_id)
             real_name = get_path_with_petition(petition, file.name, "reply")
-            print("real_name", real_name)
             file_name = boto_s3.save(real_name, file, 255)
-
             new_reply_file.file = file_name
-            serializer_proc_file = serializers.ReplyFileSerializerNoFile(
-                new_reply_file, data=reply_file)
 
-        # serializer = serializers.ReplyFileEditSerializer(data=request.data)
+        serializer_proc_file = self.get_serializer_class()(
+            new_reply_file, data=reply_file)
+
         if serializer_proc_file.is_valid():
             serializer_proc_file.save()
         else:
