@@ -1,3 +1,4 @@
+from storages.backends.s3boto3 import S3Boto3Storage
 from django.conf import settings
 from django.db import models
 from django.db.models import JSONField
@@ -161,10 +162,14 @@ class ReplyFile(models.Model):
         db_table = "inai_replyfile"
 
 
+params_glacier_ir = {"object_parameters": {"StorageClass": "GLACIER_IR"}}
+
+
 class DataFile(models.Model, DataUtilsMix):
 
     file = models.FileField(
-        max_length=255, upload_to=set_upload_data_file_path)
+        max_length=255, upload_to=set_upload_data_file_path,
+        storage=S3Boto3Storage(**params_glacier_ir))
     provider = models.ForeignKey(
         Provider, related_name="data_files", on_delete=models.CASCADE)
     # zip_path = models.TextField(blank=True, null=True)

@@ -224,6 +224,18 @@ class DrugViewSet(ListRetrieveUpdateMix):
         component_id = request.data.get('component', 96)
         therapeutic_group_id = request.data.get('therapeutic_group', None)
 
+        key_values = {
+            "provider": "Institución proveedora",  # Provider.acronym
+            "therapeutic_group": "Grupo terapeútico",  # TherapeuticGroup.name
+            "component": "Componente",  # Component.name
+            "year": "año",
+            "month": "mes",
+            "year_week": "Semana y año epidemiológico (yyyy-ww)",
+            "prescribed": "Unidades prescritas",
+            "delivered": "Unidades entregadas",
+            "total": "Recetas",
+        }
+
         def build_query(is_total=False):
             prefetches = []
             if is_total:
@@ -233,8 +245,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
             prev_iso = "week_record__"
             field_ent = f"{prev_iso}provider_id"
             first_values = {
-                'iso_week': f'{prev_iso}iso_week',
-                'iso_year': f'{prev_iso}iso_year',
+                'year_week': f'{prev_iso}year_week',
                 'year': f'{prev_iso}year',
                 'month': f'{prev_iso}month',
                 'provider': field_ent,
@@ -271,7 +282,7 @@ class DrugViewSet(ListRetrieveUpdateMix):
                 if key != value:
                     annotates[key] = F(value)
                 display_values.append(key)
-            order_values = ["year", "month", "iso_year", "iso_week"]
+            order_values = ["year", "month", "year_week"]
             # prev_model = "Mother" if is_big_active else "Mat"
             # model = "Totals" if is_total else "Priority"
             model = "Totals" if is_total else "Entity"

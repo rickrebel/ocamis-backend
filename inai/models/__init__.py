@@ -306,7 +306,34 @@ CREATE VIEW inai_counts_delivered_by_month AS (
         ON week_record.iso_delegation_id = delegation.id
     JOIN geo_entity provider
         ON week_record.provider_id = provider.id
-    GROUP BY week_record.year_month, 
+    GROUP BY 
+        week_record.year_month, 
+        week_record.year,
+        week_record.month,
+        delegation.name,
+        provider.acronym
+);
+"""
+
+
+sql_view_drug_entity = """
+CREATE VIEW drug_entity AS (
+    SELECT
+        provider.acronym as provider,
+        delegation.name as delegation,
+        week_record.year_month,
+        week_record.year,
+        week_record.month,
+        SUM(deliveredweek.value) as total_delivered
+    FROM inai_deliveredweek deliveredweek
+    JOIN inai_entityweek week_record
+        ON deliveredweek.week_record_id = week_record.id
+    LEFT JOIN geo_delegation delegation
+        ON week_record.iso_delegation_id = delegation.id
+    JOIN geo_entity provider
+        ON week_record.provider_id = provider.id
+    GROUP BY 
+        week_record.year_month, 
         week_record.year,
         week_record.month,
         delegation.name,
