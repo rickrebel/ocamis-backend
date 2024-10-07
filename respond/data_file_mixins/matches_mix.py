@@ -130,9 +130,6 @@ class MatchTransform(BaseTransform):
 
         self.existing_fields = []
 
-        # s3_client, dev_resource = start_session()
-        # self.s3_client = s3_client
-
     def build_init_data(self, final_lap, string_date):
         from geo.views import build_catalog_delegation_by_id
         import hashlib
@@ -432,9 +429,3 @@ class MatchTransform(BaseTransform):
                 return None, "No todas las fechas tienen especificado su formato"
         first_value = transformations.first().addl_params.get("value")
         return first_value, None
-
-    def save_catalog_csv(self, path, model_name):
-        from scripts.common import get_file, start_session
-        s3_client, dev_resource = start_session()
-        complete_file = get_file(self, dev_resource)
-        complete_file = complete_file.read()

@@ -76,6 +76,23 @@ class ClusterMix:
                     keep_tasks=True, subgroup=query["name"])
                 constraint_task.async_in_lambda()
 
+    def clean_cluster_tables(self, stage_name=None):
+        from respond.models import TableFile
+        from scripts.s3_cleaning.clean_bucket import delete_files
+        table_files = TableFile.objects.filter(
+            week_record__month_record__cluster=self.cluster,
+            lap_sheet__isnull=True)
+        url_paths = table_files.values_list("file", flat=True)
+        url_paths = list(set(url_paths))
+        table_files.delete()
+        # print("url_paths", url_paths)
+        # print("count", len(url_paths))
+        files_report = delete_files(url_paths)
+        self.cluster.stage_id = 'clean'
+        self.cluster.status_id = 'finished'
+        self.cluster.save()
+        self.base_task.comprobate_status()
+
 
 def my_test():
     from formula.views import ConstraintBuilder

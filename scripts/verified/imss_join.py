@@ -19,7 +19,7 @@ def imss_join(wr_id):
     header_ready = False
     for table_file in data_files:
         # print("table_file.file.name", table_file.file.name)
-        table_csv = s3_utils.get_object_file(table_file.file.name)
+        table_csv = s3_utils.get_object_csv(table_file.file.name)
         # print("table_csv", table_csv)
         for idx_row, row in enumerate(table_csv):
             if idx_row == 0:
@@ -97,7 +97,7 @@ def imss_compare(wr_id=34):
     unique_keys = set()
     for key, origin in origins.items():
         has_medicament_key = origin["has_medicament_key"]
-        csv_data = s3_utils.get_object_file(origin["path"])
+        csv_data = s3_utils.get_object_csv(origin["path"])
         headers = None
         for idx, row in enumerate(csv_data):
             if idx == 0:

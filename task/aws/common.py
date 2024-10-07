@@ -77,9 +77,7 @@ class SendResultToWebhook:
         s3_utils = BotoUtils(self.s3)
         request_id = result_data.get("request_id")
         file_name = f"aws_errors/{request_id}.json"
-        json_data = json.dumps(result_data)
-        s3_utils.save_file_in_aws(
-            json_data, file_name, content_type="application/json")
+        s3_utils.save_json_file(result_data, file_name)
 
 
 def send_simple_response(event, context, errors=None, result=None):
@@ -167,43 +165,32 @@ class BotoUtils:
             self.dev_resource = boto3.resource(service)
         self.errors = []
 
-    def get_object_file(self, file, file_type="csv", delimiter="|"):
-        import csv
-        import io
-
+    def get_streaming_body(self, file, read=False):
         content_object = self.dev_resource.Object(
             bucket_name=self.bucket_name,
             key=f"{self.aws_location}/{file}")
-        streaming_body_1 = content_object.get()['Body']
-        if file_type == "gz":
-            return streaming_body_1
+        streaming_body = content_object.get()['Body']
+        if content_object.content_encoding == "gzip":
+            import gzip
+            streaming_body = gzip.GzipFile(fileobj=streaming_body)
+        if read:
+            streaming_body = streaming_body.read()
+        return streaming_body
 
-        object_final = streaming_body_1.read()
-        # if file_type == "json":
-        # if file.endswith(".csv") or file_type == "csv"
-        if file_type == "csv":
-            # object_final = io.BytesIO(streaming_body_1.read())
-            object_final = object_final.decode("utf-8")
-            csv_content = csv.reader(
-                io.StringIO(object_final), delimiter=delimiter)
-            return csv_content
-        elif file_type == "csv_to_gz":
-            return object_final
-        else:
-            return io.BytesIO(object_final)
+    def get_object_csv(self, file, delimiter="|"):
+        import csv
+        from io import StringIO
+        object_final = self.get_streaming_body(file, read=True)
+        object_final = object_final.decode("utf-8")
+        string_object = StringIO(object_final)
+        csv_content = csv.reader(string_object, delimiter=delimiter)
+        return csv_content
 
-    def get_csv_lines(self, file, file_type="csv"):
-        import io
-
-        content_object = self.dev_resource.Object(
-            bucket_name=self.bucket_name,
-            key=f"{self.aws_location}/{file}"
-        )
-        streaming_body_1 = content_object.get()['Body']
-        object_final = io.BytesIO(streaming_body_1.read())
+    def get_object_bytes(self, file):
+        from io import BytesIO
+        object_final = self.get_streaming_body(file, read=True)
+        object_final = BytesIO(object_final)
         return object_final
-        # if file_type == "json":
-        # if file.endswith(".csv") or file_type == "csv"
 
     def get_json_file(self, file_name, decode="utf-8"):
         import json
@@ -216,10 +203,9 @@ class BotoUtils:
 
     def save_file_in_aws(
             self, body, final_name, content_type="text/csv",
-            storage_class="STANDARD"):
+            storage_class="STANDARD", is_gzip=False):
 
         final_object = {
-            "Body": body,
             "Bucket": self.bucket_name,
             "Key": f"{self.aws_location}/{final_name}",
             "ACL": "public-read",
@@ -227,10 +213,51 @@ class BotoUtils:
         }
         if content_type:
             final_object["ContentType"] = content_type
-
+        if is_gzip:
+            final_object["ContentEncoding"] = "gzip"
+            body = self._compress_content(body)
+        final_object["Body"] = body
         success_file = self.s3_client.put_object(**final_object)
         if not success_file:
             self.errors.append(f"Error al guardar el archivo {final_name}")
+
+    def save_csv_in_aws(
+            self, buffer, final_name, storage_class="STANDARD", is_gzip=False):
+        object_file = buffer.getvalue()
+        self.save_file_in_aws(
+            object_file, final_name, content_type="text/csv",
+            storage_class=storage_class, is_gzip=is_gzip)
+
+    def save_json_file(self, json_object, final_name):
+        import json
+        object_file = json.dumps(json_object)
+        self.save_file_in_aws(
+            object_file, final_name, content_type="text/json")
+
+    def _compress_content(self, content):
+        from gzip import GzipFile
+        from io import BytesIO
+
+        content.seek(0)
+        gz_buffer = BytesIO()
+        with GzipFile(mode='wb', fileobj=gz_buffer, mtime=0.0) as gz_file:
+            gz_file.write(content.read())
+        gz_buffer.seek(0)
+        gz_object = gz_buffer.getvalue()
+        return gz_object
+
+    def move_and_zip_file(
+            self, path_origin, path_destiny, storage_class="STANDARD"):
+
+        if path_origin.endswith(".csv") or path_origin.endswith(".txt"):
+            file_object = self.get_object_bytes(path_origin)
+            self.save_file_in_aws(
+                file_object, path_destiny, storage_class=storage_class,
+                is_gzip=True)
+        else:
+            self.change_storage_class(
+                path_origin, storage_class=storage_class,
+                path_destiny=path_destiny)
 
     def change_storage_class(
         self,
@@ -256,6 +283,14 @@ class BotoUtils:
             }
         }
         self.s3_client.copy(**final_object)
+        # if path_destiny and path_origin != path_destiny:
+        #     self.delete_file(path_origin)
+
+    def delete_file(self, file_name):
+        self.s3_client.delete_object(
+            Bucket=self.bucket_name,
+            Key=f"{self.aws_location}/{file_name}"
+        )
 
     def check_exist(self, file_name):
         try:

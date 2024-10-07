@@ -129,7 +129,8 @@ class BuildWeekAws:
             if model == "diagnosis_rx" and not self.diagnosis_rx_count:
                 continue
             name = self.final_path.replace("NEW_ELEM_NAME", model)
-            self.s3_utils.save_file_in_aws(self.csvs[model].getvalue(), name)
+            self.s3_utils.save_csv_in_aws(
+                self.csvs[model], name, storage_class="STANDARD_IA")
             result[f"{model}_path"] = name
 
         return result
@@ -180,7 +181,7 @@ class BuildWeekAws:
         # every_rows = []
         for table_file in table_files:
             file = table_file["file"]
-            csv_content = self.s3_utils.get_object_file(file)
+            csv_content = self.s3_utils.get_object_csv(file)
             real_models = []
             inits = None
             for idx_row, row in enumerate(csv_content):

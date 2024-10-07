@@ -93,12 +93,12 @@ class Serverless:
 
     def _execute_in_lambda(self):
         from scripts.common import start_session
-        s3_client, dev_resource = start_session("lambda")
+        lambda_client, dev_resource = start_session("lambda")
         # function_name = task_function.lambda_function or task_function.name
         function_final = f"{self.function_name}:normal"
         dumb_params = json.dumps(self.params)
         try:
-            response = s3_client.invoke(
+            response = lambda_client.invoke(
                 FunctionName=function_final,
                 InvocationType='Event',
                 LogType='Tail',

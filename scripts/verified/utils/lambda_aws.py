@@ -32,7 +32,6 @@ def upload_to_s3(zip_file, function_name):
         Key=f"{aws_location}/{final_path}",
         Body=zip_file,
         Bucket=bucket_name,
-        #ACL='public-read',
     )
     return success_file, final_path
 

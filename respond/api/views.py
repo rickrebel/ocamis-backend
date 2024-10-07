@@ -89,6 +89,8 @@ class AscertainableViewSet(CreateRetrieveView):
 
     def create(self, request, petition_file_control_id=False, **kwargs):
         from geo.models import Agency
+        from storages.backends.s3boto3 import S3Boto3Storage
+        from respond.models import get_path_with_petition
 
         data_file = request.data
         pfc = PetitionFileControl.objects.get(id=petition_file_control_id)

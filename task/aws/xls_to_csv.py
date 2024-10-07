@@ -42,7 +42,7 @@ def lambda_handler(event, context):
         data_excel.to_csv(
             csv_buffer, index=False, header=False, sep="|", escapechar="\\")
         final_name = f"{only_name}_SHEET_{sheet_name}.csv"
-        s3_utils.save_file_in_aws(csv_buffer.getvalue(), final_name)
+        s3_utils.save_csv_in_aws(csv_buffer, final_name, is_gzip=True)
         head_excel = data_excel.head(n_rows)
         iter_data_head = head_excel.apply(clean_na, axis=1)
         list_val_head = iter_data_head.tolist()
@@ -54,8 +54,7 @@ def lambda_handler(event, context):
             "all_data": list_val_head,
             "tail_data": list_val_tail,
         }
-        sheet_sample = json.dumps(sheet_sample)
-        s3_utils.save_file_in_aws(sheet_sample, sheet_sample_name)
+        s3_utils.save_json_file(sheet_sample, sheet_sample_name)
         all_sheets[sheet_name] = {
             # "all_data": list_val_head,
             # "tail_data": list_val_tail,

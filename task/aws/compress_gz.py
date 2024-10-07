@@ -25,7 +25,8 @@ class CompressGz:
         errors = []
 
         compressed_path = f"{file}.gz"
-        file_bytes = self.s3_utils.get_object_file(file, "csv_to_gz")
+        streaming_body = self.s3_utils.get_streaming_body(file)
+        file_bytes = streaming_body.read()
 
         gz_buffer = BytesIO()
         with gzip.GzipFile(mode='wb', fileobj=gz_buffer) as gz_file:

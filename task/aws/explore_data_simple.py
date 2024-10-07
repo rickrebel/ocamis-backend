@@ -31,7 +31,7 @@ def lambda_handler(event, context):
     s3 = event.get("s3")
     s3_utils = BotoUtils(s3)
 
-    complete_file = s3_utils.get_csv_lines(file)
+    complete_file = s3_utils.get_object_bytes(file)
     data_rows = complete_file.readlines()
     # print("INICIO", data_rows)
     total_rows = len(data_rows)
@@ -60,8 +60,7 @@ def lambda_handler(event, context):
             "all_data": validated_data_default[:200],
             "tail_data": validated_tail,
         }
-        sample_data = json.dumps(sample_data)
-        s3_utils.save_file_in_aws(sample_data, sample_path)
+        s3_utils.save_json_file(sample_data, sample_path)
 
         validated_data = {
             "default": {

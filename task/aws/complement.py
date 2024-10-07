@@ -30,7 +30,7 @@ class GetAllRows:
     def __call__(self, file):
 
         file_type = "json" if self.is_prepare else "csv"
-        complete_file = self.s3_utils.get_csv_lines(file, file_type)
+        complete_file = self.s3_utils.get_object_bytes(file, file_type)
         if self.is_prepare:
             complete_file = json.loads(complete_file.read())
             data_rows = complete_file.get("all_data", [])
@@ -372,14 +372,10 @@ class Buffers(Report):
                 "model": cat_model["model"],
                 "path": only_name,
             })
-            value = self.csvs[cat_name].getvalue()
-            self.s3_utils.save_file_in_aws(value, only_name)
-            # value = self.csvs[cat_name].getvalue()
-            # self.s3_utils.save_file_in_aws(value, file_name)
+            self.s3_utils.save_csv_in_aws(
+                self.csvs[cat_name], only_name, storage_class="STANDARD_IA")
 
     def save_csvs_by_date(self):
-        # value = self.csvs_by_date[complex_date].getvalue()
-        # self.s3_utils.save_file_in_aws(value, file_name)
         for complex_date, csv_file in self.csvs_by_date.items():
             iso_year, iso_week, iso_delegation, year, month = complex_date
             date_list = list(complex_date)
@@ -399,7 +395,8 @@ class Buffers(Report):
                 "drugs_count": self.totals_by_date[complex_date]["drugs_count"],
                 "rx_count": self.totals_by_date[complex_date]["rx_count"],
             })
-            self.s3_utils.save_file_in_aws(csv_file.getvalue(), only_name)
+            self.s3_utils.save_csv_in_aws(
+                csv_file, only_name, storage_class="STANDARD_IA", is_gzip=True)
 
 
 class DateTime:

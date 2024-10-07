@@ -83,14 +83,12 @@ def start_session(service='s3', endpoint_url=None):
             retries={'max_attempts': 0},
             s3={"use_accelerate_endpoint": True, "addressing_style": "path"}
         )
-    # print("endpoint_url", endpoint_url)
     s3_client = boto3.client(
         service,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
         region_name=region_aws,
         config=config,
-        # endpoint_url=endpoint_url,
     )
     if service == 's3':
         s3_resource = boto3.resource(
@@ -102,39 +100,6 @@ def start_session(service='s3', endpoint_url=None):
         return s3_client, s3_resource
     else:
         return s3_client, None
-
-
-def get_file(file_obj, dev_resource=None):
-    if dev_resource:
-        try:
-            content_object = dev_resource.Object(
-                bucket_name=bucket_name,
-                key=f"{aws_location}/{file_obj.file.name}"
-                )
-            return content_object.get()['Body']
-        except Exception as e:
-            print(e)
-            return {"errors": [f"Error leyendo los datos: {e}"]}
-    else:
-        return file_obj.final_path
-
-
-def get_csv_file(file_obj, s3_client=None):
-    import pandas as pd
-    if s3_client:
-        try:
-            content_object = s3_client.get_object(
-                Bucket=bucket_name,
-                Key=f"{aws_location}/{file_obj.file.name}")
-            # print(BytesIO(content_object['Body'].read()))
-            csv_file = BytesIO(content_object['Body'].read())
-            return pd.read_csv(csv_file, on_bad_lines='skip')
-            # return pd.read_csv(BytesIO(content_object['Body'].read()))
-        except Exception as e:
-            print(e)
-            return {"errors": [f"Error leyendo los datos: {e}"]}
-    else:
-        return file_obj.final_path
 
 
 def create_file_big_back(file_obj, zip_content, only_name, s3_client=None):

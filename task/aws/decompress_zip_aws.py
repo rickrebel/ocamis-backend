@@ -30,13 +30,14 @@ class Decompress:
         # self.s3_utils = BotoUtils(event["s3"])
         self.s3_utils = BotoUtils(event.get("s3"))
         file = event["file"]
-        self.object_bytes = self.s3_utils.get_object_file(file, "zip")
+        self.object_file = self.s3_utils.get_streaming_body(file, read=True)
 
     def decompress(
-            self, suffixes, upload_path, prev_directory="", object_bytes=None):
+            self, suffixes, upload_path, prev_directory="", object_file=None):
         from io import BytesIO
-        if not object_bytes:
-            object_bytes = self.object_bytes
+        if not object_file:
+            object_file = self.object_file
+        object_bytes = BytesIO(object_file)
         if '.zip' in suffixes:
             zip_file = zipfile.ZipFile(object_bytes)
         elif '.rar' in suffixes:
@@ -84,19 +85,27 @@ class Decompress:
 
             # evaluate if file_name is a .zip or .rar file
             if only_name.endswith(".zip") or only_name.endswith(".rar"):
-                object_bytes = zip_file.open(zip_elem).read()
-                real_object_bytes = BytesIO(object_bytes)
+                new_object_bytes = zip_file.open(zip_elem).read()
+                # real_object_bytes = BytesIO(object_bytes)
                 directory += f"/{only_name.replace('.', '_')}"
                 # print("zip or rar file")
                 # print("file_name", file_name)
                 # print("directory", directory)
                 self.decompress(
-                    file_name, upload_path, directory, real_object_bytes)
+                    file_name, upload_path, directory, new_object_bytes)
             else:
                 final_path = upload_path.replace("NEW_FILE_NAME", file_name)
                 file_bytes = zip_file.open(zip_elem).read()
+                storage_class = "GLACIER_IR"
+                is_gzip = False
+                content_type = None
+                if file_name.endswith(".csv"):
+                    storage_class = "STANDARD"
+                    is_gzip = True
+                    content_type = "text/csv"
                 self.s3_utils.save_file_in_aws(
-                    file_bytes, final_path, content_type=None)
+                    file_bytes, final_path, content_type=content_type,
+                    storage_class=storage_class, is_gzip=is_gzip)
                 # print("final_path", final_path)
                 # print("directory", directory)
                 self.result["files"].append(

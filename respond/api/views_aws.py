@@ -49,9 +49,7 @@ def move_and_duplicate(data_files, petition, request):
         for data_file in data_files:
             if is_duplicate:
                 new_file = data_file
-                new_file.pk = None
-                new_file.petition_file_control = pet_file_ctrl
-                new_file.finished_stage('initial|finished')
+                new_file.reset_initial(pet_file_ctrl)
             else:
                 data_file.petition_file_control = pet_file_ctrl
                 data_file.reset_initial()

@@ -34,7 +34,7 @@ class RebuildWeekAws:
         self.context = context
 
     def rebuild_mats_csv(self):
-        csv_content = self.s3_utils.get_object_file(
+        csv_content = self.s3_utils.get_object_csv(
             self.final_path, delimiter=",")
         current_rows = []
         has_id = False
@@ -55,11 +55,11 @@ class RebuildWeekAws:
                     new_row.append(value)
             current_rows.append(new_row)
         self.buffer.writerows(current_rows)
-        self.s3_utils.save_file_in_aws(self.csv.getvalue(), self.result_path)
+        self.s3_utils.save_csv_in_aws(self.csv, self.result_path)
         return {}
 
     def rebuild_week_csv(self):
-        csv_content = self.s3_utils.get_object_file(self.final_path)
+        csv_content = self.s3_utils.get_object_csv(self.final_path)
         # headers = next(csv_content)
         # print("headers", headers)
         current_rows = []
@@ -84,7 +84,7 @@ class RebuildWeekAws:
                 example_prints += 1
             current_rows.append(row)
         self.buffer.writerows(current_rows)
-        self.s3_utils.save_file_in_aws(self.csv.getvalue(), self.final_path)
+        self.s3_utils.save_csv_in_aws(self.csv, self.final_path)
         result = {
             "week_record_id": self.week_record_id,
             "drugs_count": total_rows

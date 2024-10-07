@@ -32,7 +32,7 @@ class GetDrugs:
 
         all_drugs = []
         for table_file in self.table_files:
-            csv_content = self.s3_utils.get_object_file(table_file)
+            csv_content = self.s3_utils.get_object_csv(table_file)
             # not_med_column = False
             for idx, cols in enumerate(csv_content):
                 if not idx:

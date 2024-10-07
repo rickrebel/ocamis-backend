@@ -73,8 +73,7 @@ class SampleFile:
             raise ValueError("No sample data provided")
         dump_sample = json.dumps(self.sample_data)
         self.build_path_name(cat_name=cat_name)
-        self.s3_utils.save_file_in_aws(
-            dump_sample, self.final_path, "text/json")
+        self.s3_utils.save_json_file(dump_sample, self.final_path)
         return self.final_path
 
     def save_sample(self, file_obj, sample_data):

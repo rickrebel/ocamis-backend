@@ -45,18 +45,6 @@ class DataUtilsMix:
         self.save()
         return self
 
-    def reset_initial(self):
-        self.stage_id = 'initial'
-        self.status_id = 'finished'
-        self.sheet_files.all().delete()
-        self.filtered_sheets = []
-        self.total_rows = 0
-        self.suffix = None
-        self.warnings = None
-        self.error_process = None
-        self.save()
-        return self
-
     def add_warning(self, warning_text):
         current_warnings = self.warnings or []
         if warning_text not in current_warnings:

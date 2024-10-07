@@ -78,8 +78,7 @@ class MatchOld:
 
         self.catalogs = {}
 
-        s3_client, dev_resource = start_session()
-        self.s3_client = s3_client
+        self.s3_client = None
 
         # self.claves_medico_dict = {}
         # self.catalog_clues = {}

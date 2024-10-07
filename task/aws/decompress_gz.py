@@ -26,17 +26,16 @@ class Gz:
         decompressed_path = file.replace(".gz", "")
         pos_slash = decompressed_path.rfind("/")
         only_name = decompressed_path[pos_slash + 1:]
-        is_gz = file.endswith(".gz")
-        file_type = "gz" if is_gz else "csv"
 
-        file_obj = self.s3_utils.get_object_file(file, file_type)
-
-        if is_gz:
-            with gzip.GzipFile(fileobj=file_obj) as gzip_file:
+        if file.endswith(".gz"):
+            streaming_body_1 = self.s3_utils.get_streaming_body(file)
+            with gzip.GzipFile(fileobj=streaming_body_1) as gzip_file:
                 result, errors = self.write_split_files(gzip_file, only_name)
         else:
-            with file_obj.get()['Body'] as csv_file:
-                result, errors = self.write_split_files(csv_file, only_name)
+            file_obj = self.s3_utils.get_object_csv(file)
+            # with file_obj.get()['Body'] as csv_file:
+            #     result, errors = self.write_split_files(csv_file, only_name)
+            result, errors = self.write_split_files(file_obj, only_name)
         result["matched"] = True
         result["file_type"] = "split"
         errors += self.s3_utils.errors
@@ -96,7 +95,6 @@ class Gz:
                 "all_data": header_validated,
                 "tail_data": tail_validated,
             }
-            split_sample = json.dumps(split_sample)
 
             file_num += 1
             curr_only_name = f"{base_name}_{file_num}.{extension}"
@@ -106,13 +104,13 @@ class Gz:
             curr_sample_name = self.directory.replace(
                 "NEW_FILE_NAME", curr_sample_name)
 
-            self.s3_utils.save_file_in_aws(split_sample, curr_sample_name)
+            self.s3_utils.save_json_file(split_sample, curr_sample_name)
 
             total_rows = len(buf)
             buf = b"".join(buf)
             # print("len buf", len(buf))
             # print("rr_file_name", curr_only_name)
-            self.s3_utils.save_file_in_aws(buf, curr_only_name)
+            self.s3_utils.save_file_in_aws(buf, curr_only_name, is_gzip=True)
             current_file = {
                 "total_rows": total_rows,
                 "final_path": curr_only_name,

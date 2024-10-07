@@ -22,7 +22,13 @@ def join_path(elems, filename):
     if settings.IS_LOCAL:
         elems.insert(0, "localhost")
     elems.append(filename)
-    return "/".join(elems)
+    all_together = "/".join(elems)
+    folders = all_together.split("/")
+    final_directory = []
+    for folder in folders:
+        if folder not in final_directory:
+            final_directory.append(folder)
+    return "/".join(final_directory)
 
 
 def get_elems_by_provider(provider, first_elem=None):
@@ -45,7 +51,6 @@ def get_path_with_petition(
 
 def set_upload_data_file_path(
         data_file, filename, first_elem="data", collection_name=None):
-    pet_obj = data_file.petition_file_control.petition
     last_elems = []
     if collection_name:
         last_elems.append(collection_name)
@@ -54,6 +59,7 @@ def set_upload_data_file_path(
         last_elems.append(f"rf_{reply_file.id}")
         if data_file.directory:
             last_elems += data_file.directory.split("/")
+    pet_obj = data_file.petition_file_control.petition
     return get_path_with_petition(
         pet_obj, filename, first_elem, last_elems=last_elems)
 
@@ -138,10 +144,10 @@ class ReplyFile(models.Model):
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
 
-        if can_delete_s3:
-            self.file.delete(save=False)
-        else:
-            print("No se pueden borrar archivos en AWS")
+        # if can_delete_s3:
+        #     self.file.delete(save=False)
+        # else:
+        #     print("No se pueden borrar archivos en AWS")
 
         super().delete(*args, **kwargs)
 
@@ -162,7 +168,9 @@ class ReplyFile(models.Model):
         db_table = "inai_replyfile"
 
 
-params_glacier_ir = {"object_parameters": {"StorageClass": "GLACIER_IR"}}
+# params_glacier_ir = {"object_parameters": {"StorageClass": "GLACIER_IR"}}
+params_glacier_ir = {"gzip": True, "object_parameters": {
+    "StorageClass": "GLACIER_IR"}}
 
 
 class DataFile(models.Model, DataUtilsMix):
@@ -170,6 +178,8 @@ class DataFile(models.Model, DataUtilsMix):
     file = models.FileField(
         max_length=255, upload_to=set_upload_data_file_path,
         storage=S3Boto3Storage(**params_glacier_ir))
+    # file = models.FileField(
+    #     max_length=255, upload_to=set_upload_data_file_path)
     provider = models.ForeignKey(
         Provider, related_name="data_files", on_delete=models.CASCADE)
     # zip_path = models.TextField(blank=True, null=True)
@@ -236,12 +246,47 @@ class DataFile(models.Model, DataUtilsMix):
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
 
-        if can_delete_s3:
-            self.file.delete(save=False)
-        else:
-            print("No se pueden borrar archivos en AWS")
+        # if can_delete_s3:
+        #     self.file.delete(save=False)
+        # else:
+        #     print("No se pueden borrar archivos en AWS")
 
         super().delete(*args, **kwargs)
+
+    def reset_initial(self, pet_file_ctrl=None):
+        self.status_id = 'finished'
+        self.filtered_sheets = []
+        self.warnings = None
+        self.error_process = None
+
+        if self.stage_id == 'explore' and not pet_file_ctrl:
+            self.stage_id = 'initial'
+            self.sheet_files.all().delete()
+            self.total_rows = 0
+            self.suffix = None
+            self.save()
+        else:
+            self.stage_id = 'explore'
+            sheet_files = self.sheet_files.all().values(
+                "file", "sheet_name", "file_type",
+                "sample_data", "sample_file", "total_rows")
+            sheet_files = list(sheet_files)
+            if pet_file_ctrl:
+                self.pk = None
+                self.petition_file_control = pet_file_ctrl
+                self.save()
+            if not pet_file_ctrl:
+                self.sheet_files.all().delete()
+            for sheet_file in sheet_files:
+                self.sheet_files.create(
+                    data_file=self,
+                    file=sheet_file["file"],
+                    sheet_name=sheet_file["sheet_name"],
+                    file_type=sheet_file["file_type"],
+                    sample_data=sheet_file["sample_data"],
+                    sample_file=sheet_file["sample_file"],
+                    total_rows=sheet_file["total_rows"])
+        return self
 
     @property
     def final_path(self):
@@ -353,13 +398,11 @@ class SheetFile(models.Model):
     file = models.FileField(
         max_length=255, upload_to=set_upload_sheet_file_path,
         storage=S3Boto3Storage(**params_glacier_ir))
-    # file_type = models.ForeignKey(
-    #     FileType, on_delete=models.CASCADE, blank=True, null=True)
     file_type = models.CharField(max_length=20, blank=True, null=True)
 
     matched = models.BooleanField(blank=True, null=True)
     sheet_name = models.CharField(max_length=255, blank=True, null=True)
-    # En algún momento hay que borrar esto
+    # En algún momento hay que borrar este campo
     sample_data = JSONField(
         blank=True, null=True, default=default_explore_data)
     sample_file = models.FileField(
@@ -395,9 +438,6 @@ class SheetFile(models.Model):
     behavior = models.ForeignKey(
         Behavior, on_delete=models.CASCADE, default='pending',
         verbose_name="merge behavior")
-    # completed_rows = models.IntegerField(default=0)
-    # inserted_rows = models.IntegerField(default=0)
-    # all_results = JSONField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if self.pk and can_delete_s3:
@@ -415,10 +455,10 @@ class SheetFile(models.Model):
         if some_inserted:
             raise Exception(
                 "No se puede eliminar un archivo con datos insertados")
-        if can_delete_s3:
-            self.file.delete(save=False)
-        else:
-            print("No se pueden borrar archivos en AWS")
+        # if can_delete_s3:
+        #     self.file.delete(save=False)
+        # else:
+        #     print("No se pueden borrar archivos en AWS")
         super().delete(using, keep_parents)
 
     @property
@@ -534,7 +574,8 @@ class LapSheet(models.Model):
         db_table = "inai_lapsheet"
 
 
-params_standard_ia = {"object_parameters": {"StorageClass": "STANDARD_IA"}}
+params_standard_ia = {"gzip": True, "object_parameters": {
+    "StorageClass": "STANDARD_IA"}}
 
 
 class TableFile(models.Model):

@@ -97,7 +97,7 @@ def upload_s3_files(local_file, s3_dir):
     # print("s3: ", s3)
     print("start time: ", timezone.now())
 
-    s3_client, s3_resource = start_session(endpoint_url="True")
+    s3_client, _ = start_session(endpoint_url="True")
     # s3_client = boto3.client(
     #     "s3",
     #     aws_access_key_id=s3["aws_access_key_id"],
@@ -113,13 +113,6 @@ def upload_s3_files(local_file, s3_dir):
     print("local_file: ", local_file)
     print("s3_file: ", s3_file)
     try:
-        # s3_client.put_object(
-        #     Bucket=bucket_name,
-        #     Key=f"{aws_location}/{final_name}",
-        #     Body=csv_buffer.getvalue(),
-        #     ContentType="text/csv",
-        #     ACL="public-read",
-        # )
         s3_client.upload_file(local_file, bucket_name, s3_file)
         print("Upload Successful")
         print("end time: ", timezone.now())

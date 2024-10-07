@@ -498,7 +498,7 @@ def upload_medicament_keys(provider_id=3):
         "key2, own_key2, medicine_type, component_name, presentation_type, "
         "presentation_description, container_name"]
     for table_file in table_files:
-        csv_content = s3_utils.get_object_file(table_file)
+        csv_content = s3_utils.get_object_csv(table_file)
         for (idx, row) in enumerate(csv_content):
             if idx == 0:
                 continue

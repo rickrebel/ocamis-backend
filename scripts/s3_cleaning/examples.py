@@ -1,8 +1,12 @@
 from scripts.s3_cleaning.clean_bucket import CleanBucket
 
 
+x = CleanBucket(aws_location="data_files/req_")
+x.get_files_in_s3()
+x.get_files_in_db()
+
+
 x = CleanBucket(aws_location="data_files/")
-x.excluded_dirs.append("catalog/")
 x()
 
 x = CleanBucket(aws_location="data_files/aws_errors")

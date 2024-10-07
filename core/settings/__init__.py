@@ -209,6 +209,10 @@ AWS_S3_FILE_OVERWRITE = getenv_bool('AWS_S3_FILE_OVERWRITE', False)
 
 URL_AMAZON_S3_FILES_UPLOADED = os.getenv('URL_AMAZON_S3_FILES_UPLOADED')
 
+AWS_IS_GZIPPED = getenv_bool('AWS_IS_GZIPPED', False)
+
+GZIP_CONTENT_TYPES = set(getenv_list('GZIP_CONTENT_TYPES', []))
+
 if AWS_STORAGE_BUCKET_NAME:
     INSTALLED_APPS += ("storages", )
 # -------------------------------END STORAGE---------------------------------

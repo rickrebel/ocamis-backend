@@ -37,7 +37,9 @@ class SplitAws:
 
     def split_horizontal(self, csv_file):
         import pandas as pd
-        csv_content = self.s3_utils.get_object_file(csv_file, file_type="nada")
+        from io import BytesIO
+        csv_content = self.s3_utils.get_streaming_body(csv_file, read=True)
+        csv_content = BytesIO(csv_content)
 
         df = pd.read_csv(csv_content, delimiter="|", escapechar="\\")
         # only_name = event["only_name"]
@@ -54,7 +56,9 @@ class SplitAws:
                              header=False, sep="|", escapechar="\\")
             final_name = self.final_path.replace("NEW_ELEM_NAME", "destination")
             final_name = f"{final_name}_DEST_{destination}.csv"
-            self.s3_utils.save_file_in_aws(csv_buffer.getvalue(), final_name)
+            self.s3_utils.save_csv_in_aws(
+                csv_buffer, final_name, storage_class="GLACIER_IR",
+                is_gzip=True)
             new_files.append(final_name)
 
         return {

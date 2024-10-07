@@ -58,7 +58,7 @@ class SaveCats(QueryExecution):
 
     def _join_all_files(self, table_files_paths):
         for csv_path in table_files_paths:
-            csv_content = self.s3_utils.get_object_file(csv_path)
+            csv_content = self.s3_utils.get_object_csv(csv_path)
             for (idx, row) in enumerate(csv_content):
                 if idx == 0:
                     headers = self._reconfig_headers(row)
