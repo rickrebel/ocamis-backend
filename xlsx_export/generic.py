@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import io
 from rest_framework.response import Response
 from rest_framework import views, status
 from django.utils.decorators import method_decorator
@@ -288,19 +289,25 @@ class FastBasicExport(GenericBasicExport):
         return Response({"msg": "Se genero el archivo %s" % (file_name)})
 
 
-def export_xlsx(name="test.xlsx", data=None):
+def export_xlsx(name="test.xlsx", data=None, in_memory=False):
     import xlsxwriter
-    workbook = xlsxwriter.Workbook(name)
+    output = None
+    if in_memory:
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {"in_memory": True})
+    else:
+        workbook = xlsxwriter.Workbook(name)
+
     id_index = 0
     if data is None:
         data = []
-    for worksheet in data:
+    for worksheet_data in data:
         id_index += 1
-        name = worksheet.get("name", "page %s" % id_index)
-        table_data = worksheet.get("table_data", [])
-        columns_width = worksheet.get("columns_width")
-        columns_width_pixel = worksheet.get("columns_width_pixel")
-        max_decimal = worksheet.get("max_decimal", 1)
+        name = worksheet_data.get("name", "page %s" % id_index)
+        table_data = worksheet_data.get("table_data", [])
+        columns_width = worksheet_data.get("columns_width")
+        columns_width_pixel = worksheet_data.get("columns_width_pixel")
+        max_decimal = worksheet_data.get("max_decimal", 1)
         # Create a workbook and add a worksheet.
         # ----------------------------------------------------------
         worksheet = workbook.add_worksheet(name)
@@ -347,6 +354,9 @@ def export_xlsx(name="test.xlsx", data=None):
                 col += 1
             row += 1
     workbook.close()
+    if in_memory:
+        output.seek(0)
+        return output
 
 
 def get_attr(obj, attr, **kwargs):

@@ -1,3 +1,6 @@
+from django.http import HttpResponse
+from mat.api.drug_export_utils import DrugExport
+from xlsx_export.generic import export_xlsx
 from . import serializers
 from rest_framework import permissions, views, status
 from rest_framework.response import Response
@@ -217,91 +220,26 @@ class DrugViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=False)
     def export(self, request):
-        from django.db.models import F, Sum
-        from django.apps import apps
 
         provider_id = request.data.get('provider')
         component_id = request.data.get('component', 96)
         therapeutic_group_id = request.data.get('therapeutic_group', None)
 
-        key_values = {
-            "provider": "Institución proveedora",  # Provider.acronym
-            "therapeutic_group": "Grupo terapeútico",  # TherapeuticGroup.name
-            "component": "Componente",  # Component.name
-            "year": "año",
-            "month": "mes",
-            "year_week": "Semana y año epidemiológico (yyyy-ww)",
-            "prescribed": "Unidades prescritas",
-            "delivered": "Unidades entregadas",
-            "total": "Recetas",
-        }
+        report_name = "reporte.xlsx"
 
-        def build_query(is_total=False):
-            prefetches = []
-            if is_total:
-                prefetches = ['week_record']
+        drug_export = DrugExport(
+            provider_id, component_id, therapeutic_group_id)
 
-            # prev_iso = "" if is_mini else "week_record__"
-            prev_iso = "week_record__"
-            field_ent = f"{prev_iso}provider_id"
-            first_values = {
-                'year_week': f'{prev_iso}year_week',
-                'year': f'{prev_iso}year',
-                'month': f'{prev_iso}month',
-                'provider': field_ent,
-            }
+        drugs_data = drug_export.build_worksheet_data("medicamentos")
+        totals_data = drug_export.build_worksheet_data(
+            "totales", is_total=True)
 
-            comp_string = "medicament__container__presentation__component"
-            if not is_total:
-                field_comp = f"{comp_string}_id"
-            else:
-                field_comp = 'container__presentation__component_id'
+        excel_file = export_xlsx(
+            report_name, [drugs_data, totals_data], in_memory=True)
 
-            query_filter = {f"{prev_iso}iso_year__gte": 2017}
-            if provider_id:
-                query_filter[field_ent] = provider_id
+        response = HttpResponse(
+            excel_file, content_type='application/vnd.openxmlformats-'
+            'officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{report_name}"'
 
-            if not is_total:
-                if not (therapeutic_group_id or component_id):
-                    first_values['therapeutic_group'] = f"{comp_string}__groups__id"
-                if therapeutic_group_id:
-                    query_filter[f'{comp_string}__groups__id'] = therapeutic_group_id
-                if therapeutic_group_id:
-                    first_values['component'] = field_comp
-                if component_id:
-                    field = 'medicament__container__presentation__component_id'
-                    query_filter[field] = component_id
-
-            annotates = {
-                'total': Sum('total'),
-                'delivered': Sum('delivered_total'),
-                'prescribed': Sum('prescribed_total'),
-            }
-            display_values = [v for v in annotates.keys()]
-            for key, value in first_values.items():
-                if key != value:
-                    annotates[key] = F(value)
-                display_values.append(key)
-            order_values = ["year", "month", "year_week"]
-            # prev_model = "Mother" if is_big_active else "Mat"
-            # model = "Totals" if is_total else "Priority"
-            model = "Totals" if is_total else "Entity"
-            model_name = f"MatDrug{model}2"
-            # print("model_name: ", model_name)
-            app_label = "formula"
-            mother_model = apps.get_model(app_label, model_name)
-
-            return mother_model.objects \
-                .filter(**query_filter) \
-                .prefetch_related(*prefetches) \
-                .values(*first_values.values()) \
-                .annotate(**annotates) \
-                .values(*display_values) \
-                .order_by(*order_values)
-
-        data = {
-            'drugs': list(build_query()),
-            'totals': list(build_query(is_total=True)),
-        }
-
-        return Response(data, status=status.HTTP_200_OK)
+        return response
