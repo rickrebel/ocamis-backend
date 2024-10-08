@@ -6,8 +6,7 @@ from task.aws.common import (
     calculate_delivered_final, send_simple_response, BotoUtils,
     convert_to_str, text_normalizer, DeliveredCalculator,
     ValueProcessError, EarlyResult)
-from task.aws.complement import (
-    GetAllRows, Buffers, DateTime)
+from task.aws.complement import GetAllRows, Buffers, DateTime
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
