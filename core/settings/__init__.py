@@ -273,3 +273,6 @@ TEMPLATES = [
     },
 ]
 # -------------------------------END TEMPLATES-------------------------------
+
+
+FILES_IN_S3_CSV_FILE_PATH = os.getenv("FILES_IN_S3_CSV_FILE_PATH")
