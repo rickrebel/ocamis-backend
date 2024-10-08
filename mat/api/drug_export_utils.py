@@ -77,10 +77,10 @@ class DrugExport:
         self.is_total = is_total
         is_complex = True
         is_mini = not is_total and not self.has_delegation
-        self.first_values['iso_week'] = f'{prev_iso}iso_week'
-        self.first_values['iso_year'] = f'{prev_iso}iso_year'
 
         field_ent, field_comp = self.build_base_data(is_mini)
+        self.first_values['iso_week'] = f'{prev_iso}iso_week'
+        self.first_values['iso_year'] = f'{prev_iso}iso_year'
         some_drug = self.container_id or self.presentation_id or self.component_id
 
         if self.provider_id:
@@ -139,8 +139,8 @@ class DrugExport:
         # is_complex = is_total or bool(clues_id)
         self.is_total = is_total
         is_mini = not is_total and not self.has_delegation
-        self.first_values['year_week'] = f'{prev_iso}year_week'
         field_ent, field_comp = self.build_base_data(is_mini)
+        self.first_values['year_week'] = f'{prev_iso}year_week'
 
         # if clues_id:
         #     query_filter['clues_id'] = clues_id
@@ -188,7 +188,10 @@ class DrugExport:
             if key != value:
                 annotates[key] = F(value)
             display_values.append(key)
-        order_values = ["year", "month", "iso_year", "iso_week"]
+        all_order_values = ["year", "month", "iso_year", "iso_week", "year_week"]
+        order_values = [
+            v for v in all_order_values if v in self.first_values.items()]
+
         if self.by_delegation:
             order_values.insert(0, "delegation")
         # prev_model = "Mother" if is_big_active else "Mat"
