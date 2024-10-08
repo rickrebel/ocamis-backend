@@ -1,4 +1,5 @@
 
+import csv
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -17,10 +18,11 @@ class CleanBucket:
     dict_files_in_db: Dict[str, int] = {}
     orphans: List = []
     responses: List = []
+    in_s3_by_csv: bool = False
 
     def __init__(
             self, aws_location="", limit=10000, exclude_recent=False,
-            run=True, only_imss=False):
+            run=True, only_imss=False, in_s3_by_csv=True):
         import boto3
         from django.conf import settings
         from scripts.common import build_s3
@@ -62,6 +64,7 @@ class CleanBucket:
             "already_exist": 0,
             "clone_saved": 0,
         }
+        self.in_s3_by_csv = in_s3_by_csv
 
     def __call__(self):
         self.get_files_in_db()
@@ -88,24 +91,55 @@ class CleanBucket:
                 model_file_query.values_list('file', flat=True)[i:i+1000])
 
     def get_files_in_s3(self):
+        self.files_in_s3 = []
+
         print("Getting files in s3: ", datetime.now().strftime("%H:%M:%S"))
 
-        if self.include_dirs:
-            all_bucket_files = []
-            for included_dir in self.include_dirs:
-                all_bucket_files += self.my_bucket.objects.filter(
-                    Prefix=f"{self.global_aws_location}{included_dir}")
-        else:
-            all_bucket_files = self.my_bucket.objects.filter(
-                Prefix=self.aws_location)
-        for bucket_obj in all_bucket_files:
-            bucket_obj_key = bucket_obj.key.replace(self.global_aws_location, "")
+        if not self.in_s3_by_csv:
+
+            if self.include_dirs:
+                all_bucket_files = []
+                for included_dir in self.include_dirs:
+                    all_bucket_files += self.my_bucket.objects.filter(
+                        Prefix=f"{self.global_aws_location}{included_dir}")
+            else:
+                all_bucket_files = self.my_bucket.objects.filter(
+                    Prefix=self.aws_location)
+
+            for bucket_obj in all_bucket_files:
+                bucket_obj_key = bucket_obj.key.replace(
+                    self.global_aws_location, '')
+                if any(
+                    bucket_obj_key.startswith(excluded_dir)
+                    for excluded_dir in self.excluded_dirs
+                ):
+                    continue
+                self.files_in_s3.append((bucket_obj_key, bucket_obj.size))
+            return
+
+        csv_file_path = getattr(settings, "FILES_IN_S3_CSV_FILE_PATH")
+        try:
+            with open(csv_file_path, mode='r') as file:
+                reader = csv.reader(file)
+                lines = [row for row in reader]
+        except FileNotFoundError:
+            print("No se encontro el archivo csv")
+            return
+
+        for line in lines:
+            line_count = len(line)
+            bucket_obj_key = line[1] if line_count > 1 else ""
+            bucket_obj_size = line[2] if line_count > 2 else 0
+            if not bucket_obj_key or not isinstance(bucket_obj_key, str):
+                continue
+
             if any(
                 bucket_obj_key.startswith(excluded_dir)
                 for excluded_dir in self.excluded_dirs
             ):
                 continue
-            self.files_in_s3.append((bucket_obj_key, bucket_obj.size))
+
+            self.files_in_s3.append((bucket_obj_key, bucket_obj_size))
 
     def find_orphans(self):
         print("Finding orphans: ", datetime.now().strftime("%H:%M:%S"))
@@ -127,7 +161,8 @@ class CleanBucket:
         print(f"Total size of orphans: {total_size/(1024*1024)} MB")
 
     def clean_orphans(self, delete_lote=1000):
-        self.responses = delete_files(self.orphans, self.my_bucket, delete_lote)
+        self.responses = delete_files(
+            self.orphans, self.my_bucket, delete_lote)
 
     def copy_new_file(self, file_obj, new_file_path, is_clone=False):
         full_name = file_obj.file.name
