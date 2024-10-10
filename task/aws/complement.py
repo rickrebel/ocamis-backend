@@ -30,7 +30,7 @@ class GetAllRows:
     def __call__(self, file):
 
         file_type = "json" if self.is_prepare else "csv"
-        complete_file = self.s3_utils.get_object_bytes(file, file_type)
+        complete_file = self.s3_utils.get_object_bytes(file)
         if self.is_prepare:
             complete_file = json.loads(complete_file.read())
             data_rows = complete_file.get("all_data", [])
@@ -395,6 +395,8 @@ class Buffers(Report):
                 "drugs_count": self.totals_by_date[complex_date]["drugs_count"],
                 "rx_count": self.totals_by_date[complex_date]["rx_count"],
             })
+            # self.s3_utils.save_csv_in_aws(
+            #     csv_file, only_name, storage_class="STANDARD_IA", is_gzip=True)
             self.s3_utils.save_csv_in_aws(
                 csv_file, only_name, storage_class="STANDARD_IA", is_gzip=True)
 
@@ -458,5 +460,4 @@ class DateTime:
             error = "No se pudo convertir la fecha"
             raise ValueProcessError(error, value)
         return value
-
 

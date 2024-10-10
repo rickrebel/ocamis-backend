@@ -190,7 +190,7 @@ class DrugExport:
             display_values.append(key)
         all_order_values = ["year", "month", "iso_year", "iso_week", "year_week"]
         order_values = [
-            v for v in all_order_values if v in self.first_values.items()]
+            v for v in all_order_values if v in self.first_values.keys()]
 
         if self.by_delegation:
             order_values.insert(0, "delegation")

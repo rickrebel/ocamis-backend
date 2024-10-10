@@ -842,6 +842,7 @@ class TransformToCsv:
             folio_encoded = folio_document.encode(self.decode_final)
             hash_key = hashlib.md5(folio_encoded).hexdigest()
             folio_document = hash_key[:40]
+            available_data["folio_document"] = folio_document
 
         folio_ocamis = "|".join([
             str(self.provider_id),
