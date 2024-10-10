@@ -92,7 +92,7 @@ class InsertQueryExecution(QueryExecution):
     def send_to_deep(self, event):
         for month_path in event.get("month_paths", []):
             try:
-                self.s3_utils.change_storage_class(month_path, "DEEP-ARCHIVE")
+                self.s3_utils.change_storage_class(month_path, "DEEP_ARCHIVE")
             except Exception as e:
                 self.errors.append(
                     f"Error al enviar a deep: {month_path}; {str(e)}")
