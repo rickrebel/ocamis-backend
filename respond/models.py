@@ -271,7 +271,8 @@ class DataFile(models.Model, DataUtilsMix):
                 "file", "sheet_name", "file_type",
                 "sample_data", "sample_file", "total_rows")
             sheet_files = list(sheet_files)
-            self.petition_file_control = pet_file_ctrl
+            if pet_file_ctrl:
+                self.petition_file_control = pet_file_ctrl
             if is_duplicate:
                 self.pk = None
             else:

@@ -51,7 +51,6 @@ def move_and_duplicate(data_files, petition, request):
                 new_file = data_file
                 new_file.reset_initial(pet_file_ctrl, is_duplicate=True)
             else:
-                # data_file.petition_file_control = pet_file_ctrl
                 data_file.reset_initial(pet_file_ctrl, is_duplicate=False)
 
     else:
