@@ -72,7 +72,7 @@ class InsertMonth:
             f"NEW_ELEM_NAME/NEW_ELEM_NAME_by_week_{complement_name}_"
             f"{str(iso_delegation)}.csv")
         elems = get_elems_by_provider(self.provider, "merged_tables")
-        elems.append(week_record.year)
+        elems.append(str(week_record.year))
         # provider_type = self.provider.provider_type[:8].lower()
         # acronym = self.provider.acronym.lower()
         # final_path = "/".join([provider_type, acronym, only_name])

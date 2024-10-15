@@ -6,8 +6,7 @@ from task.aws.common import (
     calculate_delivered_final, send_simple_response, BotoUtils,
     convert_to_str, text_normalizer, DeliveredCalculator,
     ValueProcessError, EarlyResult)
-from task.aws.complement import (
-    GetAllRows, Buffers, DateTime)
+from task.aws.complement import GetAllRows, Buffers, DateTime
 
 
 # def start_build_csv_data(event, context={"request_id": "test"}):
@@ -843,6 +842,7 @@ class TransformToCsv:
             folio_encoded = folio_document.encode(self.decode_final)
             hash_key = hashlib.md5(folio_encoded).hexdigest()
             folio_document = hash_key[:40]
+            available_data["folio_document"] = folio_document
 
         folio_ocamis = "|".join([
             str(self.provider_id),

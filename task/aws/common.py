@@ -201,9 +201,34 @@ class BotoUtils:
 
         return json.loads(obj['Body'].read().decode(decode))
 
+    def _compress_content(self, content, is_raw=False):
+        from gzip import GzipFile
+        from io import BytesIO
+        if not is_raw:
+            content.seek(0)
+
+        # if is_gzip:
+        #     if len(body) < 5000:
+        #         is_gzip = False
+
+        gz_buffer = BytesIO()
+        read_content = content.encode("utf-8") if is_raw else content.read()
+        # size = len(read_content)
+        # print("-" * 50)
+        # print("is_raw", is_raw)
+        # print("size", size)
+        # if size < 5000:
+        #     print("El archivo es muy pequeño para comprimir")
+        #     raise ValueProcessError("El archivo es muy pequeño para comprimir")
+
+        with GzipFile(mode='wb', fileobj=gz_buffer, mtime=0.0) as gz_file:
+            gz_file.write(read_content)
+        gz_buffer.seek(0)
+        return gz_buffer.getvalue()
+
     def save_file_in_aws(
             self, body, final_name, content_type="text/csv",
-            storage_class="STANDARD", is_gzip=False):
+            storage_class="STANDARD", is_gzip=False, is_raw=False):
 
         final_object = {
             "Bucket": self.bucket_name,
@@ -213,9 +238,14 @@ class BotoUtils:
         }
         if content_type:
             final_object["ContentType"] = content_type
+
         if is_gzip:
-            final_object["ContentEncoding"] = "gzip"
-            body = self._compress_content(body)
+            try:
+                body = self._compress_content(body, is_raw)
+                final_object["ContentEncoding"] = "gzip"
+            except Exception as e:
+                pass
+
         final_object["Body"] = body
         success_file = self.s3_client.put_object(**final_object)
         if not success_file:
@@ -226,7 +256,7 @@ class BotoUtils:
         object_file = buffer.getvalue()
         self.save_file_in_aws(
             object_file, final_name, content_type="text/csv",
-            storage_class=storage_class, is_gzip=is_gzip)
+            storage_class=storage_class, is_gzip=is_gzip, is_raw=True)
 
     def save_json_file(self, json_object, final_name):
         import json
@@ -234,19 +264,7 @@ class BotoUtils:
         self.save_file_in_aws(
             object_file, final_name, content_type="text/json")
 
-    def _compress_content(self, content):
-        from gzip import GzipFile
-        from io import BytesIO
-
-        content.seek(0)
-        gz_buffer = BytesIO()
-        with GzipFile(mode='wb', fileobj=gz_buffer, mtime=0.0) as gz_file:
-            gz_file.write(content.read())
-        gz_buffer.seek(0)
-        gz_object = gz_buffer.getvalue()
-        return gz_object
-
-    def move_and_zip_file(
+    def move_and_gzip_file(
             self, path_origin, path_destiny, storage_class="STANDARD"):
 
         if path_origin.endswith(".csv") or path_origin.endswith(".txt"):

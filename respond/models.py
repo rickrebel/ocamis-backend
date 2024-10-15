@@ -88,7 +88,7 @@ def set_upload_table_file_path(table_file, filename):
             data_file, filename, first_elem, collection_name)
     elems = get_elems_by_provider(table_file.provider, first_elem)
     elems.append(collection_name)
-    elems.append(table_file.week_record.year)
+    elems.append(str(table_file.week_record.year))
     return join_path(elems, filename)
 
 
@@ -274,9 +274,9 @@ class DataFile(models.Model, DataUtilsMix):
             if pet_file_ctrl:
                 self.pk = None
                 self.petition_file_control = pet_file_ctrl
-                self.save()
             if not pet_file_ctrl:
                 self.sheet_files.all().delete()
+            self.save()
             for sheet_file in sheet_files:
                 self.sheet_files.create(
                     data_file=self,
@@ -653,7 +653,7 @@ class TableFile(models.Model):
 
 def final_month_path(month_record, filename):
     elems = get_elems_by_provider(month_record.provider, "month_tables")
-    elems.append(month_record.year or "ND")
+    elems.append(str(month_record.year) or "ND")
     return join_path(elems, filename)
 
 

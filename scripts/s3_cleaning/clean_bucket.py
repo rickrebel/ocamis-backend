@@ -19,6 +19,7 @@ class CleanBucket:
     orphans: List = []
     responses: List = []
     in_s3_by_csv: bool = False
+    global_aws_location = f"{getattr(settings, 'AWS_LOCATION', '')}/"
 
     def __init__(
             self, aws_location="", limit=10000, exclude_recent=False,
@@ -31,7 +32,6 @@ class CleanBucket:
         bucket_name = getattr(settings, "AWS_STORAGE_BUCKET_NAME")
         aws_access_key_id = getattr(settings, "AWS_ACCESS_KEY_ID")
         aws_secret_access_key = getattr(settings, "AWS_SECRET_ACCESS_KEY")
-        self.global_aws_location = getattr(settings, "AWS_LOCATION", "")
         s3 = boto3.resource(
             's3', aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key)
@@ -90,37 +90,41 @@ class CleanBucket:
             self.files_in_db.extend(
                 model_file_query.values_list('file', flat=True)[i:i+1000])
 
+    def _get_s3_with_list_objects(self):
+        if self.include_dirs:
+            all_bucket_files = []
+            for included_dir in self.include_dirs:
+                all_bucket_files += self.my_bucket.objects.filter(
+                    Prefix=f"{self.global_aws_location}{included_dir}")
+        else:
+            all_bucket_files = self.my_bucket.objects.filter(
+                Prefix=self.aws_location)
+
+        for bucket_obj in all_bucket_files:
+            bucket_obj_key = bucket_obj.key.replace(
+                self.global_aws_location, '')
+            if any(
+                    bucket_obj_key.startswith(excluded_dir)
+                    for excluded_dir in self.excluded_dirs
+            ):
+                continue
+            self.files_in_s3.append((bucket_obj_key, bucket_obj.size))
+
     def get_files_in_s3(self):
+        from urllib.parse import unquote
         self.files_in_s3 = []
 
         print("Getting files in s3: ", datetime.now().strftime("%H:%M:%S"))
 
         if not self.in_s3_by_csv:
+            return self._get_s3_with_list_objects()
 
-            if self.include_dirs:
-                all_bucket_files = []
-                for included_dir in self.include_dirs:
-                    all_bucket_files += self.my_bucket.objects.filter(
-                        Prefix=f"{self.global_aws_location}{included_dir}")
-            else:
-                all_bucket_files = self.my_bucket.objects.filter(
-                    Prefix=self.aws_location)
-
-            for bucket_obj in all_bucket_files:
-                bucket_obj_key = bucket_obj.key.replace(
-                    self.global_aws_location, '')
-                if any(
-                    bucket_obj_key.startswith(excluded_dir)
-                    for excluded_dir in self.excluded_dirs
-                ):
-                    continue
-                self.files_in_s3.append((bucket_obj_key, bucket_obj.size))
-            return
-
+        # backups/cdn-desabasto/inventory_ocamis/data/
         csv_file_path = getattr(settings, "FILES_IN_S3_CSV_FILE_PATH")
         try:
             with open(csv_file_path, mode='r') as file:
                 reader = csv.reader(file)
+                # data_files/estatal/ichihs/080140423000144/2%20Surtido.xlsx_SHEET_Sheet%201.csv
                 lines = [row for row in reader]
         except FileNotFoundError:
             print("No se encontro el archivo csv")
@@ -130,8 +134,11 @@ class CleanBucket:
             line_count = len(line)
             bucket_obj_key = line[1] if line_count > 1 else ""
             bucket_obj_size = line[2] if line_count > 2 else 0
+            bucket_obj_key = unquote(bucket_obj_key)
             if not bucket_obj_key or not isinstance(bucket_obj_key, str):
                 continue
+
+            bucket_obj_key = bucket_obj_key.replace(self.global_aws_location, '')
 
             if any(
                 bucket_obj_key.startswith(excluded_dir)

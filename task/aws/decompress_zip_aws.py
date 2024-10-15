@@ -96,13 +96,13 @@ class Decompress:
             else:
                 final_path = upload_path.replace("NEW_FILE_NAME", file_name)
                 file_bytes = zip_file.open(zip_elem).read()
-                storage_class = "GLACIER_IR"
-                is_gzip = False
                 content_type = None
                 if file_name.endswith(".csv"):
-                    storage_class = "STANDARD"
-                    is_gzip = True
                     content_type = "text/csv"
+                elif file_name.endswith(".txt"):
+                    content_type = "text/plain"
+                is_gzip = bool(content_type)
+                storage_class = "STANDARD" if is_gzip else "GLACIER_IR"
                 self.s3_utils.save_file_in_aws(
                     file_bytes, final_path, content_type=content_type,
                     storage_class=storage_class, is_gzip=is_gzip)
