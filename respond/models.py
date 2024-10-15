@@ -253,13 +253,13 @@ class DataFile(models.Model, DataUtilsMix):
 
         super().delete(*args, **kwargs)
 
-    def reset_initial(self, pet_file_ctrl=None):
+    def reset_initial(self, pet_file_ctrl=None, is_duplicate=False):
         self.status_id = 'finished'
         self.filtered_sheets = []
         self.warnings = None
         self.error_process = None
 
-        if self.stage_id == 'explore' and not pet_file_ctrl:
+        if self.stage_id == 'explore' and not is_duplicate:
             self.stage_id = 'initial'
             self.sheet_files.all().delete()
             self.total_rows = 0
@@ -271,10 +271,10 @@ class DataFile(models.Model, DataUtilsMix):
                 "file", "sheet_name", "file_type",
                 "sample_data", "sample_file", "total_rows")
             sheet_files = list(sheet_files)
-            if pet_file_ctrl:
+            self.petition_file_control = pet_file_ctrl
+            if is_duplicate:
                 self.pk = None
-                self.petition_file_control = pet_file_ctrl
-            if not pet_file_ctrl:
+            else:
                 self.sheet_files.all().delete()
             self.save()
             for sheet_file in sheet_files:
