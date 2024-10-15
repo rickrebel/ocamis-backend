@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 from mat.api.drug_export_utils import DrugExport
+from scripts.storage_utils.save_file import upload_file_to_storage
 from xlsx_export.generic import export_xlsx
 from . import serializers
 from rest_framework import permissions, views, status
@@ -212,9 +213,9 @@ class DrugViewSet(ListRetrieveUpdateMix):
         excel_file = export_xlsx(
             report_name, [drugs_data, totals_data], in_memory=True)
 
-        response = HttpResponse(
-            excel_file, content_type='application/vnd.openxmlformats-'
-            'officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename="{report_name}"'
+        excel_file_url = upload_file_to_storage(
+            excel_file, sub_path="drugs_exports", unique_name=True)
 
-        return response
+        return Response({
+            "excel_file_url": excel_file_url
+        }, status=status.HTTP_200_OK)
