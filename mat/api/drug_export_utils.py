@@ -24,14 +24,14 @@ class DrugExport:
             by_delegation: bool = False,
     ):
 
-        self.provider_id = req_data.get("provider_id")
-        self.component_id = req_data.get("component_id")
-        self.therapeutic_group_id = req_data.get("therapeutic_group_id")
+        self.provider_id = req_data.get("provider")
+        self.component_id = req_data.get("component")
+        self.therapeutic_group_id = req_data.get("therapeutic_group")
         self.has_delegation = req_data.get("has_delegation")
-        self.delegation_id = req_data.get("delegation_id")
-        self.container_id = req_data.get("container_id")
-        self.presentation_id = req_data.get("presentation_id")
-        self.components_ids = req_data.get("components_ids", [])
+        self.delegation_id = req_data.get("delegation")
+        self.container_id = req_data.get("container")
+        self.presentation_id = req_data.get("presentation")
+        self.components_ids = req_data.get("components", [])
         self.by_delegation = by_delegation
         self.prefetches = []
         self.is_total = False
@@ -201,6 +201,12 @@ class DrugExport:
         # print("model_name: ", model_name)
         app_label = "formula"
         mother_model = apps.get_model(app_label, model_name)
+        print("query_filter: ", self.query_filter)
+        print("prefetches: ", self.prefetches)
+        print("first_values: ", self.first_values)
+        print("annotates: ", annotates)
+        print("display_values: ", display_values)
+        print("order_values: ", order_values)
 
         mother_model_query = mother_model.objects \
             .filter(**self.query_filter) \
