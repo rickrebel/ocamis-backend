@@ -46,6 +46,7 @@ def move_and_duplicate(data_files, petition, request):
                     detail="No se envió un id de file_control válido")
             except Exception as e:
                 raise ParseError(detail=e)
+        print("pet_file_ctrl", pet_file_ctrl)
         for data_file in data_files:
             if is_duplicate:
                 new_file = data_file

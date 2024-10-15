@@ -274,9 +274,9 @@ class DataFile(models.Model, DataUtilsMix):
             if pet_file_ctrl:
                 self.pk = None
                 self.petition_file_control = pet_file_ctrl
-                self.save()
             if not pet_file_ctrl:
                 self.sheet_files.all().delete()
+            self.save()
             for sheet_file in sheet_files:
                 self.sheet_files.create(
                     data_file=self,
