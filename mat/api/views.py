@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from mat.api.drug_export_utils import DrugExport
-from scripts.storage_utils.save_file import upload_file_to_storage
+# from scripts.storage_utils.save_file import upload_file_to_storage
 from xlsx_export.generic import export_xlsx
 from . import serializers
 from rest_framework import permissions, views, status
@@ -202,6 +202,9 @@ class DrugViewSet(ListRetrieveUpdateMix):
 
     @action(methods=["post"], detail=False)
     def export(self, request):
+        from task.aws.common import BotoUtils
+        from django.utils import timezone
+        from django.conf import settings
 
         report_name = "reporte.xlsx"
         drug_export = DrugExport(request.data)
@@ -210,12 +213,15 @@ class DrugViewSet(ListRetrieveUpdateMix):
         totals_data = drug_export.build_worksheet_data(
             "totales", is_total=True)
 
+        boto_s3 = BotoUtils()
+        now = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+        path_url = f"exports/drugs{now}.xlsx"
+
         excel_file = export_xlsx(
             report_name, [drugs_data, totals_data], in_memory=True)
-
-        excel_file_url = upload_file_to_storage(
-            excel_file, sub_path="drugs_exports", unique_name=True)
-
+        content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        boto_s3.save_file_in_aws(
+            excel_file, path_url, content_type=content_type)
         return Response({
-            "excel_file_url": excel_file_url
+            "excel_file_url": boto_s3.get_full_path(path_url)
         }, status=status.HTTP_200_OK)

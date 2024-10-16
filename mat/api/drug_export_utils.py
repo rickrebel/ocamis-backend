@@ -52,6 +52,7 @@ class DrugExport:
             "component": (Component, "name"),
         }
         self._dict_data = {}
+        self.build_dict_data()
         self.first_values = first_values.copy()
         self.query_filter = {f"{prev_iso}iso_year__gte": 2017}
 
@@ -163,8 +164,7 @@ class DrugExport:
                 self.query_filter[field] = self.component_id
 
         mother_model_query, display_values = self.build_queries()
-
-        worksheet_data = {
+        return {
             "name": worksheet_name,
             "table_data": self.values_to_plane_table(
                 mother_model_query, display_values),
@@ -172,8 +172,6 @@ class DrugExport:
             # "columns_width_pixel": None,
             # "max_decimal": 1
         }
-
-        return worksheet_data
 
     def build_queries(self):
         from django.db.models import Sum, F
@@ -183,11 +181,13 @@ class DrugExport:
             'delivered': Sum('delivered_total'),
             'prescribed': Sum('prescribed_total'),
         }
-        display_values = [v for v in annotates.keys()]
+        display_values = []
+        first_annots = annotates.copy()
         for key, value in self.first_values.items():
             if key != value:
                 annotates[key] = F(value)
             display_values.append(key)
+        display_values += list(first_annots)
         all_order_values = ["year", "month", "iso_year", "iso_week", "year_week"]
         order_values = [
             v for v in all_order_values if v in self.first_values.keys()]
@@ -201,12 +201,13 @@ class DrugExport:
         # print("model_name: ", model_name)
         app_label = "formula"
         mother_model = apps.get_model(app_label, model_name)
-        print("query_filter: ", self.query_filter)
-        print("prefetches: ", self.prefetches)
-        print("first_values: ", self.first_values)
-        print("annotates: ", annotates)
-        print("display_values: ", display_values)
-        print("order_values: ", order_values)
+        # if not self.is_total:
+        #     print("    query_filter: ", self.query_filter)
+        #     print("    prefetches: ", self.prefetches)
+        #     print("    first_values: ", self.first_values)
+        #     # print("    annotates: ", annotates)
+        #     # print("    display_values: ", display_values)
+        #     # print("    order_values: ", order_values)
 
         mother_model_query = mother_model.objects \
             .filter(**self.query_filter) \
@@ -215,6 +216,7 @@ class DrugExport:
             .annotate(**annotates) \
             .values(*display_values) \
             .order_by(*order_values)
+        # print("COUNT", mother_model_query.count())
 
         return mother_model_query, display_values
 
@@ -227,16 +229,16 @@ class DrugExport:
             for header in headers:
                 row = values.get(header, "")
                 if header in self.model_fields:
-                    row = self.dict_data(header).get(row, row)
+                    row = self._dict_data[header].get(row, row)
                 rows_data.append(row)
             data.append(rows_data)
         return data
 
-    def dict_data(self, collection):
-        if not hasattr(self._dict_data, collection):
-            base_model, field = self.model_fields.get(collection)
+    def build_dict_data(self):
+        for collection in self.model_fields.keys():
+            base_model, field = self.model_fields[collection]
             self._dict_data[collection] = {
                 item.id: getattr(item, field)
                 for item in base_model.objects.all()
             }
-        return self._dict_data[collection]
+

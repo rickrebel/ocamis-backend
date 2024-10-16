@@ -163,6 +163,8 @@ class BotoUtils:
         else:
             self.s3_client = boto3.client(service)
             self.dev_resource = boto3.resource(service)
+        region = os.getenv("AWS_S3_REGION_NAME", "us-west-2")
+        self.absolute_path = f"https://{self.bucket_name}.s3.{region}.amazonaws.com"
         self.errors = []
 
     def get_streaming_body(self, file, read=False):
@@ -250,6 +252,7 @@ class BotoUtils:
         success_file = self.s3_client.put_object(**final_object)
         if not success_file:
             self.errors.append(f"Error al guardar el archivo {final_name}")
+        return success_file
 
     def save_csv_in_aws(
             self, buffer, final_name, storage_class="STANDARD", is_gzip=False):
@@ -318,6 +321,9 @@ class BotoUtils:
             return True
         except Exception as e:
             return False
+
+    def get_full_path(self, file_name):
+        return f"{self.absolute_path}/{self.aws_location}/{file_name}"
 
 
 def calculate_delimiter(data):

@@ -88,6 +88,7 @@ class ClusterMix:
         # print("url_paths", url_paths)
         # print("count", len(url_paths))
         files_report = delete_files(url_paths)
+        print("files_report", files_report)
         self.cluster.stage_id = 'clean'
         self.cluster.status_id = 'finished'
         self.cluster.save()
