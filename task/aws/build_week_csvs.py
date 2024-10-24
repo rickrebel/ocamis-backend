@@ -51,7 +51,7 @@ class BuildWeekAws:
                 "basic_fields": [
                     "folio_ocamis", "uuid_folio", "delivered_final_id"]
             },
-            "unique_helpers": {"field": "medicament_key", "jump": True},
+            "unique_helpers": {"field": "medicament_key", "skip": True},
             "complement_drug": {"field": "uuid_comp_drug"},
             "complement_rx": {"field": "uuid_comp_rx"},
             "diagnosis_rx": {"field": "uuid_diag_rx"},
@@ -109,7 +109,7 @@ class BuildWeekAws:
             table_file for table_file in self.week_table_files
             if table_file["sheet_behavior"] == "discard_repeated"]
         if uniques_table_files:
-            self.get_basic_data(uniques_table_files, jump_duplicates=True)
+            self.get_basic_data(uniques_table_files, skip_duplicates=True)
         merge_behaviors = ["need_merge", "merged"]
         merge_table_files = [table_file for table_file in self.week_table_files
                              if table_file["sheet_behavior"] in merge_behaviors]
@@ -149,7 +149,7 @@ class BuildWeekAws:
                 index = row.index(field)
                 table_file["inits"].append(index)
                 table_file["real_models"].append(model)
-                if values.get("jump"):
+                if values.get("skip"):
                     continue
                 if model not in self.real_models:
                     self.real_models.append(model)
@@ -175,8 +175,8 @@ class BuildWeekAws:
 
         return table_file
 
-    def get_basic_data(self, table_files, jump_duplicates=False):
-        print("jump_duplicates", jump_duplicates)
+    def get_basic_data(self, table_files, skip_duplicates=False):
+        # print("skip_duplicates", skip_duplicates)
         every_rows = []
         # every_rows = []
         for table_file in table_files:
@@ -194,12 +194,12 @@ class BuildWeekAws:
                     current_row[model] = get_data_from_row(row, table_file, idx)
                 every_rows.append(current_row)
 
-        self.write_basic_tables(every_rows, jump_duplicates)
+        self.write_basic_tables(every_rows, skip_duplicates)
 
-    def write_basic_tables(self, rows, jump_duplicates=False):
+    def write_basic_tables(self, rows, skip_duplicates=False):
         every_folios = {}
         every_unique_keys = set()
-        jumps = 0
+        skips = 0
 
         for row in rows:
             self.final_row = {}
@@ -244,10 +244,10 @@ class BuildWeekAws:
                     data[-1] = self.week_record_id
                 self.final_row[model] = data
 
-            if jump_duplicates:
+            if skip_duplicates:
                 unique_key = (folio_ocamis, medicament_id)
                 if unique_key in every_unique_keys:
-                    jumps += 1
+                    skips += 1
                     continue
                 every_unique_keys.add(unique_key)
 

@@ -42,7 +42,7 @@ class InsertQueryExecution(QueryExecution):
             event.get("insert_queries", []), need_sleep=True)
         if export_tables_s3 := event.get("export_tables_s3", []):
             self.execute_many_queries(export_tables_s3, need_sleep=True)
-            self.send_to_deep(event)
+            # self.send_to_deep(event)
         self.execute_many_queries(event.get("drop_queries", []))
         if last_query := event.get("last_query"):
             self.execute_query(last_query)

@@ -21,18 +21,18 @@ class DrugExport:
     def __init__(
             self,
             req_data: dict,
-            by_delegation: bool = False,
+            # by_delegation: bool = False,
     ):
 
         self.provider_id = req_data.get("provider")
         self.component_id = req_data.get("component")
         self.therapeutic_group_id = req_data.get("therapeutic_group")
-        self.has_delegation = req_data.get("has_delegation")
+        # self.has_delegation = req_data.get("has_delegation")
         self.delegation_id = req_data.get("delegation")
         self.container_id = req_data.get("container")
         self.presentation_id = req_data.get("presentation")
         self.components_ids = req_data.get("components", [])
-        self.by_delegation = by_delegation
+        # self.by_delegation = by_delegation
         self.prefetches = []
         self.is_total = False
         self.display_headers = {
@@ -56,15 +56,18 @@ class DrugExport:
         self.first_values = first_values.copy()
         self.query_filter = {f"{prev_iso}iso_year__gte": 2017}
 
-    def build_base_data(self, is_mini):
+    # def build_base_data(self, is_mini):
+    def build_base_data(self):
         self.prefetches = []
-        if not is_mini:
+        # if not is_mini:
+        if self.is_total:
             self.prefetches = ['week_record']
 
         # prev_iso = "" if is_mini else "week_record__"
         field_ent = f"{prev_iso}provider_id"
 
-        if is_mini:
+        # if is_mini:
+        if not self.is_total:
             field_comp = f"{comp_string}_id"
         else:
             field_comp = 'container__presentation__component_id'
@@ -74,30 +77,46 @@ class DrugExport:
         self.query_filter = {f"{prev_iso}iso_year__gte": 2017}
         return field_ent, field_comp
 
+    def build_total_spiral_data(self, group_by=None):
+        self.is_total = True
+        field_ent, _ = self.build_base_data()
+        self.first_values['iso_week'] = f'{prev_iso}iso_week'
+        self.first_values['iso_year'] = f'{prev_iso}iso_year'
+
+        if self.provider_id:
+            self.first_values['provider'] = field_ent
+            self.query_filter[field_ent] = self.provider_id
+
+        if group_by == 'provider':
+            self.first_values['provider'] = field_ent
+        final_query, _ = self.build_queries()
+        return final_query
+
     def build_spiral_data(self, is_total=False, group_by=None):
         self.is_total = is_total
         is_complex = True
-        is_mini = not is_total and not self.has_delegation
+        # is_mini = not is_total and not self.has_delegation
 
-        field_ent, field_comp = self.build_base_data(is_mini)
+        # field_ent, field_comp = self.build_base_data(is_mini)
+        field_ent, field_comp = self.build_base_data()
         self.first_values['iso_week'] = f'{prev_iso}iso_week'
         self.first_values['iso_year'] = f'{prev_iso}iso_year'
         some_drug = self.container_id or self.presentation_id or self.component_id
 
         if self.provider_id:
-            first_values['provider'] = field_ent
+            self.first_values['provider'] = field_ent
             self.query_filter[field_ent] = self.provider_id
 
         if group_by == 'provider':
-            first_values['provider'] = field_ent
+            self.first_values['provider'] = field_ent
             if self.therapeutic_group_id and not is_total and not some_drug:
-                first_values['therapeutic_group'] = f"{comp_string}__groups__id"
+                self.first_values['therapeutic_group'] = f"{comp_string}__groups__id"
                 self.query_filter[f'{comp_string}__groups__id'] = self.therapeutic_group_id
-        elif self.by_delegation:
-            first_values["delegation"] = "delegation_id"
+        # elif self.by_delegation:
+        #     first_values["delegation"] = "delegation_id"
         elif group_by == 'therapeutic_group':
             if not is_total:
-                first_values['therapeutic_group'] = f"{comp_string}__groups__id"
+                self.first_values['therapeutic_group'] = f"{comp_string}__groups__id"
                 # self.query_filter[f'{comp_string}__groups__id'] = self.therapeutic_group_id
         elif group_by == 'component':
             if not is_total:
@@ -106,32 +125,34 @@ class DrugExport:
                 else:
                     self.query_filter[f'{comp_string}__groups__id'] = self.therapeutic_group_id
                     self.query_filter[f'{comp_string}__priority__lt'] = 6
-                first_values['component'] = field_comp
+                self.first_values['component'] = field_comp
 
-        prev_med = "medicament__" if is_mini else ""
+        # prev_med = "medicament__" if is_mini else ""
+        prev_med = "medicament__" if not is_total else ""
         # container__presentation__component
         # container__presentation
-        if is_total:
-            pass
-        # RICK Deshacer este orden
-        elif self.container_id:
-            self.query_filter[f'{prev_med}container_id'] = self.container_id
-        elif self.presentation_id:
-            if is_mini:
-                field = 'medicament__container__presentation_id'
-            elif is_complex:
-                field = 'container__presentation_id'
-            else:
-                field = 'presentation_id'
-            self.query_filter[field] = self.presentation_id
-        elif self.component_id:
-            if is_mini:
-                field = 'medicament__container__presentation__component_id'
-            elif is_complex:
-                field = 'container__presentation__component_id'
-            else:
-                field = 'component_id'
-            self.query_filter[field] = self.component_id
+        if not is_total:
+            # RICK Deshacer este orden
+            if self.container_id:
+                self.query_filter[f'{prev_med}container_id'] = self.container_id
+            elif self.presentation_id:
+                # if is_mini:
+                if not is_total:
+                    field = 'medicament__container__presentation_id'
+                elif is_complex:
+                    field = 'container__presentation_id'
+                else:
+                    field = 'presentation_id'
+                self.query_filter[field] = self.presentation_id
+            elif self.component_id:
+                # if is_mini:
+                if not is_total:
+                    field = 'medicament__container__presentation__component_id'
+                elif is_complex:
+                    field = 'container__presentation__component_id'
+                else:
+                    field = 'component_id'
+                self.query_filter[field] = self.component_id
 
         final_query, _ = self.build_queries()
         return final_query
@@ -139,8 +160,9 @@ class DrugExport:
     def build_worksheet_data(self, worksheet_name="pestaña", is_total=False):
         # is_complex = is_total or bool(clues_id)
         self.is_total = is_total
-        is_mini = not is_total and not self.has_delegation
-        field_ent, field_comp = self.build_base_data(is_mini)
+        # is_mini = not is_total and not self.has_delegation
+        # field_ent, field_comp = self.build_base_data(is_mini)
+        field_ent, field_comp = self.build_base_data()
         self.first_values['year_week'] = f'{prev_iso}year_week'
 
         # if clues_id:
@@ -152,7 +174,8 @@ class DrugExport:
 
         self.first_values['provider'] = field_ent
 
-        if is_mini:
+        # if is_mini:
+        if not is_total:
             if not (self.therapeutic_group_id or self.component_id):
                 self.first_values['therapeutic_group'] = f"{comp_string}__groups__id"
             if self.therapeutic_group_id:
@@ -192,8 +215,8 @@ class DrugExport:
         order_values = [
             v for v in all_order_values if v in self.first_values.keys()]
 
-        if self.by_delegation:
-            order_values.insert(0, "delegation")
+        # if self.by_delegation:
+        #     order_values.insert(0, "delegation")
         # prev_model = "Mother" if is_big_active else "Mat"
         # model = "Totals" if is_total else "Priority"
         model = "Totals" if self.is_total else "Entity"
@@ -201,13 +224,13 @@ class DrugExport:
         # print("model_name: ", model_name)
         app_label = "formula"
         mother_model = apps.get_model(app_label, model_name)
-        # if not self.is_total:
-        #     print("    query_filter: ", self.query_filter)
-        #     print("    prefetches: ", self.prefetches)
-        #     print("    first_values: ", self.first_values)
-        #     # print("    annotates: ", annotates)
-        #     # print("    display_values: ", display_values)
-        #     # print("    order_values: ", order_values)
+        # print("    query_filter: ", self.query_filter)
+        # print("    prefetches: ", self.prefetches)
+        # print("    first_values: ", self.first_values)
+        # print("    annotates: ", annotates)
+        # print("    display_values: ", display_values)
+        # print("    order_values: ", order_values)
+        # print("=" * 50)
 
         mother_model_query = mother_model.objects \
             .filter(**self.query_filter) \

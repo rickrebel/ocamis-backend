@@ -70,6 +70,10 @@ class ProviderViewSet(ListRetrieveUpdateMix):
             return Response(
                 {"error": "No se especificaron meses a mover"},
                 status=status.HTTP_400_BAD_REQUEST)
+        if cluster.stage_id != "init_cluster":
+            error = "El cluster debe estar en la etapa Inicial Cluster"
+            return Response(
+                {"errors": [error]}, status=status.HTTP_400_BAD_REQUEST)
         month_records = MonthRecord.objects.filter(id__in=month_records_ids)
         stage_merge = Stage.objects.get(name="merge")
         some_down = month_records.filter(stage__order__lt=stage_merge.order)
