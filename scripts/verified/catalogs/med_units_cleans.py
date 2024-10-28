@@ -49,8 +49,7 @@ def update_delegation_in_med_units(provider_id):
 def update_clues(field_in_unit, field_in_clues):
     from med_cat.models import MedicalUnit
     from geo.models import CLUES
-    med_units = MedicalUnit.objects.filter(
-        clues__isnull=True)
+    med_units = MedicalUnit.objects.filter(clues__isnull=True)
     success_count = 0
     errors = {
         "CLUES no encontrada": [], "Multiples CLUES": [],
