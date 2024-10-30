@@ -4,7 +4,8 @@ from core.settings.get_env import getenv_bool, getenv_int, getenv_list, getenv_d
 
 load_dotenv()
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
@@ -276,3 +277,5 @@ TEMPLATES = [
 
 
 FILES_IN_S3_CSV_FILE_PATH = os.getenv("FILES_IN_S3_CSV_FILE_PATH")
+
+DRAFT_CLUES_FILE_PATH = os.getenv("DRAFT_CLUES_FILE_PATH")
