@@ -25,7 +25,7 @@ class State(models.Model):
         default=default_alternative_names,
         verbose_name="Lista nombres alternativos",
         help_text="Ocupar para OCAMIS",
-        )
+    )
 
     def __str__(self):
         return self.short_name or self.code_name or self.name
@@ -60,6 +60,9 @@ class Institution(models.Model):
         max_length=255, verbose_name="NOMBRE DE LA INSTITUCION")
     code = models.CharField(
         max_length=20, verbose_name="CLAVE DE LA INSTITUCION")
+    alternative_codes = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name="CLAVES ALTERNATIVAS", help_text="Separadas por coma")
     public_name = models.CharField(
         max_length=255, blank=True, null=True,
         verbose_name="NOMBRE PUBLICO DE LA INSTITUCION")
@@ -71,6 +74,12 @@ class Institution(models.Model):
 
     def __str__(self):
         return self.code or self.public_name or self.name
+
+    def get_codes_list(self):
+        if self.alternative_codes:
+            return [self.code] + self.alternative_codes.split(",")
+
+        return [self.code]
 
     class Meta:
         verbose_name = "Institución"
@@ -154,7 +163,8 @@ class Provider(models.Model):
             sheet_file__data_file__petition_file_control__petition__agency__provider=self,
             inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
@@ -239,7 +249,7 @@ class CLUES(models.Model):
     total_unities = models.IntegerField(
         verbose_name="suma de unidades")
     admin_institution = models.CharField(
-        max_length=80, verbose_name="NOMBRE DE LA INS ADM")
+        max_length=120, verbose_name="NOMBRE DE LA INS ADM")
     atention_level = models.CharField(
         max_length=80, verbose_name="NIVEL ATENCIÓN")
     stratum = models.CharField(
@@ -270,16 +280,16 @@ class CLUES(models.Model):
 
     rr_data = models.TextField(blank=True, null=True)
     alternative_names = JSONField(blank=True, null=True)
-    
-    #Nuevos fields
+
+    # Nuevos fields
     type_street = models.CharField(
-        max_length=80, blank=True, null=True, 
+        max_length=80, blank=True, null=True,
         verbose_name="TIPO DE VIALIDAD")
     street = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name="VIALIDAD")    
+        verbose_name="VIALIDAD")
     streat_number = models.CharField(
-        max_length=80, blank=True, null=True, 
+        max_length=80, blank=True, null=True,
         verbose_name="NÚMERO CALLE")
     suburb = models.CharField(
         max_length=255, blank=True, null=True,
@@ -381,10 +391,10 @@ class Agency(models.Model):
         'Institution', on_delete=models.CASCADE)
     state = models.ForeignKey(
         'State',
-        null= True, blank=True,
+        null=True, blank=True,
         on_delete=models.CASCADE)
     clues = models.ForeignKey(
-        'CLUES', null=True, 
+        'CLUES', null=True,
         blank=True, on_delete=models.CASCADE)
     addl_params = JSONField(blank=True, null=True)
     vigencia = models.BooleanField(
@@ -405,7 +415,8 @@ class Agency(models.Model):
             sheet_file__data_file__petition_file_control__petition__agency=self,
             inserted=True).exists()
         if some_lap_inserted:
-            raise Exception("No se puede eliminar un archivo con datos insertados")
+            raise Exception(
+                "No se puede eliminar un archivo con datos insertados")
         super().delete(*args, **kwargs)
 
     @property
