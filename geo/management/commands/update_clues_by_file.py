@@ -99,10 +99,10 @@ class Command(BaseCommand):
         }
 
         all_institutions = Institution.objects.all()
-        self.institution_dict = {
-            institution.code: institution.pk
-            for institution in all_institutions
-        }
+        self.institution_dict = {}
+        for institution in all_institutions:
+            for code in institution.get_codes_list():
+                self.institution_dict[code] = institution.pk
 
         self.institution_dict["SSA"] = self.institution_dict["INSABI"]
 
@@ -131,6 +131,8 @@ class Command(BaseCommand):
         headers = data_excel.columns
         self.stdout.write(self.style.SUCCESS("headers found"))
 
+        self.new_institutions_names = {}
+
         iter_data = data_excel.apply(clean_na, axis=1)
         list_val = iter_data.tolist()
         if not list_val:
@@ -143,6 +145,8 @@ class Command(BaseCommand):
                 row += [''] * (len(headers) - len(row))
             row_dict = dict(zip(headers, row[:len(headers)]))
             self.match_data(row_dict)
+
+        self.update_institutions_names()
 
     def match_data(self, row_dict: dict):
         clues_key = row_dict.get("CLUES")
@@ -161,12 +165,22 @@ class Command(BaseCommand):
             setattr(clues, model_field, row_dict[xls_field])
 
         for xls_field, model_field in integers_equivalences:
-            setattr(clues, model_field, int(row_dict.get(xls_field, 0)))
+            field_value = row_dict.get(xls_field, 0)
+            if field_value:
+                setattr(clues, model_field, int(field_value))
+            else:
+                if getattr(clues, model_field) is None:
+                    setattr(clues, model_field, 0)
 
         for field in self.sum_fields:
-            setattr(clues, field, sum(
+            field_value = sum(
                 [int(row_dict.get(sub_field, 0))
-                 for sub_field in self.sum_fields[field]]))
+                 for sub_field in self.sum_fields[field]])
+            if field_value:
+                setattr(clues, field, field_value)
+            else:
+                if getattr(clues, field) is None:
+                    setattr(clues, field, 0)
 
         for field in self.concat_fields:
             setattr(clues, field, " ".join(
@@ -193,23 +207,50 @@ class Command(BaseCommand):
         else:
             clues.is_active = False
 
+
         try:
             clues.save()
         except Exception as e:
+            try:
+                clues.full_clean()
+            except Exception as e:
+                self.stdout.write(
+                    self.style.ERROR(f"Error validating clues {clues_key}: {e}"))
+                return
             self.stdout.write(
                 self.style.ERROR(f"Error saving clues {clues_key}: {e}"))
 
     def get_clues(self, row_dict: dict) -> Optional[CLUES]:
         clues_key = row_dict.get("CLUES")
 
+        clave_inst = row_dict.get("CLAVE DE LA INSTITUCION")
+        name_inst = row_dict.get("NOMBRE DE LA INSTITUCION")
+        if clave_inst not in self.new_institutions_names:
+            self.new_institutions_names[clave_inst] = name_inst
+
+        institution_id = self.institution_dict.get(clave_inst)
+        if not institution_id:
+            # self.stdout.write(
+            #     self.style.ERROR(
+            #         f"Error saving clues {clues_key}: "
+            #         f"Institution {clave_inst} not found"))
+            if clave_inst not in self.geo_errors["institution"]:
+                self.geo_errors["institution"].append(clave_inst)
+            return
+
         try:
-            return CLUES.objects.get(clues=clues_key)
+            clues = CLUES.objects.get(clues=clues_key)
+            clues.institution_id = institution_id
+            return clues
+
         except CLUES.DoesNotExist:
             clues = CLUES()
 
+        clues.clues = clues_key
+        clues.institution_id = institution_id
+
         clave_ent = row_dict.get("CLAVE DE LA ENTIDAD")
         clave_mun = f"{clave_ent}-{row_dict.get('CLAVE DEL MUNICIPIO')}"
-        clave_inst = row_dict.get("CLAVE DE LA INSTITUCION")
 
         clues.state_id = self.state_dict.get(clave_ent)
         if not clues.state_id:
@@ -219,16 +260,6 @@ class Command(BaseCommand):
             #         f"State {clave_ent} not found"))
             if clave_ent not in self.geo_errors["state"]:
                 self.geo_errors["state"].append(clave_ent)
-            return
-
-        clues.institution_id = self.institution_dict.get(clave_inst)
-        if not clues.institution_id:
-            # self.stdout.write(
-            #     self.style.ERROR(
-            #         f"Error saving clues {clues_key}: "
-            #         f"Institution {clave_inst} not found"))
-            if clave_inst not in self.geo_errors["institution"]:
-                self.geo_errors["institution"].append(clave_inst)
             return
 
         clues.municipality_id = self.municipality_dict.get(clave_mun)
@@ -273,3 +304,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("All fields are present"))
 
         return all_check_fields
+
+    def update_institutions_names(self):
+        for clave_inst, name_inst in self.new_institutions_names.items():
+            inst_id = self.institution_dict.get(clave_inst)
+            Institution.objects.filter(id=inst_id).update(name=name_inst)
