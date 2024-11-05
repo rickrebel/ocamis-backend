@@ -34,7 +34,7 @@ class GetAllRows:
         if self.is_prepare:
             complete_file = json.loads(complete_file.read())
             data_rows = complete_file.get("all_data", [])
-            if len(data_rows) >= 220:
+            if len(data_rows) >= 198:
                 tail_data = complete_file.get("tail_data", [])
                 data_rows.extend(tail_data)
         else:

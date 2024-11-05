@@ -17,6 +17,7 @@ GROUP_CHOICES = (
     ("register", "Registro de variables"),
     ("provider", "para Proveedores"),
     ("priority", "Prioridad en Solicitudes"),
+    ("medicament", "Medicamentos"),
 )
 
 
