@@ -22,11 +22,18 @@ class Source(models.Model):
 
 class Group(models.Model):
     name = models.CharField(max_length=255)
+    unidecode_name = models.CharField(max_length=255, blank=True, null=True)
     number = models.IntegerField(blank=True, null=True)
     need_survey = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name.strip() or str(self.number)
+    
+    def save(self, *args, **kwargs):
+        from unidecode import unidecode
+        if not self.unidecode_name:
+            self.unidecode_name = unidecode(self.name).lower().strip()
+        return super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Grupo Terapeútico"
@@ -208,7 +215,8 @@ class Container(models.Model):
 
     source_data = models.JSONField(default=dict, blank=True, null=True)
     status_review = models.ForeignKey(
-        StatusControl, blank=True, null=True, on_delete=models.CASCADE)
+        StatusControl, blank=True, null=True, on_delete=models.CASCADE,
+        related_name="containers_review")
 
     def __str__(self):
         return "%s - %s - %s" % (
