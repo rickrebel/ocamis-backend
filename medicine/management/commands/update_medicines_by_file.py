@@ -165,10 +165,16 @@ class Command(BaseCommand):
         if presentation_id:
             presentation = Presentation.objects.get(id=presentation_id)
         else:
-            name = get_priority_value(
-                presentation_data.get("name", {}), "name")
+            name = (
+                get_priority_value(presentation_data.get("name", {}), "name") or
+                "tipo de presentacion no espesificada")
             text = get_priority_value(
-                presentation_data.get("text", {}), "text")
+                presentation_data.get("text", {}), "text") or "compocicion no espesificada"
+
+            if not (name and text):
+                raise ValueError(
+                    "La presentación no tiene nombre ni descripción")
+
             presentation, is_created = Presentation.objects.get_or_create(
                 description=text,
                 presentation_type_raw=name,
@@ -248,8 +254,12 @@ class Command(BaseCommand):
         for presentation_tuple in presentations_list:
             presentation_data = presentation_tuple.get("present")
             containers_data = presentation_tuple.get("containers")
-            presentation = self.update_presentation(
-                presentation_data, component)
+            try:
+                presentation = self.update_presentation(
+                    presentation_data, component)
+            except Exception as e:
+                continue
+
             for container_data in containers_data:
                 self.update_container(container_data, presentation)
 
