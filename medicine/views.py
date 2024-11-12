@@ -1,7 +1,7 @@
 
 medicine_status = [
     {
-        "name": "requiere_review",
+        "name": "required_review",
         "public_name": "Requiere revisión",
         "order": 101,
         "color": "red",
@@ -34,10 +34,10 @@ medicine_status = [
 
 # Equivalencias de íconos a status_final:
 equivalences = [
-    {"summary_icons": "⭕", "status_final_id":  "requiere_review"},
-    {"summary_icons": "3️⃣❌", "status_final_id": "requiere_review"},
-    {"summary_icons": "⚠️2️⃣❌", "status_final_id":  "requiere_review"},
-    {"summary_icons": "2️⃣❌", "status_final_id": "requiere_review"},
+    {"summary_icons": "⭕", "status_final_id":  "required_review"},
+    {"summary_icons": "3️⃣❌", "status_final_id": "required_review"},
+    {"summary_icons": "⚠️2️⃣❌", "status_final_id":  "required_review"},
+    {"summary_icons": "2️⃣❌", "status_final_id": "required_review"},
     {"summary_icons": "3️⃣✴️", "status_final_id": "could_be_reviewed"},
     {"summary_icons": "2️⃣✴️", "status_final_id": "could_be_reviewed"},
     {"summary_icons": "1️⃣️✴️", "status_final_id": "only_one"},
@@ -45,6 +45,7 @@ equivalences = [
     {"summary_icons": "3️⃣✅", "status_final_id": "verified"},
     {"summary_icons": "2️⃣❇️", "status_final_id": "verified"},
 ]
+
 example_source_data = {
     "name": {
         "saved_data": "Ampicilina",

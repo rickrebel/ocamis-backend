@@ -73,4 +73,3 @@ class Command(BaseCommand):
                 main.alias = ", ".join(alias)
                 main.save()
             merge.delete()
-

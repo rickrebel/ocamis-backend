@@ -11,18 +11,21 @@ from unidecode import unidecode
 
 from category.models import StatusControl
 from medicine.models import Component, Container, Group, Presentation
+from medicine.views import equivalences
 
 
 class Command(BaseCommand):
 
     medicine_blocks: List = []
     groups_not_match = []
+    summary_icons_dict = {item["summary_icons"]: item["status_final_id"]
+                          for item in equivalences}
 
     def add_arguments(self, parser):
         parser.add_argument("--path_file", type=str)
 
     def handle(self, *args, path_file: Optional[str] = None, **kwargs):
-        # comprovar si existe el archivo en sistema, validar path_file
+        # comprobar si existe el archivo en sistema, validar path_file
         if not path_file or not path.exists(path_file):
             print(f"El archivo {path_file} no existe")
             return
@@ -93,7 +96,13 @@ class Command(BaseCommand):
                         "present": {}
                     }
 
-            container_data[actual_key][row.get("field")] = dict(
+            field = row.get("field")
+            if actual_key == "present":
+                if field == "name":
+                    field = "description"
+                elif field == "text":
+                    field = "presentation_type_raw"
+            container_data[actual_key][field] = dict(
                 saved_data=row.get("saved_name"),
                 pdf=row.get("pdf"),
                 web=row.get("web"),
@@ -134,6 +143,26 @@ class Command(BaseCommand):
                 component
             )
 
+    def generic_update(self, data: Dict, instance):
+        all_review_status = set()
+        for attribute, values in data.items():
+            if attribute in ["id", "groups"]:
+                continue
+            if summary_icons := values.get("summary_icons"):
+                all_review_status.add(self.summary_icons_dict.get(summary_icons))
+            attribute_value = get_priority_value(values, attribute, instance)
+            setattr(instance, attribute, attribute_value)
+
+        smaller_status_control = StatusControl.objects.filter(
+            name__in=all_review_status).order_by('order').first()
+        if not instance.status_review:
+            instance.status_review = smaller_status_control
+        elif smaller_status_control.order < instance.status_review.order:
+            instance.status_review = smaller_status_control
+        instance.source_data = data
+        instance.save()
+        return instance
+
     def update_component(self, componet_data: Dict) -> Component:
         component_id = componet_data.get("id", None)
         name_data = componet_data.get("name")
@@ -146,46 +175,37 @@ class Command(BaseCommand):
             name = get_priority_value(name_data)
             component, _ = Component.objects.get_or_create(name=name)
 
-        for attribute, data in componet_data.items():
-            if attribute in ["id", "groups"]:
-                continue
-            attribute_value = get_priority_value(data, attribute, component)
-            setattr(component, attribute, attribute_value)
-
-        component.source_data = componet_data  # type: ignore
-
-        component.save()
-        return component
+        return self.generic_update(componet_data, component)
 
     def update_presentation(
             self, presentation_data: Dict, component: Component
     ) -> Presentation:
         presentation_id = presentation_data.get("id", None)
         is_created = False
+        review_status = False
         if presentation_id:
             presentation = Presentation.objects.get(id=presentation_id)
         else:
-            name = (
-                get_priority_value(presentation_data.get("name", {}), "name") or
-                "tipo de presentacion no espesificada")
-            text = get_priority_value(
-                presentation_data.get("text", {}), "text") or "compocicion no espesificada"
-
-            if not (name and text):
-                raise ValueError(
-                    "La presentación no tiene nombre ni descripción")
+            presentation_type_raw = get_priority_value(
+                presentation_data.get("presentation_type_raw", {}),
+                "presentation_type_raw")
+            description = get_priority_value(
+                presentation_data.get("description", {}), "description")
+            if not presentation_type_raw:
+                presentation_type_raw = "tipo de presentación no especificado".upper()
+                review_status = True
+            if not description:
+                description = "composición no especificada".upper()
+                review_status = True
 
             presentation, is_created = Presentation.objects.get_or_create(
-                description=text,
-                presentation_type_raw=name,
+                description=description,
+                presentation_type_raw=presentation_type_raw,
                 component=component
             )
 
-        for attribute, data in presentation_data.items():
-            if attribute in ["id", "groups"]:
-                continue
-            attribute_value = get_priority_value(data, attribute, presentation)
-            setattr(presentation, attribute, attribute_value)
+            if review_status:
+                presentation.status_review_id = "required_review"
 
         groups = get_priority_value(
             presentation_data.get("groups", {}), "groups")
@@ -193,9 +213,18 @@ class Command(BaseCommand):
         u_groups = unidecode(groups or "").lower().strip()
 
         if u_groups and is_created:
-            group_obj, _ = Group.objects.get_or_create(
-                unidecode_name=u_groups, defaults={"name": groups})
-            presentation.groups.add(group_obj)
+            try:
+                group_obj = Group.objects.get(
+                    unidecode_name=u_groups, defaults={"name": groups})
+                presentation.groups.add(group_obj)
+            except Group.DoesNotExist:
+                self.groups_not_match.append(
+                    {
+                        "presentation": presentation, "group": None,
+                        "message": "presentation nueva "
+                        f"No coincide con el grupo actual (no existe) {u_groups}"
+                    }
+                )
         elif u_groups:
             group_obj = Group.objects.filter(unidecode_name=u_groups).first()
             if not group_obj:
@@ -215,10 +244,7 @@ class Command(BaseCommand):
                     }
                 )
 
-        presentation.source_data = presentation_data  # type: ignore
-
-        presentation.save()
-        return presentation
+        return self.generic_update(presentation_data, presentation)
 
     def update_container(
             self, container_data: Dict, presentation: Presentation
@@ -239,16 +265,7 @@ class Command(BaseCommand):
                 print()
                 return
 
-        for attribute, data in container_data.items():
-            if attribute in ["id", "groups"]:
-                continue
-            attribute_value = get_priority_value(data, attribute, container)
-            setattr(container, attribute, attribute_value)
-
-        container.source_data = container_data  # type: ignore
-
-        container.save()
-        return container
+        return self.generic_update(container_data, container)
 
     def update_presentations(self, presentations_list: Dict, component: Component):
         for presentation_tuple in presentations_list:
@@ -274,8 +291,12 @@ class Command(BaseCommand):
             pres_status_final = StatusControl.objects\
                 .filter(containers_review__presentation=presentation)\
                 .order_by('order').first()
-
-            presentation.status_final = pres_status_final
+            if not pres_status_final:
+                print(f"Error al obtener status_final para {presentation}")
+            elif not presentation.status_final:
+                presentation.status_final = pres_status_final
+            elif pres_status_final.order < presentation.status_review.order:
+                presentation.status_final = pres_status_final
             presentation.save()
 
         """
@@ -290,8 +311,10 @@ class Command(BaseCommand):
                 Q(components_review__id=component.pk)
             )\
             .order_by('order').first()
-
-        component.status_final = status_final
+        if not component.status_review:
+            component.status_final = status_final
+        elif status_final.order < component.status_review.order:
+            component.status_final = status_final
         component.save()
 
     def groups_not_match_report(self):
@@ -305,10 +328,10 @@ class Command(BaseCommand):
         for item in self.groups_not_match:
             presentation = item["presentation"]
             group = item["group"]
-            grups_names = ",".join(
+            groups_names = ",".join(
                 presentation.groups.values_list("name", flat=True))
             full_message = (
-                f"{item['message']} - presentation: {grups_names} -"
+                f"{item['message']} - presentation: {groups_names} -"
                 f"Grupo actual: {item['group'].name}" if group else ""
             )
             self.stderr.write(self.style.ERROR(full_message))
@@ -328,3 +351,10 @@ def get_priority_value(data: dict, attribute: str = "", obj=None):
         data.get("saved_name") or
         data.get("web")
     )
+
+# Error al crear container el valor es demasiado largo para el tipo character varying(20)
+#
+# presentation: LITIO
+# key: Envase con 100 tabletas
+#
+# Error al obtener status_final para LITIO

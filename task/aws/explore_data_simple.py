@@ -1,4 +1,3 @@
-# from common import calculate_delimiter, obtain_decode, decode_content, send_simple_response
 from task.aws.common import (
     calculate_delimiter, obtain_decode, decode_content,
     send_simple_response, BotoUtils)
@@ -45,15 +44,16 @@ def lambda_handler(event, context):
     result = {}
     if not decode:
         decode = obtain_decode(data_rows)
+        # print("DECODE", decode)
         if decode == "unknown":
             errors.append("No se pudo decodificar el archivo")
 
     if not errors:
 
-        all_rows = decode_content(data_rows, decode)
+        first_rows = decode_content(data_rows, decode)
         if not delimiter:
-            delimiter = calculate_delimiter(data_rows)
-        validated_data_default = divide_rows(all_rows, delimiter)
+            delimiter = calculate_delimiter(first_rows)
+        validated_data_default = divide_rows(first_rows, delimiter)
         tail_rows = decode_content(tail_data, decode)
         validated_tail = divide_rows(tail_rows, delimiter)
         sample_data = {
