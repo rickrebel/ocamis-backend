@@ -35,6 +35,7 @@ class Decompress:
     def decompress(
             self, suffixes, upload_path, prev_directory="", object_file=None):
         from io import BytesIO
+        import re
         if not object_file:
             object_file = self.object_file
         object_bytes = BytesIO(object_file)
@@ -77,17 +78,19 @@ class Decompress:
                 folders = directory.split("/")
                 final_directory = []
                 for folder in folders:
-                    if folder not in final_directory:
+                    if folder and folder not in final_directory:
                         final_directory.append(folder)
                 directory = "/".join(final_directory)
                 file_name = f"{directory}/{only_name}"
-                file_name = file_name.replace("//", "/")
+                # file_name = file_name.replace("//", "/")
+                file_name = re.sub(r'/+', '/', file_name)
 
             # evaluate if file_name is a .zip or .rar file
             if only_name.endswith(".zip") or only_name.endswith(".rar"):
                 new_object_bytes = zip_file.open(zip_elem).read()
                 # real_object_bytes = BytesIO(object_bytes)
                 directory += f"/{only_name.replace('.', '_')}"
+                directory = re.sub(r'/+', '/', directory)
                 # print("zip or rar file")
                 # print("file_name", file_name)
                 # print("directory", directory)

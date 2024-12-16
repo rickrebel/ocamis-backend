@@ -206,6 +206,8 @@ class PetitionViewSet(ModelViewSet):
         ]
         if limiters:
             all_filters = build_common_filters(limiters, available_filters)
+            if search_text := limiters.get("q"):
+                all_filters["folio_petition__icontains"] = search_text
 
             if limiters.get("selected_year"):
                 if limiters.get("selected_month"):

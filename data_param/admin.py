@@ -187,6 +187,7 @@ class TransformationAdmin(admin.ModelAdmin):
         "name_column",
         "addl_params",
     ]
+    list_filter = ["clean_function"]
     raw_id_fields = ["name_column", "file_control"]
 
 

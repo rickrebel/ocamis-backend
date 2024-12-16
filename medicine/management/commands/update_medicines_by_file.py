@@ -173,7 +173,7 @@ class Command(BaseCommand):
             component = Component.objects.get(id=component_id)
         else:
             name = get_priority_value(name_data)
-            component, _ = Component.objects.get_or_create(name=name)
+            component, _ = Component.objects.get_or_create(name__iexact=name)
 
         return self.generic_update(componet_data, component)
 
@@ -358,3 +358,11 @@ def get_priority_value(data: dict, attribute: str = "", obj=None):
 # key: Envase con 100 tabletas
 #
 # Error al obtener status_final para LITIO
+# presentation preexistente No coincide con el grupo actual - presentation:  Oftalmología -Grupo actual: Nefrología y Urología
+# presentation preexistente No coincide con el grupo actual - presentation:  Endocrinología y Metabolismo -Grupo actual:  Oftalmología
+# presentation preexistente No coincide con el grupo actual - presentation:  Hematología -Grupo actual: Nefrología y Urología
+# presentation preexistente No coincide con el grupo actual - presentation:  Dermatología -Grupo actual:  Oncología
+# presentation preexistente No coincide con el grupo actual - presentation:  Neumología -Grupo actual: Intoxicaciones
+# presentation preexistente No coincide con el grupo actual - presentation:  Neumología -Grupo actual: Nefrología y Urología
+# presentation preexistente No coincide con el grupo actual - presentation:  Hematología -Grupo actual:  Neumología
+# presentation preexistente No coincide con el grupo actual - presentation:  Anestesia -Grupo actual:  Cardiología
