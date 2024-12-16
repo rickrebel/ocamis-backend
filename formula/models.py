@@ -10,7 +10,7 @@ from rds.models import Cluster
 from med_cat.models import (
     Doctor, Diagnosis, Area, MedicalUnit, Medicament, Delivered)
 from geo.models import CLUES, Delegation, Provider
-from medicine.models import Component, Presentation, Container
+from medicine.models import Component, Presentation, Container, ViewMedicine
 
 
 class MedicalSpeciality(models.Model):
@@ -50,6 +50,7 @@ class Rx(models.Model):
     days_between = models.PositiveSmallIntegerField(blank=True, null=True)
     doctor = models.ForeignKey(
         Doctor, blank=True, null=True, on_delete=models.CASCADE)
+    # artificial_folio = models.BooleanField(default=False)
     # diagnosis = models.ForeignKey(
     #     Diagnosis, blank=True, null=True, on_delete=models.CASCADE)
 
@@ -153,6 +154,9 @@ class ComplementDrug(models.Model):
         blank=True, null=True, verbose_name='Fecha de caducidad')
     price = models.FloatField(blank=True, null=True)
     total_price = models.FloatField(blank=True, null=True)
+    # TODO: Agregar campo de marca
+    # brand = models.CharField(
+    #     max_length=255, blank=True, null=True, verbose_name='Marca')
 
     class Meta:
         verbose_name = "Insumos"
@@ -287,17 +291,34 @@ class MatDrugEntity(models.Model):
             self.iso_year, self.iso_week, self.delivered, self.medicament)
 
 
+# ViewDrugEntity2
+# SELECT
+# 	gen_random_uuid() AS uuid,
+# 	'CLUSTER_NAME'::text AS cluster_id,
+# 	drug.week_record_id,
+# 	drug.delivered_id,
+# 	drug.medicament_id,
+# 	COALESCE(sum(drug.prescribed_amount), 0) AS prescribed_total,
+# 	COALESCE(sum(drug.delivered_amount), 0) AS delivered_total,
+# 	count(*) AS total
+# FROM formula_drug drug
+# GROUP BY
+# 	drug.week_record_id,
+# 	drug.delivered_id,
+# 	drug.medicament_id;
+
+
 class MatDrugEntity2(models.Model):
     uuid = models.UUIDField(
         primary_key=True, default=uuid_lib.uuid4, editable=False)
     cluster = models.ForeignKey(
         Cluster, on_delete=models.DO_NOTHING, default='first')
     week_record = models.ForeignKey(
-        WeekRecord, on_delete=models.CASCADE)
+        WeekRecord, on_delete=models.DO_NOTHING)
     delivered = models.ForeignKey(
-        Delivered, on_delete=models.CASCADE)
+        Delivered, on_delete=models.DO_NOTHING)
     medicament = models.ForeignKey(
-        Medicament, on_delete=models.CASCADE)
+        Medicament, on_delete=models.DO_NOTHING)
     prescribed_total = models.IntegerField()
     delivered_total = models.IntegerField()
     total = models.IntegerField()
@@ -307,6 +328,55 @@ class MatDrugEntity2(models.Model):
 
     def __str__(self):
         return f"{self.week_record} -- {self.delivered} -- {self.medicament}"
+
+
+# ViewDrugEntity2
+# SELECT
+# 	gen_random_uuid() AS uuid,
+# 	drug.cluster_id,
+# 	week.provider_id,
+# 	drug.week_record_id,
+# 	week.year AS year,
+# 	week.month AS month,
+# 	week.iso_week AS iso_week,
+# 	week.iso_year AS iso_year,
+# 	medicine.id AS medicine_id,
+# 	COALESCE(sum(drug.prescribed_amount), 0) AS prescribed_total,
+# 	COALESCE(sum(drug.delivered_amount), 0) AS delivered_total,
+# 	COALESCE(sum(drug.total), 0) AS total
+# FROM mat_drug_entity2 drug
+# LEFT JOIN view_medicine medicine ON drug.medicament_id = medicine.container_id
+# JOIN inai_entityweek week ON drug.week_record_id = week.id
+# GROUP BY
+# 	drug.cluster_id,
+# 	drug.delegation_id,
+# 	drug.week_record_id,
+# 	drug.delivered_id,
+# 	drug.medicament_id;
+
+
+class ViewDrugEntity2(models.Model):
+    uuid = models.UUIDField(
+        primary_key=True, default=uuid_lib.uuid4, editable=False)
+    week_record = models.ForeignKey(
+        WeekRecord, on_delete=models.DO_NOTHING)
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    year_week = models.CharField(max_length=10)
+    iso_week = models.PositiveSmallIntegerField()
+    iso_year = models.PositiveSmallIntegerField()
+    provider = models.ForeignKey(Provider, on_delete=models.DO_NOTHING)
+    medicine = models.ForeignKey(ViewMedicine, on_delete=models.DO_NOTHING)
+    prescribed_total = models.IntegerField()
+    delivered_total = models.IntegerField()
+    total = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'view_drug_entity2'
+
+    def __str__(self):
+        return f"{self.week_record} -- {self.medicine}"
 
 
 class MatDrug(models.Model):

@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from med_cat.models import MedicalUnit, Delivered, Medicament
+from med_cat.models import Delivered, Medicament
 from geo.models import CLUES, Delegation, Provider
 from inai.models import WeekRecord
 from medicine.models import Container

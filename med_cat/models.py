@@ -117,11 +117,11 @@ class Medicament(models.Model):
         help_text="ent")
     # ⚠️ No mover los campos de arriba
     component = models.ForeignKey(
-        Component, on_delete=models.CASCADE, blank=True, null=True)
+        Component, on_delete=models.DO_NOTHING, blank=True, null=True)
     presentation = models.ForeignKey(
-        Presentation, on_delete=models.CASCADE, blank=True, null=True)
+        Presentation, on_delete=models.DO_NOTHING, blank=True, null=True)
     container = models.ForeignKey(
-        Container, on_delete=models.CASCADE, blank=True, null=True)
+        Container, on_delete=models.DO_NOTHING, blank=True, null=True)
     key2 = models.CharField(
         max_length=20, help_text="key2", blank=True, null=True)
     own_key2 = models.CharField(

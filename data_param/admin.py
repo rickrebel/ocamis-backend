@@ -61,7 +61,7 @@ class FinalFieldInLine(admin.StackedInline):
             "classes": ("collapse",),
             "fields": (
                 "is_required", "is_common", "dashboard_hide",
-                "variations", "addl_params")
+                "addl_params")
         }),
         )
 

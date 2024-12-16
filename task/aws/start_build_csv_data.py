@@ -483,13 +483,15 @@ class TransformToCsv:
             if not divided_char:
                 continue
             origin_value = row[divided_col["position"]]
+            has_nulls = False
             if text_nulls := divided_col.get("text_nulls"):
                 text_nulls = text_nulls.split(",")
                 text_nulls = [text_null.strip() for text_null in text_nulls]
                 # Si hay que convertir a null y null tiene valor, se vale
-                if origin_value in text_nulls:
-                    null_to_value = get_null_to_value(divided_col)
-                    origin_value = null_to_value
+                has_nulls = origin_value in text_nulls
+            if has_nulls or origin_value in ["NULL", "null"]:
+                null_to_value = get_null_to_value(divided_col)
+                origin_value = null_to_value
             if origin_value is None:
                 continue
             destiny_cols = divided_col["destiny_cols"]
@@ -560,6 +562,9 @@ class TransformToCsv:
                 self.some_date = value
         if not value:
             return value
+        if value in ["NULL", "null"]:
+            null_to_value = get_null_to_value(field)
+            value = null_to_value
         if "almost_empty" in field:
             value = None
         elif "text_nulls" in field:
@@ -637,26 +642,34 @@ class TransformToCsv:
                 value = str(value)
                 if self.not_unicode:
                     value = convert_to_str(value)
+                if field["data_type"] == "Char":
+                    value = value.strip()
+                    max_length = field.get("max_length")
+                    if max_length and len(value) > max_length:
+                        error = "Hay más caracteres que los permitidos"
+                        raise ValueProcessError(error, value, f"{max_length} max")
+
         except ValueError:
             error = "No se pudo convertir a %s" % field["data_type"]
             raise ValueProcessError(error, value, "ValueError")
-        if value:
-            regex_format = field.get("regex_format")
-            has_own_key = field.get("has_own_key")
-            need_check = regex_format and not has_own_key
-            if field.get("is_list"):
-                for val in value:
-                    if need_check and not re.match(regex_format, val):
-                        error = f"No pasó validación con el formato de {field_name}"
-                        raise ValueProcessError(error, value)
-            elif need_check:
-                if not re.match(regex_format, value):
-                    raise ValueProcessError(
-                        f"No se validó con el formato de {field_name}", value)
-            elif field.get("max_length"):
-                if len(value) > field["max_length"]:
-                    raise ValueProcessError(
-                        "Hay más caracteres que los permitidos", value)
+        if not value:
+            return value
+        regex_format = field.get("regex_format")
+        has_own_key = field.get("has_own_key")
+        need_check = regex_format and not has_own_key
+        if field.get("is_list"):
+            for val in value:
+                if need_check and not re.match(regex_format, val):
+                    error = f"No pasó validación con el formato de {field_name}"
+                    raise ValueProcessError(error, value)
+        elif need_check:
+            if not re.match(regex_format, value):
+                raise ValueProcessError(
+                    f"No se validó con el formato de {field_name}", value)
+        elif field.get("max_length"):
+            if len(value) > field["max_length"]:
+                raise ValueProcessError(
+                    "Hay más caracteres que los permitidos", value)
         return value
 
     def generic_match(self, cat_name, available_data, is_first=False):
@@ -676,6 +689,7 @@ class TransformToCsv:
             value = available_data.get(f"{cat_name}_{field_name}", None)
             if is_med_unit or is_medicament:
                 is_key = field_name in ["key2", "clues_key"]
+                # TODO: Revisar si de verdad funciona has_own_key
                 has_own_key = flat_field.get("has_own_key")
                 if value and is_key and has_own_key:
                     regex_format = flat_field["regex_format"]

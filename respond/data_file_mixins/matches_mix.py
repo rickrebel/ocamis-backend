@@ -240,26 +240,28 @@ class MatchTransform(BaseTransform):
         build_errors = []
 
         def build_column_data(name_col, final_name=None):
-
-            data_type = name_col.final_field.data_type.name if \
-                name_col.final_field.data_type else None
+            ff = name_col.final_field
+            addl_params = ff.addl_params or {}
+            max_length = addl_params.get("max_length")
+            data_type = ff.data_type.name if ff.data_type else None
             new_column = {
                 "name": final_name,
                 "name_column": name_col.id,
                 "name_in_data": name_col.name_in_data,
                 "position": name_col.position_in_data,
                 "required_row": name_col.required_row,
-                "name_field": name_col.final_field.name,
-                "public_name": name_col.final_field.verbose_name,
-                "final_field_id": name_col.final_field.id,
-                "collection": name_col.final_field.collection.model_name,
+                "name_field": ff.name,
+                "public_name": ff.verbose_name,
+                "final_field_id": ff.id,
+                "collection": ff.collection.model_name,
                 "data_type": data_type,
-                "regex_format": name_col.final_field.regex_format,
+                "max_length": max_length,
+                "regex_format": ff.regex_format,
                 "column_type": name_col.column_type.name,
                 "parent": name_col.parent_column.id if name_col.parent_column else None,
                 "child": name_col.child_column.id if name_col.child_column else None,
             }
-            if name_col.final_field.collection.model_name == "Diagnosis":
+            if ff.collection.model_name == "Diagnosis":
                 new_column["is_list"] = True
             is_special_column = name_col.column_type.name != "original_column"
             if is_special_column:
