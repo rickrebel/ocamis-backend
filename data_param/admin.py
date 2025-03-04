@@ -61,7 +61,7 @@ class FinalFieldInLine(admin.StackedInline):
             "classes": ("collapse",),
             "fields": (
                 "is_required", "is_common", "dashboard_hide",
-                "variations", "addl_params")
+                "addl_params")
         }),
         )
 
@@ -187,6 +187,7 @@ class TransformationAdmin(admin.ModelAdmin):
         "name_column",
         "addl_params",
     ]
+    list_filter = ["clean_function"]
     raw_id_fields = ["name_column", "file_control"]
 
 

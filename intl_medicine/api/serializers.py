@@ -18,8 +18,7 @@ class RespondentSimpleSerializer(serializers.ModelSerializer):
 
 
 class RespondentSerializer(serializers.ModelSerializer):
-    responses = ResponsesSerializer(
-        source="presentations", many=True, read_only=True)
+    responses = ResponsesSerializer(many=True, read_only=True)
 
     class Meta:
         model = Respondent

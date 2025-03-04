@@ -217,7 +217,7 @@ class FinalField(models.Model):
     )
 
     collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE)
+        Collection, on_delete=models.CASCADE, related_name="final_fields")
     parameter_group = models.ForeignKey(
         ParameterGroup, on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(
@@ -231,11 +231,6 @@ class FinalField(models.Model):
         verbose_name="Otras configuraciones",
         help_text="Por ejemplo, max_length, null, blank, help_text, "
                      "django_field, así como otras que aparezcan")
-    variations = JSONField(
-        blank=True, null=True,
-        verbose_name="Otros posibles nombres (variaciones)",
-        help_text="Nombres como pueden venir en las tablas de INAI",
-    )
     regex_format = models.CharField(max_length=255, blank=True, null=True)
     is_required = models.BooleanField(
         default=False, verbose_name="Es indispensable para registrar fila")

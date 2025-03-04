@@ -54,12 +54,17 @@ class RegexFormat:
 
     def is_match(self, re_format):
         final_format = re_format or self.re_format
+        many_errors = False
         for case in self.cases:
-            if self.show_errors and self.errors_count > self.limit_errors:
-                print("Too many errors")
-                break
+            if not many_errors:
+                many_errors = self.errors_count > self.limit_errors
+                if many_errors and self.show_errors:
+                    print("Too many errors")
+            # if self.show_errors and self.errors_count > self.limit_errors:
+            #     print("Too many errors")
+            #     break
             if not re.match(final_format, case):
-                if self.show_errors:
+                if self.show_errors and not many_errors:
                     print(f"No match: {case}")
                 self.errors_count += 1
             elif self.show_success:
@@ -189,7 +194,7 @@ def medicine_keys(measure_times=0):
     regex_format.execute(action='is_match')
 
 
-medicine_keys(0)
+# medicine_keys(0)
 
 
 def init_examples():
@@ -216,3 +221,47 @@ def inai_examples():
     line_matches = second_pattern.findall(example)
     print(len(line_matches[0]))
 
+
+def cofepris_codes(measure_times=0, from_file=False):
+    # No match: 004H2015 SSA validar
+    # No match: 019H2015 SSA validar
+    # No match: 006P2016 SSA validar
+    # No match: 007P2016 SSA validar
+    # No match: 044m86 SSA
+    # No match: 008RH2018 SSA validar
+    # No match: 003P2018 SSA validar
+    # No match: 009RH2018 SSA validar
+    import json
+    file_path = "C:/Users/Ricardo/dev/desabasto/slate3k_pdf_imss/media/cofepris_data.json"
+    if from_file:
+        examples = []
+        with open(file_path, encoding="utf-8", mode="r") as file:
+            all_keys = json.load(file)
+        for key in all_keys:
+            examples.append(key["Número de Registro:"])
+    else:
+        examples = [
+            "001M84, SSA IV",
+            "001M84, SSAIV",
+            "004M2020 SSA",
+            "293M2018 SSA",
+            "003P96 SSA",
+            # New examples for new regex
+            "89570 SSA",
+            "123M2012, SSA IV",
+            "82231, SSA IV",
+        ]
+    keys_res = [
+        # re.compile(r'^\d{3,4}[A-Z]\d{2,4}(?:,? SSA)?\s?(?:IV)?$'),
+        # new regex
+        # re.compile(r'^(0?\d{2,4}/?[RV]?[A-Z]/?\d{2,4}|\d{3,5})\s?(?:,?SSA)?\s?(?:IV)?$'),
+        re.compile(r'^(0?\d{2,4}/?[RV]?[A-Z]/?\d{2,4}|\d{3,5}(NF)?)[\s|,]{0,3}(SSA)\s?(?:IV)?$'),
+        re.compile(r'^(0?\d{2,4}/?[RV]?[A-Z]/?\d{2,4}|\d{3,5}(NF)?)[\s|,]{0,3}(SSA)\s?(?:[IV]{1,3})?$'),
+        # re.compile(r'^\d{3,4}[A-Z]\d{2,4}\s?(?:,?SSA)?\s?(?:IV)?$'),
+    ]
+    regex_format = RegexFormat(keys_res, cases=examples, measure_times=measure_times)
+    # regex_format.show_success = False
+    regex_format.execute(action='is_match')
+
+
+cofepris_codes(0, False)
