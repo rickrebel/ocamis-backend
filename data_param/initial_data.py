@@ -47,7 +47,7 @@ def field_of_models(collection: Collection):
             ff.addl_params = addl_params
         else:
             continue
-        ff.save()
+        # ff.save()
 
     final_field_names = set(collection.final_fields.values_list("name", flat=True))
     for name in final_field_names:

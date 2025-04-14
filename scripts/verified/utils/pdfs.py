@@ -35,6 +35,20 @@ def coding_and_read_with_pdfminer(font='DejaVu Sans'):
         extract_text_to_fp(
             f, output_string, laparams=LAParams(), output_type='text', codec=None)
 
+def read_from_url():
+    import requests
+    base = "https://candidaturaspoderjudicial.ine.mx/cycc/documentos/cv/CV_"
+    ids = [16479, 15714, 15686, 16128, 15058, 14818, 17315, 16954]
+    for id_ine in ids[:2]:
+        url = f"{base}{id_ine}.pdf"
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(f"CV_{id_ine}.pdf", 'wb') as f:
+                f.write(response.content)
+            print(f"Downloaded {url}")
+        else:
+            print(f"Failed to download {url}")
+
 
 # # BUENOS
 
@@ -42,7 +56,8 @@ def read_with_pymupdf(font='DejaVu Sans'):
     import fitz
     # file_path = "fixture/especiales/UMAE_GIN_NUEVO_LEON_REQ_18023022639_MAYO_2023.pdf"
     # file_path = "fixture/especiales/UMAE_PEDIATRIA_SXXI_enero_2021.pdf"
-    file_path = "fixture/especiales/UMAE_TRAUMA_PUEBLA_REQ_18023022639_MAYO_2023.pdf"
+    # file_path = "fixture/especiales/UMAE_TRAUMA_PUEBLA_REQ_18023022639_MAYO_2023.pdf"
+    file_path = "https://candidaturaspoderjudicial.ine.mx/cycc/documentos/cv/CV_15714.pdf"
     # file_path = "fixture/especiales/330018021009264.pdf"
     pdf = fitz.open(file_path)
     print(pdf.page_count)
@@ -68,6 +83,8 @@ def simple_decode_char(char):
 
 
 def read_with_pypdf2():
+    import requests
+    import io
     import PyPDF2
     import codecs
     import chardet
@@ -79,9 +96,12 @@ def read_with_pypdf2():
     # file_path = "fixture/especiales/UMAE_PEDIATRIA_SXXI_enero_2021.pdf"
     # file_path = "fixture/especiales/QROO_REQ_18023022639_MAYO_2023.pdf"
     # file_path = "fixture/especiales/UMAE_TRAUMA_PUEBLA_REQ_18023022639_MAYO_2023.pdf"
-    file_path = "fixture/especiales/YUCATAN_febrero_2021.pdf"
+    # file_path = "fixture/especiales/YUCATAN_febrero_2021.pdf"
+    url = "https://candidaturaspoderjudicial.ine.mx/cycc/documentos/cv/CV_16511.pdf"
     print("Start at:", timezone.now())
-    pdf = PyPDF2.PdfReader(stream=file_path)
+    response = requests.get(url)
+    pdf_file = io.BytesIO(response.content)
+    pdf = PyPDF2.PdfReader(stream=pdf_file)
     print(len(pdf.pages))
     final_text = ''
     # for page in pdf.pages:

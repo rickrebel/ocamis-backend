@@ -147,9 +147,7 @@ GROUP BY
 -- 	'(format csv, header true, delimiter "|", encoding "UTF8")',
 -- 	'cdn-desabasto',
 -- 	'data_files/mat_views/mat_drug_entity2.csv',
--- 	'us-west-2',
--- 	'AKIAICSGL3ROH3GVALGQ',
--- 	'fFq7NwQyj/FmdtK/weXRwgrlEArkOatITD/mJYzL'
+--  ...
 -- );
 
 -- SELECT aws_commons.create_s3_uri(

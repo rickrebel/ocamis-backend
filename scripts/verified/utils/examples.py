@@ -1,4 +1,4 @@
-from scripts.verified.utils.storage_classes import TestStorage
+from scripts.verified.utils.s3_storage_classes import TestStorage
 
 test_storage = TestStorage()
 self = test_storage
